@@ -2,6 +2,7 @@
 import random
 import tempfile
 import unittest
+from unittest.mock import patch
 from pathlib import Path
 import torch
 from ..hat_minkron.train import optimizer_for
@@ -41,7 +42,8 @@ class ViewTrainingChecks(unittest.TestCase):
         fingerprints, counts = set(), set()
         for views, utility in ((False, False), (True, False), (False, True), (True, True)):
             learner = self.learner(views, utility)
-            fingerprints.add(tensor_fingerprint(learner))
+            with patch.object(torch.Tensor, 'numpy', side_effect=RuntimeError('NumPy is unavailable')):
+                fingerprints.add(tensor_fingerprint(learner))
             counts.add(sum(p.numel() for p in learner.parameters()))
             self.assertTrue(learner.baseline_enabled)
             self.assertEqual(learner.baseline_weight, .1)

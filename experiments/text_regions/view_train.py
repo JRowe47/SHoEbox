@@ -24,7 +24,9 @@ def tensor_fingerprint(model):
     for name,value in model.state_dict().items():
         value=value.detach().cpu().contiguous()
         digest.update(name.encode());digest.update(str(value.dtype).encode())
-        digest.update(str(tuple(value.shape)).encode());digest.update(value.numpy().tobytes())
+        digest.update(str(tuple(value.shape)).encode())
+        # Hash the exact tensor bytes without an optional NumPy installation.
+        digest.update(bytes(value.reshape(-1).view(torch.uint8).tolist()))
     return digest.hexdigest()
 
 
