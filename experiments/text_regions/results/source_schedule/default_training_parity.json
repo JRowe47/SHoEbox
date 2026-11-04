@@ -1,0 +1,83 @@
+{
+  "parity_schema": 1,
+  "passed": true,
+  "prior_revision": "f50cae0126cc1585518932a3f0c9f979b0d47ea4",
+  "comparison": "Bitwise exact CPU float32; no tolerance",
+  "source_hashes": {
+    "prior_view_train_sha256": "27f7b6e2034551c223cb0847460a6c81dc931d87e28d7196dfc5aeee89376332",
+    "current_view_train_sha256": "13a703a8a96673bb3f02e5856212d869ae38bbec2588a48b1a75e1dd710c748e",
+    "prior_view_data_sha256": "26ee5499c2f8806887cf7d7b2ab4a88173682722fad086e2911268b4a6e4673f",
+    "current_view_data_sha256": "289ae88e5878bb5873c4c0885b637d8db5b53c5ffe606801b9eb11ff63583ac6",
+    "unchanged_learning_sha256": "4af4f3c301dc3af9c1816da939aa4b751edaa2d0e6b2c4187b1bbf9a392b41df"
+  },
+  "configuration": {
+    "batch_size": 32,
+    "gap": 8,
+    "query_every": 4,
+    "seed": 20261106,
+    "dropout": 0.25,
+    "source_schedule": "dropout (default)",
+    "segment": 16,
+    "steps": 240,
+    "lr": 0.002,
+    "threads": 2,
+    "view_objective": true,
+    "utility": false,
+    "baseline_detach_features": false,
+    "baseline_observed_only": false,
+    "evidence_gated_ports": true
+  },
+  "initializer": {
+    "path": "artifacts/probes/correction_warm150/checkpoint.pt",
+    "sha256": "dc63c0f9db7c590e889f753b508c0bec131dcbbeeb8bfd6dc1bebe551271cef3",
+    "initial_tensor_sha256": "de64c8a4500484c967e86eebc32bc577b7651be1eebc4ee68b730b3b49005053"
+  },
+  "initial_weights_optimizer_rng_equal": true,
+  "identical_old_and_new_input_batches": true,
+  "same_rng_before_each_paired_step": true,
+  "steps": [
+    {
+      "step": 1,
+      "batch": 32,
+      "length": 16,
+      "time_offset": 0,
+      "loss": 3.4430456161499023,
+      "ce": 2.5733654499053955,
+      "gradient_norm": 11.541415214538574,
+      "parameter_gradient_entries_compared": 691,
+      "non_none_gradients": 659,
+      "expert_executions": 43008,
+      "all_assertions_passed": true
+    },
+    {
+      "step": 2,
+      "batch": 32,
+      "length": 9,
+      "time_offset": 16,
+      "loss": 3.702728271484375,
+      "ce": 2.833043098449707,
+      "gradient_norm": 20.480058670043945,
+      "parameter_gradient_entries_compared": 691,
+      "non_none_gradients": 659,
+      "expert_executions": 24192,
+      "all_assertions_passed": true
+    }
+  ],
+  "assertions": [
+    "all prior training metrics excluding seconds",
+    "logits and losses",
+    "all raw parameter gradients",
+    "all clipped parameter gradients",
+    "updated weights and buffers",
+    "optimizer state",
+    "carried graph state",
+    "RNG",
+    "equal expert executions"
+  ],
+  "permitted_differences": [
+    "wall-clock seconds",
+    "added source_exposure metric",
+    "added source_schedule=dropout in stream specification"
+  ],
+  "elapsed_seconds": 11.737221635994501
+}

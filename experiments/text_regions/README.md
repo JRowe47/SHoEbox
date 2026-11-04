@@ -294,7 +294,7 @@ Step metrics, periodic histories and cumulative summaries include eligible, obse
 
 `observability_compare.py` uses the same comparison engine as `baseline_compare.py`. Its manifest names `original` and `observed` arms at a declared publication policy, with optional `detached` results for context. The primary pair may differ only in `baseline_observed_only`, with detachment disabled. The comparator independently reconstructs causal target eligibility from source fact positions, availability and resets, and checks the recorded count audit even when general coverage reconstruction is disabled. Detached context is separately validated against the original arm.
 
-The completed three-seed gated comparison yields 68.6% held-out overall, 61.0% private and 70.3% B-only accuracy, versus 68.2%, 57.9% and 85.1% for the original baseline. The seed-1 original-policy control also falls from 79.0% to 71.2% overall. Observed-only supervision remains default-off; the next experiment balances supported whole-source visibility without changing loss settings. The [report](../../docs/SHoEbox_Source_Observability_Report.md) includes exact target audits and all three baseline variants.
+The completed three-seed gated comparison yields 68.6% held-out overall, 61.0% private and 70.3% B-only accuracy, versus 68.2%, 57.9% and 85.1% for the original baseline. The seed-1 original-policy control also falls from 79.0% to 71.2% overall. Observed-only supervision remains default-off; the balanced-source experiment below tests supported whole-source visibility without changing loss settings. The [report](../../docs/SHoEbox_Source_Observability_Report.md) includes exact target audits and all three baseline variants.
 
 ```bash
 python -m experiments.text_regions.observability_compare \
@@ -336,3 +336,5 @@ python -m experiments.text_regions.source_schedule_compare \
   --manifest experiments/text_regions/results/source_schedule/manifest.json \
   --out artifacts/reproduction/source_schedule_comparison.json
 ```
+
+The completed six-pair study raises mean B-only shared recovery from **35.1% to 99.8%** under original publication and **85.1% to 96.5%** under evidence gating. Held-out overall accuracy falls from **78.2% to 61.5%** and **68.2% to 63.4%**; private accuracy falls from **75.6% to 50.1%** and **57.9% to 49.5%**. The default schedule remains unchanged. The [report](../../docs/SHoEbox_Balanced_Source_Report.md) records per-seed results, exact source/auxiliary exposure, and the next frozen-graph readout diagnostic.
