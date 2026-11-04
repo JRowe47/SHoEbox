@@ -167,6 +167,18 @@ class EvidenceComparisonChecks(unittest.TestCase):
                 with self.assertRaisesRegex(ValueError, message): self.compare()
                 (self.fixture.root/path).write_text(original)
 
+    def test_legacy_baseline_flags_accept_explicit_false_reruns_but_preserve_true(self):
+        flags = {'baseline_detach_features': False, 'baseline_observed_only': False}
+        self.fixture.change('seed1/gated/protocol.json', lambda protocol: protocol.update(flags))
+        self.fixture.change('seed1/gated/protocol.json', lambda protocol: protocol['learner_config'].update(flags))
+        for inference in ('original', 'gated'):
+            self.fixture.change(f'seed1/original/evaluations/{inference}/results.json',
+                                lambda result: result['protocol'].update(flags))
+        self.assertEqual(self.compare()['verified_pair_count'], 1)
+        path = 'seed1/gated/protocol.json'
+        self.fixture.change(path, lambda protocol: protocol['learner_config'].update(baseline_observed_only=True))
+        with self.assertRaisesRegex(ValueError, 'learner configurations differ'): self.compare()
+
     def test_evaluation_fingerprint_policy_budget_and_reported_counts_rejected(self):
         path = 'seed1/original/evaluations/gated/results.json'
         cases = (

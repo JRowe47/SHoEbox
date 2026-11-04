@@ -114,6 +114,85 @@ class LearningChecks(unittest.TestCase):
         self.assertFalse(restored_legacy.baseline_detach_features)
         self.assertEqual(restored_legacy.get_config(), {**legacy, 'baseline_detach_features': False})
 
+    def test_observed_all_true_preserves_default_values_and_baseline_gradients(self):
+        default = RegionLearningModel(self.model, baseline_enabled=True, baseline_view='A', utility=self.utility())
+        restricted = RegionLearningModel.from_config({**default.get_config(), 'baseline_observed_only': True})
+        restricted.load_state_dict(default.state_dict())
+        mask = torch.ones_like(self.targets, dtype=torch.bool)
+        available = torch.tensor([[True, False], [True, True]])
+        first = default(self.inputs, self.targets, availability={'A': available})
+        audited = default(self.inputs, self.targets, availability={'A': available}, baseline_observed_mask=~mask)
+        second = restricted(self.inputs, self.targets, availability={'A': available}, baseline_observed_mask=mask)
+        for key in ('logits', 'baseline_logits', 'baseline_ce', 'baseline_loss', 'language_loss', 'loss'):
+            torch.testing.assert_close(first[key], audited[key], rtol=0, atol=0)
+            torch.testing.assert_close(first[key], second[key], rtol=0, atol=0)
+        self.assertEqual(second['baseline_supervision'], {'eligible': 3, 'observed': 3, 'used': 3, 'suppressed': 0})
+        self.assertEqual(audited['baseline_supervision'], {'eligible': 3, 'observed': 0, 'used': 3, 'suppressed': 0})
+        first['baseline_loss'].backward(); second['baseline_loss'].backward()
+        for (name, parameter), (_, other) in zip(default.named_parameters(), restricted.named_parameters()):
+            if parameter.grad is None:
+                self.assertIsNone(other.grad, name)
+            else:
+                torch.testing.assert_close(parameter.grad, other.grad, rtol=0, atol=0)
+        self.assertGreater(float(restricted.baseline.weight.grad.abs().sum()), 0)
+        self.assertGreater(float(restricted.model.hat.byte_embedding.weight.grad.abs().sum()), 0)
+
+    def test_observed_mask_uses_original_denominator_without_changing_inference_or_utility(self):
+        learner = RegionLearningModel(self.model, baseline_enabled=True, baseline_view='A', utility=self.utility(),
+                                      baseline_observed_only=True)
+        targets = self.targets.clone(); targets[0, 1] = -100
+        available = torch.tensor([[True, True], [True, False]])
+        mixed = torch.tensor([[True, True], [False, True]])
+        first = learner(self.inputs, targets, availability={'A': available}, baseline_observed_mask=mixed)
+        expected = F.cross_entropy(first['baseline_logits'][0, :1], targets[0, :1])/2
+        torch.testing.assert_close(first['baseline_ce'], expected, rtol=0, atol=0)
+        self.assertEqual(first['baseline_supervision'], {'eligible': 2, 'observed': 1, 'used': 1, 'suppressed': 1})
+        self.assertEqual(first['utility_packet'].supervised_events, 2)
+        zero = learner(self.inputs, targets, availability={'A': available},
+                       baseline_observed_mask=torch.zeros_like(mixed))
+        unmasked = RegionLearningModel.from_config({**learner.get_config(), 'baseline_observed_only': False})
+        unmasked.load_state_dict(learner.state_dict())
+        original = unmasked(self.inputs, targets, availability={'A': available})
+        for other in (zero, original):
+            for key in ('logits', 'baseline_logits', 'language_loss'):
+                torch.testing.assert_close(first[key], other[key], rtol=0, atol=0)
+            self.assert_states_equal(first['state'], other['state'])
+            for key, value in vars(first['utility_packet']).items():
+                actual = getattr(other['utility_packet'], key)
+                if torch.is_tensor(value): torch.testing.assert_close(value, actual, rtol=0, atol=0)
+                else: self.assertEqual(value, actual)
+        self.assertEqual(float(zero['baseline_loss'].detach()), 0.)
+        zero['baseline_loss'].backward(retain_graph=True)
+        self.assertTrue(all(p.grad is None or not bool(p.grad.any()) for p in learner.parameters()))
+        self.assertIsNotNone(learner.baseline.weight.grad)
+        self.assertIsNotNone(learner.model.hat.byte_embedding.weight.grad)
+        learner.zero_grad(set_to_none=True)
+        zero['language_loss'].backward()
+        self.assertGreater(float(learner.model.hat.byte_embedding.weight.grad.abs().sum()), 0)
+        self.assertGreater(float(learner.model.readout.weight.grad.abs().sum()), 0)
+        self.assertIsNone(learner.baseline.weight.grad)
+
+    def test_observation_metadata_validation_label_free_inference_and_legacy_config(self):
+        learner = RegionLearningModel(self.model, baseline_enabled=True, baseline_view='A', baseline_observed_only=True)
+        for mode in (True, False):
+            learner.train(mode)
+            with self.assertRaisesRegex(ValueError, 'requires a baseline observation mask'):
+                learner(self.inputs, self.targets)
+            result = learner(self.inputs)
+            self.assertIsNone(result['loss'])
+            self.assertIsNone(result['baseline_supervision'])
+        for bad in (torch.ones_like(self.targets), torch.ones(2, 1, dtype=torch.bool),
+                    torch.ones(2, 2, dtype=torch.bool, device='meta'), [[True, True], [True, True]]):
+            with self.assertRaisesRegex(ValueError, 'boolean \\[B,T\\]'):
+                learner(self.inputs, self.targets, baseline_observed_mask=bad)
+        for detach in (False, True):
+            config = {**learner.get_config(), 'baseline_detach_features': detach}
+            self.assertEqual(RegionLearningModel.from_config(config).get_config(), config)
+        legacy = learner.get_config(); legacy.pop('baseline_observed_only')
+        self.assertFalse(RegionLearningModel.from_config(legacy).baseline_observed_only)
+        with self.assertRaises(ValueError):
+            RegionLearningModel(self.model, baseline_observed_only=1)
+
     def test_private_trained_model_supports_inference_without_private_labels(self):
         objective = PairedViewObjective(self.cfg.width, cfg=ViewObjectiveConfig(private_enabled=True))
         learner = RegionLearningModel(self.model, view_objective=objective).eval()
@@ -171,7 +250,8 @@ class LearningChecks(unittest.TestCase):
 
     def test_ignored_target_chunks_are_legal_and_do_not_create_feedback(self):
         ignored = torch.full_like(self.targets, -100)
-        for learner in (RegionLearningModel(self.model), RegionLearningModel(self.model, utility=self.utility())):
+        for learner in (RegionLearningModel(self.model), RegionLearningModel(self.model, utility=self.utility()),
+                        RegionLearningModel(self.model, utility=self.utility(), baseline_observed_only=True)):
             result = learner(self.x, ignored)
             self.assertEqual(float(result['loss'].detach()), 0)
             self.assertEqual(float(result['ce'].detach()), 0)

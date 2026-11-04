@@ -8,7 +8,7 @@ from pathlib import Path
 import tempfile
 import unittest
 
-from .baseline_compare import DETACH, compare_manifest, main
+from .baseline_compare import DETACH, OBSERVED, compare_manifest, main
 from .test_evidence_compare import Fixture, digest
 
 
@@ -180,6 +180,12 @@ class BaselineComparisonChecks(unittest.TestCase):
         duplicate = deepcopy(self.fixture.pairs[0]); duplicate['name'] = 'duplicate'
         self.fixture.pairs.append(duplicate)
         with self.assertRaisesRegex(ValueError, 'duplicate seed pair'): self.compare()
+
+    def test_detach_contrast_forbids_observability_differences(self):
+        path = 'seed1/detached/protocol.json'
+        self.fixture.change(path, lambda protocol: protocol.update({OBSERVED: True}))
+        self.fixture.change(path, lambda protocol: protocol['learner_config'].update({OBSERVED: True}))
+        with self.assertRaisesRegex(ValueError, 'training protocols differ'): self.compare()
 
     def test_deterministic_stream_reconstructs_matched_source_and_query_exposure(self):
         from .view_data import ViewStream

@@ -203,6 +203,24 @@ class ViewBatch:
             targets[view] = values.masked_fill(indices < 0, IGNORE)
         return targets
 
+    def baseline_observed_mask(self, view):
+        """Whether this available source has observed the requested factor.
+
+        Causal target-presence metadata retains knowledge across slices and
+        clears it at resets. Equal-valued unrelated factors do not establish
+        knowledge. This loss mask never becomes a model input.
+        """
+        if view not in VIEWS: raise ValueError('Unknown source view.')
+        available = self.availability[view]
+        shared_rows = torch.tensor([query == 'shared' for query in self.query_types],
+                                   dtype=torch.bool, device=available.device)[:, None]
+        observed = shared_rows & self.shared_targets[view].ne(IGNORE)
+        if view in PRIVATE_FACTORS:
+            private_rows = torch.tensor([query == PRIVATE_FACTORS[view] for query in self.query_types],
+                                        dtype=torch.bool, device=available.device)[:, None]
+            observed |= private_rows & self.private_targets[view].ne(IGNORE)
+        return observed & available
+
     def slice(self, start, stop):
         if not 0 <= start < stop <= self.length: raise ValueError('Invalid nonempty time slice.')
         temporal = lambda values: {key: value[:, start:stop] for key, value in values.items()}

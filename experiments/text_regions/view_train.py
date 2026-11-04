@@ -30,7 +30,8 @@ def tensor_fingerprint(model):
     return digest.hexdigest()
 
 
-def build_learner(cfg, view_enabled=False, utility_enabled=False, base_checkpoint=None, baseline_detach_features=False):
+def build_learner(cfg, view_enabled=False, utility_enabled=False, base_checkpoint=None, baseline_detach_features=False,
+                  baseline_observed_only=False):
     """All four variants allocate the same heads and train the same baseline.
 
     Set the initialization RNG before calling. Switches do not change random
@@ -56,14 +57,16 @@ def build_learner(cfg, view_enabled=False, utility_enabled=False, base_checkpoin
                            enabled=utility_enabled)
     return RegionLearningModel(base,view_objective=views,utility=utility,
                                baseline_enabled=True,baseline_view='A',baseline_weight=.1,
-                               baseline_detach_features=baseline_detach_features)
+                               baseline_detach_features=baseline_detach_features,
+                               baseline_observed_only=baseline_observed_only)
 
 
 def train_step(model,optimizer,batch,state=None):
     model.train();optimizer.zero_grad(set_to_none=True)
     started=time.perf_counter()
     result=model(batch.inputs,batch.targets,state=state,reset=batch.reset,
-                 availability=batch.availability,private_targets=batch.pooled_private_targets())
+                 availability=batch.availability,private_targets=batch.pooled_private_targets(),
+                 baseline_observed_mask=batch.baseline_observed_mask(model.baseline_view))
     has_labels=bool((batch.targets!=-100).any())
     view_on=any(value for name,value in vars(model.view_objective.cfg).items() if name.endswith('_enabled'))
     update=has_labels or view_on
@@ -77,24 +80,31 @@ def train_step(model,optimizer,batch,state=None):
         model.commit_feedback(result.get('utility_packet'))
     state=result['state'].detach();prediction=result['logits'].detach().argmax(-1)
     by_query={}
+    supervision=empty_baseline_supervision()
+    supervision.update(result['baseline_supervision'],recorded_segments=1)
     for row,kind in enumerate(batch.query_types):
         selected=batch.final[row]
         entry=by_query.setdefault(kind,{'correct':0,'count':0})
         entry['correct']+=int((prediction[row,selected]==batch.targets[row,selected]).sum())
         entry['count']+=int(selected.sum())
+        for key in ('eligible','observed','used','suppressed'):
+            supervision['by_query'][kind][key]+=int(result['baseline_supervision_by_row'][key][row])
     metrics={'loss':float(result['loss'].detach()),'ce':float(result['ce'].detach()),
              'gradient_norm':float(norm),'optimizer_steps':int(update),
              'external_events':result['external_events'],'source_occurrences':result['source_occurrences'],
              'expert_executions':result['expert_executions'],'seconds':time.perf_counter()-started,
              'state_bytes':state.storage_bytes(),'by_query':by_query,
+             'baseline_supervision':supervision,
              'auxiliary':auxiliary_metrics(result),'utility_updates':int(model.utility.feedback_updates)}
     return state,metrics,result['logits'].detach()
 
 
 def save_view_checkpoint(path,model,optimizer,state,stream,step,protocol,totals):
-    protocol={'baseline_detach_features':model.baseline_detach_features,**protocol}
-    if protocol['baseline_detach_features'] != model.baseline_detach_features:
-        raise ValueError('Checkpoint protocol and baseline detachment configuration differ.')
+    protocol=dict(protocol)
+    for key in ('baseline_detach_features','baseline_observed_only'):
+        protocol.setdefault(key,getattr(model,key))
+        if not isinstance(protocol[key],bool) or protocol[key] != getattr(model,key):
+            raise ValueError(f'Checkpoint protocol and {key} configuration differ.')
     path=Path(path);path.parent.mkdir(parents=True,exist_ok=True)
     temporary=path.with_suffix(path.suffix+'.tmp')
     torch.save({'view_checkpoint_schema':1,'learner_config':model.get_config(),
@@ -109,9 +119,12 @@ def load_view_checkpoint(path,stream=None,restore_rng=True):
     saved=torch.load(path,map_location='cpu',weights_only=True)
     if saved.get('view_checkpoint_schema')!=1:raise ValueError('Unknown view-checkpoint schema.')
     model=RegionLearningModel.from_config(saved['learner_config']);model.load_state_dict(saved['weights'])
-    saved['protocol']={'baseline_detach_features':False,**saved['protocol']}
-    if saved['protocol']['baseline_detach_features'] != model.baseline_detach_features:
-        raise ValueError('Checkpoint protocol and baseline detachment configuration differ.')
+    saved['protocol']=dict(saved['protocol'])
+    for key in ('baseline_detach_features','baseline_observed_only'):
+        saved['protocol'].setdefault(key,False)
+        if not isinstance(saved['protocol'][key],bool) or saved['protocol'][key] != getattr(model,key):
+            raise ValueError(f'Checkpoint protocol and {key} configuration differ.')
+    saved['totals'].setdefault('baseline_supervision',empty_baseline_supervision(saved['totals']['segments']))
     optimizer=optimizer_for(model,saved['protocol']['lr']);optimizer.load_state_dict(saved['optimizer'])
     if stream is not None:stream.load_state_dict(saved['stream'])
     if restore_rng:torch.set_rng_state(saved['torch_rng']);random.setstate(saved['python_rng'])
@@ -119,9 +132,26 @@ def load_view_checkpoint(path,stream=None,restore_rng=True):
     return model,optimizer,state,saved
 
 
+def empty_baseline_supervision(unrecorded_segments=0):
+    """Event counts include every supervised timestep, not only final queries."""
+    counts={'eligible':0,'observed':0,'used':0,'suppressed':0}
+    return {**counts,'by_query':{kind:dict(counts) for kind in ('shared','left','right')},
+            'recorded_segments':0,'unrecorded_segments':unrecorded_segments}
+
+
+def accumulate_baseline_supervision(totals,supervision):
+    """Accumulate audited segments; explicitly retain gaps from old checkpoints."""
+    total=totals.setdefault('baseline_supervision',empty_baseline_supervision(totals['segments']))
+    for key in ('eligible','observed','used','suppressed','recorded_segments','unrecorded_segments'):
+        total[key]+=supervision[key]
+    for kind,row in supervision['by_query'].items():
+        for key,value in row.items():total['by_query'][kind][key]+=value
+
+
 def initial_totals():
     return {'external_events':0,'source_occurrences':0,'expert_executions':0,'optimizer_steps':0,
-            'seconds':0.,'by_query':{},'auxiliary_sum':{},'segments':0}
+            'seconds':0.,'by_query':{},'auxiliary_sum':{},'segments':0,
+            'baseline_supervision':empty_baseline_supervision()}
 
 
 def main():
@@ -135,6 +165,8 @@ def main():
     parser.add_argument('--view-objective',action='store_true');parser.add_argument('--utility',action='store_true')
     parser.add_argument('--baseline-detach-features',action='store_true',
                         help='Train the baseline head without sending its auxiliary gradient into the source encoder.')
+    parser.add_argument('--baseline-observed-only',action='store_true',
+                        help='Suppress baseline targets whose queried factor was not observed by its source; retain the original denominator.')
     parser.add_argument('--evidence-gated-ports',action='store_true',help='Suppress publications until a node consumes valid evidence; keep all expert executions.')
     parser.add_argument('--base-checkpoint',type=Path);parser.add_argument('--resume',type=Path)
     parser.add_argument('--checkpoint-every',type=int,default=20);parser.add_argument('--log-every',type=int,default=20)
@@ -153,14 +185,16 @@ def main():
     state=None;start=0;totals=initial_totals()
     if args.resume:
         model,optimizer,state,saved=load_view_checkpoint(args.resume,stream)
-        previous={key:value for key,value in {'evidence_gated_ports':False,'baseline_detach_features':False,**saved['protocol']}.items() if key not in ('initial_tensor_sha256','base_initializer')}
+        previous={key:value for key,value in {'evidence_gated_ports':False,'baseline_detach_features':False,
+                                             'baseline_observed_only':False,**saved['protocol']}.items() if key not in ('initial_tensor_sha256','base_initializer')}
         if previous!=protocol:raise ValueError('Exact resume requires the same training protocol and horizon.')
         protocol=saved['protocol'];start=saved['step'];totals=saved['totals']
     else:
         cfg=GraphConfig.tiny(context=args.segment,rounds=args.rounds,recurrent_feedback=args.rounds>1,seed=args.seed,
                              evidence_gated_ports=args.evidence_gated_ports)
         model=build_learner(cfg,args.view_objective,args.utility,args.base_checkpoint,
-                            baseline_detach_features=args.baseline_detach_features)
+                            baseline_detach_features=args.baseline_detach_features,
+                            baseline_observed_only=args.baseline_observed_only)
         protocol['initial_tensor_sha256']=tensor_fingerprint(model)
         protocol['base_initializer']=None if args.base_checkpoint is None else {
             'path':str(args.base_checkpoint),'sha256':hashlib.sha256(args.base_checkpoint.read_bytes()).hexdigest()}
@@ -179,6 +213,7 @@ def main():
             state,metrics,_=train_step(model,optimizer,stream.next_chunk(args.segment),state)
             for key in ('external_events','source_occurrences','expert_executions','optimizer_steps','seconds'):
                 totals[key]+=metrics[key]
+            accumulate_baseline_supervision(totals,metrics['baseline_supervision'])
             totals['segments']+=1;recent.append(metrics['ce'])
             for name,row in metrics['by_query'].items():
                 entry=totals['by_query'].setdefault(name,{'correct':0,'count':0})

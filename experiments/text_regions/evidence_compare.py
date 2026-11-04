@@ -70,6 +70,8 @@ class InputFiles:
 def _training_protocol(protocol, remove_policy=False, remove_seed=False):
     result = deepcopy({key: value for key, value in protocol.items() if key not in EXTRA_PROTOCOL_KEYS})
     result.setdefault('evidence_gated_ports', False)
+    for flag in ('baseline_detach_features', 'baseline_observed_only'):
+        result.setdefault(flag, False)
     if result.get('base_initializer') is not None:
         # An initializer location is an I/O detail; its exact bytes are not.
         result['base_initializer'] = {'sha256': result['base_initializer']['sha256']}
@@ -81,6 +83,8 @@ def _training_protocol(protocol, remove_policy=False, remove_seed=False):
 
 def _learner_signature(config, remove_seed=False):
     result = deepcopy(config)
+    for flag in ('baseline_detach_features', 'baseline_observed_only'):
+        result.setdefault(flag, False)
     result['model'].pop('evidence_gated_ports', None)
     if remove_seed: result['model'].pop('seed', None)
     return result

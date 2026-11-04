@@ -31,9 +31,13 @@ class RegionLearningModel(nn.Module):
     ordinary label-free inference.
     ``baseline_detach_features`` trains the same baseline head and targets while
     preventing its auxiliary loss from updating the shared source encoder.
+    ``baseline_observed_only`` requires an explicit causal source-observation
+    mask for labeled passes. It suppresses unobserved baseline targets without
+    changing the original eligible-event denominator or utility statistics.
     """
     def __init__(self, model, *, view_objective=None, utility=None, baseline_enabled=False,
-                 baseline_view='text', baseline_weight=.1, utility_scale=.1, baseline_detach_features=False):
+                 baseline_view='text', baseline_weight=.1, utility_scale=.1, baseline_detach_features=False,
+                 baseline_observed_only=False):
         super().__init__()
         if not math.isfinite(baseline_weight) or baseline_weight <= 0:
             raise ValueError('Baseline weight must be finite and positive.')
@@ -41,6 +45,8 @@ class RegionLearningModel(nn.Module):
             raise ValueError('Utility scale must be finite and nonnegative.')
         if not isinstance(baseline_detach_features, bool):
             raise ValueError('Baseline feature detachment must be boolean.')
+        if not isinstance(baseline_observed_only, bool):
+            raise ValueError('Baseline observation restriction must be boolean.')
         if baseline_view not in ('text', *model.cfg.views):
             raise ValueError('Baseline must name a configured source ingress.')
         if view_objective is not None and (view_objective.width != model.cfg.width or
@@ -54,6 +60,7 @@ class RegionLearningModel(nn.Module):
         self.baseline_enabled, self.baseline_view = baseline_enabled, baseline_view
         self.baseline_weight, self.utility_scale = baseline_weight, utility_scale
         self.baseline_detach_features = baseline_detach_features
+        self.baseline_observed_only = baseline_observed_only
         self.baseline = (nn.Linear(model.cfg.width, 256, bias=False)
                          if baseline_enabled or utility is not None else None)
         if self.baseline is not None:
@@ -73,6 +80,7 @@ class RegionLearningModel(nn.Module):
         return {'model': self.cfg.to_dict(), 'baseline_enabled': self.baseline_enabled,
                 'baseline_view': self.baseline_view, 'baseline_weight': self.baseline_weight,
                 'baseline_detach_features': self.baseline_detach_features,
+                'baseline_observed_only': self.baseline_observed_only,
                 'utility_scale': self.utility_scale,
                 'view_objective': None if view is None else {'views': list(view.views), 'cfg': asdict(view.cfg)},
                 'utility': None if utility is None else {
@@ -97,7 +105,7 @@ class RegionLearningModel(nn.Module):
             combined[key] = combined.get(key, 0.) + value
         return combined
 
-    def forward(self, inputs, targets=None, *, private_targets=None, **kwargs):
+    def forward(self, inputs, targets=None, *, private_targets=None, baseline_observed_mask=None, **kwargs):
         utility_on = self.utility is not None and self.utility.enabled
         baseline_on = self.baseline_enabled or utility_on
         learning_on = self.view_objective is not None or baseline_on
@@ -135,6 +143,7 @@ class RegionLearningModel(nn.Module):
 
         language_loss = result['loss']
         total, view_result, baseline_logits, baseline_ce, baseline_loss, packet = language_loss, None, None, None, None, None
+        baseline_supervision, baseline_supervision_by_row = None, None
         run_views = self.view_objective is not None and not (
             not self.training and private_targets is None and self.view_objective.cfg.private_enabled)
         if run_views:
@@ -143,25 +152,44 @@ class RegionLearningModel(nn.Module):
             total = view_result['loss'] if total is None else total + view_result['loss']
         if baseline_on:
             source = SourceView.from_activity(self.baseline_view, result['view_activity'])
+            # This is loss metadata, consumed only after the ordinary graph pass.
+            if baseline_observed_mask is not None and (
+                    not torch.is_tensor(baseline_observed_mask) or baseline_observed_mask.dtype != torch.bool or
+                    baseline_observed_mask.shape != source.available.shape or
+                    baseline_observed_mask.device != source.available.device):
+                raise ValueError('Baseline observation mask must be boolean [B,T] on the input device.')
+            if has_labels and self.baseline_observed_only and baseline_observed_mask is None:
+                raise ValueError('Observed-only baseline supervision requires a baseline observation mask.')
             safe = torch.where(source.available[..., None], source.payload, torch.zeros_like(source.payload))
             baseline_logits = self.baseline(safe.detach() if self.baseline_detach_features else safe)
             if targets is not None:
-                used = supervised & source.available
-                local_targets = targets.masked_fill(~used, -100)
+                eligible = supervised & source.available
+                observed = None if baseline_observed_mask is None else eligible & baseline_observed_mask
+                if baseline_observed_mask is None and not has_labels:
+                    observed = torch.zeros_like(eligible)
+                used = observed if self.baseline_observed_only else eligible
+                local_targets = targets.masked_fill(~eligible, -100)
                 local_losses = F.cross_entropy(baseline_logits.flatten(0, 1), local_targets.flatten(),
                                               ignore_index=-100, reduction='none').reshape_as(targets)
-                baseline_ce = local_losses.sum()/used.sum().clamp_min(1)
+                selected_losses = local_losses.masked_fill(~used, 0.) if self.baseline_observed_only else local_losses
+                baseline_ce = selected_losses.sum()/eligible.sum().clamp_min(1)
+                counts = {'eligible': eligible, 'observed': observed, 'used': used, 'suppressed': eligible & ~used}
+                baseline_supervision_by_row = {key: None if mask is None else mask.sum(1)
+                                               for key, mask in counts.items()}
+                baseline_supervision = {key: None if count is None else int(count.sum())
+                                        for key, count in baseline_supervision_by_row.items()}
                 baseline_loss = self.baseline_weight*baseline_ce
                 total = baseline_loss if total is None else total + baseline_loss
                 if collect_utility:
                     with torch.no_grad():
                         regional_losses = F.cross_entropy(result['logits'].detach().flatten(0, 1), targets.flatten(),
                                                          ignore_index=-100, reduction='none').reshape_as(targets)
-                    packet = self.utility.make_packet(result['trace'], local_losses.detach(), regional_losses, used)
+                    packet = self.utility.make_packet(result['trace'], local_losses.detach(), regional_losses, eligible)
         if collect_utility and not requested_trace:
             result['trace'] = []
         result.update(loss=total, language_loss=language_loss, view_objective=view_result,
                       baseline_logits=baseline_logits, baseline_ce=baseline_ce, baseline_loss=baseline_loss,
+                      baseline_supervision=baseline_supervision, baseline_supervision_by_row=baseline_supervision_by_row,
                       utility_packet=packet)
         return result
 

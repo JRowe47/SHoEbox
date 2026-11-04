@@ -270,3 +270,26 @@ python -m experiments.text_regions.baseline_compare \
   --manifest experiments/text_regions/results/baseline_gradient/manifest.json \
   --out artifacts/reproduction/baseline_comparison.json
 ```
+
+## Source-observed baseline targets
+
+`view_train --baseline-observed-only` retains baseline encoder gradients for targets the selected source has actually observed. `ViewBatch.baseline_observed_mask(view)` derives eligibility from causal shared/private observation metadata, query type, availability and resets. A coincidentally equal value in a different field does not establish knowledge of the requested fact. The mask is training-loss metadata and never enters graph inputs, publications, routing, or runtime state.
+
+The loss numerator excludes unsupported targets; the denominator remains the original count of supervised positions with an available baseline source. Loss weights, optimizer settings, utility reference losses and utility eligibility are unchanged. This option is independent of `--baseline-detach-features`; the primary observability ablation keeps features attached in both arms. Both options default to false and preserve old checkpoints.
+
+```bash
+python -m experiments.text_regions.view_train --steps 240 --batch 32 \
+  --segment 16 --gap 8 --dropout 0.25 --seed 20261106 --threads 2 \
+  --base-checkpoint artifacts/probes/correction_warm150/checkpoint.pt \
+  --view-objective --baseline-observed-only --evidence-gated-ports \
+  --out artifacts/baseline_observed/gated_seed1
+
+python -m experiments.text_regions.view_score \
+  artifacts/baseline_observed/gated_seed1/checkpoint.pt --publication-policy evidence \
+  --count-per-query 512 --batch 64 --threads 2 --predictions \
+  --out artifacts/baseline_observed/gated_seed1/evaluation
+```
+
+Step metrics, periodic histories and cumulative summaries include eligible, observed, used and suppressed baseline target counts by query. `recorded_segments` and `unrecorded_segments` distinguish complete audits from a legacy checkpoint resumed without earlier counters. Exact resume preserves both independent switches and the audit boundary.
+
+`observability_compare.py` uses the same comparison engine as `baseline_compare.py`. Its manifest names `original` and `observed` arms at a declared publication policy, with optional `detached` results for context. The primary pair may differ only in `baseline_observed_only`, with detachment disabled. The comparator independently reconstructs causal target eligibility from source fact positions, availability and resets, and checks the recorded count audit even when general coverage reconstruction is disabled. Detached context is separately validated against the original arm.
