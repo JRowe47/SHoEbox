@@ -364,3 +364,28 @@ python -m experiments.text_regions.readout_compare \
 Use new output paths when reproducing an existing study. Start from the complete downloadable package: it restores the twelve measured graphs, fitted readouts, and raw `results/readout_diagnostic/runs/` files needed by the saved-result comparator. GitHub contains the aggregate comparison and provenance. `load_diagnostic` restores fitted answer and factor heads using tensor-only loading; `capture_readout_features` produces their inputs without labels. The comparator supports both ordinary JSON results and their lossless gzip copies.
 
 Across three original-policy/dropout seeds, B-only recovery is **34.4% existing / 70.1% refitted mixed / 85.7% refitted raw**. Held-out private accuracy is **76.3% / 73.2% / 73.7%**. Gated/dropout models reach **95.8% B-only and 60.9% private** with the raw decoder. The [full report](../../docs/SHoEbox_Frozen_Readout_Report.md) records all twelve models, probe-transfer results, budgets, and the next shared nonlinear readout experiment.
+
+## Shared emission adapters
+
+`emission_adapter.py` fits one 64-unit hidden layer and one 256-byte output layer to frozen raw or mixed features. The matched linear control uses identical tensors and fitting settings with identity activation; the nonlinear arm uses GELU. Query and source labels supply loss weighting and reporting subsets only. `EmissionAdapter.logits(features)` accepts the observed feature vector alone.
+
+Three initialization seeds per representation/activation yield twelve heads per frozen graph and 144 heads overall. Fitting uses the same 960 supported cases, equal query mass, training-only weighted normalization, L2 0.001, and a fixed 400-iteration L-BFGS budget. No evaluation result selects an initialization or setting. Captures exactly reproduce the prior direct and linear predictions before any adapter is fitted.
+
+```bash
+python scripts/run_emission_study.py \
+  --out artifacts/emission_reproduction --jobs 3 --threads 2
+python scripts/package_emission_study.py \
+  --source artifacts/emission_reproduction \
+  --out artifacts/emission_reproduction_results
+
+# Audit the saved study from the complete downloadable package:
+python -m experiments.text_regions.emission_compare \
+  --source artifacts/emission_adapter_v1 \
+  --out artifacts/reproduced_emission_comparison.json
+```
+
+The complete download restores original checkpoints, prior readouts, new fitted heads, compact feature caches and synthetic prediction rows. `load_adapters(path)` safely restores heads with tensor-only loading. Cached `features.pt` files retain `final/raw` and `final/mixed` observations for further fitting without rerunning the experts; their other fields are fitting/scoring metadata.
+
+The audit recomputes every prediction and fitted training objective, checks original baseline agreement, reconstructs generated episode identities/targets, verifies normalization and matched parameter budgets, and checks frozen-model fingerprints and source hashes. Raw experiment rows stay in the downloadable package; GitHub contains aggregates and provenance.
+
+Raw GELU improves balanced-source private accuracy to **62.8%** under both publication policies, versus **56.0% / 54.9%** for the previous linear heads. Original/dropout B-only accuracy reaches **97.6%**. Held-out shared accuracy regresses, motivating a residual correction around the existing linear head next. See the [report](../../docs/SHoEbox_Emission_Adapter_Report.md) for all conditions, initialization variation and optimizer budgets.

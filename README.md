@@ -54,7 +54,7 @@ The first implementation includes reusable latent nodes, typed publication recor
 
 The probe harness trains recall/correction across chunk boundaries, with optional independent shared/private view objectives and explicit post-optimizer edge/lace utility commits. Both learning additions are disabled by default. Probe checkpoints resume the complete model, optimizer, utility buffers, stream cursor, RNG, and graph state.
 
-The 246K-parameter, seven-node model reached **98.6% correction accuracy at an 18-byte delay and 99.6% at 34 bytes**, on 512 fresh test episodes per difficulty with 16-byte training segments. Resetting state reduced accuracy to 26.6%; withholding the correction preserved the old value in 100% of episodes. This is the compact four-value query probe. All 255 automated checks pass.
+The 246K-parameter, seven-node model reached **98.6% correction accuracy at an 18-byte delay and 99.6% at 34 bytes**, on 512 fresh test episodes per difficulty with 16-byte training segments. Resetting state reduced accuracy to 26.6%; withholding the correction preserved the old value in 100% of episodes. This is the compact four-value query probe. All 269 automated checks pass.
 
 The subsequent shared/private benchmark holds out combinations of three independent facts and varies source formats and field order. In a matched four-way comparison, view objectives improved unseen-combination accuracy from **69.8% to 79.2%**. Private left/right answers improved from **65.6%/63.5% to 78.6%/75.5%**. Every variant started with identical weights and trained on 96,000 external events with 8,064,000 expert calls. Missing-view recovery remains uneven; an optional requirement for evidence before publication exposes interference from cold nodes. See the [shared/private report](docs/SHoEbox_Shared_Private_Report.md) and the [benchmark commands](experiments/text_regions/README.md#factorized-sharedprivate-benchmark).
 
@@ -67,6 +67,8 @@ The source-observability ablation now excludes only baseline targets that A cann
 The balanced-source experiment rotates supported whole-source combinations while preserving facts, inputs, loss settings and expert budgets. Across three paired seeds, **B-only shared recovery rises from 35.1% to 99.8% with original publication**, and from **85.1% to 96.5% with evidence gating**. Held-out private accuracy falls from **75.6% to 50.1%** and **57.9% to 49.5%**, respectively. Balanced exposure remains optional. See the [balanced-source report](docs/SHoEbox_Balanced_Source_Report.md) and [six matched comparisons](experiments/text_regions/results/source_schedule).
 
 The subsequent frozen-readout study covers all twelve models. A common 256-byte decoder fitted to full P/Q outputs raises original-policy/dropout **B-only accuracy from 34.4% to 85.7%**, versus **70.1%** when refitting the compressed representation. Held-out overall accuracy stays near **78%**, while private accuracy moves from **76.3% to 73.7%**. Gated/dropout models improve both private accuracy (**57.2% to 60.9%**) and B-only recovery (**84.9% to 95.8%**). Fixed factor probes find more private information in both representations than the common answer decoder extracts, motivating a shared nonlinear emission adapter next. These scores use one fresh diagnostic cohort with every graph frozen and K=1. See the [frozen-readout report](docs/SHoEbox_Frozen_Readout_Report.md) and [audited results](experiments/text_regions/results/readout_diagnostic).
+
+The shared emission-adapter study now fits **144 heads** across those twelve frozen graphs, with three initializations and parameter-matched identity/GELU controls. Raw GELU raises private accuracy from **56.0% to 62.8%** on original/balanced graphs and **54.9% to 62.8%** on gated/balanced graphs; matched linear controls reach **56.8% and 54.5%**. Original/dropout B-only recovery rises from **85.7% to 97.6%**. Shared-answer accuracy falls on the held-out all-source task, so the default readout remains unchanged. The next experiment is a nonlinear residual around the existing raw linear head. See the [emission-adapter report](docs/SHoEbox_Emission_Adapter_Report.md) and [aggregate results](experiments/text_regions/results/emission_adapter).
 
 ```bash
 python -m experiments.text_regions.probe_train --kind correction --steps 300 \
@@ -90,6 +92,7 @@ See the [probe and learning report](docs/SHoEbox_Probe_Development_Report.md) fo
 - [Source-observed baseline supervision and target audits](docs/SHoEbox_Source_Observability_Report.md)
 - [Balanced source exposure and paired publication-policy results](docs/SHoEbox_Balanced_Source_Report.md)
 - [Frozen shared byte decoders and temporal factor probes](docs/SHoEbox_Frozen_Readout_Report.md)
+- [Shared emission adapters with matched linear controls](docs/SHoEbox_Emission_Adapter_Report.md)
 - [Original SHoE overview and results](SHoE_BASELINE.md)
 - [Preserved HAT/minKron baseline](experiments/hat_minkron)
 - [Source lineage and third-party notices](THIRD_PARTY_NOTICES.md)
