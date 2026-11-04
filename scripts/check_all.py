@@ -28,7 +28,9 @@ def main():
         if result.returncode:
             failed.append(name)
     print('\nRunning text_regions', flush=True)
-    result = subprocess.run([sys.executable, '-m', 'unittest', '-v', 'experiments.text_regions.verify'], cwd=ROOT)
+    modules = ['verify', 'test_activity', 'test_objectives', 'test_learning', 'test_probe', 'test_normalization']
+    result = subprocess.run([sys.executable, '-m', 'unittest', '-v',
+                             *['experiments.text_regions.' + name for name in modules]], cwd=ROOT)
     if result.returncode:
         failed.append('text_regions')
     if failed:

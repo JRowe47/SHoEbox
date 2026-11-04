@@ -5,10 +5,10 @@ import torch
 from torch import nn
 from torch.nn import functional as F
 if __package__:
-    from .kron import MinKron
+    from .kron import MinKron, normalize_direction
     from .semantic_core import switch_balance
 else:
-    from kron import MinKron
+    from kron import MinKron, normalize_direction
     from semantic_core import switch_balance
 
 
@@ -36,11 +36,12 @@ class HATState:
 
 
 class SymbolLevel(nn.Module):
-    def __init__(self,cfg):
+    def __init__(self,cfg,safe_zero=False):
         super().__init__()
         self.cfg=cfg
+        self.safe_zero=safe_zero
         self.norm=nn.LayerNorm(cfg.width)
-        self.memory=MinKron(cfg.width,cfg.kron_heads,cfg.kron_key,cfg.kron_value,cfg.chunk_size)
+        self.memory=MinKron(cfg.width,cfg.kron_heads,cfg.kron_key,cfg.kron_value,cfg.chunk_size,safe_zero=safe_zero)
         self.query=nn.Linear(cfg.width,cfg.address_dim,bias=False)
         self.keys=nn.Parameter(torch.randn(cfg.hat_symbols,cfg.address_dim))
         self.values=nn.Parameter(torch.randn(cfg.hat_symbols,cfg.width)*.02)
@@ -73,7 +74,7 @@ class SymbolLevel(nn.Module):
                     final=final.index_copy(0,torch.tensor([row],device=x.device),end)
             new_states[link]=final
         h=x+context
-        q=F.normalize(self.query(self.norm(h)),dim=-1)
+        q=normalize_direction(self.query(self.norm(h)),safe_zero=self.safe_zero)
         scores=4*F.linear(q,F.normalize(self.keys,dim=-1))
         probabilities=scores.softmax(-1)
         ids=scores.topk(self.cfg.hat_active_symbols,-1).indices
@@ -92,14 +93,14 @@ class HAT(nn.Module):
     representations; it does not yet merge events or change their sequence rate.
     Literal bytes and exact provenance remain available beside sparse symbols.
     """
-    def __init__(self,cfg):
+    def __init__(self,cfg,safe_zero=False):
         super().__init__()
         self.cfg=cfg
         self.byte_embedding=nn.Embedding(256,cfg.width)
         self.link_embedding=nn.Embedding(cfg.max_links,cfg.width)
         self.slot_embedding=nn.Embedding(cfg.max_slots,cfg.width)
         self.binding=nn.Linear(3*cfg.width,cfg.width,bias=False)
-        self.levels=nn.ModuleList([SymbolLevel(cfg) for _ in range(cfg.hat_levels)])
+        self.levels=nn.ModuleList([SymbolLevel(cfg,safe_zero=safe_zero) for _ in range(cfg.hat_levels)])
         self.final_norm=nn.LayerNorm(cfg.width)
         for m in (self.byte_embedding,self.link_embedding,self.slot_embedding,self.binding):
             nn.init.normal_(m.weight,std=.02)

@@ -83,7 +83,7 @@ back. Only the selected lace factors contribute to each message.
         template += .05 * torch.randn(template.shape, generator=gen)
         self.template_logits = nn.Parameter(template)
 
-    def forward(self, evidence, context, enabled=True, permutation=None):
+    def forward(self, evidence, context, enabled=True, permutation=None, utility_bias=None):
         # evidence: B,T,L,G, independently organized group axes at every layer.
         c = self.c
         templates = self.template_logits.softmax(-1)
@@ -94,6 +94,9 @@ back. Only the selected lace factors contribute to each message.
         base_shape = evidence.shape
         e = evidence.reshape(-1, c.layers, c.groups)
         ctx = self.context_query(context).reshape(-1, c.laces)
+        if utility_bias is not None:
+            if utility_bias.shape != (c.layers, c.laces) or not bool(torch.isfinite(utility_bias).all()):
+                raise ValueError('Lace utility bias must be finite [layers,laces].')
         if not enabled:
             prior = torch.full_like(e, 1/c.groups)
             return prior.reshape(base_shape), {'lace_ids': None, 'balance': e.new_zeros(())}
@@ -103,6 +106,8 @@ back. Only the selected lace factors contribute to each message.
             support = agreement.clamp_min(1e-8).log()
             # N,L,M; each target sees context and all OTHER layers' evidence.
             external = (ctx[:, :, None] + support.sum(-1, keepdim=True) - support).transpose(1, 2)
+            if utility_bias is not None:
+                external = external + utility_bias
             scores, ids = external.topk(c.active_laces, -1)
             weight = scores.softmax(-1)
             layer_ids = torch.arange(c.layers, device=e.device)[None, :, None]

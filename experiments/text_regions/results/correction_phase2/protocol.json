@@ -1,0 +1,182 @@
+{
+  "kind": "correction",
+  "steps": 150,
+  "batch": 8,
+  "segment": 16,
+  "gap": 16,
+  "query_every": 4,
+  "rounds": 1,
+  "threads": 2,
+  "lr": 0.002,
+  "seed": 20261105,
+  "view_objective": false,
+  "utility": false,
+  "full": false,
+  "supervision": "Only query-marker outputs. Local query checkpoints train writes/retention; query answers are never fed back as observations. Fact values are observed in the input.",
+  "difficulty": "one named fact; four values; one-byte exact answer",
+  "warm_start": {
+    "checkpoint_step": 100,
+    "source": "artifacts/probes/correction/checkpoint.pt"
+  },
+  "config": {
+    "nodes": [
+      {
+        "name": "A",
+        "region": "R0",
+        "view": "A"
+      },
+      {
+        "name": "B",
+        "region": "R0",
+        "view": "B"
+      },
+      {
+        "name": "C",
+        "region": "R0",
+        "view": "C"
+      },
+      {
+        "name": "U",
+        "region": "R1",
+        "view": null
+      },
+      {
+        "name": "P",
+        "region": "R1",
+        "view": null
+      },
+      {
+        "name": "V",
+        "region": "R2",
+        "view": null
+      },
+      {
+        "name": "Q",
+        "region": "R2",
+        "view": null
+      }
+    ],
+    "edges": [
+      {
+        "source": "A",
+        "destination": "U",
+        "kind": "forward"
+      },
+      {
+        "source": "B",
+        "destination": "U",
+        "kind": "forward"
+      },
+      {
+        "source": "B",
+        "destination": "V",
+        "kind": "forward"
+      },
+      {
+        "source": "C",
+        "destination": "V",
+        "kind": "forward"
+      },
+      {
+        "source": "A",
+        "destination": "P",
+        "kind": "forward"
+      },
+      {
+        "source": "U",
+        "destination": "P",
+        "kind": "forward"
+      },
+      {
+        "source": "V",
+        "destination": "Q",
+        "kind": "forward"
+      },
+      {
+        "source": "C",
+        "destination": "Q",
+        "kind": "forward"
+      },
+      {
+        "source": "P",
+        "destination": "Q",
+        "kind": "lateral"
+      },
+      {
+        "source": "Q",
+        "destination": "P",
+        "kind": "lateral"
+      },
+      {
+        "source": "P",
+        "destination": "U",
+        "kind": "descending"
+      },
+      {
+        "source": "P",
+        "destination": "A",
+        "kind": "descending"
+      },
+      {
+        "source": "P",
+        "destination": "B",
+        "kind": "descending"
+      },
+      {
+        "source": "Q",
+        "destination": "V",
+        "kind": "descending"
+      },
+      {
+        "source": "Q",
+        "destination": "B",
+        "kind": "descending"
+      },
+      {
+        "source": "Q",
+        "destination": "C",
+        "kind": "descending"
+      }
+    ],
+    "readout": [
+      "P",
+      "Q"
+    ],
+    "width": 32,
+    "experts_per_block": 32,
+    "shared_per_block": 16,
+    "expert_hidden": 4,
+    "groups": 4,
+    "active_groups": 2,
+    "experts_per_group": 2,
+    "address_dim": 8,
+    "laces": 16,
+    "active_laces": 2,
+    "hat_levels": 2,
+    "hat_symbols": 16,
+    "hat_active_symbols": 2,
+    "kron_heads": 2,
+    "kron_key": 4,
+    "kron_value": 4,
+    "rounds": 1,
+    "recurrent_feedback": false,
+    "feedback_gate_init": 0.05,
+    "zero_safe_norm": true,
+    "context": 16,
+    "auxiliary_loss_weight": 0.01,
+    "hat_balance_weight": 0.001,
+    "seed": 20261105
+  },
+  "learner_config": null,
+  "parameters": {
+    "total_unique_parameters": 246142,
+    "physical_experts": 384,
+    "expert_matrix_parameters": 98304,
+    "logical_experts_per_node": 96,
+    "expert_calls_per_round_per_external_event": 84,
+    "nodes": 7,
+    "regions": 3,
+    "byte_vocabulary": 256,
+    "parameters_including_auxiliary_heads": 246142
+  }
+}

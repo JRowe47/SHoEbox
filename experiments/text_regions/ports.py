@@ -59,6 +59,7 @@ class Dependency:
     round_index: torch.Tensor
     consumed: torch.Tensor
     intervention: str = 'none'
+    substituted: torch.Tensor | None = None
 
 
 @dataclass(frozen=True)
@@ -78,19 +79,27 @@ class Publication:
 
     def dependency(self, edge, consumed):
         return Dependency(edge, self.source, self.port, self.version, self.epoch,
-                          self.occurrence, self.round_index, consumed & self.valid)
+                          self.occurrence, self.round_index, consumed & self.valid,
+                          substituted=torch.zeros_like(consumed))
 
     def detach(self):
         return map_tensors(self, lambda x: x.detach())
 
     def reset(self, rows):
-        return map_tensors(self, lambda x: choose_rows(rows, torch.zeros_like(x), x))
+        cleared = map_tensors(self, lambda x: choose_rows(rows, torch.zeros_like(x), x))
+        return replace(cleared, dependencies=tuple(normalize_dependency(d) for d in cleared.dependencies))
 
     @classmethod
     def from_dict(cls, data):
         data = dict(data)
         data['header'] = SemanticHeader(**data['header'])
-        data['dependencies'] = tuple(Dependency(**d) for d in data['dependencies'])
+        dependencies = []
+        for d in data['dependencies']:
+            d = dict(d)
+            if d.get('substituted') is None:
+                d['substituted'] = torch.full_like(d['consumed'], d.get('intervention') == 'substitution')
+            dependencies.append(Dependency(**d))
+        data['dependencies'] = tuple(dependencies)
         return cls(**data)
 
 
@@ -124,15 +133,19 @@ class TensorPorts:
 
 def publish(previous, payload, header, active, epoch, occurrence, round_index, dependencies, links=None, slots=None):
     """Functional row replacement; inactive rows keep both state and publication."""
-    old_deps = {d.edge: d for d in previous.dependencies}
-    new_deps = {d.edge: d for d in dependencies}
+    old_deps = {d.edge: normalize_dependency(d) for d in previous.dependencies}
+    new_deps = {d.edge: normalize_dependency(d) for d in dependencies}
     merged = []
     for key in sorted(old_deps.keys() | new_deps.keys()):
         template = new_deps.get(key, old_deps.get(key))
         empty = map_tensors(template, torch.zeros_like)
         old, new = old_deps.get(key, empty), new_deps.get(key, empty)
-        merged.append(replace(template, **{f.name: choose_rows(active, getattr(new, f.name), getattr(old, f.name))
-                                             for f in fields(template) if torch.is_tensor(getattr(template, f.name))}))
+        item = replace(template, **{f.name: choose_rows(active, getattr(new, f.name), getattr(old, f.name))
+                                    for f in fields(template) if torch.is_tensor(getattr(template, f.name))})
+        if item.substituted is not None:
+            label = 'substitution' if bool(item.substituted.all()) else ('mixed' if bool(item.substituted.any()) else 'none')
+            item = replace(item, intervention=label)
+        merged.append(item)
     return Publication(previous.source, previous.port, choose_rows(active, payload, previous.payload),
                        previous.valid | active, previous.version + active.long(),
                        choose_rows(active, epoch, previous.epoch),
@@ -144,3 +157,12 @@ def publish(previous, payload, header, active, epoch, occurrence, round_index, d
                                       choose_rows(active, header.lace_ids, previous.header.lace_ids)), tuple(merged),
                        links.clone() if links is not None else previous.links,
                        slots.clone() if slots is not None else previous.slots)
+
+
+def normalize_dependency(dependency):
+    """Keep the summary label consistent with authoritative per-row identity."""
+    rows = dependency.substituted
+    if rows is None:
+        rows = torch.full_like(dependency.consumed, dependency.intervention == 'substitution')
+    label = 'substitution' if bool(rows.all()) else ('mixed' if bool(rows.any()) else 'none')
+    return replace(dependency, substituted=rows, intervention=label)

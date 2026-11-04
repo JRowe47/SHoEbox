@@ -15,6 +15,9 @@ This is SHoEbox's event-major reference implementation of the [development speci
 | `data.py` | Ordered per-row cursors, document boundaries, resumable positions |
 | `train.py` | AdamW, inherited schedule/clipping, isolated validation, full checkpoints |
 | `probes.py` | Seeded recall/correction, shared/private, and relation-chain fixtures |
+| `episode_data.py` | Compact query-supervised recall/correction and aligned view streams |
+| `probe_train.py`, `probe_eval.py` | Probe training, exact resume, held-out scoring, equal-execution controls |
+| `objectives.py`, `learning.py` | Independent view losses, source baseline, explicit edge/lace utility commits |
 | `verify.py` | Baseline parity and engine invariant tests |
 | `evaluate.py` | Common measurements for baseline and graph |
 
@@ -38,7 +41,7 @@ generated, final_state = model.generate('AB', count=40)
 
 The default is K=1 with recurrent edges disabled. Override `rounds` and `feedback` per call. To compare K=1,2,4 with the same recurrent model and observations, reuse the same unmodified prefix state and keep `feedback=True` for all calls. Feedback snapshots continue across external events, so K=1 with feedback enabled differs from the initial feedforward integration configuration.
 
-Every activation updates both contextualizers and all three minKron blocks. Each node owns its state even when expert weights are shared. Forward calls do not update parameters or learning buffers. The current objective is byte cross-entropy plus routing/symbol balance. M6 association commits and representation objectives are not implemented.
+Every activation updates both contextualizers and all three minKron blocks. Each node owns its state even when expert weights are shared. Forward calls do not update parameters or learning buffers. The default objective is byte cross-entropy plus routing/symbol balance. Optional M6 objectives and association commits are described below.
 
 ## Views and interventions
 
@@ -112,6 +115,57 @@ python -m experiments.text_regions.probes --kind recall --split validation \
 
 Profiles separate unique parameters, repeated expert calls, and unique physical experts touched in the declared window. They measure CPU time, routing/expert forward components, state/optimizer bytes, and process peak RSS. Random-byte profiles test execution and gradients; learning runs use separately declared data. Full autograd over 128 bytes consumes substantially more memory than persistent inference state.
 
-The probe generator supplies fixtures and fixed split identities. Probe training/scoring, 512-episode evaluations, three-seed comparisons, and matched-compute controls remain later work. The transport test verifies that A cannot affect Q in round one and can in round two.
+The original `probes.py` retains the richer distractor and relation-chain fixtures. The new `episode_data.py` provides compact shaping tasks: four possible byte values, explicit query markers, fresh split-specific identifiers, and optional corrected or private facts. Query outputs receive supervision; answers are not fed back as observations. Intermediate query markers provide within-segment training signals for writes and retention. Final-query evaluation ignores those intermediate labels and takes argmax over all 256 bytes.
+
+Recall/correction evaluation compares carried state with a complete state reset immediately before the final query. Correction also replaces the entire update with neutral filler, keeping query positions and expert execution counts unchanged; it scores both the corrected answer and the old answer. Shared/private evaluation includes A-only, B-only, C-only and private-value-withheld controls. These masks remove information while retaining node execution. Each source has independent HAT state; missing bytes never become observations.
+
+```bash
+python -m experiments.text_regions.probe_train --kind correction --steps 300 \
+  --batch 8 --segment 16 --gap 16 --eval-gap 32 --eval-episodes 512 \
+  --eval-batch 64 --threads 2 --out artifacts/probes/correction_300
+python -m experiments.text_regions.probe_eval artifacts/probes/correction_300/checkpoint.pt \
+  --gaps 16 32 --split test --episodes 512 --out artifacts/probes/correction_test.json
+
+# The schedule horizon remains 100 through stop/resume.
+python -m experiments.text_regions.probe_train --kind shared_private \
+  --view-objective --utility --steps 100 --stop-after 5 --out artifacts/probes/views
+python -m experiments.text_regions.probe_train --kind shared_private \
+  --view-objective --utility --steps 100 --resume artifacts/probes/views/checkpoint.pt \
+  --out artifacts/probes/views
+```
+
+`--steps` counts TBPTT segments; logs separately count optimizer steps, supervised query outputs, external events, and expert calls. `--gap` is the filler count after the last write. Recall/correction's final value-to-query distance is `gap+2`. Results declare this distance explicitly. The training cursor resets at each new episode and detaches state between chunks. Schema-2 checkpoints include optional learning configuration and accept earlier schema-1 bare checkpoints. The evaluator starts independent state for each episode batch and never resumes a training cursor.
+
+`--checkpoint-every 25` atomically saves recovery state during training as well as at the final step. `--resume` continues the exact schedule, cursor, optimizer and RNG. `--warm-start` loads matching model weights and learned utility buffers into a new training phase with a fresh optimizer, graph state, cursor and RNG; it permits a new training seed and records the initializer checkpoint. These modes are mutually exclusive. Use `--eval-split test` or `probe_eval --split test` for the independent test stream.
+
+## Optional representation and contribution learning
+
+`RegionLearningModel` wraps the ordinary graph. With no options it preserves parameter count, logits, losses, and state. Optional heads use `return_view_activity=True`, which exposes the HAT activations already produced by each source before any graph fusion. A/B/C node publications can contain peer feedback and are not source-only codes.
+
+`PairedViewObjective` provides separately enabled agreement, cross-view prediction, variance, covariance, private-byte prediction, and shared/private separation terms. All are off by default. Each description pools its own last available occurrence (or independently masked mean); a longer description is not truncated to the other's mask. Paired terms require both sources. Per-view variance/covariance and private losses use that view's own available samples. Private labels enter only the loss head. The CLI's `--view-objective` enables A/C agreement, prediction, variance and covariance; private-detail recovery remains supervised through the main query loss. The private-code head and separation term are separately available through the Python API.
+
+`--utility` adds a trainable source-only byte baseline and detached signed-gain packets. The baseline uses text ingress for ordinary episodes and A ingress for controlled views. Eligible inter-node dependencies must have been consumed and must not be substituted. Lace eligibility records the actual pre-execution selection, separately from the post-execution observed lace. Packets contain bounded sufficient statistics, not examples or replay data. Each packet compares the current local baseline CE against regional CE and is committed explicitly after `optimizer.step()`. Subsequent passes may use bounded edge-gate and lace-score biases. Evaluation uses committed biases but never creates or commits feedback.
+
+```python
+from experiments.text_regions import RegionLearningModel
+from experiments.text_regions.objectives import DelayedUtility
+
+utility = DelayedUtility(tuple(model.connections.edges), tuple(model.nodes),
+                         model.cfg.laces, enabled=True)
+learner = RegionLearningModel(model, utility=utility)
+optimizer = torch.optim.AdamW(learner.parameters(), lr=0.002)
+optimizer.zero_grad(set_to_none=True)
+result = learner(x, y, state=state)
+result['loss'].backward()
+optimizer.step()
+learner.commit_feedback(result['utility_packet'])
+state = result['state'].detach()
+```
+
+Save `learner.get_config()` with `learner.state_dict()`; rebuild via `RegionLearningModel.from_config(config)` before loading weights. `probe_train` handles this, optimizer state, source/graph state, cursor, and RNG together. Each auxiliary term is logged separately. Forward calls and `eval()` cannot commit learning buffers. These utility estimates are signed associations, not edgewise causal effects.
+
+Missing views can produce exactly zero latent directions while their nodes continue to execute. `GraphConfig.zero_safe_norm=True` assigns zero derivatives to absent symbol/minKron query directions, preventing nested `1/epsilon` Jacobians from dominating training. Normalization values and gradients above epsilon are unchanged. The preserved baseline constructors retain their original defaults; the behavior is enabled explicitly by the new graph.
+
+Three-seed comparisons and learned composition remain acceptance work. The transport test verifies that A cannot affect Q in round one and can in round two. Measured capability results are in the [probe development report](../../docs/SHoEbox_Probe_Development_Report.md).
 
 See the [development report](../../docs/SHoEbox_Development_Report.md) and [raw results](results).

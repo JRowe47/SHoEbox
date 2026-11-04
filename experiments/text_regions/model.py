@@ -19,7 +19,7 @@ class RegionLanguageModel(nn.Module):
         self.cfg = cfg or GraphConfig()
         self.cfg.validate()
         c = self.cfg.hat_config()
-        self.hat = HAT(c)
+        self.hat = HAT(c, safe_zero=self.cfg.zero_safe_norm)
         self.shared_banks = nn.ModuleList(ExpertBank(c.child_config(), self.cfg.shared_per_block) for _ in range(3))
         self.nodes = nn.ModuleDict({n.name: RecurrentNode(n, self.cfg, self.shared_banks, i)
                                    for i, n in enumerate(self.cfg.nodes)})
@@ -93,11 +93,25 @@ class RegionLanguageModel(nn.Module):
 
     def forward(self, inputs, targets=None, state=None, reset=None, rounds=None, feedback=None,
                 availability=None, node_masks=None, edge_masks=None, substitutions=None,
-                trace=False, reverse_independent=False):
+                trace=False, reverse_independent=False, return_view_activity=False,
+                return_edge_activity=False, edge_bias=None, lace_bias=None):
         availability, node_masks = availability or {}, node_masks or {}
         edge_masks, substitutions = edge_masks or {}, substitutions or {}
         events, state, b, t, controlled = self._prepare(inputs, state, availability, node_masks,
                                                        edge_masks, substitutions, reset)
+        edge_bias = edge_bias or {}
+        if set(edge_bias)-set(self.connections.edges):
+            raise ValueError('Unknown edge in utility bias.')
+        for bias in edge_bias.values():
+            value = torch.as_tensor(bias)
+            if value.numel() != 1 or not bool(torch.isfinite(value).all()):
+                raise ValueError('Edge utility biases must be finite scalars.')
+        lace_bias = lace_bias or {}
+        if set(lace_bias)-set(self.nodes):
+            raise ValueError('Unknown node in lace utility bias.')
+        for bias in lace_bias.values():
+            if bias.shape != (3, self.cfg.laces) or not bool(torch.isfinite(bias).all()):
+                raise ValueError('Lace utility biases must be finite [3,laces] tensors.')
         k_total = self.cfg.rounds if rounds is None else rounds
         if not isinstance(k_total, int) or k_total < 1:
             raise ValueError('Rounds must be a positive integer.')
@@ -105,6 +119,10 @@ class RegionLanguageModel(nn.Module):
         device = state.events_seen.device
         all_active = torch.ones(b, dtype=torch.bool, device=device)
         logits, records = [], []
+        view_activity = {view: {'payload': [], 'available': []} for view in events} if return_view_activity else {}
+        edge_names = tuple(self.connections.edges)
+        edge_indices = {key: i for i, key in enumerate(edge_names)}
+        usage = torch.zeros(b, t, len(edge_names), dtype=torch.long, device=device) if return_edge_activity else None
         aux = self.readout.weight.new_zeros(())
         hat_aux = aux
         activations = ingress_activations = executed = 0
@@ -119,6 +137,9 @@ class RegionLanguageModel(nn.Module):
                 active = available[view] if controlled else torch.stack(tuple(available.values())).any(0)
                 event = sequence.slice(event_index, event_index+1)
                 payload, hstate, haux = masked_ingress(self.hat, event, state.ingress[view], active)
+                if return_view_activity:
+                    view_activity[view]['payload'].append(payload)
+                    view_activity[view]['available'].append(active.clone())
                 ingress_states[view] = hstate
                 previous = state.ports.latest['@'+view]
                 publication = publish(previous, payload, previous.header, active, state.epochs, state.events_seen,
@@ -141,8 +162,12 @@ class RegionLanguageModel(nn.Module):
                             ingress = current['@'+spec.view if controlled else '@text']
                             ingress = replace(ingress, valid=ingress.valid & available[spec.view])
                         payload, context, dependencies = self.connections.gather(
-                            spec, current, delayed, ingress, active, event_index, edge_masks, substitutions)
-                        result = self.nodes[name](payload, context, state.nodes[name], active, trace)
+                            spec, current, delayed, ingress, active, event_index, edge_masks, substitutions, edge_bias)
+                        if return_edge_activity:
+                            for dependency in dependencies:
+                                if dependency.edge in edge_indices:
+                                    usage[:, event_index, edge_indices[dependency.edge]] += dependency.consumed.long()
+                        result = self.nodes[name](payload, context, state.nodes[name], active, trace, lace_bias.get(name))
                         node_states[name] = result['state']
                         publication = publish(current[name], result['latent'], result['header'], active,
                                               state.epochs, state.events_seen, torch.full_like(state.events_seen, k),
@@ -175,8 +200,14 @@ class RegionLanguageModel(nn.Module):
                 raise ValueError('At least one byte target is required.')
             ce = F.cross_entropy(logits.reshape(-1, 256), targets.reshape(-1), ignore_index=-100)
             loss = ce + self.cfg.auxiliary_loss_weight*aux + self.cfg.hat_balance_weight*hat_aux
+        if return_view_activity:
+            view_activity = {name: {key: torch.stack(parts, 1) for key, parts in values.items()}
+                             for name, values in view_activity.items()}
+            for activity in view_activity.values():
+                activity['provenance'] = 'independent_ingress'
         return {'logits': logits, 'loss': loss, 'ce': ce, 'aux': aux, 'hat_aux': hat_aux,
                 'state': state, 'trace': records, 'expert_executions': executed,
+                'view_activity': view_activity, 'edge_activity': usage, 'edge_names': edge_names,
                 'external_events': b*t, 'source_occurrences': ingress_activations, 'internal_rounds': b*t*k_total}
 
     def parameter_summary(self):
@@ -191,7 +222,7 @@ class RegionLanguageModel(nn.Module):
                 'nodes': len(c.nodes), 'regions': len(c.regions), 'byte_vocabulary': 256}
 
     @torch.no_grad()
-    def generate(self, prompt, count=100, temperature=.8, seed=123, **kwargs):
+    def generate(self, prompt, count=100, temperature=.8, seed=123, state=None, reset=None, **kwargs):
         if count < 0 or temperature <= 0:
             raise ValueError('Nonnegative count and positive temperature required.')
         if isinstance(prompt, str):
@@ -204,7 +235,7 @@ class RegionLanguageModel(nn.Module):
         self.eval()
         try:
             rng = torch.Generator(device=prompt.values.device).manual_seed(seed)
-            result = self(prompt, **kwargs)
+            result = self(prompt, state=state, reset=reset, **kwargs)
             pieces = [prompt.values]
             for _ in range(count):
                 token = torch.multinomial((result['logits'][:, -1]/temperature).softmax(-1), 1, generator=rng)

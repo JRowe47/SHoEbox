@@ -1,0 +1,31 @@
+{
+  "date": "2026-11-04",
+  "total_tests": 135,
+  "legacy_tests": 60,
+  "graph_tests": 75,
+  "status": "passed",
+  "commands": [
+    {
+      "command": "python scripts/check_all.py",
+      "tests": 134,
+      "passed": true
+    },
+    {
+      "command": "python -m unittest -v experiments.text_regions.test_probe.ProbeExecutionChecks.test_warm_start_uses_only_matching_weights_and_keeps_fresh_rng_and_cursor",
+      "tests": 1,
+      "passed": true
+    }
+  ],
+  "python": "3.12.14",
+  "torch": "2.15.0+cpu",
+  "checks": [
+    "baseline parity",
+    "default-capacity K=2 T=128 finite gradients",
+    "independent source views",
+    "equal-execution controls",
+    "explicit utility commits",
+    "masked zero-vector gradients",
+    "exact optimizer and state resume",
+    "warm-start isolation"
+  ]
+}

@@ -26,8 +26,8 @@ class EdgeProjection(nn.Module):
         initial = cfg.feedback_gate_init if delayed else .5
         nn.init.constant_(self.gate.bias, math.log(initial/(1-initial)))
 
-    def forward(self, payload, memberships):
-        gate = self.gate(payload).sigmoid()
+    def forward(self, payload, memberships, bias=0.):
+        gate = (self.gate(payload)+bias).sigmoid()
         value = gate*self.value(payload)
         context = self.context(memberships.flatten(1)).reshape_as(memberships)
         return value, gate[:, :, None]*context
@@ -44,7 +44,7 @@ class GraphConnections(nn.Module):
             nn.init.normal_(layer.weight, std=.02)
         self.incoming = {n.name: tuple(e for e in cfg.edges if e.destination == n.name) for n in cfg.nodes}
 
-    def gather(self, spec, current, delayed, ingress, active, event_index, edge_masks, substitutions):
+    def gather(self, spec, current, delayed, ingress, active, event_index, edge_masks, substitutions, edge_bias=None):
         template = current[spec.name].payload
         values = torch.zeros_like(template)
         context = template.new_zeros(template.shape[0], 3, self.cfg.groups)
@@ -69,10 +69,11 @@ class GraphConnections(nn.Module):
                 payload = substitute.payload[:, event_index]
                 memberships = substitute.memberships[:, event_index]
                 intervention = 'substitution'
-            value, evidence = self.edges[edge.key](payload, memberships)
+            value, evidence = self.edges[edge.key](payload, memberships, (edge_bias or {}).get(edge.key, 0.))
             values = values + value*used[:, None]
             context = context + evidence*used[:, None, None]
             count = count + used.to(count.dtype)
-            dependencies.append(replace(publication.dependency(edge.key, used), intervention=intervention))
+            dependencies.append(replace(publication.dependency(edge.key, used), intervention=intervention,
+                                        substituted=torch.full_like(used, intervention == 'substitution')))
         scale = count.clamp_min(1).sqrt()
         return values/scale[:, None], context/scale[:, None, None], tuple(dependencies)

@@ -7,6 +7,21 @@ import torch
 from torch import nn
 from torch.nn import functional as F
 
+
+def normalize_direction(x, dim=-1, eps=1e-12, safe_zero=False):
+    """A missing direction has zero value and, optionally, zero derivative.
+
+    The ordinary normalization Jacobian at zero is 1/eps. Composing memory
+    and symbol queries can amplify that arbitrary derivative for absent inputs.
+    Opt-in zero-direction semantics leave nonzero normalization unchanged.
+    """
+    value = F.normalize(x, dim=dim, eps=eps)
+    if safe_zero:
+        present = x.norm(dim=dim, keepdim=True) > eps
+        value = torch.where(present, value, torch.zeros_like(value))
+    return value
+
+
 def compact_chunk(q,k,v,g,beta,c,state=None):
     """Exact one-chunk recurrence; supports arbitrary head sizes, FP32/FP64."""
     orig=q.dtype;acc=torch.float64 if orig==torch.float64 else torch.float32
@@ -47,10 +62,11 @@ class MinKron(nn.Module):
     reset_each is a frozen-model intervention that removes historical memory
     while retaining the current event's write/read computation.
     """
-    def __init__(self, width, heads=4, key_dim=8, value_dim=8, chunk_size=32):
+    def __init__(self, width, heads=4, key_dim=8, value_dim=8, chunk_size=32, safe_zero=False):
         super().__init__()
         self.width, self.H, self.K, self.V = width, heads, key_dim, value_dim
         self.chunk_size = chunk_size
+        self.safe_zero = safe_zero
         if min(width, heads, key_dim, value_dim, chunk_size) < 1:
             raise ValueError('All minKron dimensions must be positive.')
         self.splits = [heads*(2*key_dim+value_dim), heads, heads, value_dim, heads*value_dim]
@@ -81,7 +97,7 @@ class MinKron(nn.Module):
             raise ValueError('Wrong minKron state shape.')
         qkv, erase, write, forget, gate = self.projection(x).split(self.splits, -1)
         q,k,v = F.silu(qkv).split([self.H*self.K,self.H*self.K,self.H*self.V], -1)
-        q,k,v = [F.normalize(a.reshape(b,t,self.H,d),dim=-1)
+        q,k,v = [normalize_direction(a.reshape(b,t,self.H,d),safe_zero=self.safe_zero)
                  for a,d in ((q,self.K),(k,self.K),(v,self.V))]
         acc = torch.float64 if x.dtype == torch.float64 else torch.float32
         f = self.forget_projection(forget).to(acc) + self.dt_bias.to(acc)

@@ -52,13 +52,28 @@ P and Q feed the shared byte readout. B has one state owner and publishes to bot
 
 The first implementation includes reusable latent nodes, typed publication records, functional graph state, fixed synchronous schedules, a runnable byte language model, ordered stream training, exact checkpoint continuation, whole-region rounds, input/edge interventions, and CPU measurements. Baseline parity and engine behavior are covered by automated tests.
 
-The learning acceptance work comes next: delayed recall/correction beyond the training segment, shared/private view objectives, explicit inter-node utility commits, and multi-seed compositional comparisons. See the [development report](docs/SHoEbox_Development_Report.md) for the exact milestone status and measured results.
+The probe harness trains recall/correction across chunk boundaries, with optional independent shared/private view objectives and explicit post-optimizer edge/lace utility commits. Both learning additions are disabled by default. Probe checkpoints resume the complete model, optimizer, utility buffers, stream cursor, RNG, and graph state.
+
+The 246K-parameter, seven-node model reached **98.6% correction accuracy at an 18-byte delay and 99.6% at 34 bytes**, on 512 fresh test episodes per difficulty with 16-byte training segments. Resetting state reduced accuracy to 26.6%; withholding the correction preserved the old value in 100% of episodes. This is the compact four-value query probe. All 135 automated checks pass.
+
+```bash
+python -m experiments.text_regions.probe_train --kind correction --steps 300 \
+  --batch 8 --segment 16 --gap 16 --eval-gap 32 --eval-episodes 512 \
+  --eval-batch 64 --out artifacts/probes/correction_300
+python -m experiments.text_regions.probe_train --kind shared_private \
+  --view-objective --utility --steps 100 --out artifacts/probes/views
+python -m experiments.text_regions.probe_eval artifacts/probes/correction_300/checkpoint.pt \
+  --gaps 16 32 --split test --out artifacts/probes/correction_test.json
+```
+
+See the [probe and learning report](docs/SHoEbox_Probe_Development_Report.md) for recorded accuracy, controls, and remaining acceptance work. The [initial report](docs/SHoEbox_Development_Report.md) preserves the first engine milestone.
 
 - [Experiment API, reproduction commands, and state contracts](experiments/text_regions/README.md)
 - [Authoritative development specification](docs/SHoE_Text_Development_Specification.md)
 - [Development report](docs/SHoEbox_Development_Report.md)
+- [Probe and learning development report](docs/SHoEbox_Probe_Development_Report.md)
 - [Original SHoE overview and results](SHoE_BASELINE.md)
 - [Preserved HAT/minKron baseline](experiments/hat_minkron)
 - [Source lineage and third-party notices](THIRD_PARTY_NOTICES.md)
 
-Checkpoints are generated locally and excluded from git. Source, protocols, measurements, and samples are committed. `SOURCE_MANIFEST.json` retains the original SHoE hashes; the four compatibility extensions to its HAT experiment are documented and checked for parity in the new suite.
+Checkpoints are generated locally and excluded from git. Source, protocols, measurements, and samples are committed. `SOURCE_MANIFEST.json` retains the original SHoE hashes; compatibility extensions to its HAT experiment preserve ordinary behavior and are checked for parity in the new suite.

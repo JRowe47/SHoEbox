@@ -34,9 +34,9 @@ def masked_ingress(hat, events, state, active):
 
 
 class LatentAdapter(nn.Module):
-    def __init__(self, cfg):
+    def __init__(self, cfg, safe_zero=True):
         super().__init__()
-        self.levels = nn.ModuleList(SymbolLevel(cfg) for _ in range(cfg.hat_levels))
+        self.levels = nn.ModuleList(SymbolLevel(cfg, safe_zero=safe_zero) for _ in range(cfg.hat_levels))
         self.norm = nn.LayerNorm(cfg.width)
 
     def forward(self, values, states):
@@ -55,15 +55,17 @@ class RecurrentNode(nn.Module):
         super().__init__()
         self.name, self.cfg = spec.name, cfg
         hat_cfg = cfg.hat_config()
-        self.adapter = LatentAdapter(hat_cfg)
+        self.adapter = LatentAdapter(hat_cfg, safe_zero=cfg.zero_safe_norm)
         self.core = RecurrentChild(hat_cfg.child_config(index), hat_cfg, shared, with_decoder=False)
+        for block in self.core.blocks:
+            block.memory.safe_zero = cfg.zero_safe_norm
 
     def initial_state(self, batch, device, dtype):
         return NodeState(tuple(level.memory.initial_state(batch, device, dtype) for level in self.adapter.levels),
                          tuple(block.memory.initial_state(batch, device, dtype) for block in self.core.blocks),
                          torch.zeros(batch, dtype=torch.long, device=device))
 
-    def forward(self, payload, routing_context, state, active, trace=False):
+    def forward(self, payload, routing_context, state, active, trace=False, lace_bias=None):
         cfg = self.cfg
         b, d = payload.shape
         rows = active.nonzero().flatten()
@@ -77,7 +79,7 @@ class RecurrentNode(nn.Module):
                     'state': state, 'aux': aux, 'hat_aux': aux, 'executions': 0, 'trace': None}
         x, adapter_state, hat_aux = self.adapter(payload[rows], tuple(s[rows] for s in state.contextualizer))
         evidence = torch.stack([block.router.pilot(x) for block in self.core.blocks], -2)
-        prior, lace = self.core.lace(evidence + routing_context[rows, None], x)
+        prior, lace = self.core.lace(evidence + routing_context[rows, None], x, utility_bias=lace_bias)
         result = self.core.execute(x, prior, tuple(s[rows] for s in state.blocks), backend='step',
                                    trace=trace, decode=False)
         final = NodeState(tuple(old.index_copy(0, rows, new) for old, new in zip(state.contextualizer, adapter_state)),
@@ -89,7 +91,8 @@ class RecurrentNode(nn.Module):
         record = None
         if trace:
             record = {'rows': rows.detach(), 'groups': result['group_ids'][:, 0].detach(),
-                      'laces': result['feedback_lace_ids'][:, 0].detach(),
+                      'laces': lace['lace_ids'][:, 0].detach(),
+                      'observed_laces': result['feedback_lace_ids'][:, 0].detach(),
                       'experts': result['expert_ids'][:, 0].detach()}
         return {'latent': latent.index_copy(0, rows, result['latent'][:, 0]), 'header': header,
                 'state': final, 'aux': result['aux'] + .1*lace['balance'], 'hat_aux': hat_aux,
