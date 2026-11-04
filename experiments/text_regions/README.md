@@ -389,3 +389,29 @@ The complete download restores original checkpoints, prior readouts, new fitted 
 The audit recomputes every prediction and fitted training objective, checks original baseline agreement, reconstructs generated episode identities/targets, verifies normalization and matched parameter budgets, and checks frozen-model fingerprints and source hashes. Raw experiment rows stay in the downloadable package; GitHub contains aggregates and provenance.
 
 Raw GELU improves balanced-source private accuracy to **62.8%** under both publication policies, versus **56.0% / 54.9%** for the previous linear heads. Original/dropout B-only accuracy reaches **97.6%**. Held-out shared accuracy regresses, motivating a residual correction around the existing linear head next. See the [report](../../docs/SHoEbox_Emission_Adapter_Report.md) for all conditions, initialization variation and optimizer budgets.
+
+## Validation-scaled residual corrections
+
+`residual_adapter.py` preserves each raw linear head and fits a 16-unit correction with identity or GELU activation. The output projection starts at zero, so initial logits exactly match the frozen baseline. Normalization remains fixed. There are 5,392 trainable correction parameters and 16,640 frozen base parameters; inference consumes one observed raw feature vector and emits all 256 byte logits.
+
+The fitting/selection protocol is fixed before evaluation: 960 supported training cases, then 1,920 validation cases on separate fact combinations. Validation selects one strength from `0, 0.125, 0.25, 0.5, 1`, minimizing query-balanced cross entropy while preserving all-source/shared and B-only/shared correct counts relative to the frozen head. Zero is always feasible. Each selection is written to `selection_lock.json` before test scoring. Training, validation and evaluation identities are disjoint.
+
+```bash
+# Restore the previous complete emission package, then fit all twelve models.
+python scripts/run_residual_study.py \
+  --out artifacts/residual_reproduction --jobs 3 --threads 2
+python scripts/package_residual_study.py \
+  --source artifacts/residual_reproduction \
+  --out artifacts/residual_reproduction_results
+
+# Or reproduce all saved results directly from the complete residual package.
+python -m experiments.text_regions.residual_compare \
+  --source artifacts/residual_adapter_v1 \
+  --out artifacts/reproduced_residual_comparison.json
+```
+
+The completed study fits 72 corrections: twelve frozen graphs, two matched activations, and three initializations. It reuses prior training/evaluation feature caches and adds only validation capture: 48,384,000 expert executions in total. Fitting makes no additional expert calls. All fits use the same 400-iteration cap and L2 0.001; all reach the cap. `load_residuals(path)` restores tensor-only artifacts and checks the frozen base, dimensions, normalization, fitting metadata, and selected strength.
+
+Selected GELU raises B-only recovery from **85.7% to 90.1%** on original/dropout graphs and **95.8% to 97.3%** on gated/dropout graphs. Validation chooses zero in 22 of 36 GELU fits; private accuracy remains essentially at the baseline. Full-strength corrections recover balanced-source private gains but again lose shared accuracy. The default remains unchanged. The [report](../../docs/SHoEbox_Residual_Adapter_Report.md) records every condition, validation decision, seed variation, and the next training-objective experiment.
+
+The artifact audit reconstructs cohorts, training objectives, validation selection and every saved prediction/loss. Prior raw-linear predictions reproduce exactly. Raw rows and tensors are delivered in the downloadable package; only code, reports and aggregate provenance are published. Prediction exports are atomic and hashed before a run is marked complete.
