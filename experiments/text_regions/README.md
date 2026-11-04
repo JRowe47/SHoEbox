@@ -338,3 +338,29 @@ python -m experiments.text_regions.source_schedule_compare \
 ```
 
 The completed six-pair study raises mean B-only shared recovery from **35.1% to 99.8%** under original publication and **85.1% to 96.5%** under evidence gating. Held-out overall accuracy falls from **78.2% to 61.5%** and **68.2% to 63.4%**; private accuracy falls from **75.6% to 50.1%** and **57.9% to 49.5%**. The default schedule remains unchanged. The [report](../../docs/SHoEbox_Balanced_Source_Report.md) records per-seed results, exact source/auxiliary exposure, and the next frozen-graph readout diagnostic.
+
+## Frozen common byte decoders
+
+`readout_diagnostic.py` captures actual regional publications at the description boundary and final query. It compares the 64-dimensional P/Q concatenation with the existing 32-dimensional mixed/normalized latent, reusing each frozen graph execution for both answer heads and all factor probes. One 256-byte linear decoder per representation serves every query and source combination. Query labels and source-control names never enter features or select answer heads.
+
+Fitting uses all 15 supported query/source-subset cells, with equal loss mass per query type. Every model sees the same 960 fitting cases and 3,840 evaluation cases. Fixed factor probes are fitted separately at each boundary and evaluated both at their own boundary and across time. Graph tensors, module modes, RNG, and publication policy remain unchanged, and K stays one.
+
+```bash
+python -m experiments.text_regions.readout_diagnostic \
+  artifacts/source_schedule/original_seed1/checkpoint.pt \
+  --fit-per-cell 64 --count-per-query 128 --max-iter 300 \
+  --out artifacts/readout_single
+
+python scripts/run_readout_study.py --jobs 3 --threads 2 \
+  --out artifacts/readout_reproduction
+python scripts/package_readout_study.py \
+  --source artifacts/readout_reproduction \
+  --out artifacts/readout_reproduction_results
+python -m experiments.text_regions.readout_compare \
+  --manifest experiments/text_regions/results/readout_diagnostic/manifest.json \
+  --out artifacts/reproduced_readout_comparison.json
+```
+
+Use new output paths when reproducing an existing study. Start from the complete downloadable package: it restores the twelve measured graphs, fitted readouts, and raw `results/readout_diagnostic/runs/` files needed by the saved-result comparator. GitHub contains the aggregate comparison and provenance. `load_diagnostic` restores fitted answer and factor heads using tensor-only loading; `capture_readout_features` produces their inputs without labels. The comparator supports both ordinary JSON results and their lossless gzip copies.
+
+Across three original-policy/dropout seeds, B-only recovery is **34.4% existing / 70.1% refitted mixed / 85.7% refitted raw**. Held-out private accuracy is **76.3% / 73.2% / 73.7%**. Gated/dropout models reach **95.8% B-only and 60.9% private** with the raw decoder. The [full report](../../docs/SHoEbox_Frozen_Readout_Report.md) records all twelve models, probe-transfer results, budgets, and the next shared nonlinear readout experiment.
