@@ -72,6 +72,8 @@ The shared emission-adapter study fits **144 heads** across those twelve frozen 
 
 The residual follow-up fits **72 corrections** with 16 hidden units and 5,392 trainable parameters each. Validation selects their strength under shared-answer accuracy guards, choosing zero for **22 of 36 GELU heads**. Selected GELU raises B-only recovery from **85.7% to 90.1%** on original/dropout graphs and **95.8% to 97.3%** on gated/dropout graphs. Private accuracy barely changes: scaling back the correction also removes its private gains. All **284 tests pass** and saved weights reproduce every result. The default readout remains unchanged; next is shared-answer preservation during correction training. See the [residual report](docs/SHoEbox_Residual_Adapter_Report.md) and [audited results](experiments/text_regions/results/residual_adapter).
 
+The shared-preservation phase adds a training-only margin loss and fits **144 matched corrections**, with validation selecting penalty and scale. Selected GELU raises private accuracy from **56.0% to 57.7%** on original/balanced graphs and **55.2% to 55.9%** on gated/balanced graphs. Shared accuracy changes from **80.5% to 79.4%** and **87.4% to 87.5%**, respectively. Zero is still selected for **19 of 36 GELU heads**. Four longer-fit diagnostics improve training objectives but all select zero afterward. All **295 tests pass**, and saved tensors reproduce every prediction and validation choice. The default readout remains unchanged; next is greater fitting-cohort diversity. See the [shared-preservation report](docs/SHoEbox_Shared_Preservation_Report.md) and [audited results](experiments/text_regions/results/shared_preservation).
+
 ```bash
 python -m experiments.text_regions.probe_train --kind correction --steps 300 \
   --batch 8 --segment 16 --gap 16 --eval-gap 32 --eval-episodes 512 \
@@ -96,6 +98,7 @@ See the [probe and learning report](docs/SHoEbox_Probe_Development_Report.md) fo
 - [Frozen shared byte decoders and temporal factor probes](docs/SHoEbox_Frozen_Readout_Report.md)
 - [Shared emission adapters with matched linear controls](docs/SHoEbox_Emission_Adapter_Report.md)
 - [Residual byte decoders with validation-selected strength](docs/SHoEbox_Residual_Adapter_Report.md)
+- [Shared-answer preservation during residual training](docs/SHoEbox_Shared_Preservation_Report.md)
 - [Original SHoE overview and results](SHoE_BASELINE.md)
 - [Preserved HAT/minKron baseline](experiments/hat_minkron)
 - [Source lineage and third-party notices](THIRD_PARTY_NOTICES.md)

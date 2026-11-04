@@ -415,3 +415,46 @@ The completed study fits 72 corrections: twelve frozen graphs, two matched activ
 Selected GELU raises B-only recovery from **85.7% to 90.1%** on original/dropout graphs and **95.8% to 97.3%** on gated/dropout graphs. Validation chooses zero in 22 of 36 GELU fits; private accuracy remains essentially at the baseline. Full-strength corrections recover balanced-source private gains but again lose shared accuracy. The default remains unchanged. The [report](../../docs/SHoEbox_Residual_Adapter_Report.md) records every condition, validation decision, seed variation, and the next training-objective experiment.
 
 The artifact audit reconstructs cohorts, training objectives, validation selection and every saved prediction/loss. Prior raw-linear predictions reproduce exactly. Raw rows and tensors are delivered in the downloadable package; only code, reports and aggregate provenance are published. Prediction exports are atomic and hashed before a run is marked complete.
+
+## Shared-answer preservation during training
+
+`shared_preservation.py` adds a squared margin-shortfall loss on shared training
+examples answered correctly by the frozen baseline. The target margin is capped
+at 1 nat. Private examples and incorrect baseline answers remain supervised by
+the ordinary byte objective. Query metadata defines anchors during training only;
+every deployed head still predicts from observed raw features alone.
+
+The study fixes two penalty coefficients (1 and 10), two matched activations,
+three initializations and twelve graphs: 144 new fits at 400 L-BFGS iterations.
+The architecture, frozen baseline, normalization and 5,392 trainable parameters
+match the previous residual experiment. Validation selects both coefficient and
+scale with the existing shared-answer guards. All caches are reused, with no
+additional graph executions. The default model is unchanged.
+
+```bash
+python scripts/run_preservation_study.py \
+  --out artifacts/preservation_repeat --jobs 3 --threads 2
+
+# Audit the complete downloadable package, including four longer-fit checks:
+python -m experiments.text_regions.preservation_compare \
+  --source artifacts/shared_preservation_v1 \
+  --convergence artifacts/preservation_convergence_v1 \
+  --out artifacts/reproduced_preservation_comparison.json
+
+# Independently repeat the training-gradient-selected convergence diagnostic:
+python scripts/check_preservation_convergence.py \
+  --source artifacts/shared_preservation_v1 \
+  --out artifacts/convergence_repeat
+```
+
+`load_residuals(path)` restores both penalty candidates and `selected.pt`.
+Selected artifacts retain every candidate's validation scores and the coefficient
+decision in `head.selection['preservation_choice']`. The audit reconstructs the
+objective independently and verifies all predictions from saved tensors.
+
+Selected GELU improves balanced-source private accuracy from **56.0% to 57.7%**
+under original publication and **55.2% to 55.9%** under gating. Shared accuracy
+changes from **80.5% to 79.4%** and **87.4% to 87.5%**, respectively. Nineteen
+of 36 GELU selections remain zero. All 295 tests pass. See the
+[report](../../docs/SHoEbox_Shared_Preservation_Report.md) and
+[audited aggregates](results/shared_preservation) for complete results.
