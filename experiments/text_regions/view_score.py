@@ -9,6 +9,14 @@ from .view_eval import evaluate_views, fit_source_readouts
 from .view_train import load_view_checkpoint, tensor_fingerprint
 
 
+def apply_publication_policy(model, policy='trained'):
+    """Select an inference policy without changing weights or carried state."""
+    if policy not in ('trained', 'original', 'evidence'):
+        raise ValueError('Publication policy must be trained, original, or evidence.')
+    if policy != 'trained':
+        model.model.cfg = replace(model.cfg, evidence_gated_ports=policy == 'evidence')
+
+
 def utility_summary(model):
     utility=model.utility
     entries={}
@@ -30,15 +38,17 @@ def main():
     parser.add_argument('--batch',type=int,default=64);parser.add_argument('--threads',type=int,default=2)
     parser.add_argument('--fit-count',type=int,default=128);parser.add_argument('--skip-readouts',action='store_true')
     parser.add_argument('--predictions',action='store_true')
-    parser.add_argument('--evidence-gated-ports',action='store_true',help='Same-weight inference intervention; preserve expert counts.')
+    policy=parser.add_mutually_exclusive_group()
+    policy.add_argument('--evidence-gated-ports',action='store_true',help='Alias for --publication-policy evidence.')
+    policy.add_argument('--publication-policy',choices=('trained','original','evidence'),
+                        help='Override publication validity without changing trained weights or expert counts.')
     parser.add_argument('--controls',nargs='+',choices=('all','a_only','b_only','c_only','no_private','reset_query'))
     parser.add_argument('--out',type=Path,required=True)
     args=parser.parse_args()
     if min(args.batch,args.threads,args.fit_count,args.count_per_query)<1:parser.error('Counts must be positive.')
     torch.set_num_threads(args.threads)
     model,_,_,saved=load_view_checkpoint(args.checkpoint,restore_rng=False)
-    if args.evidence_gated_ports:
-        model.model.cfg=replace(model.cfg,evidence_gated_ports=True)
+    apply_publication_policy(model,args.publication_policy or ('evidence' if args.evidence_gated_ports else 'trained'))
     protocol=saved['protocol'];before=tensor_fingerprint(model)
     args.out.mkdir(parents=True,exist_ok=True)
     kwargs={key:protocol[key] for key in ('seed','gap','query_every','segment')}
@@ -48,6 +58,10 @@ def main():
     if readouts is not None:
         torch.save({'source_readout_schema':1,**asdict(readouts)},args.out/'source_readouts.pt')
     report={'checkpoint_step':saved['step'],'model_tensor_sha256':before,'protocol':protocol,
+            'evaluation_settings':{'count_per_query':args.count_per_query,'batch_size':args.batch,
+                                   'threads':args.threads,'torch_version':str(torch.__version__),
+                                   'cohorts':list(args.cohorts),'controls':args.controls,
+                                   'predictions_saved':args.predictions},
             'source_readout_fit_seconds':fitting_seconds,'source_readout_fit_count':0 if readouts is None else args.fit_count,
             'utility':utility_summary(model),'inference_policy':{'evidence_gated_ports':model.cfg.evidence_gated_ports},
             'evaluations':{}}

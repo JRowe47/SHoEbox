@@ -209,4 +209,33 @@ python -m experiments.text_regions.view_score artifacts/views/views/checkpoint.p
   --count-per-query 192 --batch 64 --predictions --out artifacts/views/views/evidence_gated
 ```
 
-The recorded intervention uses unchanged weights: for the view-trained model, B-only shared accuracy rises from 24.5% to 66.7% while expert calls remain equal. Training with the policy is available through `view_train --evidence-gated-ports`; its learned capability has not yet been evaluated. The primary four-way comparison preserves the original publication policy.
+The initial intervention uses unchanged weights: for the view-trained model, B-only shared accuracy rises from 24.5% to 66.7% on 192 shared queries while expert calls remain equal. Training with the policy is available through `view_train --evidence-gated-ports`. The original four-way comparison preserves the original publication policy; the subsequent comparison separates training and inference effects below.
+
+## Training-policy comparisons and regional diagnostics
+
+`view_score --publication-policy trained|original|evidence` selects the inference policy independently of the checkpoint's training policy. The default keeps the saved configuration. The earlier `--evidence-gated-ports` scoring option remains an alias for `--publication-policy evidence`. Neither override changes learned tensors or expert counts.
+
+`evidence_compare.py` validates a manifest of matched original/gated training pairs. Each pair supplies original-trained/original-inference, original-trained/gated-inference, and gated-trained/gated-inference results; the fourth combination is optional. This separates inference-policy effects from learning with the policy. Comparisons check initialization, configuration, exposure, budgets, checkpoint fingerprints, episode identities, balanced answers, and scores recomputed from raw predictions. Seed aggregates keep view-objective and utility settings separate. Training source coverage is reconstructed from the saved stream, including rare supported singleton inputs.
+
+`transfer_eval.py` fits frozen linear readouts on training descriptions and captures actual node publications at the pre-query boundary and final query. It reports both pooled fits and separate query-matched fits, along with publication validity, independent final source ingress, and the model's own answers. Invalid payloads are excluded. Saved readouts bind to the model tensors and full inference configuration, including publication policy; `load_transfer_readouts(path)` validates tensor-only artifacts before reuse. Labels and query metadata never enter the model's prediction features.
+
+`query_interference.py` tests facts supplied only by B while A/C receive no observations, only the final shared-query marker, or all query markers. Fact values stay masked. The diagnostic verifies identical cases, byte tensors, and expert counts, reports source-observation counts separately, and restores the model's modes and policy after scoring.
+
+```bash
+python -m experiments.text_regions.view_score artifacts/evidence/views/checkpoint.pt \
+  --publication-policy evidence --count-per-query 512 --batch 64 --predictions \
+  --out artifacts/evidence/views/policy_evaluation/gated
+
+python -m experiments.text_regions.transfer_eval artifacts/evidence/views/checkpoint.pt \
+  --publication-policy evidence --fit-count 192 --count-per-query 192 --batch 64 \
+  --out artifacts/evidence/transfer_trained_gated
+
+python -m experiments.text_regions.query_interference artifacts/views/views/checkpoint.pt \
+  --policy both --count 512 --batch 64 --out artifacts/evidence/query_interference
+
+python -m experiments.text_regions.evidence_compare \
+  --manifest experiments/text_regions/results/evidence_policy/manifest.json \
+  --out artifacts/evidence/recomputed_comparison.json
+```
+
+The policy comparison uses 512 fresh episodes per query (1,536 per control), with original/gated training paired at seeds 20261106, 20261107, and 20261108. These are fine-tuning seeds from a common correction-trained graph. The publication gate remains optional; learned composition and additional regional rounds are separate experiments.

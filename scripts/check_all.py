@@ -29,7 +29,8 @@ def main():
             failed.append(name)
     print('\nRunning text_regions', flush=True)
     modules = ['verify', 'test_activity', 'test_objectives', 'test_learning', 'test_probe', 'test_normalization',
-               'test_view_data', 'test_view_eval', 'test_view_train', 'test_evidence_ports']
+               'test_view_data', 'test_view_eval', 'test_view_train', 'test_evidence_ports',
+               'test_view_score', 'test_transfer_eval', 'test_evidence_compare', 'test_query_interference']
     result = subprocess.run([sys.executable, '-m', 'unittest', '-v',
                              *['experiments.text_regions.' + name for name in modules]], cwd=ROOT)
     if result.returncode:
