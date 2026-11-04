@@ -70,6 +70,7 @@ class InputFiles:
 def _training_protocol(protocol, remove_policy=False, remove_seed=False):
     result = deepcopy({key: value for key, value in protocol.items() if key not in EXTRA_PROTOCOL_KEYS})
     result.setdefault('evidence_gated_ports', False)
+    result.setdefault('source_schedule', 'dropout')
     for flag in ('baseline_detach_features', 'baseline_observed_only'):
         result.setdefault(flag, False)
     if result.get('base_initializer') is not None:
@@ -93,6 +94,7 @@ def _learner_signature(config, remove_seed=False):
 def _load_run(spec, expected_policy, files, label):
     directory = files.path(spec['run_directory'])
     protocol, summary = files.json(directory/'protocol.json'), files.json(directory/'summary.json')
+    protocol['stream'].setdefault('source_schedule', 'dropout')
     policy = protocol.get('evidence_gated_ports', False)
     _require(type(policy) is bool and policy == expected_policy, f'{label}: wrong training policy')
     model_policy = protocol['learner_config']['model'].get('evidence_gated_ports', False)

@@ -328,3 +328,11 @@ The primary experiment retains the original baseline loss (`baseline_detach_feat
 `source_exposure` records episode/final-query counts by query and retained subset, supported final queries, source occurrences by view, pooled private-label eligibility, available A/C samples and jointly available A/C pairs. Counts cover each actual training chunk. Checkpoints preserve the schedule and audit; legacy checkpoints default to `dropout` and mark prior segments as unaudited. Exact resume rejects a changed schedule.
 
 This first curriculum uses only whole-source removal. Query-only or identifier-only views require causal shared-fact eligibility in the paired-view losses before they can be added.
+
+`source_schedule_compare.py` verifies matched initialization, parameters, loss settings, ordered training content, external events and expert executions. It reconstructs source and auxiliary eligibility from fact positions, availability and resets, verifies balanced subset/answer/tuple coverage, and recomputes evaluation scores from raw predictions. Cross-policy summaries retain paired seeds and report the schedule-by-publication interaction. Legacy runs without recorded exposure counters are explicitly marked as reconstructed only.
+
+```bash
+python -m experiments.text_regions.source_schedule_compare \
+  --manifest experiments/text_regions/results/source_schedule/manifest.json \
+  --out artifacts/reproduction/source_schedule_comparison.json
+```
