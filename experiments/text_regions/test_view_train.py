@@ -19,9 +19,9 @@ class ViewTrainingChecks(unittest.TestCase):
     def setUp(self):
         self.cfg = GraphConfig.tiny(seed=829)
 
-    def learner(self, views=True, utility=True):
+    def learner(self, views=True, utility=True, detach=False):
         torch.manual_seed(829)
-        return build_learner(self.cfg, views, utility)
+        return build_learner(self.cfg, views, utility, baseline_detach_features=detach)
 
     def assert_tree_equal(self, first, second):
         if torch.is_tensor(first):
@@ -72,6 +72,16 @@ class ViewTrainingChecks(unittest.TestCase):
                 fingerprints.add(tensor_fingerprint(learner))
             self.assertEqual(len(fingerprints), 1)
 
+    def test_detach_switch_preserves_initial_tensors_rng_and_parameter_count(self):
+        attached = self.learner()
+        rng = torch.get_rng_state().clone()
+        detached = self.learner(detach=True)
+        self.assertFalse(attached.baseline_detach_features)
+        self.assertTrue(detached.baseline_detach_features)
+        self.assert_tree_equal(attached.state_dict(), detached.state_dict())
+        self.assertEqual(sum(p.numel() for p in attached.parameters()), sum(p.numel() for p in detached.parameters()))
+        torch.testing.assert_close(rng, torch.get_rng_state(), rtol=0, atol=0)
+
     def test_first_private_step_is_finite_baseline_trains_in_every_arm_and_compute_matches(self):
         batch = make_view_batch('train', 0, 2, seed=829, gap=0, dropout=.5).slice(0, 16)
         budgets = set()
@@ -113,7 +123,12 @@ class ViewTrainingChecks(unittest.TestCase):
                             float(second['view_objective']['private'].detach()))
 
     def test_checkpoint_restores_exact_next_optimizer_step_stream_state_and_rng(self):
-        learner = self.learner()
+        for detach in (False, True):
+            with self.subTest(baseline_detach_features=detach):
+                self._assert_exact_resume(detach)
+
+    def _assert_exact_resume(self, detach):
+        learner = self.learner(detach=detach)
         random.seed(112)
         stream = ViewStream(batch_size=2, gap=1, seed=829, dropout=.5)
         optimizer = optimizer_for(learner, .002)
@@ -127,6 +142,8 @@ class ViewTrainingChecks(unittest.TestCase):
             expected_state, expected_metrics, expected_logits = train_step(learner, optimizer, expected_batch, state)
             restored_stream = ViewStream(batch_size=2, gap=1, seed=829, dropout=.5)
             resumed, resumed_optimizer, restored_state, saved = load_view_checkpoint(path, restored_stream)
+            self.assertEqual(resumed.baseline_detach_features, detach)
+            self.assertEqual(saved['protocol']['baseline_detach_features'], detach)
             self.assert_tree_equal(expected_rng, (torch.rand(4), [random.random() for _ in range(4)]))
             self.assertEqual(saved['totals'], totals)
             self.assertEqual(saved['step'], 1)
@@ -142,6 +159,26 @@ class ViewTrainingChecks(unittest.TestCase):
             for key in ('loss', 'ce', 'gradient_norm', 'auxiliary', 'utility_updates'):
                 self.assert_tree_equal(expected_metrics[key], actual_metrics[key])
             self.assertEqual(stream.state_dict(), restored_stream.state_dict())
+
+    def test_legacy_checkpoint_normalizes_missing_detach_flag_to_false(self):
+        learner = self.learner()
+        optimizer = optimizer_for(learner, .002)
+        stream = ViewStream(batch_size=2, gap=1, seed=829)
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory)/'legacy.pt'
+            save_view_checkpoint(path, learner, optimizer, None, stream, 0, {'lr': .002}, initial_totals())
+            legacy = torch.load(path, weights_only=True)
+            legacy['learner_config'].pop('baseline_detach_features')
+            legacy['protocol'].pop('baseline_detach_features')
+            torch.save(legacy, path)
+            restored, _, _, saved = load_view_checkpoint(path, restore_rng=False)
+            self.assertFalse(restored.baseline_detach_features)
+            self.assertFalse(saved['protocol']['baseline_detach_features'])
+            self.assert_tree_equal(learner.state_dict(), restored.state_dict())
+            legacy['protocol']['baseline_detach_features'] = True
+            torch.save(legacy, path)
+            with self.assertRaises(ValueError):
+                load_view_checkpoint(path, restore_rng=False)
 
 
 if __name__ == '__main__':

@@ -239,3 +239,26 @@ python -m experiments.text_regions.evidence_compare \
 ```
 
 The policy comparison uses 512 fresh episodes per query (1,536 per control), with original/gated training paired at seeds 20261106, 20261107, and 20261108. These are fine-tuning seeds from a common correction-trained graph. Mean B-only shared recovery improves from 35.1% to 85.1%; all-view held-out accuracy falls from 78.2% to 68.2%, with private recovery regressing in every pair. The publication gate remains default-off. See the [full comparison and diagnostic report](../../docs/SHoEbox_Evidence_Policy_Report.md) and [raw results](results/evidence_policy). The next ablation isolates encoder gradients from the A-only baseline loss; learned composition and additional regional rounds remain separate experiments.
+
+## Baseline encoder-gradient ablation
+
+`view_train --baseline-detach-features` disconnects the source-only baseline loss from its input features. The baseline head still trains on the same targets with the same weight and normalization. Its logits and utility eligibility are unchanged for fixed model weights. Main answer and view-objective losses still update the encoder normally. This removes **all** baseline-to-encoder gradients, including supported shared and left-private targets; it does not selectively remove right-private supervision.
+
+The switch defaults to false and is stored in both learner configuration and training protocol. Older checkpoints without the field retain their original behavior. Exact resume requires the same setting; a fresh ablation starts from the common bare graph initializer.
+
+```bash
+python -m experiments.text_regions.view_train --steps 240 --batch 32 \
+  --segment 16 --gap 8 --dropout 0.25 --seed 20261106 --threads 2 \
+  --base-checkpoint artifacts/probes/correction_warm150/checkpoint.pt \
+  --view-objective --baseline-detach-features --evidence-gated-ports \
+  --out artifacts/baseline_detach/gated_seed1
+
+python -m experiments.text_regions.view_score \
+  artifacts/baseline_detach/gated_seed1/checkpoint.pt --publication-policy evidence \
+  --count-per-query 512 --batch 64 --threads 2 --predictions \
+  --out artifacts/baseline_detach/gated_seed1/evaluation
+```
+
+Compare attached and detached training at the same publication policy, initializer, source stream, optimizer settings, and compute budget. Utility is disabled in this ablation. Three gated-policy seeds measure the detach effect under that policy; the additional original-policy seed supplies a one-seed interaction check. It is not a three-seed comparison of that interaction.
+
+`baseline_compare.py` accepts a version-1 manifest with `publication_policy`, `original`, and `detached` entries per pair. Each arm names a `run_directory` and `evaluation_directory`. It verifies all training settings except detachment, source exposure, parameter and expert budgets, exact evaluation cases and answer balance, then recomputes scores and paired improvements/regressions from raw predictions. Aggregates keep publication policies and auxiliary settings separate. Legacy missing detachment fields normalize to false while hashes retain the original bytes.

@@ -29,14 +29,18 @@ class RegionLearningModel(nn.Module):
     the base model's inference-only loss behavior. Evaluation without private
     labels skips an objective that requires them, so trained models still support
     ordinary label-free inference.
+    ``baseline_detach_features`` trains the same baseline head and targets while
+    preventing its auxiliary loss from updating the shared source encoder.
     """
     def __init__(self, model, *, view_objective=None, utility=None, baseline_enabled=False,
-                 baseline_view='text', baseline_weight=.1, utility_scale=.1):
+                 baseline_view='text', baseline_weight=.1, utility_scale=.1, baseline_detach_features=False):
         super().__init__()
         if not math.isfinite(baseline_weight) or baseline_weight <= 0:
             raise ValueError('Baseline weight must be finite and positive.')
         if not math.isfinite(utility_scale) or utility_scale < 0:
             raise ValueError('Utility scale must be finite and nonnegative.')
+        if not isinstance(baseline_detach_features, bool):
+            raise ValueError('Baseline feature detachment must be boolean.')
         if baseline_view not in ('text', *model.cfg.views):
             raise ValueError('Baseline must name a configured source ingress.')
         if view_objective is not None and (view_objective.width != model.cfg.width or
@@ -49,6 +53,7 @@ class RegionLearningModel(nn.Module):
         self.model, self.view_objective, self.utility = model, view_objective, utility
         self.baseline_enabled, self.baseline_view = baseline_enabled, baseline_view
         self.baseline_weight, self.utility_scale = baseline_weight, utility_scale
+        self.baseline_detach_features = baseline_detach_features
         self.baseline = (nn.Linear(model.cfg.width, 256, bias=False)
                          if baseline_enabled or utility is not None else None)
         if self.baseline is not None:
@@ -67,6 +72,7 @@ class RegionLearningModel(nn.Module):
         view, utility = self.view_objective, self.utility
         return {'model': self.cfg.to_dict(), 'baseline_enabled': self.baseline_enabled,
                 'baseline_view': self.baseline_view, 'baseline_weight': self.baseline_weight,
+                'baseline_detach_features': self.baseline_detach_features,
                 'utility_scale': self.utility_scale,
                 'view_objective': None if view is None else {'views': list(view.views), 'cfg': asdict(view.cfg)},
                 'utility': None if utility is None else {
@@ -138,7 +144,7 @@ class RegionLearningModel(nn.Module):
         if baseline_on:
             source = SourceView.from_activity(self.baseline_view, result['view_activity'])
             safe = torch.where(source.available[..., None], source.payload, torch.zeros_like(source.payload))
-            baseline_logits = self.baseline(safe)
+            baseline_logits = self.baseline(safe.detach() if self.baseline_detach_features else safe)
             if targets is not None:
                 used = supervised & source.available
                 local_targets = targets.masked_fill(~used, -100)

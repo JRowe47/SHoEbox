@@ -74,6 +74,46 @@ class LearningChecks(unittest.TestCase):
         self.assertGreater(float(learner.baseline.weight.grad.abs().sum()), 0)
         self.assertIsNone(result['utility_packet'])
 
+    def test_detached_baseline_preserves_values_head_gradient_and_utility_but_isolates_graph(self):
+        attached = RegionLearningModel(self.model, utility=self.utility(), baseline_view='A', baseline_enabled=True)
+        detached = RegionLearningModel.from_config({**attached.get_config(), 'baseline_detach_features': True})
+        detached.load_state_dict(attached.state_dict())
+        available = torch.tensor([[True, False], [True, True]])
+        targets = self.targets.clone(); targets[1, 1] = -100
+        first = attached(self.inputs, targets, availability={'A': available})
+        second = detached(self.inputs, targets, availability={'A': available})
+        for key in ('logits', 'baseline_logits', 'baseline_ce', 'baseline_loss', 'language_loss', 'loss'):
+            torch.testing.assert_close(first[key], second[key], rtol=0, atol=0)
+        self.assert_states_equal(first['state'], second['state'])
+        for key, value in vars(first['utility_packet']).items():
+            other = getattr(second['utility_packet'], key)
+            if torch.is_tensor(value):
+                torch.testing.assert_close(value, other, rtol=0, atol=0)
+            else:
+                self.assertEqual(value, other)
+        self.assertEqual(second['utility_packet'].supervised_events, 2)
+        first['baseline_loss'].backward(retain_graph=True)
+        second['baseline_loss'].backward(retain_graph=True)
+        torch.testing.assert_close(attached.baseline.weight.grad, detached.baseline.weight.grad, rtol=0, atol=0)
+        self.assertGreater(float(detached.baseline.weight.grad.abs().sum()), 0)
+        self.assertGreater(float(attached.model.hat.byte_embedding.weight.grad.abs().sum()), 0)
+        self.assertTrue(all(parameter.grad is None for parameter in detached.model.parameters()))
+        detached.zero_grad(set_to_none=True)
+        second['language_loss'].backward()
+        self.assertGreater(float(detached.model.hat.byte_embedding.weight.grad.abs().sum()), 0)
+        self.assertGreater(float(detached.model.readout.weight.grad.abs().sum()), 0)
+        self.assertIsNone(detached.baseline.weight.grad)
+
+    def test_detach_config_roundtrip_and_legacy_default(self):
+        original = RegionLearningModel(self.model, baseline_enabled=True, baseline_detach_features=True)
+        restored = RegionLearningModel.from_config(original.get_config())
+        self.assertTrue(restored.baseline_detach_features)
+        self.assertEqual(restored.get_config(), original.get_config())
+        legacy = original.get_config(); legacy.pop('baseline_detach_features')
+        restored_legacy = RegionLearningModel.from_config(legacy)
+        self.assertFalse(restored_legacy.baseline_detach_features)
+        self.assertEqual(restored_legacy.get_config(), {**legacy, 'baseline_detach_features': False})
+
     def test_private_trained_model_supports_inference_without_private_labels(self):
         objective = PairedViewObjective(self.cfg.width, cfg=ViewObjectiveConfig(private_enabled=True))
         learner = RegionLearningModel(self.model, view_objective=objective).eval()

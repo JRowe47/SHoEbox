@@ -30,7 +30,7 @@ def tensor_fingerprint(model):
     return digest.hexdigest()
 
 
-def build_learner(cfg, view_enabled=False, utility_enabled=False, base_checkpoint=None):
+def build_learner(cfg, view_enabled=False, utility_enabled=False, base_checkpoint=None, baseline_detach_features=False):
     """All four variants allocate the same heads and train the same baseline.
 
     Set the initialization RNG before calling. Switches do not change random
@@ -55,7 +55,8 @@ def build_learner(cfg, view_enabled=False, utility_enabled=False, base_checkpoin
     utility=DelayedUtility(tuple(base.connections.edges),tuple(base.nodes),cfg.laces,
                            enabled=utility_enabled)
     return RegionLearningModel(base,view_objective=views,utility=utility,
-                               baseline_enabled=True,baseline_view='A',baseline_weight=.1)
+                               baseline_enabled=True,baseline_view='A',baseline_weight=.1,
+                               baseline_detach_features=baseline_detach_features)
 
 
 def train_step(model,optimizer,batch,state=None):
@@ -91,6 +92,9 @@ def train_step(model,optimizer,batch,state=None):
 
 
 def save_view_checkpoint(path,model,optimizer,state,stream,step,protocol,totals):
+    protocol={'baseline_detach_features':model.baseline_detach_features,**protocol}
+    if protocol['baseline_detach_features'] != model.baseline_detach_features:
+        raise ValueError('Checkpoint protocol and baseline detachment configuration differ.')
     path=Path(path);path.parent.mkdir(parents=True,exist_ok=True)
     temporary=path.with_suffix(path.suffix+'.tmp')
     torch.save({'view_checkpoint_schema':1,'learner_config':model.get_config(),
@@ -105,6 +109,9 @@ def load_view_checkpoint(path,stream=None,restore_rng=True):
     saved=torch.load(path,map_location='cpu',weights_only=True)
     if saved.get('view_checkpoint_schema')!=1:raise ValueError('Unknown view-checkpoint schema.')
     model=RegionLearningModel.from_config(saved['learner_config']);model.load_state_dict(saved['weights'])
+    saved['protocol']={'baseline_detach_features':False,**saved['protocol']}
+    if saved['protocol']['baseline_detach_features'] != model.baseline_detach_features:
+        raise ValueError('Checkpoint protocol and baseline detachment configuration differ.')
     optimizer=optimizer_for(model,saved['protocol']['lr']);optimizer.load_state_dict(saved['optimizer'])
     if stream is not None:stream.load_state_dict(saved['stream'])
     if restore_rng:torch.set_rng_state(saved['torch_rng']);random.setstate(saved['python_rng'])
@@ -126,6 +133,8 @@ def main():
     parser.add_argument('--seed',type=int,default=20261106);parser.add_argument('--threads',type=int,default=2)
     parser.add_argument('--lr',type=float,default=.002);parser.add_argument('--rounds',type=int,default=1)
     parser.add_argument('--view-objective',action='store_true');parser.add_argument('--utility',action='store_true')
+    parser.add_argument('--baseline-detach-features',action='store_true',
+                        help='Train the baseline head without sending its auxiliary gradient into the source encoder.')
     parser.add_argument('--evidence-gated-ports',action='store_true',help='Suppress publications until a node consumes valid evidence; keep all expert executions.')
     parser.add_argument('--base-checkpoint',type=Path);parser.add_argument('--resume',type=Path)
     parser.add_argument('--checkpoint-every',type=int,default=20);parser.add_argument('--log-every',type=int,default=20)
@@ -144,13 +153,14 @@ def main():
     state=None;start=0;totals=initial_totals()
     if args.resume:
         model,optimizer,state,saved=load_view_checkpoint(args.resume,stream)
-        previous={key:value for key,value in {'evidence_gated_ports':False,**saved['protocol']}.items() if key not in ('initial_tensor_sha256','base_initializer')}
+        previous={key:value for key,value in {'evidence_gated_ports':False,'baseline_detach_features':False,**saved['protocol']}.items() if key not in ('initial_tensor_sha256','base_initializer')}
         if previous!=protocol:raise ValueError('Exact resume requires the same training protocol and horizon.')
         protocol=saved['protocol'];start=saved['step'];totals=saved['totals']
     else:
         cfg=GraphConfig.tiny(context=args.segment,rounds=args.rounds,recurrent_feedback=args.rounds>1,seed=args.seed,
                              evidence_gated_ports=args.evidence_gated_ports)
-        model=build_learner(cfg,args.view_objective,args.utility,args.base_checkpoint)
+        model=build_learner(cfg,args.view_objective,args.utility,args.base_checkpoint,
+                            baseline_detach_features=args.baseline_detach_features)
         protocol['initial_tensor_sha256']=tensor_fingerprint(model)
         protocol['base_initializer']=None if args.base_checkpoint is None else {
             'path':str(args.base_checkpoint),'sha256':hashlib.sha256(args.base_checkpoint.read_bytes()).hexdigest()}
