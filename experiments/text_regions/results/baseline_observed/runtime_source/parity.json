@@ -1,0 +1,71 @@
+{
+  "parity_schema": 1,
+  "passed": true,
+  "comparison": "bitwise exact, CPU float32, no tolerance",
+  "launch_module": "experiments.text_regions._launch_learning",
+  "launch_learning_sha256": "616dfdc9f1066e41ec16e9bfd0bc674a114f17ab8bb1801e93039f570a18e2b2",
+  "final_learning_sha256": "4af4f3c301dc3af9c1816da939aa4b751edaa2d0e6b2c4187b1bbf9a392b41df",
+  "protocol_path": "artifacts/baseline_observed/gated_seed1/protocol.json",
+  "protocol_sha256": "f3a543a26e0e3873c31ce126c08ad072c1aa1f8ba1351a83371d31e86d753015",
+  "seed": 20261106,
+  "threads": 2,
+  "initial_tensor_sha256": "de64c8a4500484c967e86eebc32bc577b7651be1eebc4ee68b730b3b49005053",
+  "initial_weights_and_optimizer_equal": true,
+  "same_rng_before_each_paired_step": true,
+  "steps": [
+    {
+      "step": 1,
+      "batch": 32,
+      "length": 16,
+      "time_offset": 0,
+      "mask_explicitly_supplied": true,
+      "supervised_events": 64,
+      "baseline_supervision": {
+        "eligible": 56,
+        "observed": 38,
+        "used": 38,
+        "suppressed": 18
+      },
+      "loss": 3.263988494873047,
+      "gradient_norm": 11.542900085449219,
+      "parameter_gradients_compared": 691,
+      "non_none_gradients": 659,
+      "expert_executions": 43008,
+      "all_assertions_passed": true
+    },
+    {
+      "step": 2,
+      "batch": 32,
+      "length": 9,
+      "time_offset": 16,
+      "mask_explicitly_supplied": true,
+      "supervised_events": 96,
+      "baseline_supervision": {
+        "eligible": 84,
+        "observed": 57,
+        "used": 57,
+        "suppressed": 27
+      },
+      "loss": 3.523810386657715,
+      "gradient_norm": 20.488725662231445,
+      "parameter_gradients_compared": 691,
+      "non_none_gradients": 659,
+      "expert_executions": 24192,
+      "all_assertions_passed": true
+    }
+  ],
+  "assertions": [
+    "logits and losses",
+    "all parameter gradients including None patterns",
+    "clipped gradient norm",
+    "returned graph state",
+    "post-step weights and buffers",
+    "post-step optimizer state",
+    "post-step RNG",
+    "baseline supervision audit",
+    "utility packet",
+    "equal expert executions"
+  ],
+  "scope": "Actual gated_seed1 protocol and first 16+9 event chunks. Every measured train_step supplies the mask; the compatibility-only absent-mask branch is never entered.",
+  "elapsed_seconds": 20.86142151799868
+}

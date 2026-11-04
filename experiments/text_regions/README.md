@@ -263,7 +263,7 @@ Compare attached and detached training at the same publication policy, initializ
 
 `baseline_compare.py` accepts a version-1 manifest with `publication_policy`, `original`, and `detached` entries per pair. Each arm names a `run_directory` and `evaluation_directory`. It verifies all training settings except detachment, source exposure, parameter and expert budgets, exact evaluation cases and answer balance, then recomputes scores and paired improvements/regressions from raw predictions. Aggregates keep publication policies and auxiliary settings separate. Legacy missing detachment fields normalize to false while hashes retain the original bytes.
 
-The completed gated three-seed comparison improves mean held-out accuracy from 68.2% to 77.6% and private accuracy from 57.9% to 73.7%, while B-only recovery falls from 85.1% to 67.3%. Seed 1's held-out left accuracy falls from 63.5% to 35.7%. The original-policy seed-1 control improves overall accuracy from 79.0% to 84.8%. Detachment remains optional; the next narrower intervention is causal source-observability masking of baseline training targets. See the [report](../../docs/SHoEbox_Baseline_Gradient_Report.md).
+The completed gated three-seed comparison improves mean held-out accuracy from 68.2% to 77.6% and private accuracy from 57.9% to 73.7%, while B-only recovery falls from 85.1% to 67.3%. Seed 1's held-out left accuracy falls from 63.5% to 35.7%. The original-policy seed-1 control improves overall accuracy from 79.0% to 84.8%. Detachment remains optional; source-observability masking below tests the narrower intervention. See the [report](../../docs/SHoEbox_Baseline_Gradient_Report.md).
 
 ```bash
 python -m experiments.text_regions.baseline_compare \
@@ -293,3 +293,11 @@ python -m experiments.text_regions.view_score \
 Step metrics, periodic histories and cumulative summaries include eligible, observed, used and suppressed baseline target counts by query. `recorded_segments` and `unrecorded_segments` distinguish complete audits from a legacy checkpoint resumed without earlier counters. Exact resume preserves both independent switches and the audit boundary.
 
 `observability_compare.py` uses the same comparison engine as `baseline_compare.py`. Its manifest names `original` and `observed` arms at a declared publication policy, with optional `detached` results for context. The primary pair may differ only in `baseline_observed_only`, with detachment disabled. The comparator independently reconstructs causal target eligibility from source fact positions, availability and resets, and checks the recorded count audit even when general coverage reconstruction is disabled. Detached context is separately validated against the original arm.
+
+The completed three-seed gated comparison yields 68.6% held-out overall, 61.0% private and 70.3% B-only accuracy, versus 68.2%, 57.9% and 85.1% for the original baseline. The seed-1 original-policy control also falls from 79.0% to 71.2% overall. Observed-only supervision remains default-off; the next experiment balances supported whole-source visibility without changing loss settings. The [report](../../docs/SHoEbox_Source_Observability_Report.md) includes exact target audits and all three baseline variants.
+
+```bash
+python -m experiments.text_regions.observability_compare \
+  --manifest experiments/text_regions/results/baseline_observed/manifest.json \
+  --out artifacts/reproduction/observability_comparison.json
+```

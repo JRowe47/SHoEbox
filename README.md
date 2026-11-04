@@ -60,7 +60,9 @@ The subsequent shared/private benchmark holds out combinations of three independ
 
 Three paired fine-tuning seeds now separate publication-policy training from inference. Evidence-gated training raises mean **B-only shared recovery from 35.1% to 85.1%**, while reducing all-view held-out accuracy from **78.2% to 68.2%**. Private-fact accuracy falls in all three pairs, so the gate remains default-off. Regional readouts find the facts downstream; query-only inputs from other sources can still interfere with the final answer. The [evidence-policy report](docs/SHoEbox_Evidence_Policy_Report.md) records the matched results, diagnostics, and motivation for the baseline-gradient ablation. [Raw predictions and the portable comparison manifest](experiments/text_regions/results/evidence_policy) accompany the report.
 
-The subsequent baseline-gradient ablation detaches the source-only auxiliary head from the encoder while preserving its training. Across the three gated seeds, mean **held-out accuracy improves from 68.2% to 77.6%** and private accuracy from **57.9% to 73.7%**, while **B-only recovery drops from 85.1% to 67.3%**. Seed 1 also loses left-private accuracy, so blanket detachment remains default-off. The next test retains baseline gradients for facts its source observes and masks unsupported targets before balancing source visibility. See the [baseline-gradient report](docs/SHoEbox_Baseline_Gradient_Report.md) and [matched raw results](experiments/text_regions/results/baseline_gradient).
+The subsequent baseline-gradient ablation detaches the source-only auxiliary head from the encoder while preserving its training. Across the three gated seeds, mean **held-out accuracy improves from 68.2% to 77.6%** and private accuracy from **57.9% to 73.7%**, while **B-only recovery drops from 85.1% to 67.3%**. Seed 1 also loses left-private accuracy, so blanket detachment remains default-off. This motivated retaining baseline gradients for observed facts while masking unsupported targets. See the [baseline-gradient report](docs/SHoEbox_Baseline_Gradient_Report.md) and [matched raw results](experiments/text_regions/results/baseline_gradient).
+
+The source-observability ablation now excludes only baseline targets that A cannot observe, with the original loss denominator and utility accounting preserved. The three-seed gated means are **68.6% held-out overall, 61.0% private, and 70.3% B-only**, versus 68.2%, 57.9%, and 85.1% for the original baseline. Independent audits verify every retained/excluded target. This does not resolve the tradeoff; the option remains default-off. The next experiment balances supported source exposure at fixed expert budgets. See the [source-observability report](docs/SHoEbox_Source_Observability_Report.md) and [three-arm comparisons](experiments/text_regions/results/baseline_observed).
 
 ```bash
 python -m experiments.text_regions.probe_train --kind correction --steps 300 \
@@ -81,6 +83,7 @@ See the [probe and learning report](docs/SHoEbox_Probe_Development_Report.md) fo
 - [Shared/private benchmark and publication diagnostics](docs/SHoEbox_Shared_Private_Report.md)
 - [Three-seed evidence-policy comparison and regional diagnostics](docs/SHoEbox_Evidence_Policy_Report.md)
 - [Baseline encoder-gradient ablation](docs/SHoEbox_Baseline_Gradient_Report.md)
+- [Source-observed baseline supervision and target audits](docs/SHoEbox_Source_Observability_Report.md)
 - [Original SHoE overview and results](SHoE_BASELINE.md)
 - [Preserved HAT/minKron baseline](experiments/hat_minkron)
 - [Source lineage and third-party notices](THIRD_PARTY_NOTICES.md)

@@ -1,0 +1,1954 @@
+{
+  "checkpoint_step": 240,
+  "model_tensor_sha256": "7104435af7c4435b5b8f4a5f9a12c3a52c045387cfa46e44e589f12050ea93bf",
+  "protocol": {
+    "steps": 240,
+    "batch": 32,
+    "segment": 16,
+    "gap": 8,
+    "query_every": 4,
+    "dropout": 0.25,
+    "seed": 20261106,
+    "threads": 2,
+    "lr": 0.002,
+    "rounds": 1,
+    "view_objective": true,
+    "utility": false,
+    "baseline_detach_features": false,
+    "baseline_observed_only": true,
+    "evidence_gated_ports": false,
+    "baseline_all_variants": true,
+    "initial_tensor_sha256": "de64c8a4500484c967e86eebc32bc577b7651be1eebc4ee68b730b3b49005053",
+    "base_initializer": {
+      "path": "artifacts/probes/correction_warm150/checkpoint.pt",
+      "sha256": "dc63c0f9db7c590e889f753b508c0bec131dcbbeeb8bfd6dc1bebe551271cef3"
+    }
+  },
+  "evaluation_settings": {
+    "count_per_query": 512,
+    "batch_size": 64,
+    "threads": 2,
+    "torch_version": "2.15.0+cpu",
+    "cohorts": [
+      "test",
+      "independent"
+    ],
+    "controls": null,
+    "predictions_saved": true
+  },
+  "source_readout_fit_seconds": 4.585823197005084,
+  "source_readout_fit_count": 128,
+  "utility": {
+    "enabled": false,
+    "commits": 0,
+    "edge": {
+      "eligible_associations": 0,
+      "total_associations": 16,
+      "mean_gain": null,
+      "min_gain": null,
+      "max_gain": null
+    },
+    "lace": {
+      "eligible_associations": 0,
+      "total_associations": 336,
+      "mean_gain": null,
+      "min_gain": null,
+      "max_gain": null
+    }
+  },
+  "inference_policy": {
+    "evidence_gated_ports": false
+  },
+  "evaluations": {
+    "test": {
+      "split": "test",
+      "cohort": "heldout_factor_combinations",
+      "seed": 20261106,
+      "gap": 8,
+      "query_every": 4,
+      "count_per_query": 512,
+      "factor_combinations": 16,
+      "answer_vocabulary": "ABCD",
+      "scoring": "argmax over all 256 bytes at final query; classes and query types exactly balanced",
+      "controls": {
+        "all": {
+          "episodes": 1536,
+          "exact_correct": 1094,
+          "exact_accuracy": 0.7122395833333334,
+          "balanced_accuracy": 0.7122395833333334,
+          "class_balanced_chance": 0.25,
+          "majority_class_chance": 0.25,
+          "by_answer": {
+            "A": {
+              "episodes": 384,
+              "correct": 300
+            },
+            "B": {
+              "episodes": 384,
+              "correct": 311
+            },
+            "C": {
+              "episodes": 384,
+              "correct": 249
+            },
+            "D": {
+              "episodes": 384,
+              "correct": 234
+            }
+          },
+          "by_query": {
+            "shared": {
+              "episodes": 512,
+              "exact_correct": 439,
+              "exact_accuracy": 0.857421875,
+              "balanced_accuracy": 0.857421875,
+              "class_balanced_chance": 0.25,
+              "majority_class_chance": 0.25,
+              "by_answer": {
+                "A": {
+                  "episodes": 128,
+                  "correct": 110
+                },
+                "B": {
+                  "episodes": 128,
+                  "correct": 126
+                },
+                "C": {
+                  "episodes": 128,
+                  "correct": 110
+                },
+                "D": {
+                  "episodes": 128,
+                  "correct": 93
+                }
+              },
+              "information_present": true,
+              "conditional_split_prior_chance": 1.0,
+              "answer_nats_per_byte": 0.3863086514174938
+            },
+            "left": {
+              "episodes": 512,
+              "exact_correct": 299,
+              "exact_accuracy": 0.583984375,
+              "balanced_accuracy": 0.583984375,
+              "class_balanced_chance": 0.25,
+              "majority_class_chance": 0.25,
+              "by_answer": {
+                "A": {
+                  "episodes": 128,
+                  "correct": 88
+                },
+                "B": {
+                  "episodes": 128,
+                  "correct": 62
+                },
+                "C": {
+                  "episodes": 128,
+                  "correct": 100
+                },
+                "D": {
+                  "episodes": 128,
+                  "correct": 49
+                }
+              },
+              "information_present": true,
+              "conditional_split_prior_chance": 1.0,
+              "answer_nats_per_byte": 0.8055458590388298
+            },
+            "right": {
+              "episodes": 512,
+              "exact_correct": 356,
+              "exact_accuracy": 0.6953125,
+              "balanced_accuracy": 0.6953125,
+              "class_balanced_chance": 0.25,
+              "majority_class_chance": 0.25,
+              "by_answer": {
+                "A": {
+                  "episodes": 128,
+                  "correct": 102
+                },
+                "B": {
+                  "episodes": 128,
+                  "correct": 123
+                },
+                "C": {
+                  "episodes": 128,
+                  "correct": 39
+                },
+                "D": {
+                  "episodes": 128,
+                  "correct": 92
+                }
+              },
+              "information_present": true,
+              "conditional_split_prior_chance": 1.0,
+              "answer_nats_per_byte": 0.6510658413171768
+            }
+          },
+          "macro_query_accuracy": 0.7122395833333334,
+          "supported": {
+            "episodes": 1536,
+            "exact_correct": 1094,
+            "exact_accuracy": 0.7122395833333334,
+            "balanced_accuracy": 0.7122395833333334,
+            "class_balanced_chance": 0.25,
+            "majority_class_chance": 0.25,
+            "by_answer": {
+              "A": {
+                "episodes": 384,
+                "correct": 300
+              },
+              "B": {
+                "episodes": 384,
+                "correct": 311
+              },
+              "C": {
+                "episodes": 384,
+                "correct": 249
+              },
+              "D": {
+                "episodes": 384,
+                "correct": 234
+              }
+            }
+          },
+          "absent_information": {
+            "episodes": 0,
+            "exact_correct": 0,
+            "exact_accuracy": null,
+            "balanced_accuracy": null,
+            "class_balanced_chance": 0.25,
+            "majority_class_chance": null,
+            "by_answer": {
+              "A": {
+                "episodes": 0,
+                "correct": 0
+              },
+              "B": {
+                "episodes": 0,
+                "correct": 0
+              },
+              "C": {
+                "episodes": 0,
+                "correct": 0
+              },
+              "D": {
+                "episodes": 0,
+                "correct": 0
+              }
+            },
+            "conditional_split_prior_chance": null
+          },
+          "expert_executions": 3225600,
+          "external_events": 38400,
+          "episode_fingerprint": "4fefcb42115bc3c41c8b1f0edaeb4eb12be43d1f12f3c4fd00e419d9648a281b"
+        }
+      },
+      "source_readouts": {
+        "feature_boundary": "last available independent ingress at common description end",
+        "evaluation_control": "all",
+        "frozen_linear": {
+          "ingress/A/shared": {
+            "episodes": 1536,
+            "exact_correct": 1013,
+            "exact_accuracy": 0.6595052083333334,
+            "balanced_accuracy": 0.6595052083333333,
+            "class_balanced_chance": 0.25,
+            "majority_class_chance": 0.25,
+            "by_answer": {
+              "A": {
+                "episodes": 384,
+                "correct": 270
+              },
+              "B": {
+                "episodes": 384,
+                "correct": 253
+              },
+              "C": {
+                "episodes": 384,
+                "correct": 228
+              },
+              "D": {
+                "episodes": 384,
+                "correct": 262
+              }
+            },
+            "fitted_examples": 128
+          },
+          "ingress/A/left": {
+            "episodes": 1536,
+            "exact_correct": 1080,
+            "exact_accuracy": 0.703125,
+            "balanced_accuracy": 0.703125,
+            "class_balanced_chance": 0.25,
+            "majority_class_chance": 0.25,
+            "by_answer": {
+              "A": {
+                "episodes": 384,
+                "correct": 315
+              },
+              "B": {
+                "episodes": 384,
+                "correct": 292
+              },
+              "C": {
+                "episodes": 384,
+                "correct": 244
+              },
+              "D": {
+                "episodes": 384,
+                "correct": 229
+              }
+            },
+            "fitted_examples": 128
+          },
+          "shared/A/shared": {
+            "episodes": 1536,
+            "exact_correct": 882,
+            "exact_accuracy": 0.57421875,
+            "balanced_accuracy": 0.57421875,
+            "class_balanced_chance": 0.25,
+            "majority_class_chance": 0.25,
+            "by_answer": {
+              "A": {
+                "episodes": 384,
+                "correct": 238
+              },
+              "B": {
+                "episodes": 384,
+                "correct": 214
+              },
+              "C": {
+                "episodes": 384,
+                "correct": 236
+              },
+              "D": {
+                "episodes": 384,
+                "correct": 194
+              }
+            },
+            "fitted_examples": 128
+          },
+          "private/A/left": {
+            "episodes": 1536,
+            "exact_correct": 1065,
+            "exact_accuracy": 0.693359375,
+            "balanced_accuracy": 0.693359375,
+            "class_balanced_chance": 0.25,
+            "majority_class_chance": 0.25,
+            "by_answer": {
+              "A": {
+                "episodes": 384,
+                "correct": 286
+              },
+              "B": {
+                "episodes": 384,
+                "correct": 238
+              },
+              "C": {
+                "episodes": 384,
+                "correct": 252
+              },
+              "D": {
+                "episodes": 384,
+                "correct": 289
+              }
+            },
+            "fitted_examples": 128
+          },
+          "ingress/B/shared": {
+            "episodes": 1536,
+            "exact_correct": 1536,
+            "exact_accuracy": 1.0,
+            "balanced_accuracy": 1.0,
+            "class_balanced_chance": 0.25,
+            "majority_class_chance": 0.25,
+            "by_answer": {
+              "A": {
+                "episodes": 384,
+                "correct": 384
+              },
+              "B": {
+                "episodes": 384,
+                "correct": 384
+              },
+              "C": {
+                "episodes": 384,
+                "correct": 384
+              },
+              "D": {
+                "episodes": 384,
+                "correct": 384
+              }
+            },
+            "fitted_examples": 128
+          },
+          "ingress/C/shared": {
+            "episodes": 1536,
+            "exact_correct": 1095,
+            "exact_accuracy": 0.712890625,
+            "balanced_accuracy": 0.712890625,
+            "class_balanced_chance": 0.25,
+            "majority_class_chance": 0.25,
+            "by_answer": {
+              "A": {
+                "episodes": 384,
+                "correct": 299
+              },
+              "B": {
+                "episodes": 384,
+                "correct": 260
+              },
+              "C": {
+                "episodes": 384,
+                "correct": 240
+              },
+              "D": {
+                "episodes": 384,
+                "correct": 296
+              }
+            },
+            "fitted_examples": 128
+          },
+          "ingress/C/right": {
+            "episodes": 1536,
+            "exact_correct": 1197,
+            "exact_accuracy": 0.779296875,
+            "balanced_accuracy": 0.779296875,
+            "class_balanced_chance": 0.25,
+            "majority_class_chance": 0.25,
+            "by_answer": {
+              "A": {
+                "episodes": 384,
+                "correct": 322
+              },
+              "B": {
+                "episodes": 384,
+                "correct": 305
+              },
+              "C": {
+                "episodes": 384,
+                "correct": 274
+              },
+              "D": {
+                "episodes": 384,
+                "correct": 296
+              }
+            },
+            "fitted_examples": 128
+          },
+          "shared/C/shared": {
+            "episodes": 1536,
+            "exact_correct": 957,
+            "exact_accuracy": 0.623046875,
+            "balanced_accuracy": 0.623046875,
+            "class_balanced_chance": 0.25,
+            "majority_class_chance": 0.25,
+            "by_answer": {
+              "A": {
+                "episodes": 384,
+                "correct": 243
+              },
+              "B": {
+                "episodes": 384,
+                "correct": 236
+              },
+              "C": {
+                "episodes": 384,
+                "correct": 222
+              },
+              "D": {
+                "episodes": 384,
+                "correct": 256
+              }
+            },
+            "fitted_examples": 128
+          },
+          "private/C/right": {
+            "episodes": 1536,
+            "exact_correct": 1152,
+            "exact_accuracy": 0.75,
+            "balanced_accuracy": 0.75,
+            "class_balanced_chance": 0.25,
+            "majority_class_chance": 0.25,
+            "by_answer": {
+              "A": {
+                "episodes": 384,
+                "correct": 295
+              },
+              "B": {
+                "episodes": 384,
+                "correct": 279
+              },
+              "C": {
+                "episodes": 384,
+                "correct": 276
+              },
+              "D": {
+                "episodes": 384,
+                "correct": 302
+              }
+            },
+            "fitted_examples": 128
+          }
+        },
+        "trained_private_heads": {
+          "A": {
+            "episodes": 1536,
+            "exact_correct": 832,
+            "exact_accuracy": 0.5416666666666666,
+            "balanced_accuracy": 0.5416666666666666,
+            "class_balanced_chance": 0.25,
+            "majority_class_chance": 0.25,
+            "by_answer": {
+              "A": {
+                "episodes": 384,
+                "correct": 328
+              },
+              "B": {
+                "episodes": 384,
+                "correct": 184
+              },
+              "C": {
+                "episodes": 384,
+                "correct": 193
+              },
+              "D": {
+                "episodes": 384,
+                "correct": 127
+              }
+            },
+            "objective_enabled": true,
+            "factor": "left",
+            "evaluation_timing": {
+              "description_end_exclusive": 14,
+              "latest_possible_event_index": 13,
+              "source_position": "last available ingress before the description boundary",
+              "query_markers_observed": false
+            },
+            "timing_matches_training_pool": false,
+            "training_pooling": "last",
+            "timing_note": "This pre-query score uses event 13 or an earlier valid source event. The runner normally trains last-pooled private heads at event 15 after the first query markers in a 16-event chunk, and at later chunk ends. Use the frozen readouts for matched fit/evaluation timing."
+          },
+          "C": {
+            "episodes": 1536,
+            "exact_correct": 540,
+            "exact_accuracy": 0.3515625,
+            "balanced_accuracy": 0.3515625,
+            "class_balanced_chance": 0.25,
+            "majority_class_chance": 0.25,
+            "by_answer": {
+              "A": {
+                "episodes": 384,
+                "correct": 334
+              },
+              "B": {
+                "episodes": 384,
+                "correct": 31
+              },
+              "C": {
+                "episodes": 384,
+                "correct": 155
+              },
+              "D": {
+                "episodes": 384,
+                "correct": 20
+              }
+            },
+            "objective_enabled": true,
+            "factor": "right",
+            "evaluation_timing": {
+              "description_end_exclusive": 14,
+              "latest_possible_event_index": 13,
+              "source_position": "last available ingress before the description boundary",
+              "query_markers_observed": false
+            },
+            "timing_matches_training_pool": false,
+            "training_pooling": "last",
+            "timing_note": "This pre-query score uses event 13 or an earlier valid source event. The runner normally trains last-pooled private heads at event 15 after the first query markers in a 16-event chunk, and at later chunk ends. Use the frozen readouts for matched fit/evaluation timing."
+          }
+        },
+        "fit_split": "train",
+        "ridge": 0.01,
+        "frozen_scoring": "argmax over four declared factor values",
+        "trained_head_scoring": "argmax over all 256 bytes"
+      },
+      "seconds": 48.065734406001866
+    },
+    "independent": {
+      "split": "independent",
+      "cohort": "independent_information_controls",
+      "seed": 20261106,
+      "gap": 8,
+      "query_every": 4,
+      "count_per_query": 512,
+      "factor_combinations": 64,
+      "answer_vocabulary": "ABCD",
+      "scoring": "argmax over all 256 bytes at final query; classes and query types exactly balanced",
+      "controls": {
+        "all": {
+          "episodes": 1536,
+          "exact_correct": 1155,
+          "exact_accuracy": 0.751953125,
+          "balanced_accuracy": 0.751953125,
+          "class_balanced_chance": 0.25,
+          "majority_class_chance": 0.25,
+          "by_answer": {
+            "A": {
+              "episodes": 384,
+              "correct": 295
+            },
+            "B": {
+              "episodes": 384,
+              "correct": 323
+            },
+            "C": {
+              "episodes": 384,
+              "correct": 267
+            },
+            "D": {
+              "episodes": 384,
+              "correct": 270
+            }
+          },
+          "by_query": {
+            "shared": {
+              "episodes": 512,
+              "exact_correct": 434,
+              "exact_accuracy": 0.84765625,
+              "balanced_accuracy": 0.84765625,
+              "class_balanced_chance": 0.25,
+              "majority_class_chance": 0.25,
+              "by_answer": {
+                "A": {
+                  "episodes": 128,
+                  "correct": 108
+                },
+                "B": {
+                  "episodes": 128,
+                  "correct": 126
+                },
+                "C": {
+                  "episodes": 128,
+                  "correct": 95
+                },
+                "D": {
+                  "episodes": 128,
+                  "correct": 105
+                }
+              },
+              "information_present": true,
+              "conditional_split_prior_chance": 1.0,
+              "answer_nats_per_byte": 0.40818554162979126
+            },
+            "left": {
+              "episodes": 512,
+              "exact_correct": 312,
+              "exact_accuracy": 0.609375,
+              "balanced_accuracy": 0.609375,
+              "class_balanced_chance": 0.25,
+              "majority_class_chance": 0.25,
+              "by_answer": {
+                "A": {
+                  "episodes": 128,
+                  "correct": 75
+                },
+                "B": {
+                  "episodes": 128,
+                  "correct": 74
+                },
+                "C": {
+                  "episodes": 128,
+                  "correct": 101
+                },
+                "D": {
+                  "episodes": 128,
+                  "correct": 62
+                }
+              },
+              "information_present": true,
+              "conditional_split_prior_chance": 1.0,
+              "answer_nats_per_byte": 0.7554902732372284
+            },
+            "right": {
+              "episodes": 512,
+              "exact_correct": 409,
+              "exact_accuracy": 0.798828125,
+              "balanced_accuracy": 0.798828125,
+              "class_balanced_chance": 0.25,
+              "majority_class_chance": 0.25,
+              "by_answer": {
+                "A": {
+                  "episodes": 128,
+                  "correct": 112
+                },
+                "B": {
+                  "episodes": 128,
+                  "correct": 123
+                },
+                "C": {
+                  "episodes": 128,
+                  "correct": 71
+                },
+                "D": {
+                  "episodes": 128,
+                  "correct": 103
+                }
+              },
+              "information_present": true,
+              "conditional_split_prior_chance": 1.0,
+              "answer_nats_per_byte": 0.5584249272942543
+            }
+          },
+          "macro_query_accuracy": 0.751953125,
+          "supported": {
+            "episodes": 1536,
+            "exact_correct": 1155,
+            "exact_accuracy": 0.751953125,
+            "balanced_accuracy": 0.751953125,
+            "class_balanced_chance": 0.25,
+            "majority_class_chance": 0.25,
+            "by_answer": {
+              "A": {
+                "episodes": 384,
+                "correct": 295
+              },
+              "B": {
+                "episodes": 384,
+                "correct": 323
+              },
+              "C": {
+                "episodes": 384,
+                "correct": 267
+              },
+              "D": {
+                "episodes": 384,
+                "correct": 270
+              }
+            }
+          },
+          "absent_information": {
+            "episodes": 0,
+            "exact_correct": 0,
+            "exact_accuracy": null,
+            "balanced_accuracy": null,
+            "class_balanced_chance": 0.25,
+            "majority_class_chance": null,
+            "by_answer": {
+              "A": {
+                "episodes": 0,
+                "correct": 0
+              },
+              "B": {
+                "episodes": 0,
+                "correct": 0
+              },
+              "C": {
+                "episodes": 0,
+                "correct": 0
+              },
+              "D": {
+                "episodes": 0,
+                "correct": 0
+              }
+            },
+            "conditional_split_prior_chance": null
+          },
+          "expert_executions": 3225600,
+          "external_events": 38400,
+          "episode_fingerprint": "ca6ddd3cd5209b5a95157d550d3e50a68bdee4635cc9c1e01d11647d703ccf60"
+        },
+        "a_only": {
+          "episodes": 1536,
+          "exact_correct": 771,
+          "exact_accuracy": 0.501953125,
+          "balanced_accuracy": 0.501953125,
+          "class_balanced_chance": 0.25,
+          "majority_class_chance": 0.25,
+          "by_answer": {
+            "A": {
+              "episodes": 384,
+              "correct": 133
+            },
+            "B": {
+              "episodes": 384,
+              "correct": 223
+            },
+            "C": {
+              "episodes": 384,
+              "correct": 194
+            },
+            "D": {
+              "episodes": 384,
+              "correct": 221
+            }
+          },
+          "by_query": {
+            "shared": {
+              "episodes": 512,
+              "exact_correct": 303,
+              "exact_accuracy": 0.591796875,
+              "balanced_accuracy": 0.591796875,
+              "class_balanced_chance": 0.25,
+              "majority_class_chance": 0.25,
+              "by_answer": {
+                "A": {
+                  "episodes": 128,
+                  "correct": 50
+                },
+                "B": {
+                  "episodes": 128,
+                  "correct": 109
+                },
+                "C": {
+                  "episodes": 128,
+                  "correct": 89
+                },
+                "D": {
+                  "episodes": 128,
+                  "correct": 55
+                }
+              },
+              "information_present": true,
+              "conditional_split_prior_chance": 1.0,
+              "answer_nats_per_byte": 0.7592665329575539
+            },
+            "left": {
+              "episodes": 512,
+              "exact_correct": 347,
+              "exact_accuracy": 0.677734375,
+              "balanced_accuracy": 0.677734375,
+              "class_balanced_chance": 0.25,
+              "majority_class_chance": 0.25,
+              "by_answer": {
+                "A": {
+                  "episodes": 128,
+                  "correct": 83
+                },
+                "B": {
+                  "episodes": 128,
+                  "correct": 114
+                },
+                "C": {
+                  "episodes": 128,
+                  "correct": 88
+                },
+                "D": {
+                  "episodes": 128,
+                  "correct": 62
+                }
+              },
+              "information_present": true,
+              "conditional_split_prior_chance": 1.0,
+              "answer_nats_per_byte": 0.6196633279323578
+            },
+            "right": {
+              "episodes": 512,
+              "exact_correct": 121,
+              "exact_accuracy": 0.236328125,
+              "balanced_accuracy": 0.236328125,
+              "class_balanced_chance": 0.25,
+              "majority_class_chance": 0.25,
+              "by_answer": {
+                "A": {
+                  "episodes": 128,
+                  "correct": 0
+                },
+                "B": {
+                  "episodes": 128,
+                  "correct": 0
+                },
+                "C": {
+                  "episodes": 128,
+                  "correct": 17
+                },
+                "D": {
+                  "episodes": 128,
+                  "correct": 104
+                }
+              },
+              "information_present": false,
+              "conditional_split_prior_chance": 0.25,
+              "answer_nats_per_byte": 2.036286935210228
+            }
+          },
+          "macro_query_accuracy": 0.501953125,
+          "supported": {
+            "episodes": 1024,
+            "exact_correct": 650,
+            "exact_accuracy": 0.634765625,
+            "balanced_accuracy": 0.634765625,
+            "class_balanced_chance": 0.25,
+            "majority_class_chance": 0.25,
+            "by_answer": {
+              "A": {
+                "episodes": 256,
+                "correct": 133
+              },
+              "B": {
+                "episodes": 256,
+                "correct": 223
+              },
+              "C": {
+                "episodes": 256,
+                "correct": 177
+              },
+              "D": {
+                "episodes": 256,
+                "correct": 117
+              }
+            }
+          },
+          "absent_information": {
+            "episodes": 512,
+            "exact_correct": 121,
+            "exact_accuracy": 0.236328125,
+            "balanced_accuracy": 0.236328125,
+            "class_balanced_chance": 0.25,
+            "majority_class_chance": 0.25,
+            "by_answer": {
+              "A": {
+                "episodes": 128,
+                "correct": 0
+              },
+              "B": {
+                "episodes": 128,
+                "correct": 0
+              },
+              "C": {
+                "episodes": 128,
+                "correct": 17
+              },
+              "D": {
+                "episodes": 128,
+                "correct": 104
+              }
+            },
+            "conditional_split_prior_chance": 0.25
+          },
+          "expert_executions": 3225600,
+          "external_events": 38400,
+          "episode_fingerprint": "ca6ddd3cd5209b5a95157d550d3e50a68bdee4635cc9c1e01d11647d703ccf60"
+        },
+        "b_only": {
+          "episodes": 1536,
+          "exact_correct": 383,
+          "exact_accuracy": 0.24934895833333334,
+          "balanced_accuracy": 0.24934895833333334,
+          "class_balanced_chance": 0.25,
+          "majority_class_chance": 0.25,
+          "by_answer": {
+            "A": {
+              "episodes": 384,
+              "correct": 0
+            },
+            "B": {
+              "episodes": 384,
+              "correct": 203
+            },
+            "C": {
+              "episodes": 384,
+              "correct": 3
+            },
+            "D": {
+              "episodes": 384,
+              "correct": 177
+            }
+          },
+          "by_query": {
+            "shared": {
+              "episodes": 512,
+              "exact_correct": 130,
+              "exact_accuracy": 0.25390625,
+              "balanced_accuracy": 0.25390625,
+              "class_balanced_chance": 0.25,
+              "majority_class_chance": 0.25,
+              "by_answer": {
+                "A": {
+                  "episodes": 128,
+                  "correct": 0
+                },
+                "B": {
+                  "episodes": 128,
+                  "correct": 7
+                },
+                "C": {
+                  "episodes": 128,
+                  "correct": 0
+                },
+                "D": {
+                  "episodes": 128,
+                  "correct": 123
+                }
+              },
+              "information_present": true,
+              "conditional_split_prior_chance": 1.0,
+              "answer_nats_per_byte": 1.4295707494020462
+            },
+            "left": {
+              "episodes": 512,
+              "exact_correct": 126,
+              "exact_accuracy": 0.24609375,
+              "balanced_accuracy": 0.24609375,
+              "class_balanced_chance": 0.25,
+              "majority_class_chance": 0.25,
+              "by_answer": {
+                "A": {
+                  "episodes": 128,
+                  "correct": 0
+                },
+                "B": {
+                  "episodes": 128,
+                  "correct": 102
+                },
+                "C": {
+                  "episodes": 128,
+                  "correct": 0
+                },
+                "D": {
+                  "episodes": 128,
+                  "correct": 24
+                }
+              },
+              "information_present": false,
+              "conditional_split_prior_chance": 0.25,
+              "answer_nats_per_byte": 1.5117368251085281
+            },
+            "right": {
+              "episodes": 512,
+              "exact_correct": 127,
+              "exact_accuracy": 0.248046875,
+              "balanced_accuracy": 0.248046875,
+              "class_balanced_chance": 0.25,
+              "majority_class_chance": 0.25,
+              "by_answer": {
+                "A": {
+                  "episodes": 128,
+                  "correct": 0
+                },
+                "B": {
+                  "episodes": 128,
+                  "correct": 94
+                },
+                "C": {
+                  "episodes": 128,
+                  "correct": 3
+                },
+                "D": {
+                  "episodes": 128,
+                  "correct": 30
+                }
+              },
+              "information_present": false,
+              "conditional_split_prior_chance": 0.25,
+              "answer_nats_per_byte": 1.5183158665895462
+            }
+          },
+          "macro_query_accuracy": 0.24934895833333334,
+          "supported": {
+            "episodes": 512,
+            "exact_correct": 130,
+            "exact_accuracy": 0.25390625,
+            "balanced_accuracy": 0.25390625,
+            "class_balanced_chance": 0.25,
+            "majority_class_chance": 0.25,
+            "by_answer": {
+              "A": {
+                "episodes": 128,
+                "correct": 0
+              },
+              "B": {
+                "episodes": 128,
+                "correct": 7
+              },
+              "C": {
+                "episodes": 128,
+                "correct": 0
+              },
+              "D": {
+                "episodes": 128,
+                "correct": 123
+              }
+            }
+          },
+          "absent_information": {
+            "episodes": 1024,
+            "exact_correct": 253,
+            "exact_accuracy": 0.2470703125,
+            "balanced_accuracy": 0.2470703125,
+            "class_balanced_chance": 0.25,
+            "majority_class_chance": 0.25,
+            "by_answer": {
+              "A": {
+                "episodes": 256,
+                "correct": 0
+              },
+              "B": {
+                "episodes": 256,
+                "correct": 196
+              },
+              "C": {
+                "episodes": 256,
+                "correct": 3
+              },
+              "D": {
+                "episodes": 256,
+                "correct": 54
+              }
+            },
+            "conditional_split_prior_chance": 0.25
+          },
+          "expert_executions": 3225600,
+          "external_events": 38400,
+          "episode_fingerprint": "ca6ddd3cd5209b5a95157d550d3e50a68bdee4635cc9c1e01d11647d703ccf60"
+        },
+        "c_only": {
+          "episodes": 1536,
+          "exact_correct": 763,
+          "exact_accuracy": 0.4967447916666667,
+          "balanced_accuracy": 0.49674479166666663,
+          "class_balanced_chance": 0.25,
+          "majority_class_chance": 0.25,
+          "by_answer": {
+            "A": {
+              "episodes": 384,
+              "correct": 205
+            },
+            "B": {
+              "episodes": 384,
+              "correct": 249
+            },
+            "C": {
+              "episodes": 384,
+              "correct": 130
+            },
+            "D": {
+              "episodes": 384,
+              "correct": 179
+            }
+          },
+          "by_query": {
+            "shared": {
+              "episodes": 512,
+              "exact_correct": 303,
+              "exact_accuracy": 0.591796875,
+              "balanced_accuracy": 0.591796875,
+              "class_balanced_chance": 0.25,
+              "majority_class_chance": 0.25,
+              "by_answer": {
+                "A": {
+                  "episodes": 128,
+                  "correct": 88
+                },
+                "B": {
+                  "episodes": 128,
+                  "correct": 118
+                },
+                "C": {
+                  "episodes": 128,
+                  "correct": 27
+                },
+                "D": {
+                  "episodes": 128,
+                  "correct": 70
+                }
+              },
+              "information_present": true,
+              "conditional_split_prior_chance": 1.0,
+              "answer_nats_per_byte": 0.8242250010371208
+            },
+            "left": {
+              "episodes": 512,
+              "exact_correct": 128,
+              "exact_accuracy": 0.25,
+              "balanced_accuracy": 0.25,
+              "class_balanced_chance": 0.25,
+              "majority_class_chance": 0.25,
+              "by_answer": {
+                "A": {
+                  "episodes": 128,
+                  "correct": 5
+                },
+                "B": {
+                  "episodes": 128,
+                  "correct": 8
+                },
+                "C": {
+                  "episodes": 128,
+                  "correct": 70
+                },
+                "D": {
+                  "episodes": 128,
+                  "correct": 45
+                }
+              },
+              "information_present": false,
+              "conditional_split_prior_chance": 0.25,
+              "answer_nats_per_byte": 1.7086579352617264
+            },
+            "right": {
+              "episodes": 512,
+              "exact_correct": 332,
+              "exact_accuracy": 0.6484375,
+              "balanced_accuracy": 0.6484375,
+              "class_balanced_chance": 0.25,
+              "majority_class_chance": 0.25,
+              "by_answer": {
+                "A": {
+                  "episodes": 128,
+                  "correct": 112
+                },
+                "B": {
+                  "episodes": 128,
+                  "correct": 123
+                },
+                "C": {
+                  "episodes": 128,
+                  "correct": 33
+                },
+                "D": {
+                  "episodes": 128,
+                  "correct": 64
+                }
+              },
+              "information_present": true,
+              "conditional_split_prior_chance": 1.0,
+              "answer_nats_per_byte": 0.9364101812243462
+            }
+          },
+          "macro_query_accuracy": 0.4967447916666667,
+          "supported": {
+            "episodes": 1024,
+            "exact_correct": 635,
+            "exact_accuracy": 0.6201171875,
+            "balanced_accuracy": 0.6201171875,
+            "class_balanced_chance": 0.25,
+            "majority_class_chance": 0.25,
+            "by_answer": {
+              "A": {
+                "episodes": 256,
+                "correct": 200
+              },
+              "B": {
+                "episodes": 256,
+                "correct": 241
+              },
+              "C": {
+                "episodes": 256,
+                "correct": 60
+              },
+              "D": {
+                "episodes": 256,
+                "correct": 134
+              }
+            }
+          },
+          "absent_information": {
+            "episodes": 512,
+            "exact_correct": 128,
+            "exact_accuracy": 0.25,
+            "balanced_accuracy": 0.25,
+            "class_balanced_chance": 0.25,
+            "majority_class_chance": 0.25,
+            "by_answer": {
+              "A": {
+                "episodes": 128,
+                "correct": 5
+              },
+              "B": {
+                "episodes": 128,
+                "correct": 8
+              },
+              "C": {
+                "episodes": 128,
+                "correct": 70
+              },
+              "D": {
+                "episodes": 128,
+                "correct": 45
+              }
+            },
+            "conditional_split_prior_chance": 0.25
+          },
+          "expert_executions": 3225600,
+          "external_events": 38400,
+          "episode_fingerprint": "ca6ddd3cd5209b5a95157d550d3e50a68bdee4635cc9c1e01d11647d703ccf60"
+        },
+        "no_private": {
+          "episodes": 1536,
+          "exact_correct": 766,
+          "exact_accuracy": 0.4986979166666667,
+          "balanced_accuracy": 0.49869791666666663,
+          "class_balanced_chance": 0.25,
+          "majority_class_chance": 0.25,
+          "by_answer": {
+            "A": {
+              "episodes": 384,
+              "correct": 192
+            },
+            "B": {
+              "episodes": 384,
+              "correct": 192
+            },
+            "C": {
+              "episodes": 384,
+              "correct": 193
+            },
+            "D": {
+              "episodes": 384,
+              "correct": 189
+            }
+          },
+          "by_query": {
+            "shared": {
+              "episodes": 512,
+              "exact_correct": 512,
+              "exact_accuracy": 1.0,
+              "balanced_accuracy": 1.0,
+              "class_balanced_chance": 0.25,
+              "majority_class_chance": 0.25,
+              "by_answer": {
+                "A": {
+                  "episodes": 128,
+                  "correct": 128
+                },
+                "B": {
+                  "episodes": 128,
+                  "correct": 128
+                },
+                "C": {
+                  "episodes": 128,
+                  "correct": 128
+                },
+                "D": {
+                  "episodes": 128,
+                  "correct": 128
+                }
+              },
+              "information_present": true,
+              "conditional_split_prior_chance": 1.0,
+              "answer_nats_per_byte": 0.06608035555109382
+            },
+            "left": {
+              "episodes": 512,
+              "exact_correct": 127,
+              "exact_accuracy": 0.248046875,
+              "balanced_accuracy": 0.248046875,
+              "class_balanced_chance": 0.25,
+              "majority_class_chance": 0.25,
+              "by_answer": {
+                "A": {
+                  "episodes": 128,
+                  "correct": 32
+                },
+                "B": {
+                  "episodes": 128,
+                  "correct": 32
+                },
+                "C": {
+                  "episodes": 128,
+                  "correct": 32
+                },
+                "D": {
+                  "episodes": 128,
+                  "correct": 31
+                }
+              },
+              "information_present": false,
+              "conditional_split_prior_chance": 0.25,
+              "answer_nats_per_byte": 3.162458121776581
+            },
+            "right": {
+              "episodes": 512,
+              "exact_correct": 127,
+              "exact_accuracy": 0.248046875,
+              "balanced_accuracy": 0.248046875,
+              "class_balanced_chance": 0.25,
+              "majority_class_chance": 0.25,
+              "by_answer": {
+                "A": {
+                  "episodes": 128,
+                  "correct": 32
+                },
+                "B": {
+                  "episodes": 128,
+                  "correct": 32
+                },
+                "C": {
+                  "episodes": 128,
+                  "correct": 33
+                },
+                "D": {
+                  "episodes": 128,
+                  "correct": 30
+                }
+              },
+              "information_present": false,
+              "conditional_split_prior_chance": 0.25,
+              "answer_nats_per_byte": 2.5988772809505463
+            }
+          },
+          "macro_query_accuracy": 0.4986979166666667,
+          "supported": {
+            "episodes": 512,
+            "exact_correct": 512,
+            "exact_accuracy": 1.0,
+            "balanced_accuracy": 1.0,
+            "class_balanced_chance": 0.25,
+            "majority_class_chance": 0.25,
+            "by_answer": {
+              "A": {
+                "episodes": 128,
+                "correct": 128
+              },
+              "B": {
+                "episodes": 128,
+                "correct": 128
+              },
+              "C": {
+                "episodes": 128,
+                "correct": 128
+              },
+              "D": {
+                "episodes": 128,
+                "correct": 128
+              }
+            }
+          },
+          "absent_information": {
+            "episodes": 1024,
+            "exact_correct": 254,
+            "exact_accuracy": 0.248046875,
+            "balanced_accuracy": 0.248046875,
+            "class_balanced_chance": 0.25,
+            "majority_class_chance": 0.25,
+            "by_answer": {
+              "A": {
+                "episodes": 256,
+                "correct": 64
+              },
+              "B": {
+                "episodes": 256,
+                "correct": 64
+              },
+              "C": {
+                "episodes": 256,
+                "correct": 65
+              },
+              "D": {
+                "episodes": 256,
+                "correct": 61
+              }
+            },
+            "conditional_split_prior_chance": 0.25
+          },
+          "expert_executions": 3225600,
+          "external_events": 38400,
+          "episode_fingerprint": "ca6ddd3cd5209b5a95157d550d3e50a68bdee4635cc9c1e01d11647d703ccf60"
+        },
+        "reset_query": {
+          "episodes": 1536,
+          "exact_correct": 384,
+          "exact_accuracy": 0.25,
+          "balanced_accuracy": 0.25,
+          "class_balanced_chance": 0.25,
+          "majority_class_chance": 0.25,
+          "by_answer": {
+            "A": {
+              "episodes": 384,
+              "correct": 0
+            },
+            "B": {
+              "episodes": 384,
+              "correct": 256
+            },
+            "C": {
+              "episodes": 384,
+              "correct": 128
+            },
+            "D": {
+              "episodes": 384,
+              "correct": 0
+            }
+          },
+          "by_query": {
+            "shared": {
+              "episodes": 512,
+              "exact_correct": 128,
+              "exact_accuracy": 0.25,
+              "balanced_accuracy": 0.25,
+              "class_balanced_chance": 0.25,
+              "majority_class_chance": 0.25,
+              "by_answer": {
+                "A": {
+                  "episodes": 128,
+                  "correct": 0
+                },
+                "B": {
+                  "episodes": 128,
+                  "correct": 128
+                },
+                "C": {
+                  "episodes": 128,
+                  "correct": 0
+                },
+                "D": {
+                  "episodes": 128,
+                  "correct": 0
+                }
+              },
+              "information_present": false,
+              "conditional_split_prior_chance": 0.25,
+              "answer_nats_per_byte": 2.818042039871216
+            },
+            "left": {
+              "episodes": 512,
+              "exact_correct": 128,
+              "exact_accuracy": 0.25,
+              "balanced_accuracy": 0.25,
+              "class_balanced_chance": 0.25,
+              "majority_class_chance": 0.25,
+              "by_answer": {
+                "A": {
+                  "episodes": 128,
+                  "correct": 0
+                },
+                "B": {
+                  "episodes": 128,
+                  "correct": 128
+                },
+                "C": {
+                  "episodes": 128,
+                  "correct": 0
+                },
+                "D": {
+                  "episodes": 128,
+                  "correct": 0
+                }
+              },
+              "information_present": false,
+              "conditional_split_prior_chance": 0.25,
+              "answer_nats_per_byte": 2.303912878036499
+            },
+            "right": {
+              "episodes": 512,
+              "exact_correct": 128,
+              "exact_accuracy": 0.25,
+              "balanced_accuracy": 0.25,
+              "class_balanced_chance": 0.25,
+              "majority_class_chance": 0.25,
+              "by_answer": {
+                "A": {
+                  "episodes": 128,
+                  "correct": 0
+                },
+                "B": {
+                  "episodes": 128,
+                  "correct": 0
+                },
+                "C": {
+                  "episodes": 128,
+                  "correct": 128
+                },
+                "D": {
+                  "episodes": 128,
+                  "correct": 0
+                }
+              },
+              "information_present": false,
+              "conditional_split_prior_chance": 0.25,
+              "answer_nats_per_byte": 2.693295478820801
+            }
+          },
+          "macro_query_accuracy": 0.25,
+          "supported": {
+            "episodes": 0,
+            "exact_correct": 0,
+            "exact_accuracy": null,
+            "balanced_accuracy": null,
+            "class_balanced_chance": 0.25,
+            "majority_class_chance": null,
+            "by_answer": {
+              "A": {
+                "episodes": 0,
+                "correct": 0
+              },
+              "B": {
+                "episodes": 0,
+                "correct": 0
+              },
+              "C": {
+                "episodes": 0,
+                "correct": 0
+              },
+              "D": {
+                "episodes": 0,
+                "correct": 0
+              }
+            }
+          },
+          "absent_information": {
+            "episodes": 1536,
+            "exact_correct": 384,
+            "exact_accuracy": 0.25,
+            "balanced_accuracy": 0.25,
+            "class_balanced_chance": 0.25,
+            "majority_class_chance": 0.25,
+            "by_answer": {
+              "A": {
+                "episodes": 384,
+                "correct": 0
+              },
+              "B": {
+                "episodes": 384,
+                "correct": 256
+              },
+              "C": {
+                "episodes": 384,
+                "correct": 128
+              },
+              "D": {
+                "episodes": 384,
+                "correct": 0
+              }
+            },
+            "conditional_split_prior_chance": 0.25
+          },
+          "expert_executions": 3225600,
+          "external_events": 38400,
+          "episode_fingerprint": "ca6ddd3cd5209b5a95157d550d3e50a68bdee4635cc9c1e01d11647d703ccf60"
+        }
+      },
+      "source_readouts": {
+        "feature_boundary": "last available independent ingress at common description end",
+        "evaluation_control": "all",
+        "frozen_linear": {
+          "ingress/A/shared": {
+            "episodes": 1536,
+            "exact_correct": 1041,
+            "exact_accuracy": 0.677734375,
+            "balanced_accuracy": 0.677734375,
+            "class_balanced_chance": 0.25,
+            "majority_class_chance": 0.25,
+            "by_answer": {
+              "A": {
+                "episodes": 384,
+                "correct": 277
+              },
+              "B": {
+                "episodes": 384,
+                "correct": 255
+              },
+              "C": {
+                "episodes": 384,
+                "correct": 229
+              },
+              "D": {
+                "episodes": 384,
+                "correct": 280
+              }
+            },
+            "fitted_examples": 128
+          },
+          "ingress/A/left": {
+            "episodes": 1536,
+            "exact_correct": 1071,
+            "exact_accuracy": 0.697265625,
+            "balanced_accuracy": 0.697265625,
+            "class_balanced_chance": 0.25,
+            "majority_class_chance": 0.25,
+            "by_answer": {
+              "A": {
+                "episodes": 384,
+                "correct": 316
+              },
+              "B": {
+                "episodes": 384,
+                "correct": 296
+              },
+              "C": {
+                "episodes": 384,
+                "correct": 226
+              },
+              "D": {
+                "episodes": 384,
+                "correct": 233
+              }
+            },
+            "fitted_examples": 128
+          },
+          "shared/A/shared": {
+            "episodes": 1536,
+            "exact_correct": 901,
+            "exact_accuracy": 0.5865885416666666,
+            "balanced_accuracy": 0.5865885416666667,
+            "class_balanced_chance": 0.25,
+            "majority_class_chance": 0.25,
+            "by_answer": {
+              "A": {
+                "episodes": 384,
+                "correct": 233
+              },
+              "B": {
+                "episodes": 384,
+                "correct": 215
+              },
+              "C": {
+                "episodes": 384,
+                "correct": 249
+              },
+              "D": {
+                "episodes": 384,
+                "correct": 204
+              }
+            },
+            "fitted_examples": 128
+          },
+          "private/A/left": {
+            "episodes": 1536,
+            "exact_correct": 1050,
+            "exact_accuracy": 0.68359375,
+            "balanced_accuracy": 0.68359375,
+            "class_balanced_chance": 0.25,
+            "majority_class_chance": 0.25,
+            "by_answer": {
+              "A": {
+                "episodes": 384,
+                "correct": 288
+              },
+              "B": {
+                "episodes": 384,
+                "correct": 239
+              },
+              "C": {
+                "episodes": 384,
+                "correct": 238
+              },
+              "D": {
+                "episodes": 384,
+                "correct": 285
+              }
+            },
+            "fitted_examples": 128
+          },
+          "ingress/B/shared": {
+            "episodes": 1536,
+            "exact_correct": 1536,
+            "exact_accuracy": 1.0,
+            "balanced_accuracy": 1.0,
+            "class_balanced_chance": 0.25,
+            "majority_class_chance": 0.25,
+            "by_answer": {
+              "A": {
+                "episodes": 384,
+                "correct": 384
+              },
+              "B": {
+                "episodes": 384,
+                "correct": 384
+              },
+              "C": {
+                "episodes": 384,
+                "correct": 384
+              },
+              "D": {
+                "episodes": 384,
+                "correct": 384
+              }
+            },
+            "fitted_examples": 128
+          },
+          "ingress/C/shared": {
+            "episodes": 1536,
+            "exact_correct": 1093,
+            "exact_accuracy": 0.7115885416666666,
+            "balanced_accuracy": 0.7115885416666666,
+            "class_balanced_chance": 0.25,
+            "majority_class_chance": 0.25,
+            "by_answer": {
+              "A": {
+                "episodes": 384,
+                "correct": 304
+              },
+              "B": {
+                "episodes": 384,
+                "correct": 255
+              },
+              "C": {
+                "episodes": 384,
+                "correct": 220
+              },
+              "D": {
+                "episodes": 384,
+                "correct": 314
+              }
+            },
+            "fitted_examples": 128
+          },
+          "ingress/C/right": {
+            "episodes": 1536,
+            "exact_correct": 1188,
+            "exact_accuracy": 0.7734375,
+            "balanced_accuracy": 0.7734375,
+            "class_balanced_chance": 0.25,
+            "majority_class_chance": 0.25,
+            "by_answer": {
+              "A": {
+                "episodes": 384,
+                "correct": 329
+              },
+              "B": {
+                "episodes": 384,
+                "correct": 297
+              },
+              "C": {
+                "episodes": 384,
+                "correct": 265
+              },
+              "D": {
+                "episodes": 384,
+                "correct": 297
+              }
+            },
+            "fitted_examples": 128
+          },
+          "shared/C/shared": {
+            "episodes": 1536,
+            "exact_correct": 971,
+            "exact_accuracy": 0.6321614583333334,
+            "balanced_accuracy": 0.6321614583333333,
+            "class_balanced_chance": 0.25,
+            "majority_class_chance": 0.25,
+            "by_answer": {
+              "A": {
+                "episodes": 384,
+                "correct": 249
+              },
+              "B": {
+                "episodes": 384,
+                "correct": 232
+              },
+              "C": {
+                "episodes": 384,
+                "correct": 222
+              },
+              "D": {
+                "episodes": 384,
+                "correct": 268
+              }
+            },
+            "fitted_examples": 128
+          },
+          "private/C/right": {
+            "episodes": 1536,
+            "exact_correct": 1162,
+            "exact_accuracy": 0.7565104166666666,
+            "balanced_accuracy": 0.7565104166666667,
+            "class_balanced_chance": 0.25,
+            "majority_class_chance": 0.25,
+            "by_answer": {
+              "A": {
+                "episodes": 384,
+                "correct": 296
+              },
+              "B": {
+                "episodes": 384,
+                "correct": 285
+              },
+              "C": {
+                "episodes": 384,
+                "correct": 272
+              },
+              "D": {
+                "episodes": 384,
+                "correct": 309
+              }
+            },
+            "fitted_examples": 128
+          }
+        },
+        "trained_private_heads": {
+          "A": {
+            "episodes": 1536,
+            "exact_correct": 823,
+            "exact_accuracy": 0.5358072916666666,
+            "balanced_accuracy": 0.5358072916666666,
+            "class_balanced_chance": 0.25,
+            "majority_class_chance": 0.25,
+            "by_answer": {
+              "A": {
+                "episodes": 384,
+                "correct": 332
+              },
+              "B": {
+                "episodes": 384,
+                "correct": 163
+              },
+              "C": {
+                "episodes": 384,
+                "correct": 188
+              },
+              "D": {
+                "episodes": 384,
+                "correct": 140
+              }
+            },
+            "objective_enabled": true,
+            "factor": "left",
+            "evaluation_timing": {
+              "description_end_exclusive": 14,
+              "latest_possible_event_index": 13,
+              "source_position": "last available ingress before the description boundary",
+              "query_markers_observed": false
+            },
+            "timing_matches_training_pool": false,
+            "training_pooling": "last",
+            "timing_note": "This pre-query score uses event 13 or an earlier valid source event. The runner normally trains last-pooled private heads at event 15 after the first query markers in a 16-event chunk, and at later chunk ends. Use the frozen readouts for matched fit/evaluation timing."
+          },
+          "C": {
+            "episodes": 1536,
+            "exact_correct": 545,
+            "exact_accuracy": 0.3548177083333333,
+            "balanced_accuracy": 0.3548177083333333,
+            "class_balanced_chance": 0.25,
+            "majority_class_chance": 0.25,
+            "by_answer": {
+              "A": {
+                "episodes": 384,
+                "correct": 325
+              },
+              "B": {
+                "episodes": 384,
+                "correct": 33
+              },
+              "C": {
+                "episodes": 384,
+                "correct": 168
+              },
+              "D": {
+                "episodes": 384,
+                "correct": 19
+              }
+            },
+            "objective_enabled": true,
+            "factor": "right",
+            "evaluation_timing": {
+              "description_end_exclusive": 14,
+              "latest_possible_event_index": 13,
+              "source_position": "last available ingress before the description boundary",
+              "query_markers_observed": false
+            },
+            "timing_matches_training_pool": false,
+            "training_pooling": "last",
+            "timing_note": "This pre-query score uses event 13 or an earlier valid source event. The runner normally trains last-pooled private heads at event 15 after the first query markers in a 16-event chunk, and at later chunk ends. Use the frozen readouts for matched fit/evaluation timing."
+          }
+        },
+        "fit_split": "train",
+        "ridge": 0.01,
+        "frozen_scoring": "argmax over four declared factor values",
+        "trained_head_scoring": "argmax over all 256 bytes"
+      },
+      "seconds": 269.3259362700046
+    }
+  }
+}

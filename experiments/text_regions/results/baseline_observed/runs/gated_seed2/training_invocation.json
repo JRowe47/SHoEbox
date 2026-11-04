@@ -1,0 +1,42 @@
+{
+  "name": "gated_seed2",
+  "stage": "training",
+  "command": [
+    "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python",
+    "-m",
+    "experiments.text_regions.view_train",
+    "--steps",
+    "240",
+    "--batch",
+    "32",
+    "--segment",
+    "16",
+    "--gap",
+    "8",
+    "--dropout",
+    "0.25",
+    "--seed",
+    "20261107",
+    "--threads",
+    "2",
+    "--base-checkpoint",
+    "artifacts/probes/correction_warm150/checkpoint.pt",
+    "--view-objective",
+    "--baseline-observed-only",
+    "--out",
+    "/workspace/scratch/a46f7f457d15/SHoEbox/artifacts/baseline_observed/gated_seed2",
+    "--evidence-gated-ports"
+  ],
+  "started_unix": 1793809880.8167078,
+  "source_sha256": {
+    "experiments/text_regions/learning.py": "616dfdc9f1066e41ec16e9bfd0bc674a114f17ab8bb1801e93039f570a18e2b2",
+    "experiments/text_regions/view_train.py": "27f7b6e2034551c223cb0847460a6c81dc931d87e28d7196dfc5aeee89376332",
+    "experiments/text_regions/view_score.py": "d1df26aa362fe9af9b75369f7cd50159d60b01064358bf648111255f2b92bd11",
+    "experiments/text_regions/view_data.py": "26ee5499c2f8806887cf7d7b2ab4a88173682722fad086e2911268b4a6e4673f"
+  },
+  "status": "complete",
+  "log": "/workspace/scratch/a46f7f457d15/SHoEbox/artifacts/baseline_observed/gated_seed2/training.log",
+  "pid": 7,
+  "returncode": 0,
+  "finished_unix": 1793810716.994171
+}
