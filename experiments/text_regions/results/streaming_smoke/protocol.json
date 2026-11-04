@@ -1,0 +1,178 @@
+{
+  "baseline_revision": "b4bb7cfea18c3833819f6ed08973fd014f15f107",
+  "steps": 100,
+  "lr": 0.002,
+  "batch": 4,
+  "context": 128,
+  "seed": 20261104,
+  "data_sha256": "86c4e6aa9db7c042ec79f339dcb96d42b0075e16b8fc2e86bf0ca57e2dc565ed",
+  "data_bytes": 1115394,
+  "train_bytes": 1003854,
+  "validation_bytes": 55770,
+  "untouched_test_bytes": 55770,
+  "data_kind": "file",
+  "optimizer": "AdamW (.9,.95), matrix decay .01; inherited exclusions; clip 1",
+  "schedule": "inherited warmup then linear taper over final 20%; horizon retained on resume",
+  "state_policy": "ordered rows, explicit episode boundaries, detach every segment",
+  "torch": "2.15.0+cpu",
+  "python": "3.12.14",
+  "threads": 2,
+  "config": {
+    "nodes": [
+      {
+        "name": "A",
+        "region": "R0",
+        "view": "A"
+      },
+      {
+        "name": "B",
+        "region": "R0",
+        "view": "B"
+      },
+      {
+        "name": "C",
+        "region": "R0",
+        "view": "C"
+      },
+      {
+        "name": "U",
+        "region": "R1",
+        "view": null
+      },
+      {
+        "name": "P",
+        "region": "R1",
+        "view": null
+      },
+      {
+        "name": "V",
+        "region": "R2",
+        "view": null
+      },
+      {
+        "name": "Q",
+        "region": "R2",
+        "view": null
+      }
+    ],
+    "edges": [
+      {
+        "source": "A",
+        "destination": "U",
+        "kind": "forward"
+      },
+      {
+        "source": "B",
+        "destination": "U",
+        "kind": "forward"
+      },
+      {
+        "source": "B",
+        "destination": "V",
+        "kind": "forward"
+      },
+      {
+        "source": "C",
+        "destination": "V",
+        "kind": "forward"
+      },
+      {
+        "source": "A",
+        "destination": "P",
+        "kind": "forward"
+      },
+      {
+        "source": "U",
+        "destination": "P",
+        "kind": "forward"
+      },
+      {
+        "source": "V",
+        "destination": "Q",
+        "kind": "forward"
+      },
+      {
+        "source": "C",
+        "destination": "Q",
+        "kind": "forward"
+      },
+      {
+        "source": "P",
+        "destination": "Q",
+        "kind": "lateral"
+      },
+      {
+        "source": "Q",
+        "destination": "P",
+        "kind": "lateral"
+      },
+      {
+        "source": "P",
+        "destination": "U",
+        "kind": "descending"
+      },
+      {
+        "source": "P",
+        "destination": "A",
+        "kind": "descending"
+      },
+      {
+        "source": "P",
+        "destination": "B",
+        "kind": "descending"
+      },
+      {
+        "source": "Q",
+        "destination": "V",
+        "kind": "descending"
+      },
+      {
+        "source": "Q",
+        "destination": "B",
+        "kind": "descending"
+      },
+      {
+        "source": "Q",
+        "destination": "C",
+        "kind": "descending"
+      }
+    ],
+    "readout": [
+      "P",
+      "Q"
+    ],
+    "width": 100,
+    "experts_per_block": 128,
+    "shared_per_block": 64,
+    "expert_hidden": 4,
+    "groups": 16,
+    "active_groups": 2,
+    "experts_per_group": 4,
+    "address_dim": 16,
+    "laces": 64,
+    "active_laces": 2,
+    "hat_levels": 2,
+    "hat_symbols": 64,
+    "hat_active_symbols": 2,
+    "kron_heads": 4,
+    "kron_key": 8,
+    "kron_value": 8,
+    "rounds": 2,
+    "recurrent_feedback": true,
+    "feedback_gate_init": 0.05,
+    "context": 128,
+    "auxiliary_loss_weight": 0.01,
+    "hat_balance_weight": 0.001,
+    "seed": 20261104
+  },
+  "parameters": {
+    "total_unique_parameters": 2561212,
+    "physical_experts": 1536,
+    "expert_matrix_parameters": 1228800,
+    "logical_experts_per_node": 384,
+    "expert_calls_per_round_per_external_event": 168,
+    "nodes": 7,
+    "regions": 3,
+    "byte_vocabulary": 256
+  }
+}

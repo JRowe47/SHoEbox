@@ -10,7 +10,10 @@ import math
 import torch
 from torch import nn
 from torch.nn import functional as F
-from semantic_core import Config, SHoEGPT, ExpertBank, LaceController, normalize, prefix_mean, switch_balance
+if __package__:
+    from .semantic_core import Config, SHoEGPT, ExpertBank, LaceController, normalize, prefix_mean, switch_balance
+else:
+    from semantic_core import Config, SHoEGPT, ExpertBank, LaceController, normalize, prefix_mean, switch_balance
 
 
 @dataclass

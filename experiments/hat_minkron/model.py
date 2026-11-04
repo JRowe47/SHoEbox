@@ -4,11 +4,18 @@ import math
 import torch
 from torch import nn
 from torch.nn import functional as F
-from events import ByteBatch
-from hat import HAT, HATState
-from kron import MinKron
-from semantic_core import Config, ExpertBank, SemanticRouter, LaceController, normalize, switch_balance
-from hierarchy_reference import HierarchyConfig, ParentSHoE, SplitExpertBank
+if __package__:
+    from .events import ByteBatch
+    from .hat import HAT, HATState
+    from .kron import MinKron
+    from .semantic_core import Config, ExpertBank, SemanticRouter, LaceController, normalize, switch_balance
+    from .hierarchy_reference import HierarchyConfig, ParentSHoE, SplitExpertBank
+else:
+    from events import ByteBatch
+    from hat import HAT, HATState
+    from kron import MinKron
+    from semantic_core import Config, ExpertBank, SemanticRouter, LaceController, normalize, switch_balance
+    from hierarchy_reference import HierarchyConfig, ParentSHoE, SplitExpertBank
 
 
 @dataclass
@@ -123,13 +130,14 @@ class RecurrentBlock(nn.Module):
 
 
 class RecurrentChild(nn.Module):
-    def __init__(self,c,cfg,shared):
+    def __init__(self,c,cfg,shared,with_decoder=True):
         super().__init__();self.cfg=c
         self.blocks=nn.ModuleList([RecurrentBlock(c,cfg,l,n,shared[l]) for l,n in enumerate(c.expert_counts)])
         self.lace=LaceController(c)
         self.final_norm=nn.LayerNorm(c.width)
-        self.decoder=nn.Linear(c.width,256,bias=False)
-        nn.init.normal_(self.decoder.weight,std=.02)
+        self.decoder=nn.Linear(c.width,256,bias=False) if with_decoder else None
+        if self.decoder is not None:
+            nn.init.normal_(self.decoder.weight,std=.02)
 
     def probe(self,context):
         evidence=torch.stack([b.router.pilot(context) for b in self.blocks],-2)
@@ -137,16 +145,22 @@ class RecurrentChild(nn.Module):
         return {'evidence':evidence,'prior':prior,'match':(evidence/4).amax(-1).mean(-1),
                 'lace_ids':lace['lace_ids']}
 
-    def execute(self,payload,prior,states,backend='chunk',memory_enabled=True,trace=False):
-        x=payload;aux=x.new_zeros(());actual=[];final=[];details=[]
+    def execute(self,payload,prior,states,backend='chunk',memory_enabled=True,trace=False,decode=True):
+        x=payload;aux=x.new_zeros(());actual=[];final=[];details=[];semantic=[];group_ids=[];expert_ids=[]
         for layer,block in enumerate(self.blocks):
             x,memory,route=block(x,prior[:,:,layer],states[layer],backend,memory_enabled)
             final.append(memory);aux=aux+route['aux'];actual.append(route['group_scores'])
+            semantic.append(route['group_prob']);group_ids.append(route['groups']);expert_ids.append(route['experts'])
             if trace: details.append({k:v.detach() for k,v in route.items()})
-        logits=self.decoder(self.final_norm(x))
+        latent=self.final_norm(x)
+        if decode and self.decoder is None:
+            raise ValueError('This reusable node has no byte decoder; use decode=False.')
+        logits=self.decoder(latent) if decode else None
         with torch.no_grad():
             observed,lace=self.lace(torch.stack(actual,-2).detach(),F.layer_norm(payload.detach(),(self.cfg.width,)))
         return {'logits':logits,'state':tuple(final),'aux':aux/len(self.blocks),
+                'latent':latent,'semantic':torch.stack(semantic,-2),
+                'group_ids':torch.stack(group_ids,-2),'expert_ids':torch.stack(expert_ids,-2),
                 'feedback_prior':observed,'feedback_lace_ids':lace['lace_ids'],'trace':details}
 
 

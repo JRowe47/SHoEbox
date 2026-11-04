@@ -27,10 +27,14 @@ def main():
                                 cwd=ROOT / 'experiments' / name)
         if result.returncode:
             failed.append(name)
+    print('\nRunning text_regions', flush=True)
+    result = subprocess.run([sys.executable, '-m', 'unittest', '-v', 'experiments.text_regions.verify'], cwd=ROOT)
+    if result.returncode:
+        failed.append('text_regions')
     if failed:
         print('Failed suites: ' + ', '.join(failed), file=sys.stderr)
         return 1
-    print('\nAll four experiment suites passed.')
+    print('\nAll five experiment suites passed.')
     return 0
 
 

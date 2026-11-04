@@ -9,8 +9,12 @@ import platform
 import resource
 import time
 import torch
-from events import ByteBatch
-from model import HATConfig,HATSHoE
+if __package__:
+    from .events import ByteBatch
+    from .model import HATConfig,HATSHoE
+else:
+    from events import ByteBatch
+    from model import HATConfig,HATSHoE
 
 
 def data_load(path):

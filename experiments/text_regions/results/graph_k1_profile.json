@@ -1,0 +1,191 @@
+{
+  "schema_version": 1,
+  "model": "text_regions",
+  "baseline_revision": "b4bb7cfea18c3833819f6ed08973fd014f15f107",
+  "config": {
+    "nodes": [
+      {
+        "name": "A",
+        "region": "R0",
+        "view": "A"
+      },
+      {
+        "name": "B",
+        "region": "R0",
+        "view": "B"
+      },
+      {
+        "name": "C",
+        "region": "R0",
+        "view": "C"
+      },
+      {
+        "name": "U",
+        "region": "R1",
+        "view": null
+      },
+      {
+        "name": "P",
+        "region": "R1",
+        "view": null
+      },
+      {
+        "name": "V",
+        "region": "R2",
+        "view": null
+      },
+      {
+        "name": "Q",
+        "region": "R2",
+        "view": null
+      }
+    ],
+    "edges": [
+      {
+        "source": "A",
+        "destination": "U",
+        "kind": "forward"
+      },
+      {
+        "source": "B",
+        "destination": "U",
+        "kind": "forward"
+      },
+      {
+        "source": "B",
+        "destination": "V",
+        "kind": "forward"
+      },
+      {
+        "source": "C",
+        "destination": "V",
+        "kind": "forward"
+      },
+      {
+        "source": "A",
+        "destination": "P",
+        "kind": "forward"
+      },
+      {
+        "source": "U",
+        "destination": "P",
+        "kind": "forward"
+      },
+      {
+        "source": "V",
+        "destination": "Q",
+        "kind": "forward"
+      },
+      {
+        "source": "C",
+        "destination": "Q",
+        "kind": "forward"
+      },
+      {
+        "source": "P",
+        "destination": "Q",
+        "kind": "lateral"
+      },
+      {
+        "source": "Q",
+        "destination": "P",
+        "kind": "lateral"
+      },
+      {
+        "source": "P",
+        "destination": "U",
+        "kind": "descending"
+      },
+      {
+        "source": "P",
+        "destination": "A",
+        "kind": "descending"
+      },
+      {
+        "source": "P",
+        "destination": "B",
+        "kind": "descending"
+      },
+      {
+        "source": "Q",
+        "destination": "V",
+        "kind": "descending"
+      },
+      {
+        "source": "Q",
+        "destination": "B",
+        "kind": "descending"
+      },
+      {
+        "source": "Q",
+        "destination": "C",
+        "kind": "descending"
+      }
+    ],
+    "readout": [
+      "P",
+      "Q"
+    ],
+    "width": 100,
+    "experts_per_block": 128,
+    "shared_per_block": 64,
+    "expert_hidden": 4,
+    "groups": 16,
+    "active_groups": 2,
+    "experts_per_group": 4,
+    "address_dim": 16,
+    "laces": 64,
+    "active_laces": 2,
+    "hat_levels": 2,
+    "hat_symbols": 64,
+    "hat_active_symbols": 2,
+    "kron_heads": 4,
+    "kron_key": 8,
+    "kron_value": 8,
+    "rounds": 1,
+    "recurrent_feedback": false,
+    "feedback_gate_init": 0.05,
+    "context": 128,
+    "auxiliary_loss_weight": 0.01,
+    "hat_balance_weight": 0.001,
+    "seed": 20261104
+  },
+  "seed": 20261104,
+  "threads": 2,
+  "batch": 4,
+  "context": 128,
+  "iterations": 1,
+  "python": "3.12.14",
+  "torch": "2.15.0+cpu",
+  "unique_parameters": 2561212,
+  "parameter_details": {
+    "total_unique_parameters": 2561212,
+    "physical_experts": 1536,
+    "expert_matrix_parameters": 1228800,
+    "logical_experts_per_node": 384,
+    "expert_calls_per_round_per_external_event": 168,
+    "nodes": 7,
+    "regions": 3,
+    "byte_vocabulary": 256
+  },
+  "external_bytes_per_iteration": 512,
+  "internal_rounds_per_byte": 1,
+  "expert_calls_per_byte": 168,
+  "expert_executions_per_iteration": 86016,
+  "unique_experts_in_inference_window": 1536,
+  "unique_expert_matrix_weights_in_inference_window": 1228800,
+  "inference_seconds": 5.705162692000158,
+  "training_step_seconds": 23.190695458004484,
+  "unclipped_gradient_norm": 19.56150245666504,
+  "inference_bytes_per_second": 89.74327773648454,
+  "training_bytes_per_second": 22.07782000014486,
+  "routing_forward_seconds_instrumented": 1.5438385407906026,
+  "expert_forward_seconds_instrumented": 1.0497181639584596,
+  "instrumented_inference_seconds": 6.152629397001874,
+  "state_bytes": 184856,
+  "detached_training_state_bytes": 184856,
+  "optimizer_state_bytes": 19698344,
+  "peak_rss_mib": 2119.9453125,
+  "sample_byte_count": 10,
+  "measurement": "CPU wall time; random byte plumbing fixture; fresh state per timed iteration; separate inference with hooks measures router/lace and expert forward components only"
+}

@@ -4,8 +4,12 @@ import math
 import torch
 from torch import nn
 from torch.nn import functional as F
-from kron import MinKron
-from semantic_core import switch_balance
+if __package__:
+    from .kron import MinKron
+    from .semantic_core import switch_balance
+else:
+    from kron import MinKron
+    from semantic_core import switch_balance
 
 
 @dataclass
