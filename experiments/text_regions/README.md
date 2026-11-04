@@ -238,7 +238,7 @@ python -m experiments.text_regions.evidence_compare \
   --out artifacts/evidence/recomputed_comparison.json
 ```
 
-The policy comparison uses 512 fresh episodes per query (1,536 per control), with original/gated training paired at seeds 20261106, 20261107, and 20261108. These are fine-tuning seeds from a common correction-trained graph. Mean B-only shared recovery improves from 35.1% to 85.1%; all-view held-out accuracy falls from 78.2% to 68.2%, with private recovery regressing in every pair. The publication gate remains default-off. See the [full comparison and diagnostic report](../../docs/SHoEbox_Evidence_Policy_Report.md) and [raw results](results/evidence_policy). The next ablation isolates encoder gradients from the A-only baseline loss; learned composition and additional regional rounds remain separate experiments.
+The policy comparison uses 512 fresh episodes per query (1,536 per control), with original/gated training paired at seeds 20261106, 20261107, and 20261108. These are fine-tuning seeds from a common correction-trained graph. Mean B-only shared recovery improves from 35.1% to 85.1%; all-view held-out accuracy falls from 78.2% to 68.2%, with private recovery regressing in every pair. The publication gate remains default-off. See the [full comparison and diagnostic report](../../docs/SHoEbox_Evidence_Policy_Report.md) and [raw results](results/evidence_policy). The baseline-gradient ablation below follows this comparison; learned composition and additional regional rounds remain separate experiments.
 
 ## Baseline encoder-gradient ablation
 
@@ -262,3 +262,11 @@ python -m experiments.text_regions.view_score \
 Compare attached and detached training at the same publication policy, initializer, source stream, optimizer settings, and compute budget. Utility is disabled in this ablation. Three gated-policy seeds measure the detach effect under that policy; the additional original-policy seed supplies a one-seed interaction check. It is not a three-seed comparison of that interaction.
 
 `baseline_compare.py` accepts a version-1 manifest with `publication_policy`, `original`, and `detached` entries per pair. Each arm names a `run_directory` and `evaluation_directory`. It verifies all training settings except detachment, source exposure, parameter and expert budgets, exact evaluation cases and answer balance, then recomputes scores and paired improvements/regressions from raw predictions. Aggregates keep publication policies and auxiliary settings separate. Legacy missing detachment fields normalize to false while hashes retain the original bytes.
+
+The completed gated three-seed comparison improves mean held-out accuracy from 68.2% to 77.6% and private accuracy from 57.9% to 73.7%, while B-only recovery falls from 85.1% to 67.3%. Seed 1's held-out left accuracy falls from 63.5% to 35.7%. The original-policy seed-1 control improves overall accuracy from 79.0% to 84.8%. Detachment remains optional; the next narrower intervention is causal source-observability masking of baseline training targets. See the [report](../../docs/SHoEbox_Baseline_Gradient_Report.md).
+
+```bash
+python -m experiments.text_regions.baseline_compare \
+  --manifest experiments/text_regions/results/baseline_gradient/manifest.json \
+  --out artifacts/reproduction/baseline_comparison.json
+```

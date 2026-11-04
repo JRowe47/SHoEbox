@@ -58,7 +58,9 @@ The 246K-parameter, seven-node model reached **98.6% correction accuracy at an 1
 
 The subsequent shared/private benchmark holds out combinations of three independent facts and varies source formats and field order. In a matched four-way comparison, view objectives improved unseen-combination accuracy from **69.8% to 79.2%**. Private left/right answers improved from **65.6%/63.5% to 78.6%/75.5%**. Every variant started with identical weights and trained on 96,000 external events with 8,064,000 expert calls. Missing-view recovery remains uneven; an optional requirement for evidence before publication exposes interference from cold nodes. See the [shared/private report](docs/SHoEbox_Shared_Private_Report.md) and the [benchmark commands](experiments/text_regions/README.md#factorized-sharedprivate-benchmark).
 
-Three paired fine-tuning seeds now separate publication-policy training from inference. Evidence-gated training raises mean **B-only shared recovery from 35.1% to 85.1%**, while reducing all-view held-out accuracy from **78.2% to 68.2%**. Private-fact accuracy falls in all three pairs, so the gate remains default-off. Regional readouts find the facts downstream; query-only inputs from other sources can still interfere with the final answer. The [evidence-policy report](docs/SHoEbox_Evidence_Policy_Report.md) records the matched results, diagnostics, and next baseline-gradient ablation. [Raw predictions and the portable comparison manifest](experiments/text_regions/results/evidence_policy) accompany the report.
+Three paired fine-tuning seeds now separate publication-policy training from inference. Evidence-gated training raises mean **B-only shared recovery from 35.1% to 85.1%**, while reducing all-view held-out accuracy from **78.2% to 68.2%**. Private-fact accuracy falls in all three pairs, so the gate remains default-off. Regional readouts find the facts downstream; query-only inputs from other sources can still interfere with the final answer. The [evidence-policy report](docs/SHoEbox_Evidence_Policy_Report.md) records the matched results, diagnostics, and motivation for the baseline-gradient ablation. [Raw predictions and the portable comparison manifest](experiments/text_regions/results/evidence_policy) accompany the report.
+
+The subsequent baseline-gradient ablation detaches the source-only auxiliary head from the encoder while preserving its training. Across the three gated seeds, mean **held-out accuracy improves from 68.2% to 77.6%** and private accuracy from **57.9% to 73.7%**, while **B-only recovery drops from 85.1% to 67.3%**. Seed 1 also loses left-private accuracy, so blanket detachment remains default-off. The next test retains baseline gradients for facts its source observes and masks unsupported targets before balancing source visibility. See the [baseline-gradient report](docs/SHoEbox_Baseline_Gradient_Report.md) and [matched raw results](experiments/text_regions/results/baseline_gradient).
 
 ```bash
 python -m experiments.text_regions.probe_train --kind correction --steps 300 \
@@ -78,6 +80,7 @@ See the [probe and learning report](docs/SHoEbox_Probe_Development_Report.md) fo
 - [Probe and learning development report](docs/SHoEbox_Probe_Development_Report.md)
 - [Shared/private benchmark and publication diagnostics](docs/SHoEbox_Shared_Private_Report.md)
 - [Three-seed evidence-policy comparison and regional diagnostics](docs/SHoEbox_Evidence_Policy_Report.md)
+- [Baseline encoder-gradient ablation](docs/SHoEbox_Baseline_Gradient_Report.md)
 - [Original SHoE overview and results](SHoE_BASELINE.md)
 - [Preserved HAT/minKron baseline](experiments/hat_minkron)
 - [Source lineage and third-party notices](THIRD_PARTY_NOTICES.md)
