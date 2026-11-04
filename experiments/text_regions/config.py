@@ -64,6 +64,7 @@ class GraphConfig:
     recurrent_feedback: bool = False
     feedback_gate_init: float = .05
     zero_safe_norm: bool = True
+    evidence_gated_ports: bool = False
     context: int = 128
     auxiliary_loss_weight: float = .01
     hat_balance_weight: float = .001

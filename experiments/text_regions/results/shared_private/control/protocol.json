@@ -1,0 +1,253 @@
+{
+  "steps": 240,
+  "batch": 32,
+  "segment": 16,
+  "gap": 8,
+  "query_every": 4,
+  "dropout": 0.25,
+  "seed": 20261106,
+  "threads": 2,
+  "lr": 0.002,
+  "rounds": 1,
+  "view_objective": false,
+  "utility": false,
+  "baseline_all_variants": true,
+  "initial_tensor_sha256": "de64c8a4500484c967e86eebc32bc577b7651be1eebc4ee68b730b3b49005053",
+  "base_initializer": {
+    "path": "artifacts/probes/correction_warm150/checkpoint.pt",
+    "sha256": "dc63c0f9db7c590e889f753b508c0bec131dcbbeeb8bfd6dc1bebe551271cef3"
+  },
+  "learner_config": {
+    "model": {
+      "nodes": [
+        {
+          "name": "A",
+          "region": "R0",
+          "view": "A"
+        },
+        {
+          "name": "B",
+          "region": "R0",
+          "view": "B"
+        },
+        {
+          "name": "C",
+          "region": "R0",
+          "view": "C"
+        },
+        {
+          "name": "U",
+          "region": "R1",
+          "view": null
+        },
+        {
+          "name": "P",
+          "region": "R1",
+          "view": null
+        },
+        {
+          "name": "V",
+          "region": "R2",
+          "view": null
+        },
+        {
+          "name": "Q",
+          "region": "R2",
+          "view": null
+        }
+      ],
+      "edges": [
+        {
+          "source": "A",
+          "destination": "U",
+          "kind": "forward"
+        },
+        {
+          "source": "B",
+          "destination": "U",
+          "kind": "forward"
+        },
+        {
+          "source": "B",
+          "destination": "V",
+          "kind": "forward"
+        },
+        {
+          "source": "C",
+          "destination": "V",
+          "kind": "forward"
+        },
+        {
+          "source": "A",
+          "destination": "P",
+          "kind": "forward"
+        },
+        {
+          "source": "U",
+          "destination": "P",
+          "kind": "forward"
+        },
+        {
+          "source": "V",
+          "destination": "Q",
+          "kind": "forward"
+        },
+        {
+          "source": "C",
+          "destination": "Q",
+          "kind": "forward"
+        },
+        {
+          "source": "P",
+          "destination": "Q",
+          "kind": "lateral"
+        },
+        {
+          "source": "Q",
+          "destination": "P",
+          "kind": "lateral"
+        },
+        {
+          "source": "P",
+          "destination": "U",
+          "kind": "descending"
+        },
+        {
+          "source": "P",
+          "destination": "A",
+          "kind": "descending"
+        },
+        {
+          "source": "P",
+          "destination": "B",
+          "kind": "descending"
+        },
+        {
+          "source": "Q",
+          "destination": "V",
+          "kind": "descending"
+        },
+        {
+          "source": "Q",
+          "destination": "B",
+          "kind": "descending"
+        },
+        {
+          "source": "Q",
+          "destination": "C",
+          "kind": "descending"
+        }
+      ],
+      "readout": [
+        "P",
+        "Q"
+      ],
+      "width": 32,
+      "experts_per_block": 32,
+      "shared_per_block": 16,
+      "expert_hidden": 4,
+      "groups": 4,
+      "active_groups": 2,
+      "experts_per_group": 2,
+      "address_dim": 8,
+      "laces": 16,
+      "active_laces": 2,
+      "hat_levels": 2,
+      "hat_symbols": 16,
+      "hat_active_symbols": 2,
+      "kron_heads": 2,
+      "kron_key": 4,
+      "kron_value": 4,
+      "rounds": 1,
+      "recurrent_feedback": false,
+      "feedback_gate_init": 0.05,
+      "zero_safe_norm": true,
+      "context": 16,
+      "auxiliary_loss_weight": 0.01,
+      "hat_balance_weight": 0.001,
+      "seed": 20261106
+    },
+    "baseline_enabled": true,
+    "baseline_view": "A",
+    "baseline_weight": 0.1,
+    "utility_scale": 0.1,
+    "view_objective": {
+      "views": [
+        "A",
+        "C"
+      ],
+      "cfg": {
+        "shared_dim": 16,
+        "private_dim": 16,
+        "pooling": "last",
+        "agreement_enabled": false,
+        "prediction_enabled": false,
+        "variance_enabled": false,
+        "covariance_enabled": false,
+        "private_enabled": false,
+        "separation_enabled": false,
+        "agreement_weight": 0.01,
+        "prediction_weight": 0.01,
+        "variance_weight": 0.01,
+        "covariance_weight": 0.001,
+        "private_weight": 0.05,
+        "separation_weight": 0.001,
+        "variance_target": 1.0,
+        "variance_epsilon": 0.0001
+      }
+    },
+    "utility": {
+      "edge_names": [
+        "A__U__forward",
+        "B__U__forward",
+        "B__V__forward",
+        "C__V__forward",
+        "A__P__forward",
+        "U__P__forward",
+        "V__Q__forward",
+        "C__Q__forward",
+        "P__Q__lateral",
+        "Q__P__lateral",
+        "P__U__descending",
+        "P__A__descending",
+        "P__B__descending",
+        "Q__V__descending",
+        "Q__B__descending",
+        "Q__C__descending"
+      ],
+      "node_names": [
+        "A",
+        "B",
+        "C",
+        "U",
+        "P",
+        "V",
+        "Q"
+      ],
+      "laces": 16,
+      "layers": 3,
+      "enabled": false,
+      "decay": 0.97,
+      "gain_clip": 2.0
+    }
+  },
+  "parameters": {
+    "total_unique_parameters": 246142,
+    "physical_experts": 384,
+    "expert_matrix_parameters": 98304,
+    "logical_experts_per_node": 96,
+    "expert_calls_per_round_per_external_event": 84,
+    "nodes": 7,
+    "regions": 3,
+    "byte_vocabulary": 256,
+    "parameters_including_auxiliary_heads": 265694
+  },
+  "stream": {
+    "batch_size": 32,
+    "gap": 8,
+    "query_every": 4,
+    "seed": 20261106,
+    "dropout": 0.25,
+    "query_type": null
+  }
+}

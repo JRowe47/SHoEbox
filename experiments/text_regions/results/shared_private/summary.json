@@ -1,0 +1,2716 @@
+{
+  "schema_version": 1,
+  "experiment": "matched_shared_private_factorized_views",
+  "variant_order": [
+    "control",
+    "views",
+    "utility",
+    "both"
+  ],
+  "replicate_seeds": [
+    20261106
+  ],
+  "initial_tensor_sha256": "de64c8a4500484c967e86eebc32bc577b7651be1eebc4ee68b730b3b49005053",
+  "bare_graph_initializer": {
+    "path": "artifacts/probes/correction_warm150/checkpoint.pt",
+    "sha256": "dc63c0f9db7c590e889f753b508c0bec131dcbbeeb8bfd6dc1bebe551271cef3"
+  },
+  "common_training_protocol": {
+    "steps": 240,
+    "batch": 32,
+    "segment": 16,
+    "gap": 8,
+    "query_every": 4,
+    "dropout": 0.25,
+    "seed": 20261106,
+    "threads": 2,
+    "lr": 0.002,
+    "rounds": 1,
+    "baseline_all_variants": true,
+    "stream": {
+      "batch_size": 32,
+      "gap": 8,
+      "query_every": 4,
+      "seed": 20261106,
+      "dropout": 0.25,
+      "query_type": null
+    }
+  },
+  "parameters": {
+    "total_unique_parameters": 246142,
+    "physical_experts": 384,
+    "expert_matrix_parameters": 98304,
+    "logical_experts_per_node": 96,
+    "expert_calls_per_round_per_external_event": 84,
+    "nodes": 7,
+    "regions": 3,
+    "byte_vocabulary": 256,
+    "parameters_including_auxiliary_heads": 265694
+  },
+  "matched_training_counts_per_variant": {
+    "segments": 240,
+    "external_events": 96000,
+    "source_occurrences": 238681,
+    "expert_executions": 8064000,
+    "optimizer_steps": 240
+  },
+  "training_final_queries_per_variant": 3840,
+  "cohorts": {
+    "test": {
+      "split": "test",
+      "cohort": "heldout_factor_combinations",
+      "seed": 20261106,
+      "gap": 8,
+      "query_every": 4,
+      "count_per_query": 192,
+      "factor_combinations": 16,
+      "answer_vocabulary": "ABCD",
+      "scoring": "argmax over all 256 bytes at final query; classes and query types exactly balanced"
+    },
+    "independent": {
+      "split": "independent",
+      "cohort": "independent_information_controls",
+      "seed": 20261106,
+      "gap": 8,
+      "query_every": 4,
+      "count_per_query": 192,
+      "factor_combinations": 64,
+      "answer_vocabulary": "ABCD",
+      "scoring": "argmax over all 256 bytes at final query; classes and query types exactly balanced"
+    }
+  },
+  "all_views_headline_tables": {
+    "test": [
+      {
+        "variant": "control",
+        "view_objective": false,
+        "utility": false,
+        "episodes": 576,
+        "exact_correct": 402,
+        "exact_accuracy": 0.6979166666666666,
+        "balanced_accuracy": 0.6979166666666666,
+        "by_query": {
+          "shared": {
+            "episodes": 192,
+            "exact_correct": 154,
+            "exact_accuracy": 0.8020833333333334,
+            "balanced_accuracy": 0.8020833333333334
+          },
+          "left": {
+            "episodes": 192,
+            "exact_correct": 126,
+            "exact_accuracy": 0.65625,
+            "balanced_accuracy": 0.65625
+          },
+          "right": {
+            "episodes": 192,
+            "exact_correct": 122,
+            "exact_accuracy": 0.6354166666666666,
+            "balanced_accuracy": 0.6354166666666666
+          }
+        },
+        "expert_executions": 1209600,
+        "external_events": 14400
+      },
+      {
+        "variant": "views",
+        "view_objective": true,
+        "utility": false,
+        "episodes": 576,
+        "exact_correct": 456,
+        "exact_accuracy": 0.7916666666666666,
+        "balanced_accuracy": 0.7916666666666667,
+        "by_query": {
+          "shared": {
+            "episodes": 192,
+            "exact_correct": 160,
+            "exact_accuracy": 0.8333333333333334,
+            "balanced_accuracy": 0.8333333333333334
+          },
+          "left": {
+            "episodes": 192,
+            "exact_correct": 151,
+            "exact_accuracy": 0.7864583333333334,
+            "balanced_accuracy": 0.7864583333333334
+          },
+          "right": {
+            "episodes": 192,
+            "exact_correct": 145,
+            "exact_accuracy": 0.7552083333333334,
+            "balanced_accuracy": 0.7552083333333334
+          }
+        },
+        "expert_executions": 1209600,
+        "external_events": 14400
+      },
+      {
+        "variant": "utility",
+        "view_objective": false,
+        "utility": true,
+        "episodes": 576,
+        "exact_correct": 416,
+        "exact_accuracy": 0.7222222222222222,
+        "balanced_accuracy": 0.7222222222222222,
+        "by_query": {
+          "shared": {
+            "episodes": 192,
+            "exact_correct": 176,
+            "exact_accuracy": 0.9166666666666666,
+            "balanced_accuracy": 0.9166666666666666
+          },
+          "left": {
+            "episodes": 192,
+            "exact_correct": 126,
+            "exact_accuracy": 0.65625,
+            "balanced_accuracy": 0.65625
+          },
+          "right": {
+            "episodes": 192,
+            "exact_correct": 114,
+            "exact_accuracy": 0.59375,
+            "balanced_accuracy": 0.59375
+          }
+        },
+        "expert_executions": 1209600,
+        "external_events": 14400
+      },
+      {
+        "variant": "both",
+        "view_objective": true,
+        "utility": true,
+        "episodes": 576,
+        "exact_correct": 454,
+        "exact_accuracy": 0.7881944444444444,
+        "balanced_accuracy": 0.7881944444444444,
+        "by_query": {
+          "shared": {
+            "episodes": 192,
+            "exact_correct": 174,
+            "exact_accuracy": 0.90625,
+            "balanced_accuracy": 0.90625
+          },
+          "left": {
+            "episodes": 192,
+            "exact_correct": 130,
+            "exact_accuracy": 0.6770833333333334,
+            "balanced_accuracy": 0.6770833333333334
+          },
+          "right": {
+            "episodes": 192,
+            "exact_correct": 150,
+            "exact_accuracy": 0.78125,
+            "balanced_accuracy": 0.78125
+          }
+        },
+        "expert_executions": 1209600,
+        "external_events": 14400
+      }
+    ],
+    "independent": [
+      {
+        "variant": "control",
+        "view_objective": false,
+        "utility": false,
+        "episodes": 576,
+        "exact_correct": 443,
+        "exact_accuracy": 0.7690972222222222,
+        "balanced_accuracy": 0.7690972222222222,
+        "by_query": {
+          "shared": {
+            "episodes": 192,
+            "exact_correct": 163,
+            "exact_accuracy": 0.8489583333333334,
+            "balanced_accuracy": 0.8489583333333334
+          },
+          "left": {
+            "episodes": 192,
+            "exact_correct": 133,
+            "exact_accuracy": 0.6927083333333334,
+            "balanced_accuracy": 0.6927083333333333
+          },
+          "right": {
+            "episodes": 192,
+            "exact_correct": 147,
+            "exact_accuracy": 0.765625,
+            "balanced_accuracy": 0.765625
+          }
+        },
+        "expert_executions": 1209600,
+        "external_events": 14400
+      },
+      {
+        "variant": "views",
+        "view_objective": true,
+        "utility": false,
+        "episodes": 576,
+        "exact_correct": 468,
+        "exact_accuracy": 0.8125,
+        "balanced_accuracy": 0.8125,
+        "by_query": {
+          "shared": {
+            "episodes": 192,
+            "exact_correct": 162,
+            "exact_accuracy": 0.84375,
+            "balanced_accuracy": 0.84375
+          },
+          "left": {
+            "episodes": 192,
+            "exact_correct": 151,
+            "exact_accuracy": 0.7864583333333334,
+            "balanced_accuracy": 0.7864583333333333
+          },
+          "right": {
+            "episodes": 192,
+            "exact_correct": 155,
+            "exact_accuracy": 0.8072916666666666,
+            "balanced_accuracy": 0.8072916666666666
+          }
+        },
+        "expert_executions": 1209600,
+        "external_events": 14400
+      },
+      {
+        "variant": "utility",
+        "view_objective": false,
+        "utility": true,
+        "episodes": 576,
+        "exact_correct": 430,
+        "exact_accuracy": 0.7465277777777778,
+        "balanced_accuracy": 0.7465277777777778,
+        "by_query": {
+          "shared": {
+            "episodes": 192,
+            "exact_correct": 176,
+            "exact_accuracy": 0.9166666666666666,
+            "balanced_accuracy": 0.9166666666666667
+          },
+          "left": {
+            "episodes": 192,
+            "exact_correct": 129,
+            "exact_accuracy": 0.671875,
+            "balanced_accuracy": 0.671875
+          },
+          "right": {
+            "episodes": 192,
+            "exact_correct": 125,
+            "exact_accuracy": 0.6510416666666666,
+            "balanced_accuracy": 0.6510416666666666
+          }
+        },
+        "expert_executions": 1209600,
+        "external_events": 14400
+      },
+      {
+        "variant": "both",
+        "view_objective": true,
+        "utility": true,
+        "episodes": 576,
+        "exact_correct": 468,
+        "exact_accuracy": 0.8125,
+        "balanced_accuracy": 0.8125,
+        "by_query": {
+          "shared": {
+            "episodes": 192,
+            "exact_correct": 176,
+            "exact_accuracy": 0.9166666666666666,
+            "balanced_accuracy": 0.9166666666666666
+          },
+          "left": {
+            "episodes": 192,
+            "exact_correct": 138,
+            "exact_accuracy": 0.71875,
+            "balanced_accuracy": 0.71875
+          },
+          "right": {
+            "episodes": 192,
+            "exact_correct": 154,
+            "exact_accuracy": 0.8020833333333334,
+            "balanced_accuracy": 0.8020833333333334
+          }
+        },
+        "expert_executions": 1209600,
+        "external_events": 14400
+      }
+    ]
+  },
+  "independent_information_controls": {
+    "control": {
+      "all": {
+        "episodes": 576,
+        "exact_correct": 443,
+        "exact_accuracy": 0.7690972222222222,
+        "balanced_accuracy": 0.7690972222222222,
+        "by_query": {
+          "shared": {
+            "episodes": 192,
+            "exact_correct": 163,
+            "exact_accuracy": 0.8489583333333334,
+            "balanced_accuracy": 0.8489583333333334
+          },
+          "left": {
+            "episodes": 192,
+            "exact_correct": 133,
+            "exact_accuracy": 0.6927083333333334,
+            "balanced_accuracy": 0.6927083333333333
+          },
+          "right": {
+            "episodes": 192,
+            "exact_correct": 147,
+            "exact_accuracy": 0.765625,
+            "balanced_accuracy": 0.765625
+          }
+        },
+        "expert_executions": 1209600,
+        "external_events": 14400,
+        "supported": {
+          "episodes": 576,
+          "exact_correct": 443,
+          "exact_accuracy": 0.7690972222222222,
+          "balanced_accuracy": 0.7690972222222222
+        },
+        "absent_information": {
+          "episodes": 0,
+          "exact_correct": 0,
+          "exact_accuracy": null,
+          "balanced_accuracy": null
+        },
+        "conditional_prior_by_query": {
+          "shared": 1.0,
+          "left": 1.0,
+          "right": 1.0
+        }
+      },
+      "a_only": {
+        "episodes": 576,
+        "exact_correct": 293,
+        "exact_accuracy": 0.5086805555555556,
+        "balanced_accuracy": 0.5086805555555556,
+        "by_query": {
+          "shared": {
+            "episodes": 192,
+            "exact_correct": 114,
+            "exact_accuracy": 0.59375,
+            "balanced_accuracy": 0.59375
+          },
+          "left": {
+            "episodes": 192,
+            "exact_correct": 129,
+            "exact_accuracy": 0.671875,
+            "balanced_accuracy": 0.671875
+          },
+          "right": {
+            "episodes": 192,
+            "exact_correct": 50,
+            "exact_accuracy": 0.2604166666666667,
+            "balanced_accuracy": 0.2604166666666667
+          }
+        },
+        "expert_executions": 1209600,
+        "external_events": 14400,
+        "supported": {
+          "episodes": 384,
+          "exact_correct": 243,
+          "exact_accuracy": 0.6328125,
+          "balanced_accuracy": 0.6328125
+        },
+        "absent_information": {
+          "episodes": 192,
+          "exact_correct": 50,
+          "exact_accuracy": 0.2604166666666667,
+          "balanced_accuracy": 0.2604166666666667
+        },
+        "conditional_prior_by_query": {
+          "shared": 1.0,
+          "left": 1.0,
+          "right": 0.25
+        }
+      },
+      "b_only": {
+        "episodes": 576,
+        "exact_correct": 100,
+        "exact_accuracy": 0.1736111111111111,
+        "balanced_accuracy": 0.1736111111111111,
+        "by_query": {
+          "shared": {
+            "episodes": 192,
+            "exact_correct": 1,
+            "exact_accuracy": 0.005208333333333333,
+            "balanced_accuracy": 0.005208333333333333
+          },
+          "left": {
+            "episodes": 192,
+            "exact_correct": 48,
+            "exact_accuracy": 0.25,
+            "balanced_accuracy": 0.25
+          },
+          "right": {
+            "episodes": 192,
+            "exact_correct": 51,
+            "exact_accuracy": 0.265625,
+            "balanced_accuracy": 0.265625
+          }
+        },
+        "expert_executions": 1209600,
+        "external_events": 14400,
+        "supported": {
+          "episodes": 192,
+          "exact_correct": 1,
+          "exact_accuracy": 0.005208333333333333,
+          "balanced_accuracy": 0.005208333333333333
+        },
+        "absent_information": {
+          "episodes": 384,
+          "exact_correct": 99,
+          "exact_accuracy": 0.2578125,
+          "balanced_accuracy": 0.2578125
+        },
+        "conditional_prior_by_query": {
+          "shared": 1.0,
+          "left": 0.25,
+          "right": 0.25
+        }
+      },
+      "c_only": {
+        "episodes": 576,
+        "exact_correct": 321,
+        "exact_accuracy": 0.5572916666666666,
+        "balanced_accuracy": 0.5572916666666666,
+        "by_query": {
+          "shared": {
+            "episodes": 192,
+            "exact_correct": 119,
+            "exact_accuracy": 0.6197916666666666,
+            "balanced_accuracy": 0.6197916666666666
+          },
+          "left": {
+            "episodes": 192,
+            "exact_correct": 48,
+            "exact_accuracy": 0.25,
+            "balanced_accuracy": 0.25
+          },
+          "right": {
+            "episodes": 192,
+            "exact_correct": 154,
+            "exact_accuracy": 0.8020833333333334,
+            "balanced_accuracy": 0.8020833333333334
+          }
+        },
+        "expert_executions": 1209600,
+        "external_events": 14400,
+        "supported": {
+          "episodes": 384,
+          "exact_correct": 273,
+          "exact_accuracy": 0.7109375,
+          "balanced_accuracy": 0.7109375
+        },
+        "absent_information": {
+          "episodes": 192,
+          "exact_correct": 48,
+          "exact_accuracy": 0.25,
+          "balanced_accuracy": 0.25
+        },
+        "conditional_prior_by_query": {
+          "shared": 1.0,
+          "left": 0.25,
+          "right": 1.0
+        }
+      },
+      "no_private": {
+        "episodes": 576,
+        "exact_correct": 283,
+        "exact_accuracy": 0.4913194444444444,
+        "balanced_accuracy": 0.4913194444444444,
+        "by_query": {
+          "shared": {
+            "episodes": 192,
+            "exact_correct": 192,
+            "exact_accuracy": 1.0,
+            "balanced_accuracy": 1.0
+          },
+          "left": {
+            "episodes": 192,
+            "exact_correct": 45,
+            "exact_accuracy": 0.234375,
+            "balanced_accuracy": 0.234375
+          },
+          "right": {
+            "episodes": 192,
+            "exact_correct": 46,
+            "exact_accuracy": 0.23958333333333334,
+            "balanced_accuracy": 0.23958333333333331
+          }
+        },
+        "expert_executions": 1209600,
+        "external_events": 14400,
+        "supported": {
+          "episodes": 192,
+          "exact_correct": 192,
+          "exact_accuracy": 1.0,
+          "balanced_accuracy": 1.0
+        },
+        "absent_information": {
+          "episodes": 384,
+          "exact_correct": 91,
+          "exact_accuracy": 0.23697916666666666,
+          "balanced_accuracy": 0.23697916666666666
+        },
+        "conditional_prior_by_query": {
+          "shared": 1.0,
+          "left": 0.25,
+          "right": 0.25
+        }
+      },
+      "reset_query": {
+        "episodes": 576,
+        "exact_correct": 144,
+        "exact_accuracy": 0.25,
+        "balanced_accuracy": 0.25,
+        "by_query": {
+          "shared": {
+            "episodes": 192,
+            "exact_correct": 48,
+            "exact_accuracy": 0.25,
+            "balanced_accuracy": 0.25
+          },
+          "left": {
+            "episodes": 192,
+            "exact_correct": 48,
+            "exact_accuracy": 0.25,
+            "balanced_accuracy": 0.25
+          },
+          "right": {
+            "episodes": 192,
+            "exact_correct": 48,
+            "exact_accuracy": 0.25,
+            "balanced_accuracy": 0.25
+          }
+        },
+        "expert_executions": 1209600,
+        "external_events": 14400,
+        "supported": {
+          "episodes": 0,
+          "exact_correct": 0,
+          "exact_accuracy": null,
+          "balanced_accuracy": null
+        },
+        "absent_information": {
+          "episodes": 576,
+          "exact_correct": 144,
+          "exact_accuracy": 0.25,
+          "balanced_accuracy": 0.25
+        },
+        "conditional_prior_by_query": {
+          "shared": 0.25,
+          "left": 0.25,
+          "right": 0.25
+        }
+      }
+    },
+    "views": {
+      "all": {
+        "episodes": 576,
+        "exact_correct": 468,
+        "exact_accuracy": 0.8125,
+        "balanced_accuracy": 0.8125,
+        "by_query": {
+          "shared": {
+            "episodes": 192,
+            "exact_correct": 162,
+            "exact_accuracy": 0.84375,
+            "balanced_accuracy": 0.84375
+          },
+          "left": {
+            "episodes": 192,
+            "exact_correct": 151,
+            "exact_accuracy": 0.7864583333333334,
+            "balanced_accuracy": 0.7864583333333333
+          },
+          "right": {
+            "episodes": 192,
+            "exact_correct": 155,
+            "exact_accuracy": 0.8072916666666666,
+            "balanced_accuracy": 0.8072916666666666
+          }
+        },
+        "expert_executions": 1209600,
+        "external_events": 14400,
+        "supported": {
+          "episodes": 576,
+          "exact_correct": 468,
+          "exact_accuracy": 0.8125,
+          "balanced_accuracy": 0.8125
+        },
+        "absent_information": {
+          "episodes": 0,
+          "exact_correct": 0,
+          "exact_accuracy": null,
+          "balanced_accuracy": null
+        },
+        "conditional_prior_by_query": {
+          "shared": 1.0,
+          "left": 1.0,
+          "right": 1.0
+        }
+      },
+      "a_only": {
+        "episodes": 576,
+        "exact_correct": 292,
+        "exact_accuracy": 0.5069444444444444,
+        "balanced_accuracy": 0.5069444444444444,
+        "by_query": {
+          "shared": {
+            "episodes": 192,
+            "exact_correct": 99,
+            "exact_accuracy": 0.515625,
+            "balanced_accuracy": 0.515625
+          },
+          "left": {
+            "episodes": 192,
+            "exact_correct": 146,
+            "exact_accuracy": 0.7604166666666666,
+            "balanced_accuracy": 0.7604166666666666
+          },
+          "right": {
+            "episodes": 192,
+            "exact_correct": 47,
+            "exact_accuracy": 0.24479166666666666,
+            "balanced_accuracy": 0.24479166666666666
+          }
+        },
+        "expert_executions": 1209600,
+        "external_events": 14400,
+        "supported": {
+          "episodes": 384,
+          "exact_correct": 245,
+          "exact_accuracy": 0.6380208333333334,
+          "balanced_accuracy": 0.6380208333333334
+        },
+        "absent_information": {
+          "episodes": 192,
+          "exact_correct": 47,
+          "exact_accuracy": 0.24479166666666666,
+          "balanced_accuracy": 0.24479166666666666
+        },
+        "conditional_prior_by_query": {
+          "shared": 1.0,
+          "left": 1.0,
+          "right": 0.25
+        }
+      },
+      "b_only": {
+        "episodes": 576,
+        "exact_correct": 147,
+        "exact_accuracy": 0.2552083333333333,
+        "balanced_accuracy": 0.2552083333333333,
+        "by_query": {
+          "shared": {
+            "episodes": 192,
+            "exact_correct": 47,
+            "exact_accuracy": 0.24479166666666666,
+            "balanced_accuracy": 0.24479166666666666
+          },
+          "left": {
+            "episodes": 192,
+            "exact_correct": 48,
+            "exact_accuracy": 0.25,
+            "balanced_accuracy": 0.25
+          },
+          "right": {
+            "episodes": 192,
+            "exact_correct": 52,
+            "exact_accuracy": 0.2708333333333333,
+            "balanced_accuracy": 0.2708333333333333
+          }
+        },
+        "expert_executions": 1209600,
+        "external_events": 14400,
+        "supported": {
+          "episodes": 192,
+          "exact_correct": 47,
+          "exact_accuracy": 0.24479166666666666,
+          "balanced_accuracy": 0.24479166666666666
+        },
+        "absent_information": {
+          "episodes": 384,
+          "exact_correct": 100,
+          "exact_accuracy": 0.2604166666666667,
+          "balanced_accuracy": 0.26041666666666663
+        },
+        "conditional_prior_by_query": {
+          "shared": 1.0,
+          "left": 0.25,
+          "right": 0.25
+        }
+      },
+      "c_only": {
+        "episodes": 576,
+        "exact_correct": 323,
+        "exact_accuracy": 0.5607638888888888,
+        "balanced_accuracy": 0.5607638888888888,
+        "by_query": {
+          "shared": {
+            "episodes": 192,
+            "exact_correct": 115,
+            "exact_accuracy": 0.5989583333333334,
+            "balanced_accuracy": 0.5989583333333334
+          },
+          "left": {
+            "episodes": 192,
+            "exact_correct": 56,
+            "exact_accuracy": 0.2916666666666667,
+            "balanced_accuracy": 0.29166666666666663
+          },
+          "right": {
+            "episodes": 192,
+            "exact_correct": 152,
+            "exact_accuracy": 0.7916666666666666,
+            "balanced_accuracy": 0.7916666666666666
+          }
+        },
+        "expert_executions": 1209600,
+        "external_events": 14400,
+        "supported": {
+          "episodes": 384,
+          "exact_correct": 267,
+          "exact_accuracy": 0.6953125,
+          "balanced_accuracy": 0.6953125
+        },
+        "absent_information": {
+          "episodes": 192,
+          "exact_correct": 56,
+          "exact_accuracy": 0.2916666666666667,
+          "balanced_accuracy": 0.29166666666666663
+        },
+        "conditional_prior_by_query": {
+          "shared": 1.0,
+          "left": 0.25,
+          "right": 1.0
+        }
+      },
+      "no_private": {
+        "episodes": 576,
+        "exact_correct": 284,
+        "exact_accuracy": 0.4930555555555556,
+        "balanced_accuracy": 0.4930555555555555,
+        "by_query": {
+          "shared": {
+            "episodes": 192,
+            "exact_correct": 192,
+            "exact_accuracy": 1.0,
+            "balanced_accuracy": 1.0
+          },
+          "left": {
+            "episodes": 192,
+            "exact_correct": 40,
+            "exact_accuracy": 0.20833333333333334,
+            "balanced_accuracy": 0.20833333333333334
+          },
+          "right": {
+            "episodes": 192,
+            "exact_correct": 52,
+            "exact_accuracy": 0.2708333333333333,
+            "balanced_accuracy": 0.2708333333333333
+          }
+        },
+        "expert_executions": 1209600,
+        "external_events": 14400,
+        "supported": {
+          "episodes": 192,
+          "exact_correct": 192,
+          "exact_accuracy": 1.0,
+          "balanced_accuracy": 1.0
+        },
+        "absent_information": {
+          "episodes": 384,
+          "exact_correct": 92,
+          "exact_accuracy": 0.23958333333333334,
+          "balanced_accuracy": 0.23958333333333334
+        },
+        "conditional_prior_by_query": {
+          "shared": 1.0,
+          "left": 0.25,
+          "right": 0.25
+        }
+      },
+      "reset_query": {
+        "episodes": 576,
+        "exact_correct": 144,
+        "exact_accuracy": 0.25,
+        "balanced_accuracy": 0.25,
+        "by_query": {
+          "shared": {
+            "episodes": 192,
+            "exact_correct": 48,
+            "exact_accuracy": 0.25,
+            "balanced_accuracy": 0.25
+          },
+          "left": {
+            "episodes": 192,
+            "exact_correct": 48,
+            "exact_accuracy": 0.25,
+            "balanced_accuracy": 0.25
+          },
+          "right": {
+            "episodes": 192,
+            "exact_correct": 48,
+            "exact_accuracy": 0.25,
+            "balanced_accuracy": 0.25
+          }
+        },
+        "expert_executions": 1209600,
+        "external_events": 14400,
+        "supported": {
+          "episodes": 0,
+          "exact_correct": 0,
+          "exact_accuracy": null,
+          "balanced_accuracy": null
+        },
+        "absent_information": {
+          "episodes": 576,
+          "exact_correct": 144,
+          "exact_accuracy": 0.25,
+          "balanced_accuracy": 0.25
+        },
+        "conditional_prior_by_query": {
+          "shared": 0.25,
+          "left": 0.25,
+          "right": 0.25
+        }
+      }
+    },
+    "utility": {
+      "all": {
+        "episodes": 576,
+        "exact_correct": 430,
+        "exact_accuracy": 0.7465277777777778,
+        "balanced_accuracy": 0.7465277777777778,
+        "by_query": {
+          "shared": {
+            "episodes": 192,
+            "exact_correct": 176,
+            "exact_accuracy": 0.9166666666666666,
+            "balanced_accuracy": 0.9166666666666667
+          },
+          "left": {
+            "episodes": 192,
+            "exact_correct": 129,
+            "exact_accuracy": 0.671875,
+            "balanced_accuracy": 0.671875
+          },
+          "right": {
+            "episodes": 192,
+            "exact_correct": 125,
+            "exact_accuracy": 0.6510416666666666,
+            "balanced_accuracy": 0.6510416666666666
+          }
+        },
+        "expert_executions": 1209600,
+        "external_events": 14400,
+        "supported": {
+          "episodes": 576,
+          "exact_correct": 430,
+          "exact_accuracy": 0.7465277777777778,
+          "balanced_accuracy": 0.7465277777777778
+        },
+        "absent_information": {
+          "episodes": 0,
+          "exact_correct": 0,
+          "exact_accuracy": null,
+          "balanced_accuracy": null
+        },
+        "conditional_prior_by_query": {
+          "shared": 1.0,
+          "left": 1.0,
+          "right": 1.0
+        }
+      },
+      "a_only": {
+        "episodes": 576,
+        "exact_correct": 303,
+        "exact_accuracy": 0.5260416666666666,
+        "balanced_accuracy": 0.5260416666666666,
+        "by_query": {
+          "shared": {
+            "episodes": 192,
+            "exact_correct": 120,
+            "exact_accuracy": 0.625,
+            "balanced_accuracy": 0.625
+          },
+          "left": {
+            "episodes": 192,
+            "exact_correct": 137,
+            "exact_accuracy": 0.7135416666666666,
+            "balanced_accuracy": 0.7135416666666667
+          },
+          "right": {
+            "episodes": 192,
+            "exact_correct": 46,
+            "exact_accuracy": 0.23958333333333334,
+            "balanced_accuracy": 0.23958333333333331
+          }
+        },
+        "expert_executions": 1209600,
+        "external_events": 14400,
+        "supported": {
+          "episodes": 384,
+          "exact_correct": 257,
+          "exact_accuracy": 0.6692708333333334,
+          "balanced_accuracy": 0.6692708333333333
+        },
+        "absent_information": {
+          "episodes": 192,
+          "exact_correct": 46,
+          "exact_accuracy": 0.23958333333333334,
+          "balanced_accuracy": 0.23958333333333331
+        },
+        "conditional_prior_by_query": {
+          "shared": 1.0,
+          "left": 1.0,
+          "right": 0.25
+        }
+      },
+      "b_only": {
+        "episodes": 576,
+        "exact_correct": 147,
+        "exact_accuracy": 0.2552083333333333,
+        "balanced_accuracy": 0.2552083333333333,
+        "by_query": {
+          "shared": {
+            "episodes": 192,
+            "exact_correct": 47,
+            "exact_accuracy": 0.24479166666666666,
+            "balanced_accuracy": 0.24479166666666666
+          },
+          "left": {
+            "episodes": 192,
+            "exact_correct": 49,
+            "exact_accuracy": 0.2552083333333333,
+            "balanced_accuracy": 0.25520833333333337
+          },
+          "right": {
+            "episodes": 192,
+            "exact_correct": 51,
+            "exact_accuracy": 0.265625,
+            "balanced_accuracy": 0.265625
+          }
+        },
+        "expert_executions": 1209600,
+        "external_events": 14400,
+        "supported": {
+          "episodes": 192,
+          "exact_correct": 47,
+          "exact_accuracy": 0.24479166666666666,
+          "balanced_accuracy": 0.24479166666666666
+        },
+        "absent_information": {
+          "episodes": 384,
+          "exact_correct": 100,
+          "exact_accuracy": 0.2604166666666667,
+          "balanced_accuracy": 0.2604166666666667
+        },
+        "conditional_prior_by_query": {
+          "shared": 1.0,
+          "left": 0.25,
+          "right": 0.25
+        }
+      },
+      "c_only": {
+        "episodes": 576,
+        "exact_correct": 285,
+        "exact_accuracy": 0.4947916666666667,
+        "balanced_accuracy": 0.49479166666666663,
+        "by_query": {
+          "shared": {
+            "episodes": 192,
+            "exact_correct": 112,
+            "exact_accuracy": 0.5833333333333334,
+            "balanced_accuracy": 0.5833333333333333
+          },
+          "left": {
+            "episodes": 192,
+            "exact_correct": 47,
+            "exact_accuracy": 0.24479166666666666,
+            "balanced_accuracy": 0.24479166666666666
+          },
+          "right": {
+            "episodes": 192,
+            "exact_correct": 126,
+            "exact_accuracy": 0.65625,
+            "balanced_accuracy": 0.65625
+          }
+        },
+        "expert_executions": 1209600,
+        "external_events": 14400,
+        "supported": {
+          "episodes": 384,
+          "exact_correct": 238,
+          "exact_accuracy": 0.6197916666666666,
+          "balanced_accuracy": 0.6197916666666666
+        },
+        "absent_information": {
+          "episodes": 192,
+          "exact_correct": 47,
+          "exact_accuracy": 0.24479166666666666,
+          "balanced_accuracy": 0.24479166666666666
+        },
+        "conditional_prior_by_query": {
+          "shared": 1.0,
+          "left": 0.25,
+          "right": 1.0
+        }
+      },
+      "no_private": {
+        "episodes": 576,
+        "exact_correct": 289,
+        "exact_accuracy": 0.5017361111111112,
+        "balanced_accuracy": 0.5017361111111112,
+        "by_query": {
+          "shared": {
+            "episodes": 192,
+            "exact_correct": 192,
+            "exact_accuracy": 1.0,
+            "balanced_accuracy": 1.0
+          },
+          "left": {
+            "episodes": 192,
+            "exact_correct": 48,
+            "exact_accuracy": 0.25,
+            "balanced_accuracy": 0.25
+          },
+          "right": {
+            "episodes": 192,
+            "exact_correct": 49,
+            "exact_accuracy": 0.2552083333333333,
+            "balanced_accuracy": 0.2552083333333333
+          }
+        },
+        "expert_executions": 1209600,
+        "external_events": 14400,
+        "supported": {
+          "episodes": 192,
+          "exact_correct": 192,
+          "exact_accuracy": 1.0,
+          "balanced_accuracy": 1.0
+        },
+        "absent_information": {
+          "episodes": 384,
+          "exact_correct": 97,
+          "exact_accuracy": 0.2526041666666667,
+          "balanced_accuracy": 0.2526041666666667
+        },
+        "conditional_prior_by_query": {
+          "shared": 1.0,
+          "left": 0.25,
+          "right": 0.25
+        }
+      },
+      "reset_query": {
+        "episodes": 576,
+        "exact_correct": 144,
+        "exact_accuracy": 0.25,
+        "balanced_accuracy": 0.25,
+        "by_query": {
+          "shared": {
+            "episodes": 192,
+            "exact_correct": 48,
+            "exact_accuracy": 0.25,
+            "balanced_accuracy": 0.25
+          },
+          "left": {
+            "episodes": 192,
+            "exact_correct": 48,
+            "exact_accuracy": 0.25,
+            "balanced_accuracy": 0.25
+          },
+          "right": {
+            "episodes": 192,
+            "exact_correct": 48,
+            "exact_accuracy": 0.25,
+            "balanced_accuracy": 0.25
+          }
+        },
+        "expert_executions": 1209600,
+        "external_events": 14400,
+        "supported": {
+          "episodes": 0,
+          "exact_correct": 0,
+          "exact_accuracy": null,
+          "balanced_accuracy": null
+        },
+        "absent_information": {
+          "episodes": 576,
+          "exact_correct": 144,
+          "exact_accuracy": 0.25,
+          "balanced_accuracy": 0.25
+        },
+        "conditional_prior_by_query": {
+          "shared": 0.25,
+          "left": 0.25,
+          "right": 0.25
+        }
+      }
+    },
+    "both": {
+      "all": {
+        "episodes": 576,
+        "exact_correct": 468,
+        "exact_accuracy": 0.8125,
+        "balanced_accuracy": 0.8125,
+        "by_query": {
+          "shared": {
+            "episodes": 192,
+            "exact_correct": 176,
+            "exact_accuracy": 0.9166666666666666,
+            "balanced_accuracy": 0.9166666666666666
+          },
+          "left": {
+            "episodes": 192,
+            "exact_correct": 138,
+            "exact_accuracy": 0.71875,
+            "balanced_accuracy": 0.71875
+          },
+          "right": {
+            "episodes": 192,
+            "exact_correct": 154,
+            "exact_accuracy": 0.8020833333333334,
+            "balanced_accuracy": 0.8020833333333334
+          }
+        },
+        "expert_executions": 1209600,
+        "external_events": 14400,
+        "supported": {
+          "episodes": 576,
+          "exact_correct": 468,
+          "exact_accuracy": 0.8125,
+          "balanced_accuracy": 0.8125
+        },
+        "absent_information": {
+          "episodes": 0,
+          "exact_correct": 0,
+          "exact_accuracy": null,
+          "balanced_accuracy": null
+        },
+        "conditional_prior_by_query": {
+          "shared": 1.0,
+          "left": 1.0,
+          "right": 1.0
+        }
+      },
+      "a_only": {
+        "episodes": 576,
+        "exact_correct": 309,
+        "exact_accuracy": 0.5364583333333334,
+        "balanced_accuracy": 0.5364583333333333,
+        "by_query": {
+          "shared": {
+            "episodes": 192,
+            "exact_correct": 115,
+            "exact_accuracy": 0.5989583333333334,
+            "balanced_accuracy": 0.5989583333333334
+          },
+          "left": {
+            "episodes": 192,
+            "exact_correct": 139,
+            "exact_accuracy": 0.7239583333333334,
+            "balanced_accuracy": 0.7239583333333334
+          },
+          "right": {
+            "episodes": 192,
+            "exact_correct": 55,
+            "exact_accuracy": 0.2864583333333333,
+            "balanced_accuracy": 0.2864583333333333
+          }
+        },
+        "expert_executions": 1209600,
+        "external_events": 14400,
+        "supported": {
+          "episodes": 384,
+          "exact_correct": 254,
+          "exact_accuracy": 0.6614583333333334,
+          "balanced_accuracy": 0.6614583333333334
+        },
+        "absent_information": {
+          "episodes": 192,
+          "exact_correct": 55,
+          "exact_accuracy": 0.2864583333333333,
+          "balanced_accuracy": 0.2864583333333333
+        },
+        "conditional_prior_by_query": {
+          "shared": 1.0,
+          "left": 1.0,
+          "right": 0.25
+        }
+      },
+      "b_only": {
+        "episodes": 576,
+        "exact_correct": 192,
+        "exact_accuracy": 0.3333333333333333,
+        "balanced_accuracy": 0.3333333333333333,
+        "by_query": {
+          "shared": {
+            "episodes": 192,
+            "exact_correct": 96,
+            "exact_accuracy": 0.5,
+            "balanced_accuracy": 0.5
+          },
+          "left": {
+            "episodes": 192,
+            "exact_correct": 48,
+            "exact_accuracy": 0.25,
+            "balanced_accuracy": 0.25
+          },
+          "right": {
+            "episodes": 192,
+            "exact_correct": 48,
+            "exact_accuracy": 0.25,
+            "balanced_accuracy": 0.25
+          }
+        },
+        "expert_executions": 1209600,
+        "external_events": 14400,
+        "supported": {
+          "episodes": 192,
+          "exact_correct": 96,
+          "exact_accuracy": 0.5,
+          "balanced_accuracy": 0.5
+        },
+        "absent_information": {
+          "episodes": 384,
+          "exact_correct": 96,
+          "exact_accuracy": 0.25,
+          "balanced_accuracy": 0.25
+        },
+        "conditional_prior_by_query": {
+          "shared": 1.0,
+          "left": 0.25,
+          "right": 0.25
+        }
+      },
+      "c_only": {
+        "episodes": 576,
+        "exact_correct": 316,
+        "exact_accuracy": 0.5486111111111112,
+        "balanced_accuracy": 0.548611111111111,
+        "by_query": {
+          "shared": {
+            "episodes": 192,
+            "exact_correct": 119,
+            "exact_accuracy": 0.6197916666666666,
+            "balanced_accuracy": 0.6197916666666666
+          },
+          "left": {
+            "episodes": 192,
+            "exact_correct": 47,
+            "exact_accuracy": 0.24479166666666666,
+            "balanced_accuracy": 0.24479166666666666
+          },
+          "right": {
+            "episodes": 192,
+            "exact_correct": 150,
+            "exact_accuracy": 0.78125,
+            "balanced_accuracy": 0.78125
+          }
+        },
+        "expert_executions": 1209600,
+        "external_events": 14400,
+        "supported": {
+          "episodes": 384,
+          "exact_correct": 269,
+          "exact_accuracy": 0.7005208333333334,
+          "balanced_accuracy": 0.7005208333333334
+        },
+        "absent_information": {
+          "episodes": 192,
+          "exact_correct": 47,
+          "exact_accuracy": 0.24479166666666666,
+          "balanced_accuracy": 0.24479166666666666
+        },
+        "conditional_prior_by_query": {
+          "shared": 1.0,
+          "left": 0.25,
+          "right": 1.0
+        }
+      },
+      "no_private": {
+        "episodes": 576,
+        "exact_correct": 290,
+        "exact_accuracy": 0.5034722222222222,
+        "balanced_accuracy": 0.5034722222222222,
+        "by_query": {
+          "shared": {
+            "episodes": 192,
+            "exact_correct": 192,
+            "exact_accuracy": 1.0,
+            "balanced_accuracy": 1.0
+          },
+          "left": {
+            "episodes": 192,
+            "exact_correct": 48,
+            "exact_accuracy": 0.25,
+            "balanced_accuracy": 0.25
+          },
+          "right": {
+            "episodes": 192,
+            "exact_correct": 50,
+            "exact_accuracy": 0.2604166666666667,
+            "balanced_accuracy": 0.2604166666666667
+          }
+        },
+        "expert_executions": 1209600,
+        "external_events": 14400,
+        "supported": {
+          "episodes": 192,
+          "exact_correct": 192,
+          "exact_accuracy": 1.0,
+          "balanced_accuracy": 1.0
+        },
+        "absent_information": {
+          "episodes": 384,
+          "exact_correct": 98,
+          "exact_accuracy": 0.2552083333333333,
+          "balanced_accuracy": 0.2552083333333333
+        },
+        "conditional_prior_by_query": {
+          "shared": 1.0,
+          "left": 0.25,
+          "right": 0.25
+        }
+      },
+      "reset_query": {
+        "episodes": 576,
+        "exact_correct": 144,
+        "exact_accuracy": 0.25,
+        "balanced_accuracy": 0.25,
+        "by_query": {
+          "shared": {
+            "episodes": 192,
+            "exact_correct": 48,
+            "exact_accuracy": 0.25,
+            "balanced_accuracy": 0.25
+          },
+          "left": {
+            "episodes": 192,
+            "exact_correct": 48,
+            "exact_accuracy": 0.25,
+            "balanced_accuracy": 0.25
+          },
+          "right": {
+            "episodes": 192,
+            "exact_correct": 48,
+            "exact_accuracy": 0.25,
+            "balanced_accuracy": 0.25
+          }
+        },
+        "expert_executions": 1209600,
+        "external_events": 14400,
+        "supported": {
+          "episodes": 0,
+          "exact_correct": 0,
+          "exact_accuracy": null,
+          "balanced_accuracy": null
+        },
+        "absent_information": {
+          "episodes": 576,
+          "exact_correct": 144,
+          "exact_accuracy": 0.25,
+          "balanced_accuracy": 0.25
+        },
+        "conditional_prior_by_query": {
+          "shared": 0.25,
+          "left": 0.25,
+          "right": 0.25
+        }
+      }
+    }
+  },
+  "evidence_gated_b_only": [
+    {
+      "variant": "control",
+      "same_checkpoint_tensor_sha256": "c6b3784e89d4c1c4dab5b0c24028963508efc9d8ed0c54ea0969be1f3832bef7",
+      "original": {
+        "episodes": 576,
+        "exact_correct": 100,
+        "exact_accuracy": 0.1736111111111111,
+        "balanced_accuracy": 0.1736111111111111,
+        "by_query": {
+          "shared": {
+            "episodes": 192,
+            "exact_correct": 1,
+            "exact_accuracy": 0.005208333333333333,
+            "balanced_accuracy": 0.005208333333333333
+          },
+          "left": {
+            "episodes": 192,
+            "exact_correct": 48,
+            "exact_accuracy": 0.25,
+            "balanced_accuracy": 0.25
+          },
+          "right": {
+            "episodes": 192,
+            "exact_correct": 51,
+            "exact_accuracy": 0.265625,
+            "balanced_accuracy": 0.265625
+          }
+        },
+        "expert_executions": 1209600,
+        "external_events": 14400
+      },
+      "evidence_gated": {
+        "episodes": 576,
+        "exact_correct": 181,
+        "exact_accuracy": 0.3142361111111111,
+        "balanced_accuracy": 0.3142361111111111,
+        "by_query": {
+          "shared": {
+            "episodes": 192,
+            "exact_correct": 69,
+            "exact_accuracy": 0.359375,
+            "balanced_accuracy": 0.359375
+          },
+          "left": {
+            "episodes": 192,
+            "exact_correct": 56,
+            "exact_accuracy": 0.2916666666666667,
+            "balanced_accuracy": 0.29166666666666663
+          },
+          "right": {
+            "episodes": 192,
+            "exact_correct": 56,
+            "exact_accuracy": 0.2916666666666667,
+            "balanced_accuracy": 0.2916666666666667
+          }
+        },
+        "expert_executions": 1209600,
+        "external_events": 14400
+      },
+      "shared_accuracy_change": 0.3541666666666667,
+      "inference_policy": {
+        "evidence_gated_ports": true
+      }
+    },
+    {
+      "variant": "views",
+      "same_checkpoint_tensor_sha256": "c0cfd891f4b0c103981ea7562e4ee1ac1f3bb03ce412a0e942b9ca1956cd9014",
+      "original": {
+        "episodes": 576,
+        "exact_correct": 147,
+        "exact_accuracy": 0.2552083333333333,
+        "balanced_accuracy": 0.2552083333333333,
+        "by_query": {
+          "shared": {
+            "episodes": 192,
+            "exact_correct": 47,
+            "exact_accuracy": 0.24479166666666666,
+            "balanced_accuracy": 0.24479166666666666
+          },
+          "left": {
+            "episodes": 192,
+            "exact_correct": 48,
+            "exact_accuracy": 0.25,
+            "balanced_accuracy": 0.25
+          },
+          "right": {
+            "episodes": 192,
+            "exact_correct": 52,
+            "exact_accuracy": 0.2708333333333333,
+            "balanced_accuracy": 0.2708333333333333
+          }
+        },
+        "expert_executions": 1209600,
+        "external_events": 14400
+      },
+      "evidence_gated": {
+        "episodes": 576,
+        "exact_correct": 225,
+        "exact_accuracy": 0.390625,
+        "balanced_accuracy": 0.390625,
+        "by_query": {
+          "shared": {
+            "episodes": 192,
+            "exact_correct": 128,
+            "exact_accuracy": 0.6666666666666666,
+            "balanced_accuracy": 0.6666666666666666
+          },
+          "left": {
+            "episodes": 192,
+            "exact_correct": 47,
+            "exact_accuracy": 0.24479166666666666,
+            "balanced_accuracy": 0.24479166666666666
+          },
+          "right": {
+            "episodes": 192,
+            "exact_correct": 50,
+            "exact_accuracy": 0.2604166666666667,
+            "balanced_accuracy": 0.2604166666666667
+          }
+        },
+        "expert_executions": 1209600,
+        "external_events": 14400
+      },
+      "shared_accuracy_change": 0.421875,
+      "inference_policy": {
+        "evidence_gated_ports": true
+      }
+    },
+    {
+      "variant": "utility",
+      "same_checkpoint_tensor_sha256": "625728eedf55c35300799f6c39b65898c65e5c309284151ff4426b4f2bc78767",
+      "original": {
+        "episodes": 576,
+        "exact_correct": 147,
+        "exact_accuracy": 0.2552083333333333,
+        "balanced_accuracy": 0.2552083333333333,
+        "by_query": {
+          "shared": {
+            "episodes": 192,
+            "exact_correct": 47,
+            "exact_accuracy": 0.24479166666666666,
+            "balanced_accuracy": 0.24479166666666666
+          },
+          "left": {
+            "episodes": 192,
+            "exact_correct": 49,
+            "exact_accuracy": 0.2552083333333333,
+            "balanced_accuracy": 0.25520833333333337
+          },
+          "right": {
+            "episodes": 192,
+            "exact_correct": 51,
+            "exact_accuracy": 0.265625,
+            "balanced_accuracy": 0.265625
+          }
+        },
+        "expert_executions": 1209600,
+        "external_events": 14400
+      },
+      "evidence_gated": {
+        "episodes": 576,
+        "exact_correct": 163,
+        "exact_accuracy": 0.2829861111111111,
+        "balanced_accuracy": 0.2829861111111111,
+        "by_query": {
+          "shared": {
+            "episodes": 192,
+            "exact_correct": 65,
+            "exact_accuracy": 0.3385416666666667,
+            "balanced_accuracy": 0.3385416666666667
+          },
+          "left": {
+            "episodes": 192,
+            "exact_correct": 46,
+            "exact_accuracy": 0.23958333333333334,
+            "balanced_accuracy": 0.23958333333333334
+          },
+          "right": {
+            "episodes": 192,
+            "exact_correct": 52,
+            "exact_accuracy": 0.2708333333333333,
+            "balanced_accuracy": 0.2708333333333333
+          }
+        },
+        "expert_executions": 1209600,
+        "external_events": 14400
+      },
+      "shared_accuracy_change": 0.09375000000000003,
+      "inference_policy": {
+        "evidence_gated_ports": true
+      }
+    },
+    {
+      "variant": "both",
+      "same_checkpoint_tensor_sha256": "120f9f890bc846200cb3d36b0b7a1a26125c048270b57c7002c82c77b83b861f",
+      "original": {
+        "episodes": 576,
+        "exact_correct": 192,
+        "exact_accuracy": 0.3333333333333333,
+        "balanced_accuracy": 0.3333333333333333,
+        "by_query": {
+          "shared": {
+            "episodes": 192,
+            "exact_correct": 96,
+            "exact_accuracy": 0.5,
+            "balanced_accuracy": 0.5
+          },
+          "left": {
+            "episodes": 192,
+            "exact_correct": 48,
+            "exact_accuracy": 0.25,
+            "balanced_accuracy": 0.25
+          },
+          "right": {
+            "episodes": 192,
+            "exact_correct": 48,
+            "exact_accuracy": 0.25,
+            "balanced_accuracy": 0.25
+          }
+        },
+        "expert_executions": 1209600,
+        "external_events": 14400
+      },
+      "evidence_gated": {
+        "episodes": 576,
+        "exact_correct": 193,
+        "exact_accuracy": 0.3350694444444444,
+        "balanced_accuracy": 0.3350694444444445,
+        "by_query": {
+          "shared": {
+            "episodes": 192,
+            "exact_correct": 96,
+            "exact_accuracy": 0.5,
+            "balanced_accuracy": 0.5
+          },
+          "left": {
+            "episodes": 192,
+            "exact_correct": 50,
+            "exact_accuracy": 0.2604166666666667,
+            "balanced_accuracy": 0.26041666666666663
+          },
+          "right": {
+            "episodes": 192,
+            "exact_correct": 47,
+            "exact_accuracy": 0.24479166666666666,
+            "balanced_accuracy": 0.24479166666666666
+          }
+        },
+        "expert_executions": 1209600,
+        "external_events": 14400
+      },
+      "shared_accuracy_change": 0.0,
+      "inference_policy": {
+        "evidence_gated_ports": true
+      }
+    }
+  ],
+  "source_diagnostics": {
+    "control": {
+      "test": {
+        "fit_split": "train",
+        "fit_count": 128,
+        "feature_boundary": "last available independent ingress at common description end",
+        "frozen_scoring": "argmax over four declared factor values",
+        "frozen_linear": {
+          "ingress/A/shared": {
+            "episodes": 576,
+            "exact_correct": 411,
+            "exact_accuracy": 0.7135416666666666,
+            "balanced_accuracy": 0.7135416666666666,
+            "fitted_examples": 128
+          },
+          "ingress/A/left": {
+            "episodes": 576,
+            "exact_correct": 448,
+            "exact_accuracy": 0.7777777777777778,
+            "balanced_accuracy": 0.7777777777777778,
+            "fitted_examples": 128
+          },
+          "shared/A/shared": {
+            "episodes": 576,
+            "exact_correct": 357,
+            "exact_accuracy": 0.6197916666666666,
+            "balanced_accuracy": 0.6197916666666667,
+            "fitted_examples": 128
+          },
+          "private/A/left": {
+            "episodes": 576,
+            "exact_correct": 423,
+            "exact_accuracy": 0.734375,
+            "balanced_accuracy": 0.734375,
+            "fitted_examples": 128
+          },
+          "ingress/B/shared": {
+            "episodes": 576,
+            "exact_correct": 576,
+            "exact_accuracy": 1.0,
+            "balanced_accuracy": 1.0,
+            "fitted_examples": 128
+          },
+          "ingress/C/shared": {
+            "episodes": 576,
+            "exact_correct": 445,
+            "exact_accuracy": 0.7725694444444444,
+            "balanced_accuracy": 0.7725694444444444,
+            "fitted_examples": 128
+          },
+          "ingress/C/right": {
+            "episodes": 576,
+            "exact_correct": 477,
+            "exact_accuracy": 0.828125,
+            "balanced_accuracy": 0.828125,
+            "fitted_examples": 128
+          },
+          "shared/C/shared": {
+            "episodes": 576,
+            "exact_correct": 375,
+            "exact_accuracy": 0.6510416666666666,
+            "balanced_accuracy": 0.6510416666666666,
+            "fitted_examples": 128
+          },
+          "private/C/right": {
+            "episodes": 576,
+            "exact_correct": 466,
+            "exact_accuracy": 0.8090277777777778,
+            "balanced_accuracy": 0.8090277777777778,
+            "fitted_examples": 128
+          }
+        },
+        "trained_private_heads": {
+          "A": {
+            "episodes": 576,
+            "exact_correct": 0,
+            "exact_accuracy": 0.0,
+            "balanced_accuracy": 0.0,
+            "class_balanced_chance": 0.25,
+            "majority_class_chance": 0.25,
+            "objective_enabled": false,
+            "factor": "left",
+            "evaluation_timing": {
+              "description_end_exclusive": 14,
+              "latest_possible_event_index": 13,
+              "source_position": "last available ingress before the description boundary",
+              "query_markers_observed": false
+            },
+            "timing_matches_training_pool": false,
+            "training_pooling": "last",
+            "timing_note": "This pre-query score uses event 13 or an earlier valid source event. The runner normally trains last-pooled private heads at event 15 after the first query markers in a 16-event chunk, and at later chunk ends. Use the frozen readouts for matched fit/evaluation timing."
+          },
+          "C": {
+            "episodes": 576,
+            "exact_correct": 0,
+            "exact_accuracy": 0.0,
+            "balanced_accuracy": 0.0,
+            "class_balanced_chance": 0.25,
+            "majority_class_chance": 0.25,
+            "objective_enabled": false,
+            "factor": "right",
+            "evaluation_timing": {
+              "description_end_exclusive": 14,
+              "latest_possible_event_index": 13,
+              "source_position": "last available ingress before the description boundary",
+              "query_markers_observed": false
+            },
+            "timing_matches_training_pool": false,
+            "training_pooling": "last",
+            "timing_note": "This pre-query score uses event 13 or an earlier valid source event. The runner normally trains last-pooled private heads at event 15 after the first query markers in a 16-event chunk, and at later chunk ends. Use the frozen readouts for matched fit/evaluation timing."
+          }
+        }
+      },
+      "independent": {
+        "fit_split": "train",
+        "fit_count": 128,
+        "feature_boundary": "last available independent ingress at common description end",
+        "frozen_scoring": "argmax over four declared factor values",
+        "frozen_linear": {
+          "ingress/A/shared": {
+            "episodes": 576,
+            "exact_correct": 414,
+            "exact_accuracy": 0.71875,
+            "balanced_accuracy": 0.71875,
+            "fitted_examples": 128
+          },
+          "ingress/A/left": {
+            "episodes": 576,
+            "exact_correct": 438,
+            "exact_accuracy": 0.7604166666666666,
+            "balanced_accuracy": 0.7604166666666666,
+            "fitted_examples": 128
+          },
+          "shared/A/shared": {
+            "episodes": 576,
+            "exact_correct": 367,
+            "exact_accuracy": 0.6371527777777778,
+            "balanced_accuracy": 0.6371527777777778,
+            "fitted_examples": 128
+          },
+          "private/A/left": {
+            "episodes": 576,
+            "exact_correct": 411,
+            "exact_accuracy": 0.7135416666666666,
+            "balanced_accuracy": 0.7135416666666666,
+            "fitted_examples": 128
+          },
+          "ingress/B/shared": {
+            "episodes": 576,
+            "exact_correct": 576,
+            "exact_accuracy": 1.0,
+            "balanced_accuracy": 1.0,
+            "fitted_examples": 128
+          },
+          "ingress/C/shared": {
+            "episodes": 576,
+            "exact_correct": 455,
+            "exact_accuracy": 0.7899305555555556,
+            "balanced_accuracy": 0.7899305555555556,
+            "fitted_examples": 128
+          },
+          "ingress/C/right": {
+            "episodes": 576,
+            "exact_correct": 497,
+            "exact_accuracy": 0.8628472222222222,
+            "balanced_accuracy": 0.8628472222222222,
+            "fitted_examples": 128
+          },
+          "shared/C/shared": {
+            "episodes": 576,
+            "exact_correct": 402,
+            "exact_accuracy": 0.6979166666666666,
+            "balanced_accuracy": 0.6979166666666666,
+            "fitted_examples": 128
+          },
+          "private/C/right": {
+            "episodes": 576,
+            "exact_correct": 479,
+            "exact_accuracy": 0.8315972222222222,
+            "balanced_accuracy": 0.8315972222222222,
+            "fitted_examples": 128
+          }
+        },
+        "trained_private_heads": {
+          "A": {
+            "episodes": 576,
+            "exact_correct": 0,
+            "exact_accuracy": 0.0,
+            "balanced_accuracy": 0.0,
+            "class_balanced_chance": 0.25,
+            "majority_class_chance": 0.25,
+            "objective_enabled": false,
+            "factor": "left",
+            "evaluation_timing": {
+              "description_end_exclusive": 14,
+              "latest_possible_event_index": 13,
+              "source_position": "last available ingress before the description boundary",
+              "query_markers_observed": false
+            },
+            "timing_matches_training_pool": false,
+            "training_pooling": "last",
+            "timing_note": "This pre-query score uses event 13 or an earlier valid source event. The runner normally trains last-pooled private heads at event 15 after the first query markers in a 16-event chunk, and at later chunk ends. Use the frozen readouts for matched fit/evaluation timing."
+          },
+          "C": {
+            "episodes": 576,
+            "exact_correct": 0,
+            "exact_accuracy": 0.0,
+            "balanced_accuracy": 0.0,
+            "class_balanced_chance": 0.25,
+            "majority_class_chance": 0.25,
+            "objective_enabled": false,
+            "factor": "right",
+            "evaluation_timing": {
+              "description_end_exclusive": 14,
+              "latest_possible_event_index": 13,
+              "source_position": "last available ingress before the description boundary",
+              "query_markers_observed": false
+            },
+            "timing_matches_training_pool": false,
+            "training_pooling": "last",
+            "timing_note": "This pre-query score uses event 13 or an earlier valid source event. The runner normally trains last-pooled private heads at event 15 after the first query markers in a 16-event chunk, and at later chunk ends. Use the frozen readouts for matched fit/evaluation timing."
+          }
+        }
+      }
+    },
+    "views": {
+      "test": {
+        "fit_split": "train",
+        "fit_count": 128,
+        "feature_boundary": "last available independent ingress at common description end",
+        "frozen_scoring": "argmax over four declared factor values",
+        "frozen_linear": {
+          "ingress/A/shared": {
+            "episodes": 576,
+            "exact_correct": 420,
+            "exact_accuracy": 0.7291666666666666,
+            "balanced_accuracy": 0.7291666666666666,
+            "fitted_examples": 128
+          },
+          "ingress/A/left": {
+            "episodes": 576,
+            "exact_correct": 418,
+            "exact_accuracy": 0.7256944444444444,
+            "balanced_accuracy": 0.7256944444444444,
+            "fitted_examples": 128
+          },
+          "shared/A/shared": {
+            "episodes": 576,
+            "exact_correct": 362,
+            "exact_accuracy": 0.6284722222222222,
+            "balanced_accuracy": 0.6284722222222222,
+            "fitted_examples": 128
+          },
+          "private/A/left": {
+            "episodes": 576,
+            "exact_correct": 370,
+            "exact_accuracy": 0.6423611111111112,
+            "balanced_accuracy": 0.6423611111111112,
+            "fitted_examples": 128
+          },
+          "ingress/B/shared": {
+            "episodes": 576,
+            "exact_correct": 576,
+            "exact_accuracy": 1.0,
+            "balanced_accuracy": 1.0,
+            "fitted_examples": 128
+          },
+          "ingress/C/shared": {
+            "episodes": 576,
+            "exact_correct": 399,
+            "exact_accuracy": 0.6927083333333334,
+            "balanced_accuracy": 0.6927083333333334,
+            "fitted_examples": 128
+          },
+          "ingress/C/right": {
+            "episodes": 576,
+            "exact_correct": 478,
+            "exact_accuracy": 0.8298611111111112,
+            "balanced_accuracy": 0.8298611111111112,
+            "fitted_examples": 128
+          },
+          "shared/C/shared": {
+            "episodes": 576,
+            "exact_correct": 346,
+            "exact_accuracy": 0.6006944444444444,
+            "balanced_accuracy": 0.6006944444444444,
+            "fitted_examples": 128
+          },
+          "private/C/right": {
+            "episodes": 576,
+            "exact_correct": 468,
+            "exact_accuracy": 0.8125,
+            "balanced_accuracy": 0.8125,
+            "fitted_examples": 128
+          }
+        },
+        "trained_private_heads": {
+          "A": {
+            "episodes": 576,
+            "exact_correct": 284,
+            "exact_accuracy": 0.4930555555555556,
+            "balanced_accuracy": 0.4930555555555556,
+            "class_balanced_chance": 0.25,
+            "majority_class_chance": 0.25,
+            "objective_enabled": true,
+            "factor": "left",
+            "evaluation_timing": {
+              "description_end_exclusive": 14,
+              "latest_possible_event_index": 13,
+              "source_position": "last available ingress before the description boundary",
+              "query_markers_observed": false
+            },
+            "timing_matches_training_pool": false,
+            "training_pooling": "last",
+            "timing_note": "This pre-query score uses event 13 or an earlier valid source event. The runner normally trains last-pooled private heads at event 15 after the first query markers in a 16-event chunk, and at later chunk ends. Use the frozen readouts for matched fit/evaluation timing."
+          },
+          "C": {
+            "episodes": 576,
+            "exact_correct": 214,
+            "exact_accuracy": 0.3715277777777778,
+            "balanced_accuracy": 0.3715277777777778,
+            "class_balanced_chance": 0.25,
+            "majority_class_chance": 0.25,
+            "objective_enabled": true,
+            "factor": "right",
+            "evaluation_timing": {
+              "description_end_exclusive": 14,
+              "latest_possible_event_index": 13,
+              "source_position": "last available ingress before the description boundary",
+              "query_markers_observed": false
+            },
+            "timing_matches_training_pool": false,
+            "training_pooling": "last",
+            "timing_note": "This pre-query score uses event 13 or an earlier valid source event. The runner normally trains last-pooled private heads at event 15 after the first query markers in a 16-event chunk, and at later chunk ends. Use the frozen readouts for matched fit/evaluation timing."
+          }
+        }
+      },
+      "independent": {
+        "fit_split": "train",
+        "fit_count": 128,
+        "feature_boundary": "last available independent ingress at common description end",
+        "frozen_scoring": "argmax over four declared factor values",
+        "frozen_linear": {
+          "ingress/A/shared": {
+            "episodes": 576,
+            "exact_correct": 424,
+            "exact_accuracy": 0.7361111111111112,
+            "balanced_accuracy": 0.736111111111111,
+            "fitted_examples": 128
+          },
+          "ingress/A/left": {
+            "episodes": 576,
+            "exact_correct": 433,
+            "exact_accuracy": 0.7517361111111112,
+            "balanced_accuracy": 0.7517361111111112,
+            "fitted_examples": 128
+          },
+          "shared/A/shared": {
+            "episodes": 576,
+            "exact_correct": 362,
+            "exact_accuracy": 0.6284722222222222,
+            "balanced_accuracy": 0.6284722222222222,
+            "fitted_examples": 128
+          },
+          "private/A/left": {
+            "episodes": 576,
+            "exact_correct": 386,
+            "exact_accuracy": 0.6701388888888888,
+            "balanced_accuracy": 0.670138888888889,
+            "fitted_examples": 128
+          },
+          "ingress/B/shared": {
+            "episodes": 576,
+            "exact_correct": 576,
+            "exact_accuracy": 1.0,
+            "balanced_accuracy": 1.0,
+            "fitted_examples": 128
+          },
+          "ingress/C/shared": {
+            "episodes": 576,
+            "exact_correct": 408,
+            "exact_accuracy": 0.7083333333333334,
+            "balanced_accuracy": 0.7083333333333334,
+            "fitted_examples": 128
+          },
+          "ingress/C/right": {
+            "episodes": 576,
+            "exact_correct": 471,
+            "exact_accuracy": 0.8177083333333334,
+            "balanced_accuracy": 0.8177083333333334,
+            "fitted_examples": 128
+          },
+          "shared/C/shared": {
+            "episodes": 576,
+            "exact_correct": 357,
+            "exact_accuracy": 0.6197916666666666,
+            "balanced_accuracy": 0.6197916666666667,
+            "fitted_examples": 128
+          },
+          "private/C/right": {
+            "episodes": 576,
+            "exact_correct": 466,
+            "exact_accuracy": 0.8090277777777778,
+            "balanced_accuracy": 0.8090277777777778,
+            "fitted_examples": 128
+          }
+        },
+        "trained_private_heads": {
+          "A": {
+            "episodes": 576,
+            "exact_correct": 279,
+            "exact_accuracy": 0.484375,
+            "balanced_accuracy": 0.484375,
+            "class_balanced_chance": 0.25,
+            "majority_class_chance": 0.25,
+            "objective_enabled": true,
+            "factor": "left",
+            "evaluation_timing": {
+              "description_end_exclusive": 14,
+              "latest_possible_event_index": 13,
+              "source_position": "last available ingress before the description boundary",
+              "query_markers_observed": false
+            },
+            "timing_matches_training_pool": false,
+            "training_pooling": "last",
+            "timing_note": "This pre-query score uses event 13 or an earlier valid source event. The runner normally trains last-pooled private heads at event 15 after the first query markers in a 16-event chunk, and at later chunk ends. Use the frozen readouts for matched fit/evaluation timing."
+          },
+          "C": {
+            "episodes": 576,
+            "exact_correct": 215,
+            "exact_accuracy": 0.3732638888888889,
+            "balanced_accuracy": 0.3732638888888889,
+            "class_balanced_chance": 0.25,
+            "majority_class_chance": 0.25,
+            "objective_enabled": true,
+            "factor": "right",
+            "evaluation_timing": {
+              "description_end_exclusive": 14,
+              "latest_possible_event_index": 13,
+              "source_position": "last available ingress before the description boundary",
+              "query_markers_observed": false
+            },
+            "timing_matches_training_pool": false,
+            "training_pooling": "last",
+            "timing_note": "This pre-query score uses event 13 or an earlier valid source event. The runner normally trains last-pooled private heads at event 15 after the first query markers in a 16-event chunk, and at later chunk ends. Use the frozen readouts for matched fit/evaluation timing."
+          }
+        }
+      }
+    },
+    "utility": {
+      "test": {
+        "fit_split": "train",
+        "fit_count": 128,
+        "feature_boundary": "last available independent ingress at common description end",
+        "frozen_scoring": "argmax over four declared factor values",
+        "frozen_linear": {
+          "ingress/A/shared": {
+            "episodes": 576,
+            "exact_correct": 398,
+            "exact_accuracy": 0.6909722222222222,
+            "balanced_accuracy": 0.6909722222222222,
+            "fitted_examples": 128
+          },
+          "ingress/A/left": {
+            "episodes": 576,
+            "exact_correct": 398,
+            "exact_accuracy": 0.6909722222222222,
+            "balanced_accuracy": 0.6909722222222222,
+            "fitted_examples": 128
+          },
+          "shared/A/shared": {
+            "episodes": 576,
+            "exact_correct": 359,
+            "exact_accuracy": 0.6232638888888888,
+            "balanced_accuracy": 0.6232638888888888,
+            "fitted_examples": 128
+          },
+          "private/A/left": {
+            "episodes": 576,
+            "exact_correct": 402,
+            "exact_accuracy": 0.6979166666666666,
+            "balanced_accuracy": 0.6979166666666666,
+            "fitted_examples": 128
+          },
+          "ingress/B/shared": {
+            "episodes": 576,
+            "exact_correct": 576,
+            "exact_accuracy": 1.0,
+            "balanced_accuracy": 1.0,
+            "fitted_examples": 128
+          },
+          "ingress/C/shared": {
+            "episodes": 576,
+            "exact_correct": 387,
+            "exact_accuracy": 0.671875,
+            "balanced_accuracy": 0.671875,
+            "fitted_examples": 128
+          },
+          "ingress/C/right": {
+            "episodes": 576,
+            "exact_correct": 485,
+            "exact_accuracy": 0.8420138888888888,
+            "balanced_accuracy": 0.8420138888888888,
+            "fitted_examples": 128
+          },
+          "shared/C/shared": {
+            "episodes": 576,
+            "exact_correct": 313,
+            "exact_accuracy": 0.5434027777777778,
+            "balanced_accuracy": 0.5434027777777778,
+            "fitted_examples": 128
+          },
+          "private/C/right": {
+            "episodes": 576,
+            "exact_correct": 471,
+            "exact_accuracy": 0.8177083333333334,
+            "balanced_accuracy": 0.8177083333333334,
+            "fitted_examples": 128
+          }
+        },
+        "trained_private_heads": {
+          "A": {
+            "episodes": 576,
+            "exact_correct": 0,
+            "exact_accuracy": 0.0,
+            "balanced_accuracy": 0.0,
+            "class_balanced_chance": 0.25,
+            "majority_class_chance": 0.25,
+            "objective_enabled": false,
+            "factor": "left",
+            "evaluation_timing": {
+              "description_end_exclusive": 14,
+              "latest_possible_event_index": 13,
+              "source_position": "last available ingress before the description boundary",
+              "query_markers_observed": false
+            },
+            "timing_matches_training_pool": false,
+            "training_pooling": "last",
+            "timing_note": "This pre-query score uses event 13 or an earlier valid source event. The runner normally trains last-pooled private heads at event 15 after the first query markers in a 16-event chunk, and at later chunk ends. Use the frozen readouts for matched fit/evaluation timing."
+          },
+          "C": {
+            "episodes": 576,
+            "exact_correct": 7,
+            "exact_accuracy": 0.012152777777777778,
+            "balanced_accuracy": 0.012152777777777778,
+            "class_balanced_chance": 0.25,
+            "majority_class_chance": 0.25,
+            "objective_enabled": false,
+            "factor": "right",
+            "evaluation_timing": {
+              "description_end_exclusive": 14,
+              "latest_possible_event_index": 13,
+              "source_position": "last available ingress before the description boundary",
+              "query_markers_observed": false
+            },
+            "timing_matches_training_pool": false,
+            "training_pooling": "last",
+            "timing_note": "This pre-query score uses event 13 or an earlier valid source event. The runner normally trains last-pooled private heads at event 15 after the first query markers in a 16-event chunk, and at later chunk ends. Use the frozen readouts for matched fit/evaluation timing."
+          }
+        }
+      },
+      "independent": {
+        "fit_split": "train",
+        "fit_count": 128,
+        "feature_boundary": "last available independent ingress at common description end",
+        "frozen_scoring": "argmax over four declared factor values",
+        "frozen_linear": {
+          "ingress/A/shared": {
+            "episodes": 576,
+            "exact_correct": 406,
+            "exact_accuracy": 0.7048611111111112,
+            "balanced_accuracy": 0.7048611111111112,
+            "fitted_examples": 128
+          },
+          "ingress/A/left": {
+            "episodes": 576,
+            "exact_correct": 408,
+            "exact_accuracy": 0.7083333333333334,
+            "balanced_accuracy": 0.7083333333333334,
+            "fitted_examples": 128
+          },
+          "shared/A/shared": {
+            "episodes": 576,
+            "exact_correct": 371,
+            "exact_accuracy": 0.6440972222222222,
+            "balanced_accuracy": 0.6440972222222222,
+            "fitted_examples": 128
+          },
+          "private/A/left": {
+            "episodes": 576,
+            "exact_correct": 407,
+            "exact_accuracy": 0.7065972222222222,
+            "balanced_accuracy": 0.7065972222222222,
+            "fitted_examples": 128
+          },
+          "ingress/B/shared": {
+            "episodes": 576,
+            "exact_correct": 576,
+            "exact_accuracy": 1.0,
+            "balanced_accuracy": 1.0,
+            "fitted_examples": 128
+          },
+          "ingress/C/shared": {
+            "episodes": 576,
+            "exact_correct": 383,
+            "exact_accuracy": 0.6649305555555556,
+            "balanced_accuracy": 0.6649305555555556,
+            "fitted_examples": 128
+          },
+          "ingress/C/right": {
+            "episodes": 576,
+            "exact_correct": 481,
+            "exact_accuracy": 0.8350694444444444,
+            "balanced_accuracy": 0.8350694444444444,
+            "fitted_examples": 128
+          },
+          "shared/C/shared": {
+            "episodes": 576,
+            "exact_correct": 323,
+            "exact_accuracy": 0.5607638888888888,
+            "balanced_accuracy": 0.560763888888889,
+            "fitted_examples": 128
+          },
+          "private/C/right": {
+            "episodes": 576,
+            "exact_correct": 455,
+            "exact_accuracy": 0.7899305555555556,
+            "balanced_accuracy": 0.7899305555555556,
+            "fitted_examples": 128
+          }
+        },
+        "trained_private_heads": {
+          "A": {
+            "episodes": 576,
+            "exact_correct": 0,
+            "exact_accuracy": 0.0,
+            "balanced_accuracy": 0.0,
+            "class_balanced_chance": 0.25,
+            "majority_class_chance": 0.25,
+            "objective_enabled": false,
+            "factor": "left",
+            "evaluation_timing": {
+              "description_end_exclusive": 14,
+              "latest_possible_event_index": 13,
+              "source_position": "last available ingress before the description boundary",
+              "query_markers_observed": false
+            },
+            "timing_matches_training_pool": false,
+            "training_pooling": "last",
+            "timing_note": "This pre-query score uses event 13 or an earlier valid source event. The runner normally trains last-pooled private heads at event 15 after the first query markers in a 16-event chunk, and at later chunk ends. Use the frozen readouts for matched fit/evaluation timing."
+          },
+          "C": {
+            "episodes": 576,
+            "exact_correct": 6,
+            "exact_accuracy": 0.010416666666666666,
+            "balanced_accuracy": 0.010416666666666666,
+            "class_balanced_chance": 0.25,
+            "majority_class_chance": 0.25,
+            "objective_enabled": false,
+            "factor": "right",
+            "evaluation_timing": {
+              "description_end_exclusive": 14,
+              "latest_possible_event_index": 13,
+              "source_position": "last available ingress before the description boundary",
+              "query_markers_observed": false
+            },
+            "timing_matches_training_pool": false,
+            "training_pooling": "last",
+            "timing_note": "This pre-query score uses event 13 or an earlier valid source event. The runner normally trains last-pooled private heads at event 15 after the first query markers in a 16-event chunk, and at later chunk ends. Use the frozen readouts for matched fit/evaluation timing."
+          }
+        }
+      }
+    },
+    "both": {
+      "test": {
+        "fit_split": "train",
+        "fit_count": 128,
+        "feature_boundary": "last available independent ingress at common description end",
+        "frozen_scoring": "argmax over four declared factor values",
+        "frozen_linear": {
+          "ingress/A/shared": {
+            "episodes": 576,
+            "exact_correct": 409,
+            "exact_accuracy": 0.7100694444444444,
+            "balanced_accuracy": 0.7100694444444444,
+            "fitted_examples": 128
+          },
+          "ingress/A/left": {
+            "episodes": 576,
+            "exact_correct": 476,
+            "exact_accuracy": 0.8263888888888888,
+            "balanced_accuracy": 0.8263888888888888,
+            "fitted_examples": 128
+          },
+          "shared/A/shared": {
+            "episodes": 576,
+            "exact_correct": 373,
+            "exact_accuracy": 0.6475694444444444,
+            "balanced_accuracy": 0.6475694444444444,
+            "fitted_examples": 128
+          },
+          "private/A/left": {
+            "episodes": 576,
+            "exact_correct": 402,
+            "exact_accuracy": 0.6979166666666666,
+            "balanced_accuracy": 0.6979166666666666,
+            "fitted_examples": 128
+          },
+          "ingress/B/shared": {
+            "episodes": 576,
+            "exact_correct": 576,
+            "exact_accuracy": 1.0,
+            "balanced_accuracy": 1.0,
+            "fitted_examples": 128
+          },
+          "ingress/C/shared": {
+            "episodes": 576,
+            "exact_correct": 479,
+            "exact_accuracy": 0.8315972222222222,
+            "balanced_accuracy": 0.8315972222222222,
+            "fitted_examples": 128
+          },
+          "ingress/C/right": {
+            "episodes": 576,
+            "exact_correct": 496,
+            "exact_accuracy": 0.8611111111111112,
+            "balanced_accuracy": 0.8611111111111112,
+            "fitted_examples": 128
+          },
+          "shared/C/shared": {
+            "episodes": 576,
+            "exact_correct": 415,
+            "exact_accuracy": 0.7204861111111112,
+            "balanced_accuracy": 0.7204861111111112,
+            "fitted_examples": 128
+          },
+          "private/C/right": {
+            "episodes": 576,
+            "exact_correct": 447,
+            "exact_accuracy": 0.7760416666666666,
+            "balanced_accuracy": 0.7760416666666666,
+            "fitted_examples": 128
+          }
+        },
+        "trained_private_heads": {
+          "A": {
+            "episodes": 576,
+            "exact_correct": 247,
+            "exact_accuracy": 0.4288194444444444,
+            "balanced_accuracy": 0.4288194444444444,
+            "class_balanced_chance": 0.25,
+            "majority_class_chance": 0.25,
+            "objective_enabled": true,
+            "factor": "left",
+            "evaluation_timing": {
+              "description_end_exclusive": 14,
+              "latest_possible_event_index": 13,
+              "source_position": "last available ingress before the description boundary",
+              "query_markers_observed": false
+            },
+            "timing_matches_training_pool": false,
+            "training_pooling": "last",
+            "timing_note": "This pre-query score uses event 13 or an earlier valid source event. The runner normally trains last-pooled private heads at event 15 after the first query markers in a 16-event chunk, and at later chunk ends. Use the frozen readouts for matched fit/evaluation timing."
+          },
+          "C": {
+            "episodes": 576,
+            "exact_correct": 291,
+            "exact_accuracy": 0.5052083333333334,
+            "balanced_accuracy": 0.5052083333333333,
+            "class_balanced_chance": 0.25,
+            "majority_class_chance": 0.25,
+            "objective_enabled": true,
+            "factor": "right",
+            "evaluation_timing": {
+              "description_end_exclusive": 14,
+              "latest_possible_event_index": 13,
+              "source_position": "last available ingress before the description boundary",
+              "query_markers_observed": false
+            },
+            "timing_matches_training_pool": false,
+            "training_pooling": "last",
+            "timing_note": "This pre-query score uses event 13 or an earlier valid source event. The runner normally trains last-pooled private heads at event 15 after the first query markers in a 16-event chunk, and at later chunk ends. Use the frozen readouts for matched fit/evaluation timing."
+          }
+        }
+      },
+      "independent": {
+        "fit_split": "train",
+        "fit_count": 128,
+        "feature_boundary": "last available independent ingress at common description end",
+        "frozen_scoring": "argmax over four declared factor values",
+        "frozen_linear": {
+          "ingress/A/shared": {
+            "episodes": 576,
+            "exact_correct": 424,
+            "exact_accuracy": 0.7361111111111112,
+            "balanced_accuracy": 0.7361111111111112,
+            "fitted_examples": 128
+          },
+          "ingress/A/left": {
+            "episodes": 576,
+            "exact_correct": 488,
+            "exact_accuracy": 0.8472222222222222,
+            "balanced_accuracy": 0.8472222222222222,
+            "fitted_examples": 128
+          },
+          "shared/A/shared": {
+            "episodes": 576,
+            "exact_correct": 382,
+            "exact_accuracy": 0.6631944444444444,
+            "balanced_accuracy": 0.6631944444444444,
+            "fitted_examples": 128
+          },
+          "private/A/left": {
+            "episodes": 576,
+            "exact_correct": 424,
+            "exact_accuracy": 0.7361111111111112,
+            "balanced_accuracy": 0.7361111111111112,
+            "fitted_examples": 128
+          },
+          "ingress/B/shared": {
+            "episodes": 576,
+            "exact_correct": 576,
+            "exact_accuracy": 1.0,
+            "balanced_accuracy": 1.0,
+            "fitted_examples": 128
+          },
+          "ingress/C/shared": {
+            "episodes": 576,
+            "exact_correct": 483,
+            "exact_accuracy": 0.8385416666666666,
+            "balanced_accuracy": 0.8385416666666666,
+            "fitted_examples": 128
+          },
+          "ingress/C/right": {
+            "episodes": 576,
+            "exact_correct": 515,
+            "exact_accuracy": 0.8940972222222222,
+            "balanced_accuracy": 0.8940972222222222,
+            "fitted_examples": 128
+          },
+          "shared/C/shared": {
+            "episodes": 576,
+            "exact_correct": 411,
+            "exact_accuracy": 0.7135416666666666,
+            "balanced_accuracy": 0.7135416666666666,
+            "fitted_examples": 128
+          },
+          "private/C/right": {
+            "episodes": 576,
+            "exact_correct": 464,
+            "exact_accuracy": 0.8055555555555556,
+            "balanced_accuracy": 0.8055555555555556,
+            "fitted_examples": 128
+          }
+        },
+        "trained_private_heads": {
+          "A": {
+            "episodes": 576,
+            "exact_correct": 244,
+            "exact_accuracy": 0.4236111111111111,
+            "balanced_accuracy": 0.4236111111111111,
+            "class_balanced_chance": 0.25,
+            "majority_class_chance": 0.25,
+            "objective_enabled": true,
+            "factor": "left",
+            "evaluation_timing": {
+              "description_end_exclusive": 14,
+              "latest_possible_event_index": 13,
+              "source_position": "last available ingress before the description boundary",
+              "query_markers_observed": false
+            },
+            "timing_matches_training_pool": false,
+            "training_pooling": "last",
+            "timing_note": "This pre-query score uses event 13 or an earlier valid source event. The runner normally trains last-pooled private heads at event 15 after the first query markers in a 16-event chunk, and at later chunk ends. Use the frozen readouts for matched fit/evaluation timing."
+          },
+          "C": {
+            "episodes": 576,
+            "exact_correct": 281,
+            "exact_accuracy": 0.4878472222222222,
+            "balanced_accuracy": 0.4878472222222222,
+            "class_balanced_chance": 0.25,
+            "majority_class_chance": 0.25,
+            "objective_enabled": true,
+            "factor": "right",
+            "evaluation_timing": {
+              "description_end_exclusive": 14,
+              "latest_possible_event_index": 13,
+              "source_position": "last available ingress before the description boundary",
+              "query_markers_observed": false
+            },
+            "timing_matches_training_pool": false,
+            "training_pooling": "last",
+            "timing_note": "This pre-query score uses event 13 or an earlier valid source event. The runner normally trains last-pooled private heads at event 15 after the first query markers in a 16-event chunk, and at later chunk ends. Use the frozen readouts for matched fit/evaluation timing."
+          }
+        }
+      }
+    }
+  },
+  "training_runs": [
+    {
+      "variant": "control",
+      "step": 240,
+      "seconds": 731.3976852990381,
+      "state_bytes": 292128,
+      "utility_updates": 0,
+      "peak_rss_bytes": 691494912,
+      "final_tensor_sha256": "c6b3784e89d4c1c4dab5b0c24028963508efc9d8ed0c54ea0969be1f3832bef7",
+      "utility_associations": {
+        "enabled": false,
+        "commits": 0,
+        "edge": {
+          "eligible_associations": 0,
+          "total_associations": 16,
+          "mean_gain": null,
+          "min_gain": null,
+          "max_gain": null
+        },
+        "lace": {
+          "eligible_associations": 0,
+          "total_associations": 336,
+          "mean_gain": null,
+          "min_gain": null,
+          "max_gain": null
+        }
+      }
+    },
+    {
+      "variant": "views",
+      "step": 240,
+      "seconds": 738.4550855420748,
+      "state_bytes": 292128,
+      "utility_updates": 0,
+      "peak_rss_bytes": 692629504,
+      "final_tensor_sha256": "c0cfd891f4b0c103981ea7562e4ee1ac1f3bb03ce412a0e942b9ca1956cd9014",
+      "utility_associations": {
+        "enabled": false,
+        "commits": 0,
+        "edge": {
+          "eligible_associations": 0,
+          "total_associations": 16,
+          "mean_gain": null,
+          "min_gain": null,
+          "max_gain": null
+        },
+        "lace": {
+          "eligible_associations": 0,
+          "total_associations": 336,
+          "mean_gain": null,
+          "min_gain": null,
+          "max_gain": null
+        }
+      }
+    },
+    {
+      "variant": "utility",
+      "step": 240,
+      "seconds": 746.5497062510112,
+      "state_bytes": 292128,
+      "utility_updates": 240,
+      "peak_rss_bytes": 692006912,
+      "final_tensor_sha256": "625728eedf55c35300799f6c39b65898c65e5c309284151ff4426b4f2bc78767",
+      "utility_associations": {
+        "enabled": true,
+        "commits": 240,
+        "edge": {
+          "eligible_associations": 8,
+          "total_associations": 16,
+          "mean_gain": 0.3899836838245392,
+          "min_gain": 0.3899837136268616,
+          "max_gain": 0.3899837136268616
+        },
+        "lace": {
+          "eligible_associations": 335,
+          "total_associations": 336,
+          "mean_gain": 0.45401880145072937,
+          "min_gain": -0.1713636964559555,
+          "max_gain": 1.5671442747116089
+        }
+      }
+    },
+    {
+      "variant": "both",
+      "step": 240,
+      "seconds": 732.3422051639791,
+      "state_bytes": 292128,
+      "utility_updates": 240,
+      "peak_rss_bytes": 692965376,
+      "final_tensor_sha256": "120f9f890bc846200cb3d36b0b7a1a26125c048270b57c7002c82c77b83b861f",
+      "utility_associations": {
+        "enabled": true,
+        "commits": 240,
+        "edge": {
+          "eligible_associations": 8,
+          "total_associations": 16,
+          "mean_gain": 0.41384977102279663,
+          "min_gain": 0.41384974122047424,
+          "max_gain": 0.41384974122047424
+        },
+        "lace": {
+          "eligible_associations": 336,
+          "total_associations": 336,
+          "mean_gain": 0.461664617061615,
+          "min_gain": -0.028990745544433594,
+          "max_gain": 1.6188299655914307
+        }
+      }
+    }
+  ],
+  "evaluation_counts": {
+    "episodes_per_query": 192,
+    "answer_examples_per_query_per_class": 48,
+    "episodes_per_control": 576,
+    "expert_executions_per_control": 1209600,
+    "external_events_per_control": 14400,
+    "original_scored_episode_control_pairs_per_variant": 4032,
+    "supplemental_evidence_gated_pairs_per_variant": 576,
+    "total_scored_episode_control_pairs_all_variants": 18432,
+    "unique_eval_episodes_per_variant": 1152
+  },
+  "checkpoint_bundle": {
+    "filename": "SHoEbox_shared_private_checkpoints.zip",
+    "sha256": "a3081bd3f7ac2797a74c992ba3815005d5e07ecd4630b01c8fd869c44905674d",
+    "size_bytes": 15533089,
+    "included_in_git_results": false
+  },
+  "interpretation": {
+    "accuracy_units": "fraction; one-byte final answer, full 256-byte argmax",
+    "heldout_test": "All views;16 factor combinations absent from training.",
+    "independent_controls": "All64 combinations; controls reuse identical episode IDs and answers.",
+    "evidence_gated": "Inference-only policy comparison on the same checkpoint; B-only control.",
+    "private_head_timing": "Trained private-head diagnostics are pre-query, whereas training normally pools after query markers; frozen readouts use matching pre-query fit/evaluation timing."
+  }
+}

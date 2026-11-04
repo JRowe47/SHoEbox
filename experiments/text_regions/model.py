@@ -172,6 +172,11 @@ class RegionLanguageModel(nn.Module):
                         publication = publish(current[name], result['latent'], result['header'], active,
                                               state.epochs, state.events_seen, torch.full_like(state.events_seen, k),
                                               dependencies)
+                        if self.cfg.evidence_gated_ports:
+                            evidence = torch.zeros_like(active)
+                            for dependency in dependencies:
+                                evidence = evidence | dependency.consumed
+                            publication = replace(publication, valid=current[name].valid | evidence)
                         state.ports.stage(staged, publication)
                         weight = int(active.sum())
                         aux = aux + result['aux']*weight
@@ -182,6 +187,7 @@ class RegionLanguageModel(nn.Module):
                             records.append({'node': name, 'region': spec.region, 'event': event_index, 'round': k,
                                             'occurrence': state.events_seen.detach().clone(),
                                             'version': publication.version.detach(), 'routing': result['trace'],
+                                            'valid': publication.valid.detach(),
                                             'dependencies': tuple(d for d in dependencies if bool(d.consumed.any()))})
                     state = replace(state, nodes=node_states, ports=state.ports.commit(staged))
                 state = replace(state, rounds_seen=state.rounds_seen+1)

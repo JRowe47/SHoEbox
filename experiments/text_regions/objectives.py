@@ -282,6 +282,11 @@ class DelayedUtility(nn.Module):
             if bool(((rows < 0) | (rows >= b)).any()) or bool(((ids < 0) | (ids >= self.laces)).any()) or ids.shape[2] < 1:
                 raise ValueError('Selected lace identity out of bounds.')
             eligible = supervised[rows, event]
+            if 'valid' in record:
+                valid = record['valid']
+                if valid.shape != (b,) or valid.dtype != torch.bool or valid.device != gain.device:
+                    raise ValueError('Publication validity must be boolean [B] on the comparison device.')
+                eligible = eligible & valid[rows]
             selected = ids[eligible]
             signed = gain[rows[eligible], event]
             node = self.node_index[name]

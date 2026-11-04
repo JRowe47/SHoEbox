@@ -142,7 +142,7 @@ python -m experiments.text_regions.probe_train --kind shared_private \
 
 `RegionLearningModel` wraps the ordinary graph. With no options it preserves parameter count, logits, losses, and state. Optional heads use `return_view_activity=True`, which exposes the HAT activations already produced by each source before any graph fusion. A/B/C node publications can contain peer feedback and are not source-only codes.
 
-`PairedViewObjective` provides separately enabled agreement, cross-view prediction, variance, covariance, private-byte prediction, and shared/private separation terms. All are off by default. Each description pools its own last available occurrence (or independently masked mean); a longer description is not truncated to the other's mask. Paired terms require both sources. Per-view variance/covariance and private losses use that view's own available samples. Private labels enter only the loss head. The CLI's `--view-objective` enables A/C agreement, prediction, variance and covariance; private-detail recovery remains supervised through the main query loss. The private-code head and separation term are separately available through the Python API.
+`PairedViewObjective` provides separately enabled agreement, cross-view prediction, variance, covariance, private-byte prediction, and shared/private separation terms. All are off by default. Each description pools its own last available occurrence (or independently masked mean); a longer description is not truncated to the other's mask. Paired terms require both sources. Per-view variance/covariance and private losses use that view's own available samples. Private labels enter only the loss head. The `probe_train` CLI's `--view-objective` enables A/C agreement, prediction, variance and covariance; private-detail recovery remains supervised through the main query loss. The private-code head and separation term are separately available through the Python API and enabled by the factorized `view_train` benchmark below.
 
 `--utility` adds a trainable source-only byte baseline and detached signed-gain packets. The baseline uses text ingress for ordinary episodes and A ingress for controlled views. Eligible inter-node dependencies must have been consumed and must not be substituted. Lace eligibility records the actual pre-execution selection, separately from the post-execution observed lace. Packets contain bounded sufficient statistics, not examples or replay data. Each packet compares the current local baseline CE against regional CE and is committed explicitly after `optimizer.step()`. Subsequent passes may use bounded edge-gate and lace-score biases. Evaluation uses committed biases but never creates or commits feedback.
 
@@ -169,3 +169,44 @@ Missing views can produce exactly zero latent directions while their nodes conti
 Three-seed comparisons and learned composition remain acceptance work. The transport test verifies that A cannot affect Q in round one and can in round two. Measured capability results are in the [probe development report](../../docs/SHoEbox_Probe_Development_Report.md).
 
 See the [development report](../../docs/SHoEbox_Development_Report.md) and [raw results](results).
+
+## Factorized shared/private benchmark
+
+`view_data.py` adds three four-way factors: a shared fact in A/B/C, left-private information in A, and right-private information in C. Each source independently chooses a byte rendering and field order; descriptions are aligned through explicit availability masks. All evidence arrives before query markers at events 14/15. The first 16-event segment supplies local learning signals, followed by `gap` filler events and a final query. Gap 8 gives 25 events per episode. Query answers are labels only. Identifiers are unique opaque permutations independent of answer allocation.
+
+Training uses 32 factor combinations, validation 16, and test the remaining 16. Every individual factor value and source-local pair occurs in training. A separate `independent` evaluation cohort exhausts all 64 combinations: it supplies information-removal controls with a true 25% missing-factor prior. Restricted combination holdouts can make a missing factor inferable from the others, so they are evaluated with all views present. Counts are balanced by query and answer; the recorded runs use 192 episodes per query, or 576 per cohort.
+
+Training source dropout retains at least one source that contains the requested answer. Private auxiliary labels are available only after that source observes its value and are cleared by resets. Checkpoints reconstruct deterministic cursors and preserve model/head/utility weights, optimizer slots, graph state, RNG, counters, and schedule. A complete initializer checkpoint is saved before the first expensive pass, followed by atomic recovery checkpoints every 20 segments.
+
+`view_train.py` holds module allocation and initial weights constant across all four view-objective/utility combinations. The source-only baseline is trained in every variant, isolating utility commits from the effect of adding a baseline loss. View learning enables agreement, prediction, variance, covariance, private-byte prediction and shared/private separation, with separate logged terms. The private loss weight is 0.05; other weights retain `ViewObjectiveConfig` defaults. All variants have 265,694 parameters including auxiliary heads, of which the underlying graph has 246,142.
+
+```bash
+# Extract the downloadable checkpoint bundle into this repository first.
+python -m experiments.text_regions.view_train --steps 240 --batch 32 \
+  --segment 16 --gap 8 --dropout 0.25 --seed 20261106 --threads 2 \
+  --base-checkpoint artifacts/probes/correction_warm150/checkpoint.pt \
+  --view-objective --out artifacts/views/views
+
+python -m experiments.text_regions.view_score artifacts/views/views/checkpoint.pt \
+  --count-per-query 192 --batch 64 --predictions --out artifacts/views/views/evaluation
+```
+
+Use no learning flags for `control`, `--view-objective` for `views`, `--utility` for `utility`, and both for `both`; use a distinct output directory for each. The four recorded runs have the same initial tensor SHA, examples, source observations, expert calls and optimizer-step count. `--stop-after` and `--resume` retain an unchanged schedule horizon. A bare graph initializer starts fresh optimizer and runtime state.
+
+`view_score.py` evaluates fresh episodes without loading the training cursor into inference. It separately scores held-out tuples and the full-factorial control cohort, saves compact per-control predictions, and checks that evaluation leaves model/utility tensors unchanged. Controls include all views, A/B/C alone, private-value withholding, and reset immediately before the final query; expert execution counts remain identical.
+
+Frozen ridge readouts fit 128 training descriptions, then score independent source ingress and projected codes at the common pre-query boundary. Fit and evaluation identities are disjoint. These probes measure decodability without altering the model. Direct private-head diagnostics use that same boundary, two events earlier than the usual first-chunk training pooling point; their timing distinction is recorded explicitly. Saved readouts can be restored with `load_source_readouts(path)` from `view_eval.py` using tensor-only loading.
+
+## Require evidence before publishing
+
+`GraphConfig.evidence_gated_ports` is an optional, default-off diagnostic. With it enabled, a node's publication becomes valid after it consumes a valid dependency; an already-valid publication remains backed by the node's retained memory. Selective resets clear that history. Valid delayed feedback can establish evidence in a source whose own view is absent. Node execution, clocks, state updates and expert counts continue normally.
+
+This suppresses valid-looking prior outputs from nodes that have never received evidence. It also excludes invalid node publications from lace utility eligibility. Literal zero bytes remain observations when their availability mask is true. Existing checkpoints retain the original default behavior.
+
+```bash
+python -m experiments.text_regions.view_score artifacts/views/views/checkpoint.pt \
+  --cohorts independent --controls b_only --evidence-gated-ports --skip-readouts \
+  --count-per-query 192 --batch 64 --predictions --out artifacts/views/views/evidence_gated
+```
+
+The recorded intervention uses unchanged weights: for the view-trained model, B-only shared accuracy rises from 24.5% to 66.7% while expert calls remain equal. Training with the policy is available through `view_train --evidence-gated-ports`; its learned capability has not yet been evaluated. The primary four-way comparison preserves the original publication policy.
