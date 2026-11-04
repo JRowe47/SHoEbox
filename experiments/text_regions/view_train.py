@@ -15,7 +15,7 @@ from .objectives import DelayedUtility, PairedViewObjective, ViewObjectiveConfig
 from .probe_train import auxiliary_metrics, parameter_summary
 from .state import GraphState
 from .train import learning_rate
-from .view_data import ViewStream
+from .view_data import ViewStream, VIEWS, QUERY_TYPES
 
 
 def tensor_fingerprint(model):
@@ -95,12 +95,17 @@ def train_step(model,optimizer,batch,state=None):
              'expert_executions':result['expert_executions'],'seconds':time.perf_counter()-started,
              'state_bytes':state.storage_bytes(),'by_query':by_query,
              'baseline_supervision':supervision,
+             'source_exposure':source_exposure(batch),
              'auxiliary':auxiliary_metrics(result),'utility_updates':int(model.utility.feedback_updates)}
     return state,metrics,result['logits'].detach()
 
 
 def save_view_checkpoint(path,model,optimizer,state,stream,step,protocol,totals):
     protocol=dict(protocol)
+    protocol.setdefault('source_schedule',stream.spec.get('source_schedule','dropout'))
+    if (protocol['source_schedule'] not in ('dropout','balanced') or
+            protocol['source_schedule'] != stream.spec.get('source_schedule','dropout')):
+        raise ValueError('Checkpoint protocol and source schedule differ.')
     for key in ('baseline_detach_features','baseline_observed_only'):
         protocol.setdefault(key,getattr(model,key))
         if not isinstance(protocol[key],bool) or protocol[key] != getattr(model,key):
@@ -120,11 +125,16 @@ def load_view_checkpoint(path,stream=None,restore_rng=True):
     if saved.get('view_checkpoint_schema')!=1:raise ValueError('Unknown view-checkpoint schema.')
     model=RegionLearningModel.from_config(saved['learner_config']);model.load_state_dict(saved['weights'])
     saved['protocol']=dict(saved['protocol'])
+    saved['protocol'].setdefault('source_schedule','dropout')
+    if (saved['protocol']['source_schedule'] not in ('dropout','balanced') or
+            saved['protocol']['source_schedule'] != saved['stream']['spec'].get('source_schedule','dropout')):
+        raise ValueError('Checkpoint protocol and source schedule differ.')
     for key in ('baseline_detach_features','baseline_observed_only'):
         saved['protocol'].setdefault(key,False)
         if not isinstance(saved['protocol'][key],bool) or saved['protocol'][key] != getattr(model,key):
             raise ValueError(f'Checkpoint protocol and {key} configuration differ.')
     saved['totals'].setdefault('baseline_supervision',empty_baseline_supervision(saved['totals']['segments']))
+    saved['totals'].setdefault('source_exposure',empty_source_exposure(saved['totals']['segments']))
     optimizer=optimizer_for(model,saved['protocol']['lr']);optimizer.load_state_dict(saved['optimizer'])
     if stream is not None:stream.load_state_dict(saved['stream'])
     if restore_rng:torch.set_rng_state(saved['torch_rng']);random.setstate(saved['python_rng'])
@@ -151,7 +161,60 @@ def accumulate_baseline_supervision(totals,supervision):
 def initial_totals():
     return {'external_events':0,'source_occurrences':0,'expert_executions':0,'optimizer_steps':0,
             'seconds':0.,'by_query':{},'auxiliary_sum':{},'segments':0,
-            'baseline_supervision':empty_baseline_supervision()}
+            'baseline_supervision':empty_baseline_supervision(),
+            'source_exposure':empty_source_exposure()}
+
+
+def empty_source_exposure(unrecorded_segments=0):
+    """Counts describe loss eligibility and observations, not extra model work."""
+    subsets=('A','B','AB','C','AC','BC','ABC')
+    row=lambda:{'episodes_started':0,'final_queries':0}
+    return {'schema_version':1,'recorded_segments':0,'unrecorded_segments':unrecorded_segments,
+            'episodes_started':0,'final_queries':0,'supported_final_queries':0,
+            'by_query':{kind:{**row(),'subsets':{name:row() for name in subsets}} for kind in QUERY_TYPES},
+            'source_occurrences':{view:0 for view in VIEWS},
+            'private_eligible':{view:0 for view in ('A','C')},
+            'shared_available_samples':{view:0 for view in ('A','C')},
+            'shared_pair_eligible':{'A_C':0}}
+
+
+def source_exposure(batch):
+    """Audit the A/C objectives used by this trainer, once per real chunk.
+
+    Whole-source schedules preserve causal fact eligibility. Shared sample
+    counts follow last-available pooling, and private counts exclude ignored
+    pooled labels. Targets and these counters never enter graph execution.
+    """
+    counts=empty_source_exposure();counts['recorded_segments']=1
+    available={view:batch.availability[view].any(1) for view in ('A','C')}
+    private=batch.pooled_private_targets()
+    for view in VIEWS:
+        counts['source_occurrences'][view]=int(batch.availability[view].sum())
+    for view in ('A','C'):
+        counts['private_eligible'][view]=int(private[view].ne(-100).sum())
+        counts['shared_available_samples'][view]=int(available[view].sum())
+    counts['shared_pair_eligible']['A_C']=int((available['A'] & available['C']).sum())
+    counts['supported_final_queries']=int((batch.final & batch.answer_available).sum())
+    for row,kind in enumerate(batch.query_types):
+        subset=''.join(view for index,view in enumerate(VIEWS) if bool(batch.retained_views[row,index]))
+        started=int(batch.time_offset==0 and bool(batch.reset[row,0]))
+        final=int(batch.final[row].sum())
+        for key,value in (('episodes_started',started),('final_queries',final)):
+            counts[key]+=value
+            counts['by_query'][kind][key]+=value
+            counts['by_query'][kind]['subsets'][subset][key]+=value
+    return counts
+
+
+def accumulate_source_exposure(totals,counts):
+    total=totals.setdefault('source_exposure',empty_source_exposure(totals['segments']))
+    def add(target,source):
+        for key,value in source.items():
+            if key=='schema_version':
+                if target[key]!=value:raise ValueError('Source exposure schema mismatch.')
+            elif isinstance(value,dict):add(target[key],value)
+            else:target[key]+=value
+    add(total,counts)
 
 
 def main():
@@ -160,6 +223,8 @@ def main():
     parser.add_argument('--batch',type=int,default=32);parser.add_argument('--segment',type=int,default=16)
     parser.add_argument('--gap',type=int,default=8);parser.add_argument('--query-every',type=int,default=4)
     parser.add_argument('--dropout',type=float,default=.25)
+    parser.add_argument('--source-schedule',choices=('dropout','balanced'),default='dropout',
+                        help='Use random source dropout or balanced supported whole-source subsets (requires --dropout 0).')
     parser.add_argument('--seed',type=int,default=20261106);parser.add_argument('--threads',type=int,default=2)
     parser.add_argument('--lr',type=float,default=.002);parser.add_argument('--rounds',type=int,default=1)
     parser.add_argument('--view-objective',action='store_true');parser.add_argument('--utility',action='store_true')
@@ -176,16 +241,17 @@ def main():
         parser.error('Invalid count, gap, learning rate, or dropout.')
     if args.stop_after is not None and not 1<=args.stop_after<=args.steps:parser.error('Invalid stopping point.')
     if args.resume is not None and args.base_checkpoint is not None:parser.error('Use either exact resume or a new initializer.')
+    if args.source_schedule=='balanced' and args.dropout!=0:parser.error('Balanced sources require --dropout 0.')
     torch.set_num_threads(args.threads);torch.manual_seed(args.seed);random.seed(args.seed)
     protocol={key:value for key,value in vars(args).items()
               if key not in ('out','resume','base_checkpoint','stop_after','checkpoint_every','log_every')}
     protocol['baseline_all_variants']=True
     stream=ViewStream(batch_size=args.batch,gap=args.gap,query_every=args.query_every,
-                      seed=args.seed,dropout=args.dropout)
+                      seed=args.seed,dropout=args.dropout,source_schedule=args.source_schedule)
     state=None;start=0;totals=initial_totals()
     if args.resume:
         model,optimizer,state,saved=load_view_checkpoint(args.resume,stream)
-        previous={key:value for key,value in {'evidence_gated_ports':False,'baseline_detach_features':False,
+        previous={key:value for key,value in {'source_schedule':'dropout','evidence_gated_ports':False,'baseline_detach_features':False,
                                              'baseline_observed_only':False,**saved['protocol']}.items() if key not in ('initial_tensor_sha256','base_initializer')}
         if previous!=protocol:raise ValueError('Exact resume requires the same training protocol and horizon.')
         protocol=saved['protocol'];start=saved['step'];totals=saved['totals']
@@ -214,6 +280,7 @@ def main():
             for key in ('external_events','source_occurrences','expert_executions','optimizer_steps','seconds'):
                 totals[key]+=metrics[key]
             accumulate_baseline_supervision(totals,metrics['baseline_supervision'])
+            accumulate_source_exposure(totals,metrics['source_exposure'])
             totals['segments']+=1;recent.append(metrics['ce'])
             for name,row in metrics['by_query'].items():
                 entry=totals['by_query'].setdefault(name,{'correct':0,'count':0})

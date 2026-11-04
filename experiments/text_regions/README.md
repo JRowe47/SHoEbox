@@ -301,3 +301,30 @@ python -m experiments.text_regions.observability_compare \
   --manifest experiments/text_regions/results/baseline_observed/manifest.json \
   --out artifacts/reproduction/observability_comparison.json
 ```
+
+
+## Balanced supported source exposure
+
+`view_train --source-schedule balanced --dropout 0` rotates complete source descriptions through supported subsets. Shared queries use all seven nonempty combinations; left-private queries retain A in each of A, AB, AC and ABC; right-private queries retain C in C, AC, BC and ABC. Missing sources remain absent for the whole episode. The default `dropout` schedule retains the existing behavior.
+
+The schedule uses query-local episode ordinals and a seeded subset permutation. Each group of four answers receives the same subset; another rotation across the 32-episode tuple cycle prevents a factor tuple from being locked to one subset. Over 1,280 episodes per query, each shared subset receives 180 or 184 episodes, exactly balanced across answer values, and each private subset receives 320. Episode identifiers, fact values, text renderings and query positions are identical to the matched dropout stream. The schedule changes availability only and has no model parameters.
+
+```bash
+python -m experiments.text_regions.view_train \
+  --steps 240 --batch 32 --segment 16 --gap 8 \
+  --dropout 0 --source-schedule balanced --seed 20261106 --threads 2 \
+  --base-checkpoint artifacts/probes/correction_warm150/checkpoint.pt \
+  --view-objective --evidence-gated-ports \
+  --out artifacts/source_schedule/gated_seed1
+
+python -m experiments.text_regions.view_score \
+  artifacts/source_schedule/gated_seed1/checkpoint.pt --publication-policy evidence \
+  --count-per-query 512 --batch 64 --threads 2 --predictions \
+  --out artifacts/source_schedule/gated_seed1/evaluation
+```
+
+The primary experiment retains the original baseline loss (`baseline_detach_features=false`, `baseline_observed_only=false`), view objectives on and utility commits off. It compares both publication policies at three matched fine-tuning seeds, keeping optimizer steps, aligned events, expert executions, initializer and loss weights fixed. Source occurrences and auxiliary-label counts intentionally change and are reported separately.
+
+`source_exposure` records episode/final-query counts by query and retained subset, supported final queries, source occurrences by view, pooled private-label eligibility, available A/C samples and jointly available A/C pairs. Counts cover each actual training chunk. Checkpoints preserve the schedule and audit; legacy checkpoints default to `dropout` and mark prior segments as unaudited. Exact resume rejects a changed schedule.
+
+This first curriculum uses only whole-source removal. Query-only or identifier-only views require causal shared-fact eligibility in the paired-view losses before they can be added.

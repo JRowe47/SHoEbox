@@ -22,6 +22,7 @@ FACTOR_SOURCES = {'shared': VIEWS, 'left': ('A',), 'right': ('C',)}
 PRIVATE_FACTORS = {'A': 'left', 'C': 'right'}
 MARKERS = {'shared': ord('S'), 'left': ord('L'), 'right': ord('R')}
 CONTROLS = ('all', 'a_only', 'b_only', 'c_only', 'no_private', 'reset_query')
+SOURCE_SCHEDULES = ('dropout', 'balanced')
 
 
 def _rng(seed, *parts):
@@ -74,6 +75,20 @@ def _factors(split, query_type, ordinal, seed):
     candidates = [values for values in split_combinations(split) if values[axis] == answer]
     _rng(seed, split, query_type, answer, 'factor-order').shuffle(candidates)
     return dict(zip(QUERY_TYPES, candidates[(ordinal // 4) % len(candidates)]))
+
+
+def _balanced_source_bits(query_type, ordinal, seed):
+    """Rotate supported whole-source subsets independently of answer values.
+
+    The four answers within an ordinal group share one subset. There are eight
+    train tuples per answer; rotating again every 32 episodes prevents a tuple
+    from being tied to one subset. In 1280 episodes per query, each shared tuple
+    visits every supported subset 5–6 times; each private tuple does so 10 times.
+    """
+    choices = [bits for bits in range(1, 8) if any(bits & (1 << VIEWS.index(view))
+               for view in FACTOR_SOURCES[query_type])]
+    _rng(seed, 'balanced-source-order', query_type).shuffle(choices)
+    return choices[((ordinal // 4) % 8 + ordinal // 32) % len(choices)]
 
 
 _TEMPLATES = {
@@ -255,10 +270,13 @@ def _causal_targets(episodes, availability, reset):
 
 
 def make_view_batch(split, start, batch_size, seed=0, gap=8, query_every=4,
-                    control='all', query_type=None, dropout=0.0):
+                    control='all', query_type=None, dropout=0.0, source_schedule='dropout'):
     if not isinstance(batch_size, int) or batch_size < 1: raise ValueError('Batch size must be positive.')
     if control not in CONTROLS: raise ValueError('Unknown view control.')
     if not math.isfinite(dropout) or not 0 <= dropout <= 1: raise ValueError('Dropout must be in [0,1].')
+    if source_schedule not in SOURCE_SCHEDULES: raise ValueError('Unknown source schedule.')
+    if source_schedule == 'balanced' and (split != 'train' or control != 'all' or dropout != 0):
+        raise ValueError('Balanced source scheduling requires the train split, all control, and dropout=0.')
     if dropout and (split != 'train' or control != 'all'):
         raise ValueError('Random source dropout is training-only and cannot be combined with an evaluation control.')
     episodes = [make_view_episode(split, start+i, seed, gap, query_every, query_type) for i in range(batch_size)]
@@ -270,7 +288,12 @@ def make_view_batch(split, start, batch_size, seed=0, gap=8, query_every=4,
     retained = torch.ones(batch_size, 3, dtype=torch.bool)
     if control in ('a_only', 'b_only', 'c_only'):
         retained[:] = False; retained[:, VIEWS.index(control[0].upper())] = True
-    if dropout:
+    if source_schedule == 'balanced':
+        for row, episode in enumerate(episodes):
+            _, ordinal, _ = _coordinates(start+row, query_type)
+            bits = _balanced_source_bits(episode.query_type, ordinal, seed)
+            retained[row] = torch.tensor([bool(bits & (1 << index)) for index in range(3)])
+    elif dropout:
         for row, episode in enumerate(episodes):
             rng = _rng(seed, split, episode.identity, 'dropout')
             if rng.random() < dropout:
@@ -303,9 +326,10 @@ def make_view_batch(split, start, batch_size, seed=0, gap=8, query_every=4,
 
 class ViewStream:
     """Ordered episode batches with a reconstructible deterministic cursor."""
-    def __init__(self, batch_size=32, gap=8, query_every=4, seed=0, dropout=0.0, query_type=None):
+    def __init__(self, batch_size=32, gap=8, query_every=4, seed=0, dropout=0.0, query_type=None,
+                 source_schedule='dropout'):
         self.spec = dict(batch_size=batch_size, gap=gap, query_every=query_every, seed=seed,
-                         dropout=dropout, query_type=query_type)
+                         dropout=dropout, query_type=query_type, source_schedule=source_schedule)
         self.batch_start = self.position = 0
         self.batch = self._make()
 
@@ -323,7 +347,8 @@ class ViewStream:
         return {'schema_version': 1, 'spec': dict(self.spec), 'batch_start': self.batch_start, 'position': self.position}
 
     def load_state_dict(self, state):
-        if state['schema_version'] != 1 or state['spec'] != self.spec: raise ValueError('View stream protocol mismatch.')
+        saved_spec = {'source_schedule': 'dropout', **state['spec']}
+        if state['schema_version'] != 1 or saved_spec != self.spec: raise ValueError('View stream protocol mismatch.')
         start, position = state['batch_start'], state['position']
         if not isinstance(start, int) or start < 0 or start % self.spec['batch_size']: raise ValueError('Invalid batch cursor.')
         if not isinstance(position, int) or not 0 <= position <= 17+self.spec['gap']: raise ValueError('Invalid time cursor.')
