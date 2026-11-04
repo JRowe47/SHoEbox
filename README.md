@@ -58,6 +58,8 @@ The 246K-parameter, seven-node model reached **98.6% correction accuracy at an 1
 
 The subsequent shared/private benchmark holds out combinations of three independent facts and varies source formats and field order. In a matched four-way comparison, view objectives improved unseen-combination accuracy from **69.8% to 79.2%**. Private left/right answers improved from **65.6%/63.5% to 78.6%/75.5%**. Every variant started with identical weights and trained on 96,000 external events with 8,064,000 expert calls. Missing-view recovery remains uneven; an optional requirement for evidence before publication exposes interference from cold nodes. See the [shared/private report](docs/SHoEbox_Shared_Private_Report.md) and the [benchmark commands](experiments/text_regions/README.md#factorized-sharedprivate-benchmark).
 
+Three paired fine-tuning seeds now separate publication-policy training from inference. Evidence-gated training raises mean **B-only shared recovery from 35.1% to 85.1%**, while reducing all-view held-out accuracy from **78.2% to 68.2%**. Private-fact accuracy falls in all three pairs, so the gate remains default-off. Regional readouts find the facts downstream; query-only inputs from other sources can still interfere with the final answer. The [evidence-policy report](docs/SHoEbox_Evidence_Policy_Report.md) records the matched results, diagnostics, and next baseline-gradient ablation. [Raw predictions and the portable comparison manifest](experiments/text_regions/results/evidence_policy) accompany the report.
+
 ```bash
 python -m experiments.text_regions.probe_train --kind correction --steps 300 \
   --batch 8 --segment 16 --gap 16 --eval-gap 32 --eval-episodes 512 \
@@ -75,6 +77,7 @@ See the [probe and learning report](docs/SHoEbox_Probe_Development_Report.md) fo
 - [Development report](docs/SHoEbox_Development_Report.md)
 - [Probe and learning development report](docs/SHoEbox_Probe_Development_Report.md)
 - [Shared/private benchmark and publication diagnostics](docs/SHoEbox_Shared_Private_Report.md)
+- [Three-seed evidence-policy comparison and regional diagnostics](docs/SHoEbox_Evidence_Policy_Report.md)
 - [Original SHoE overview and results](SHoE_BASELINE.md)
 - [Preserved HAT/minKron baseline](experiments/hat_minkron)
 - [Source lineage and third-party notices](THIRD_PARTY_NOTICES.md)

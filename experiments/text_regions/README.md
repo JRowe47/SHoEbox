@@ -231,11 +231,11 @@ python -m experiments.text_regions.transfer_eval artifacts/evidence/views/checkp
   --out artifacts/evidence/transfer_trained_gated
 
 python -m experiments.text_regions.query_interference artifacts/views/views/checkpoint.pt \
-  --policy both --count 512 --batch 64 --out artifacts/evidence/query_interference
+  --policy both --count 512 --batch 128 --out artifacts/evidence/query_interference
 
 python -m experiments.text_regions.evidence_compare \
   --manifest experiments/text_regions/results/evidence_policy/manifest.json \
   --out artifacts/evidence/recomputed_comparison.json
 ```
 
-The policy comparison uses 512 fresh episodes per query (1,536 per control), with original/gated training paired at seeds 20261106, 20261107, and 20261108. These are fine-tuning seeds from a common correction-trained graph. The publication gate remains optional; learned composition and additional regional rounds are separate experiments.
+The policy comparison uses 512 fresh episodes per query (1,536 per control), with original/gated training paired at seeds 20261106, 20261107, and 20261108. These are fine-tuning seeds from a common correction-trained graph. Mean B-only shared recovery improves from 35.1% to 85.1%; all-view held-out accuracy falls from 78.2% to 68.2%, with private recovery regressing in every pair. The publication gate remains default-off. See the [full comparison and diagnostic report](../../docs/SHoEbox_Evidence_Policy_Report.md) and [raw results](results/evidence_policy). The next ablation isolates encoder gradients from the A-only baseline loss; learned composition and additional regional rounds remain separate experiments.
