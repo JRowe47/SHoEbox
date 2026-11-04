@@ -1,0 +1,68 @@
+{
+  "args": {
+    "data": "data/tiny_shakespeare.txt",
+    "out": "results/demo",
+    "steps": 600,
+    "batch": 4,
+    "threads": 2,
+    "lr": 0.002,
+    "seed": 20261103,
+    "eval_every": 100,
+    "no_lace": false
+  },
+  "config": {
+    "vocab_size": 65,
+    "context": 128,
+    "width": 100,
+    "layers": 3,
+    "heads": 4,
+    "experts": 1024,
+    "expert_hidden": 4,
+    "address_dim": 16,
+    "groups": 32,
+    "active_groups": 2,
+    "experts_per_group": 8,
+    "laces": 64,
+    "active_laces": 2,
+    "refinement_rounds": 2,
+    "lace_gain": 0.75,
+    "local_window": 16,
+    "keys_per_group": 8,
+    "seed": 20261103
+  },
+  "parameters": {
+    "total": 1000732,
+    "components": {
+      "expert_weights": 819200,
+      "expert_addresses": 16384,
+      "attention": 120000,
+      "routing_and_laces": 24448,
+      "embeddings": 19300,
+      "norms": 1400
+    },
+    "expert_counts": [
+      342,
+      341,
+      341
+    ],
+    "active_experts_per_layer": 16,
+    "active_expert_weight_parameters_per_token": 38400
+  },
+  "data": {
+    "source_sha256": "86c4e6aa9db7c042ec79f339dcb96d42b0075e16b8fc2e86bf0ca57e2dc565ed",
+    "characters": 1115394,
+    "train_characters": 1003854,
+    "validation_characters": 55770,
+    "test_characters_untouched": 55770,
+    "split": "contiguous 90% train / 5% validation / 5% untouched test",
+    "tokenizer": "character vocabulary derived from training split"
+  },
+  "torch": "2.15.0+cpu",
+  "python": "3.12.14",
+  "cpu": "x86_64",
+  "cpu_count": 9,
+  "schedule": "warmup 40 steps, plateau to 80%, linear cooldown to 20% peak",
+  "optimizer": "AdamW beta=(0.9,0.95), weight_decay=0.01, grad_clip=1",
+  "auxiliary_coefficient": 0.01,
+  "evaluation": "fixed windows, seed 333, character cross-entropy in nats"
+}

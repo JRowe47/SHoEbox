@@ -1,0 +1,77 @@
+{
+  "args": {
+    "data": "data/tiny_shakespeare.txt",
+    "out": "results/no_lace",
+    "steps": 600,
+    "batch": 4,
+    "threads": 2,
+    "lr": 0.002,
+    "seed": 20261103,
+    "eval_every": 50,
+    "no_lace": true,
+    "scale": "10m"
+  },
+  "config": {
+    "vocab_size": 65,
+    "context": 128,
+    "width": 180,
+    "layers": 6,
+    "heads": 6,
+    "experts": 4096,
+    "expert_hidden": 6,
+    "address_dim": 32,
+    "groups": 64,
+    "active_groups": 2,
+    "experts_per_group": 8,
+    "laces": 256,
+    "active_laces": 2,
+    "refinement_rounds": 2,
+    "lace_gain": 0.75,
+    "local_window": 16,
+    "keys_per_group": 8,
+    "seed": 20261103
+  },
+  "parameters": {
+    "total": 10027388,
+    "components": {
+      "expert_weights": 8847360,
+      "expert_addresses": 131072,
+      "attention": 777600,
+      "routing_and_laces": 231936,
+      "embeddings": 34740,
+      "norms": 4680
+    },
+    "expert_counts": [
+      683,
+      683,
+      683,
+      683,
+      682,
+      682
+    ],
+    "active_experts_per_layer": 16,
+    "active_expert_weight_parameters_per_token": 207360
+  },
+  "data": {
+    "source_sha256": "86c4e6aa9db7c042ec79f339dcb96d42b0075e16b8fc2e86bf0ca57e2dc565ed",
+    "characters": 1115394,
+    "train_characters": 1003854,
+    "validation_characters": 55770,
+    "test_characters_untouched": 55770,
+    "split": "contiguous 90% train / 5% validation / 5% untouched test",
+    "tokenizer": "character vocabulary derived from training split"
+  },
+  "torch": "2.15.0+cpu",
+  "python": "3.12.14",
+  "cpu": "x86_64",
+  "cpu_count": 9,
+  "schedule": "warmup 40 steps, plateau to 80%, linear cooldown to 20% peak",
+  "optimizer": "AdamW beta=(0.9,0.95), weight_decay=0.01, grad_clip=1",
+  "auxiliary_coefficient": 0.01,
+  "evaluation": "fixed windows, seed 333, character cross-entropy in nats",
+  "initial_parameter_sha256": "d4f4b6fc5cc91ebca69a87588ef1e7788f54126d789c8a7d96a145fa412f7c4f",
+  "model_source_sha256": "a140639804d5d6ccfc5f6151cffd6247b73f6b2f1f09eba3d56fc85122fec1ea",
+  "train_source_sha256": "c986c0646366fa85a168f680c5716288103534a35a3429894bb50d39f15e4b61",
+  "permuted_lace_layer_zero_based": 3,
+  "execution": "CPU float32, eager PyTorch, unfused sparse gather reference"
+}

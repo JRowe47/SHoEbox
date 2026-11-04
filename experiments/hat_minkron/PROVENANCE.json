@@ -1,0 +1,42 @@
+{
+  "name": "HAT + minKron SHoE v1",
+  "source_artifacts": [
+    {
+      "name": "SHoE_Three_Block_Hierarchy_Source_Checkpoints_Results.zip"
+    },
+    {
+      "name": "Compact_Kron_budget_experiment_2026-10-21.zip",
+      "sha256": "16f71c993b2fa310610604038e3105256f6805868756c7b8d02b0e9324c8d5bc"
+    }
+  ],
+  "code_hashes_at_language_training": {
+    "events.py": "7168cb9766d48e41b8653993d1deffe4d6c837374c4260da0cf3dd9bd022a314",
+    "kron.py": "8049e75b3621f90cd74e949c75b809b807d484cc0171acbc7f106b1aa2a60d3c",
+    "hat.py": "d5338d3edc69f4955bbc5d2a0313a93445f8950b34e39c661774186a4413a5a9",
+    "model.py": "fc5e39c1998f7422868c74012939ffe608b43a1fb4c7ba4645d8c191cb7fdbc2",
+    "semantic_core.py": "ad210e7328bda71f2ac265902d959ba39a805a16c796bc68e1a4951343a0c14a",
+    "hierarchy_reference.py": "7384a042ba5a812f2ac7b5b4140b239d4fc841efa9840e1d4894c00230cd1fd9",
+    "train.py": "4bb98c74649c5d8bc9b0ae1a796f30b1c41a5e944d4808f56bc6a7a6f6150232",
+    "learning_checks.py": "fa3ba868de36e088014201f14efaea30e23a262006b5bee3c85e198e031b1769"
+  },
+  "kron_reference": "references/compact_kron_original.py; compact_chunk copied verbatim before MinKron wrapper; author tokenwise reference independently checks outputs/states/gradients",
+  "changes": "Byte link/slot interface, two source-indexed recurrent symbol levels, recurrent child mixers replacing attention, packed projections, carried-state API. Original expert banks and parent feedback topology retained.",
+  "final_code_hashes": {
+    "build_report.py": "d5c16b22eb7c553be3c1dc1b2fd441ca99c2cc1492b5cc20ea0039e7f7d5e99f",
+    "check_delivery.py": "36d076e3aef11ef15ff72faef5aade95d3b3f2cc4e979f09a0ef13b0cc723f72",
+    "events.py": "f8e915653654ddbcbfa617760367211979a27257309d82e5db6f150ff7a47710",
+    "example_live.py": "7cc7fdf9fb208ed77cb1eb35e6ac9fd3bb3d58f4eee2c83241871994e4c535c6",
+    "generate.py": "7bbfa5a5d73af5c64293a17783b6c890dc84b7b43bc99bb162f698021090b8a2",
+    "hat.py": "d5338d3edc69f4955bbc5d2a0313a93445f8950b34e39c661774186a4413a5a9",
+    "hierarchy_reference.py": "7384a042ba5a812f2ac7b5b4140b239d4fc841efa9840e1d4894c00230cd1fd9",
+    "kron.py": "8049e75b3621f90cd74e949c75b809b807d484cc0171acbc7f106b1aa2a60d3c",
+    "learning_checks.py": "fa3ba868de36e088014201f14efaea30e23a262006b5bee3c85e198e031b1769",
+    "model.py": "fc5e39c1998f7422868c74012939ffe608b43a1fb4c7ba4645d8c191cb7fdbc2",
+    "package_results.py": "db4b2dfd7dbb364a1279420a7dfbcd107c0a30efa4f4731fde214f6cab9d25cb",
+    "semantic_core.py": "ad210e7328bda71f2ac265902d959ba39a805a16c796bc68e1a4951343a0c14a",
+    "train.py": "4bb98c74649c5d8bc9b0ae1a796f30b1c41a5e944d4808f56bc6a7a6f6150232",
+    "verify.py": "cd5d50e8df30ac47ee4ea6ce90f66dd2128f0b33af935eece46abf15aac951d3"
+  },
+  "post_training_changes": "Input validation tightened to enforce immutable static byte addresses and reject implicit float-to-byte casting; valid training computation unchanged. Added tests, documentation and delivery checks.",
+  "public_release": "Model, training, and verification source preserved; local storage identifiers removed. Weights and dataset are not stored in git. See repository root for reproduction."
+}

@@ -1,0 +1,24 @@
+{
+  "parent_source": "SHoE_Semantic_Lace_1M_Source_Checkpoints_Results.zip",
+  "parent_source_sha256": "1b474eaea8d7afb01a0ce918b2176421336831b152c5393b403c9210c4e69f84",
+  "date": "2026-11-03",
+  "changes": [
+    "Generalized controller, permutation diagnostic and statistics to arbitrary depth >=2.",
+    "Added explicit 10M configuration: 6 blocks, width 180, 6 heads, 4096 experts, hidden size 6, address width 32, 64 groups per layer and 256 laces.",
+    "Reused each blocks first normalization within routing and attention.",
+    "Added initialization/input fingerprints and memory measurements.",
+    "Added six scaling tests; retained all ten original tests."
+  ],
+  "preserved": [
+    "Character data and 90/5/5 split",
+    "Context 128 and batch 4",
+    "16 active experts per layer",
+    "Two groups and two laces selected per target layer",
+    "Two lace refinement rounds",
+    "16 local + up to 16 semantic attention keys",
+    "AdamW, peak LR 0.002, schedule and auxiliary loss",
+    "600 steps and identical seed / minibatch sampling",
+    "Fixed 8192-character final evaluation"
+  ],
+  "public_release": "Model, training, and verification source preserved; local storage identifiers removed. Weights and dataset are not stored in git. See repository root for reproduction."
+}

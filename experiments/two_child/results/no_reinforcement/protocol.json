@@ -1,0 +1,83 @@
+{
+  "args": {
+    "data": "data/tiny_shakespeare.txt",
+    "out": "results/no_reinforcement",
+    "steps": 600,
+    "batch": 4,
+    "threads": 2,
+    "lr": 0.002,
+    "seed": 20261103,
+    "eval_every": 50,
+    "no_reinforcement": true
+  },
+  "config": {
+    "vocab_size": 65,
+    "context": 128,
+    "seed": 20261103,
+    "fast_threshold": 0.75,
+    "match_threshold": 0.25,
+    "minimum_route_mass": 0.002,
+    "exploration": 0.1,
+    "fast_warmup_updates": 80,
+    "upward_gain": 0.5,
+    "downward_gain": 0.35,
+    "memory_decay": 0.97,
+    "semantic_loss_weight": 0.03,
+    "utility_loss_weight": 0.03,
+    "baseline_loss_weight": 0.05,
+    "auxiliary_loss_weight": 0.01,
+    "parent_balance_weight": 0.05
+  },
+  "parameters": {
+    "total_unique_parameters": 1636784,
+    "each_child_logical_parameters": [
+      1000732,
+      1000732
+    ],
+    "shared_expert_weights": 409600,
+    "private_expert_weights_per_child": [
+      409600,
+      409600
+    ],
+    "unique_expert_weights": 1228800,
+    "unique_expert_count": 1536,
+    "shared_experts": 512,
+    "dedicated_experts_per_child": 512,
+    "shared_counts_per_layer": [
+      171,
+      171,
+      170
+    ],
+    "child_expert_counts": [
+      342,
+      341,
+      341
+    ],
+    "parent_and_input_parameters": 44920,
+    "active_expert_weights_per_source_token": 38400,
+    "active_experts_per_source_token": 48
+  },
+  "data": {
+    "source_sha256": "86c4e6aa9db7c042ec79f339dcb96d42b0075e16b8fc2e86bf0ca57e2dc565ed",
+    "characters": 1115394,
+    "train_characters": 1003854,
+    "validation_characters": 55770,
+    "test_characters_untouched": 55770,
+    "split": "contiguous 90/5/5; test unused",
+    "tokenizer": "65-character vocabulary fitted on training split"
+  },
+  "torch": "2.15.0+cpu",
+  "python": "3.12.14",
+  "initial_parameter_sha256": "1d583c9e05689f38af99e4eb7cf7d55c1ae0f1b8e429accecbcb008b063491bd",
+  "source_sha256": {
+    "model.py": "7384a042ba5a812f2ac7b5b4140b239d4fc841efa9840e1d4894c00230cd1fd9",
+    "semantic_core.py": "ad210e7328bda71f2ac265902d959ba39a805a16c796bc68e1a4951343a0c14a",
+    "train.py": "725f227fce32be56a0f7bdead78fbf3e88b4af61b08b996670a0a50b09922270"
+  },
+  "optimizer": "AdamW, beta=(0.9,0.95), weight_decay=.01, clip_norm=1",
+  "schedule": "warmup 40 steps; plateau to 80%; linear cooldown to 20% peak",
+  "routing": "causal token-level hard top-1; selected-gate straight-through task gradient",
+  "feedback": "executed lace KL + selected utility calibration + eligibility-weighted next-pass route memory",
+  "control": "retains live bottom-up semantic bids and top-down messages; disables explicit reinforcement losses, persistent route memory, and fast-path reuse",
+  "evaluation": "fixed sampled windows, seed333; 2048 periodic and 8192 final character presentations"
+}
