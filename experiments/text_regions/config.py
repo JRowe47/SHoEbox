@@ -67,6 +67,7 @@ class GraphConfig:
     zero_safe_norm: bool = True
     evidence_gated_ports: bool = False
     selective_publication: tuple[str, ...] = ()
+    independent_sources: tuple[str, ...] = ()
     context: int = 128
     auxiliary_loss_weight: float = .01
     hat_balance_weight: float = .001
@@ -110,6 +111,13 @@ class GraphConfig:
         if len(set(self.selective_publication)) != len(self.selective_publication) or any(
                 n not in names for n in self.selective_publication):
             raise ValueError('Selective publication requires distinct known nodes.')
+        if len(set(self.independent_sources)) != len(self.independent_sources):
+            raise ValueError('Independent sources must be distinct.')
+        for name in self.independent_sources:
+            matches = [n for n in self.nodes if n.name == name]
+            if len(matches) != 1 or matches[0].view is None or sum(
+                    n.view == matches[0].view for n in self.nodes) != 1:
+                raise ValueError('Independent sources require a known node with an exclusive view.')
         if self.readout_mode not in ('mixed', 'concat'):
             raise ValueError('Readout mode must be mixed or concat.')
         if len(set(e.key for e in self.edges)) != len(self.edges):
@@ -150,6 +158,7 @@ class GraphConfig:
         data['edges'] = tuple(EdgeSpec(**e) for e in data['edges'])
         data['readout'] = tuple(data['readout'])
         data['selective_publication'] = tuple(data.get('selective_publication', ()))
+        data['independent_sources'] = tuple(data.get('independent_sources', ()))
         return cls(**data)
 
     @classmethod

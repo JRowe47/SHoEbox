@@ -21,7 +21,14 @@ class RegionLanguageModel(nn.Module):
         c = self.cfg.hat_config()
         self.hat = HAT(c, safe_zero=self.cfg.zero_safe_norm)
         self.shared_banks = nn.ModuleList(ExpertBank(c.child_config(), self.cfg.shared_per_block) for _ in range(3))
-        self.nodes = nn.ModuleDict({n.name: RecurrentNode(n, self.cfg, self.shared_banks, i)
+        self.independent_hats = nn.ModuleDict({name: HAT(c, safe_zero=self.cfg.zero_safe_norm)
+                                             for name in self.cfg.independent_sources})
+        self.independent_banks = nn.ModuleDict({name: nn.ModuleList(
+            ExpertBank(c.child_config(), self.cfg.shared_per_block) for _ in range(3))
+            for name in self.cfg.independent_sources})
+        self.view_owners = {n.view: n.name for n in self.cfg.nodes if n.name in self.cfg.independent_sources}
+        self.nodes = nn.ModuleDict({n.name: RecurrentNode(n, self.cfg,
+                                   self.independent_banks[n.name] if n.name in self.independent_banks else self.shared_banks, i)
                                    for i, n in enumerate(self.cfg.nodes)})
         self.connections = GraphConnections(self.cfg)
         if self.cfg.readout_mode == 'mixed':
@@ -53,15 +60,21 @@ class RegionLanguageModel(nn.Module):
             return Publication(name, 'latent', torch.zeros(batch, c.width, device=device, dtype=dtype),
                                torch.zeros(batch, dtype=torch.bool, device=device), zero, zero, zero, zero, header)
         names = tuple(self.nodes) + tuple('@'+view for view in ('text', *c.views))
-        return GraphState({view: self.hat.initial_state(batch) for view in ('text', *c.views)},
+        return GraphState({view: self.ingress_hat(view).initial_state(batch) for view in ('text', *c.views)},
                           {name: node.initial_state(batch, device, dtype) for name, node in self.nodes.items()},
                           TensorPorts({name: empty(name) for name in names}),
                           torch.zeros(batch, dtype=torch.long, device=device),
                           torch.zeros(batch, dtype=torch.long, device=device),
                           torch.zeros(batch, dtype=torch.long, device=device))
 
+    def ingress_hat(self, view):
+        owner = self.view_owners.get(view)
+        return self.independent_hats[owner] if owner is not None else self.hat
+
     def _prepare(self, inputs, state, availability, node_masks, edge_masks, substitutions, reset):
         controlled = isinstance(inputs, dict)
+        if self.cfg.independent_sources and not controlled:
+            raise ValueError('Independent source encoders require explicit source views.')
         if controlled and set(inputs) != set(self.cfg.views):
             raise ValueError(f'Controlled inputs must supply exactly these views: {self.cfg.views}.')
         supplied = inputs if controlled else {'text': inputs}
@@ -160,7 +173,7 @@ class RegionLanguageModel(nn.Module):
             for view, sequence in events.items():
                 active = available[view] if controlled else torch.stack(tuple(available.values())).any(0)
                 event = sequence.slice(event_index, event_index+1)
-                payload, hstate, haux = masked_ingress(self.hat, event, state.ingress[view], active)
+                payload, hstate, haux = masked_ingress(self.ingress_hat(view), event, state.ingress[view], active)
                 if return_view_activity:
                     view_activity[view]['payload'].append(payload)
                     view_activity[view]['available'].append(active.clone())
@@ -275,8 +288,9 @@ class RegionLanguageModel(nn.Module):
 
     def parameter_summary(self):
         c = self.cfg
-        physical = 3*(c.shared_per_block + len(c.nodes)*(c.experts_per_block-c.shared_per_block))
+        physical = 3*((1+len(c.independent_sources))*c.shared_per_block + len(c.nodes)*(c.experts_per_block-c.shared_per_block))
         expert_weights = sum(p.numel() for p in self.shared_banks.parameters()) + sum(
+            p.numel() for p in self.independent_banks.parameters()) + sum(
             p.numel() for node in self.nodes.values() for block in node.core.blocks for p in block.experts.private.parameters())
         return {'total_unique_parameters': sum(p.numel() for p in self.parameters()),
                 'physical_experts': physical, 'expert_matrix_parameters': expert_weights,

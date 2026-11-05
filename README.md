@@ -50,13 +50,15 @@ P and Q feed the shared byte readout. B has one state owner and publishes to bot
 
 ## Development status
 
-**Learned publication retention is implemented and tested across three paired seeds.** A sparse producer learns when to replace its publication and when to preserve it while continuing computation. At a delay four times longer than training, learned publication reaches **99.09% recall versus 68.55%** with unconditional publication, and **99.35% old-value retention versus 71.09%** when a correction is withheld. Every seed pair improves on all three longer-delay tasks. The 33-parameter gate reads the producer's computed latent; labels are training-only.
+**Retained facts now drive live two-step composition in one eight-node graph.** The previously trained producer joins the seven-node recurrent model through an ordinary latent edge. Across three seeds, held-out accuracy is **99.54% for recall, 98.31% after correction, and 99.35% when a correction is withheld**. Every seed exceeds the 90% target on all three conditions.
 
-All three learned runs exceed the 90% accuracy target for recall, correction and withheld correction at the training-range delay. Two also meet the stricter write-precision/recall target; one still makes excess writes. A validation-only threshold follow-up does not eliminate that seed's classification errors. The mechanism remains opt-in. The original seven-node checkpoint retains **100% held-out two-round composition**, with identical logits, states and execution counts. **All 373 regression tests pass.**
+F keeps the fact while B/C supply new relation tables. The existing regional experts compute `g(f(x))`; the retained fact is never decoded into an intermediate input byte. Four successive queries leave F's contextual state, recurrent state and retained publication unchanged. Only the new edge's 1,024 weights are fitted in this component-integration phase. The combined model has 317,098 parameters and 480 physical experts.
 
-This is a 71,867-parameter isolated-producer milestone. Joint memory/composition integration remains open, as does M7. The next work is to stabilize write discrimination and integrate retained fact publications with current query signals.
+The independent source-ownership option defaults off. The original seven-node checkpoint still produces exactly the same logits, states and execution counts, including **100% two-round composition on all 592 held-out cases**. The next step is joint local refinement of the weakest producer/connection pair. M7 remains open pending the broader integrated capability suite.
 
-See the [selective-publication report](docs/SHoEbox_Selective_Publication_Report.md), [locked protocol](docs/SHoEbox_Selective_Publication_Protocol.md), [threshold-calibration follow-up](docs/SHoEbox_Publication_Calibration_Protocol.md), and [audited results and reproduction commands](experiments/text_regions/results/selective_publication). The [gradient-horizon report](docs/SHoEbox_Gradient_Horizon_Report.md) records the parent experiment, where complete-episode gradients preserved composition but did not solve integrated memory or facts.
+See the [retained-composition report](docs/SHoEbox_Retained_Composition_Report.md), [locked protocol](docs/SHoEbox_Retained_Composition_Protocol.md), and [audited results](experiments/text_regions/results/retained_composition).
+
+The preceding [selective-publication phase](docs/SHoEbox_Selective_Publication_Report.md) established the isolated producer: learned publication reached 99.09% recall at four times the training delay versus 68.55% with unconditional writes. Two of three seeds met its stricter write-precision/recall target. The [gradient-horizon report](docs/SHoEbox_Gradient_Horizon_Report.md) records the unchanged composition parent.
 
 ## Earlier experiments
 

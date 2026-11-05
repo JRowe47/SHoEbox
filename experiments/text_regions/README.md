@@ -664,3 +664,32 @@ See the [report](../../docs/SHoEbox_Integrated_Report.md),
 All 349 repository tests pass. The artifact package includes both full runs,
 the parent, the matched baseline-100 snapshot, diagnostic checkpoint 25,
 inference-only exports, raw predictions and the audited validation selection.
+
+
+## Retained facts and live composition
+
+`retained_composition.py` connects an eighth producer F to A through one ordinary forward edge. F owns an independent HAT and expert-sharing bank, copied from the trained publication producer. B/C receive fresh relation tables; the existing P/Q decoder emits the two-step composition of the retained value. The query function receives only the two tables and graph state, never the query value or a label.
+
+`GraphConfig.independent_sources` declares source nodes with exclusive view encoders and banks. It defaults to an empty tuple and leaves existing model construction unchanged. Configurations that use it require explicit controlled views. The node still uses the existing latent adapter and sparse three-block core. Its state remains in the common `GraphState`.
+
+Query workspace reset preserves F's HAT context, recurrent state and retained publication while clearing the seven composing nodes and their ingress state. A new workspace epoch prevents version ambiguity. F does not execute during queries; all seven composition nodes execute for each query round. `query` supports blocked-edge, memory-reset and whole-publication substitution controls.
+
+The locked experiment fits only the new edge's value matrix, with common final-byte CE and training-only alignment to the observed fact's original query ingress. All parent weights, the edge context map (zero) and its gate (constant 0.5) stay fixed. This isolates interface integration. Three seeds, 160 updates each, use fresh episodes and disjoint relation-table pairs. Selection uses validation only.
+
+After extracting the source and artifact ZIPs together:
+
+```bash
+python scripts/audit_retained_composition.py --evaluations
+python scripts/check_all.py
+
+# A fresh reproducible run using the included parent checkpoints:
+python -m experiments.text_regions.retained_composition_train \
+  --composer artifacts/retained_composition/parents/composer.pt \
+  --producer artifacts/retained_composition/parents/producer_20261120.pt \
+  --seed 20261120 --out artifacts/retained_composition_fresh
+python scripts/evaluate_retained_composition.py artifacts/retained_composition_fresh
+```
+
+The `last.pt` checkpoints include optimizer moments, RNG, protocol, history and counters. Resume with the identical arguments plus `--resume`; `--stop-after` supports a bounded partial run. Inference exports contain the complete graph configuration and weights, without training heads. Load `RegionLanguageModel(GraphConfig.from_dict(saved['config']))`, load the state dictionary, then use `ingest` and `query` to preserve the runtime contracts. Source fact batches are ordinary observed byte streams; their labels are never forwarded.
+
+See the [report](../../docs/SHoEbox_Retained_Composition_Report.md), [locked protocol](../../docs/SHoEbox_Retained_Composition_Protocol.md), and [raw results](results/retained_composition). The eight-node result does not complete M7's shared/private or natural-text requirements.
