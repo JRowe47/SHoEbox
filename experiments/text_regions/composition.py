@@ -30,13 +30,24 @@ def answer_query(model, batch, prefix_state, rounds=2, feedback=True, trace=Fals
                  rounds=rounds, feedback=feedback, trace=trace)
 
 
-def training_loss(model, batch, rounds=2, feedback=True):
+def training_loss(model, batch, rounds=2, feedback=True, source_reconstruction=0.):
     prefix = encode_sources(model, batch)
     query = answer_query(model, batch, prefix['state'], rounds=rounds, feedback=feedback)
     ce = F.cross_entropy(query['logits'][:, -1], batch.answers)
     cfg = model.cfg
     loss = ce + cfg.auxiliary_loss_weight*(prefix['aux'] + query['aux'])/2
     loss = loss + cfg.hat_balance_weight*(prefix['hat_aux'] + query['hat_aux'])/2
+    if source_reconstruction:
+        # Self-supervision from the bytes actually observed by B and C. Both
+        # pre-query and post-query states must preserve their own four entries.
+        states = torch.cat([r['state'].ports.latest[n].payload
+                            for r in (prefix,query) for n in ('B','C')])
+        targets = torch.cat([batch.first,batch.second,batch.first,batch.second])-65
+        reconstructed = model.source_reconstruction(states).reshape(-1,4)
+        local = F.cross_entropy(reconstructed,targets.flatten())
+        query['source_loss'] = local
+        query['source_accuracy'] = reconstructed.argmax(-1).eq(targets.flatten()).float().mean()
+        loss = loss + source_reconstruction*local
     return loss, ce, prefix, query
 
 

@@ -14,6 +14,14 @@ from .config import GraphConfig
 from .model import RegionLanguageModel
 
 
+def build_model(config, source_reconstruction=0.):
+    model = RegionLanguageModel(config)
+    if source_reconstruction:
+        # A shared, training-only head; predictions still use model.readout.
+        model.source_reconstruction = torch.nn.Linear(config.width,16)
+    return model
+
+
 def source_hashes():
     root = Path(__file__).resolve().parents[1]
     files = sorted((root/'text_regions').glob('*.py')) + sorted((root/'hat_minkron').glob('*.py'))
@@ -41,7 +49,7 @@ def load_checkpoint(path, expected_protocol=None):
         raise ValueError('Unknown composition checkpoint schema.')
     if expected_protocol is not None and saved['protocol'] != expected_protocol:
         raise ValueError('Resume requires unchanged source and training protocol.')
-    model = RegionLanguageModel(GraphConfig.from_dict(saved['config']))
+    model = build_model(GraphConfig.from_dict(saved['config']), saved['protocol'].get('source_reconstruction',0.))
     model.load_state_dict(saved['weights'])
     optimizer = optimizer_for(model, saved['protocol']['lr'])
     optimizer.load_state_dict(saved['optimizer'])
@@ -56,17 +64,22 @@ def update(model, optimizer, batch, step, protocol):
         group['lr'] = lr
     optimizer.zero_grad(set_to_none=True)
     loss, ce, prefix, query = training_loss(model, batch, rounds=protocol['rounds'],
-                                           feedback=protocol['feedback'])
+                                           feedback=protocol['feedback'],
+                                           source_reconstruction=protocol.get('source_reconstruction',0.))
     if not bool(torch.isfinite(loss)):
         raise FloatingPointError('Nonfinite composition training loss.')
     loss.backward()
     gradient = torch.nn.utils.clip_grad_norm_(model.parameters(), 1., error_if_nonfinite=True)
     optimizer.step()
-    return {'step':step+1, 'loss':float(loss.detach()), 'nats':float(ce.detach()),
+    row = {'step':step+1, 'loss':float(loss.detach()), 'nats':float(ce.detach()),
             'accuracy':float(query['logits'][:, -1].argmax(-1).eq(batch.answers).float().mean()),
             'gradient_norm':float(gradient), 'lr':lr,
             'expert_executions':prefix['expert_executions']+query['expert_executions'],
             'source_occurrences':prefix['source_occurrences']+query['source_occurrences']}
+    if 'source_loss' in query:
+        row.update(source_nats=float(query['source_loss'].detach()),
+                   source_accuracy=float(query['source_accuracy'].detach()))
+    return row
 
 
 def main():
@@ -77,6 +90,8 @@ def main():
     p.add_argument('--lr', type=float, default=.003)
     p.add_argument('--warmup', type=int, default=20)
     p.add_argument('--lookup-warmup', type=int, default=200)
+    p.add_argument('--copy-warmup', type=int, default=0)
+    p.add_argument('--source-reconstruction', type=float, default=0.)
     p.add_argument('--rounds', type=int, default=2)
     p.add_argument('--no-feedback', action='store_true')
     p.add_argument('--active-groups', type=int, default=2)
@@ -88,7 +103,7 @@ def main():
     p.add_argument('--resume', action='store_true')
     p.add_argument('--stop-after', type=int)
     args = p.parse_args()
-    if min(args.steps,args.batch,args.warmup,args.rounds,args.threads,args.validate_every,args.save_every) < 1 or args.lookup_warmup < 0 or args.batch % 4 or not math.isfinite(args.lr) or args.lr <= 0:
+    if min(args.steps,args.batch,args.warmup,args.rounds,args.threads,args.validate_every,args.save_every) < 1 or min(args.lookup_warmup,args.copy_warmup,args.source_reconstruction) < 0 or not math.isfinite(args.source_reconstruction) or args.batch % 4 or not math.isfinite(args.lr) or args.lr <= 0:
         p.error('Invalid positive training count or learning rate.')
     torch.set_num_threads(args.threads)
     protocol = {k:v for k,v in vars(args).items() if k not in ('out','resume','stop_after','no_feedback')}
@@ -108,7 +123,7 @@ def main():
         cfg = GraphConfig.tiny(readout_mode='concat', rounds=args.rounds,
                                recurrent_feedback=not args.no_feedback, evidence_gated_ports=True,
                                active_groups=args.active_groups, feedback_gate_init=.1, seed=args.seed)
-        model = RegionLanguageModel(cfg)
+        model = build_model(cfg,args.source_reconstruction)
         optimizer = optimizer_for(model, args.lr)
         rng = random.Random(args.seed)
         start, best, history = 0, float('inf'), []
@@ -120,10 +135,12 @@ def main():
     model.train()
     for step in range(start, stop):
         tick = time.perf_counter()
-        batch = training_batch(rng,args.batch,lookup_warmup=step < args.lookup_warmup)
+        copying = step < args.copy_warmup
+        lookup = args.copy_warmup <= step < args.copy_warmup+args.lookup_warmup
+        batch = training_batch(rng,args.batch,lookup_warmup=lookup,copy_warmup=copying)
         row = update(model,optimizer,batch,step,protocol)
         row['seconds'] = time.perf_counter()-tick
-        row['lookup_warmup'] = step < args.lookup_warmup
+        row['lookup_warmup'], row['copy_warmup'] = lookup, copying
         counters['training_seconds'] += row['seconds']
         counters['episodes'] += args.batch
         for key in ('expert_executions','source_occurrences'):
@@ -138,7 +155,7 @@ def main():
             row['validation_accuracy'] = selected['accuracy']
             print(json.dumps({'step':step+1,'validation_nats':row['validation_nats'],
                               'validation_accuracy':row['validation_accuracy']}),flush=True)
-            if step+1 >= args.lookup_warmup and row['validation_nats'] < best:
+            if step+1 >= args.copy_warmup+args.lookup_warmup and row['validation_nats'] < best:
                 best = row['validation_nats']
                 save_checkpoint(args.out/'best.pt',model,optimizer,rng,step+1,protocol,best,counters,history)
         if (step+1)%args.save_every == 0 or step+1 == stop:

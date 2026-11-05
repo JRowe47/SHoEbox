@@ -55,14 +55,21 @@ def batch_from_keys(keys):
                             query[:, None] + SYMBOLS[0], answers)
 
 
-def training_batch(rng, batch_size, lookup_warmup=False):
+def training_batch(rng, batch_size, lookup_warmup=False, copy_warmup=False):
     if batch_size < 4 or batch_size % 4:
         raise ValueError('Training batch must be a positive multiple of four.')
     candidates = tuple((a,b) for a,b in pairs('train') if a == 0 or b == 0) if lookup_warmup else pairs('train')
+    if copy_warmup:
+        if lookup_warmup:
+            raise ValueError('Copy and lookup curriculum stages are distinct.')
+        candidates = tuple((a,b) for a,b in pairs('train')
+                           if all(PERMUTATIONS[b][PERMUTATIONS[a][q]] == q for q in range(4)))
     keys = []
     for _ in range(batch_size // 4):
         a, b = rng.choice(candidates)
-        order = list(range(4)); rng.shuffle(order)
+        order = list(range(4))
+        if not copy_warmup:
+            rng.shuffle(order)
         keys.extend((a, b, q) for q in order)
     rng.shuffle(keys)
     return batch_from_keys(keys)

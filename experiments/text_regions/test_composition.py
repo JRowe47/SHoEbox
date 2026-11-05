@@ -8,7 +8,7 @@ from ..hat_minkron.train import optimizer_for
 from .composition import encode_sources, answer_query, evaluate, training_loss
 from .composition_data import (PERMUTATIONS, batch_from_keys, coverage, evaluation_keys,
                                pairs, shuffled_bridge, training_batch)
-from .composition_train import save_checkpoint, load_checkpoint, update, source_hashes
+from .composition_train import save_checkpoint, load_checkpoint, update, source_hashes, build_model
 from .config import GraphConfig
 from .model import RegionLanguageModel
 from .test_probe import assert_tree_equal
@@ -127,6 +127,30 @@ class CompositionChecks(unittest.TestCase):
             self.assertTrue(a==0 or b==0)
             self.assertIn((a,b),pairs('train'))
         self.assertEqual(torch.bincount(batch.answers,minlength=256)[65:69].tolist(),[32]*4)
+
+    def test_copy_curriculum_is_a_training_subset_with_unchanged_composition_targets(self):
+        batch=training_batch(random.Random(91),64,copy_warmup=True)
+        self.assertTrue(torch.equal(batch.answers,batch.query.flatten()))
+        self.assertTrue(all((a,b) in pairs('train') for a,b,q in batch.keys))
+        with self.assertRaises(ValueError):training_batch(random.Random(1),4,True,True)
+
+    def test_source_reconstruction_updates_graph_and_survives_checkpoint(self):
+        model=build_model(GraphConfig.tiny(readout_mode='concat'),.5)
+        _,_,_,query=training_loss(model,self.batch,source_reconstruction=.5)
+        query['source_loss'].backward()
+        for name in ('B','C'):
+            self.assertGreater(float(model.connections.ingress[name].weight.grad.abs().sum()),0)
+        protocol=dict(lr=.003,warmup=2,rounds=2,feedback=True,source_reconstruction=.5)
+        optimizer=optimizer_for(model,.003);rng=random.Random(92)
+        update(model,optimizer,training_batch(rng,4),0,protocol)
+        with tempfile.TemporaryDirectory() as directory:
+            path=Path(directory)/'checkpoint.pt'
+            save_checkpoint(path,model,optimizer,rng,1,protocol,2.,{},[])
+            restored,opt,stream,_=load_checkpoint(path,protocol)
+            expected=update(model,optimizer,training_batch(rng,4),1,protocol)
+            actual=update(restored,opt,training_batch(stream,4),1,protocol)
+            self.assertEqual(expected,actual)
+            assert_tree_equal(self,model.state_dict(),restored.state_dict())
 
 
 if __name__=='__main__':unittest.main()

@@ -25,6 +25,8 @@ Every complete pair contributes one instance of each answer, so cohorts and trai
 
 Training starts from fresh weights. The first 200 optimizer steps draw only training pairs with one identity table, making the same composition operation initially reduce to a lookup. Subsequent steps use all training pairs. The graph, targets, query format and output interface do not change between phases. AdamW uses a 20-step learning-rate warmup followed by constant LR 0.003, clipping at 1 and the existing routing/balance losses. No frozen regional backbone or fitted decoder correction is used.
 
+The follow-up training path adds two independently selectable mechanisms. `--copy-warmup 100` first draws training pairs whose composition is the identity, so the same task initially copies the query. `--source-reconstruction 0.5` adds a shared 528-parameter training-only head that reconstructs each source's four observed table entries from its own latent publication, both before and after query processing. The reconstruction targets are input bytes, not intermediate answers. Gradients update the source/regional network. Inference still uses only the common byte head. With both options, the schedule is 100 copy steps, 200 lookup steps, then full composition; the training allocation is 253,006 parameters and the inference graph remains 252,478.
+
 Validation selects the lowest answer NLL at the trained round count after the lookup warmup. Test evaluation follows checkpoint selection. Checkpoints save model and optimizer tensors, sampling and torch RNG state, step, history, protocol and source hashes. Episode state resets between independent training batches; source state remains differentiable from description to query inside each batch. Resuming requires the same protocol and source.
 
 ## Comparisons
@@ -58,6 +60,12 @@ python -m experiments.text_regions.composition_train \
   --seed 20261105 --rounds 1 --no-feedback --active-groups 4
 
 python -m unittest -v experiments.text_regions.test_composition
+
+# Train the representation-learning follow-up on the same task and splits.
+python -m experiments.text_regions.composition_train \
+  --out artifacts/composition_reconstruction_seed1 --steps 1000 --batch 64 \
+  --seed 20261105 --copy-warmup 100 --lookup-warmup 200 \
+  --source-reconstruction 0.5
 ```
 
 To continue an interrupted run, repeat its exact training command with `--resume`. To stop at a planned checkpoint without changing the schedule, add `--stop-after N`. Recurrent repetitions use seeds 20261106 and 20261107 with separate output directories.

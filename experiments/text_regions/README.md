@@ -18,6 +18,8 @@ python -m experiments.text_regions.composition_eval \
 
 `GraphConfig(readout_mode='concat')` enables the common affine head over concatenated publications. The default `mixed` setting retains the previous mixing projection, normalization, decoder dimensions and parameter initialization. Existing configurations that omit `readout_mode` load as `mixed`.
 
+Composition training also supports `--copy-warmup 100 --source-reconstruction 0.5`. The former begins with training-only inverse-table pairs, whose unchanged composition target equals the query. The latter trains source representations to reconstruct their own observed table bytes from pre-query and post-query states. The small shared reconstruction head is not used by the prediction path. Checkpoints restore its parameters and optimizer state exactly.
+
 ## Recovery package
 
 The cohort-diversity report survived; its implementation, expanded features, and 432 fitted heads did not. Use the [recovery report](../../docs/SHoEbox_Recovery_Report.md) for the available files and exact missing revision. The recovered-artifacts ZIP restores all twelve frozen graphs and the preceding shared-preservation study, including its dependencies and four longer-fit diagnostics.
