@@ -1,6 +1,6 @@
 # SHoEbox
 
-**Seven HAT-SHoE nodes, three state-owning regions, and recurrent exchange over persistent tensor ports.** SHoEbox builds on [Sparse Hierarchy of Experts](https://github.com/JRowe47/Sparse-Hierarchy-of-Experts) at revision `b4bb7cfea18c3833819f6ed08973fd014f15f107`, preserving its history, experiments, and recorded results.
+**State-owning HAT-SHoE regions with recurrent exchange over persistent tensor ports.** SHoEbox builds on [Sparse Hierarchy of Experts](https://github.com/JRowe47/Sparse-Hierarchy-of-Experts) at revision `b4bb7cfea18c3833819f6ed08973fd014f15f107`, preserving its history, experiments, and recorded results. The default graph has seven nodes; the latest retained-memory experiment has eleven.
 
 The new experiment is [experiments/text_regions](experiments/text_regions). It executes sparse expert computation inside each node, keeps runtime memory separate from shared weights, and carries state across ordered text chunks. A second regional round reruns contextualization, semantic routing, all three SHoE blocks, and state updates. External bytes are ingested once.
 
@@ -50,15 +50,15 @@ P and Q feed the shared byte readout. B has one state owner and publishes to bot
 
 ## Development status
 
-**Joint local learning now passes the stronger 95% memory/query target in all three parent/data pairs.** Mean held-out accuracy is **99.80% recall, 99.87% correction, and 99.74% with the correction withheld**. The weakest pair's minimum task score rises from **96.09%** with either the unchanged parent or matched edge-only continuation to **99.22%** with joint learning.
+**Simultaneous shared/private retention now passes the 90% primary target in all three parent/data pairs.** Mean held-out composed-query recall is **99.93% shared, 99.80% left-private, and 99.87% right-private**. The weakest individual primary recall, correction or withheld-correction score is **97.66%**.
 
-F's fact producer and its F-to-A value projection now learn together. Local acquisition, retention and write/hold losses are applied before each 16-event gradient boundary. The seven-node recurrent composer and common byte decoder remain exactly frozen. Both arms see the same observations, relation tables and expert executions. No new inference head or model parameters are added: the graph remains at 317,098 parameters and 480 physical experts.
+Four independent memory owners retain three logical facts. F/L consume the complete left-source byte stream; G/R consume the complete right-source stream. Learned write gates distinguish shared and private observations. Queries supply an explicit field address, and shared reads select the latest valid replica. The selected continuous publication feeds the frozen two-round composer to answer `g(f(x))`, without decoding x into an intermediate byte.
 
-The source F is inactive during live queries. Two regional rounds use its retained latent to answer new `g(f(x))` questions, without decoding x into an intermediate byte. Longer-delay, repeated-query, shuffled-memory, reset, blocked-edge and no-exchange controls accompany the three-seed comparison.
+The eleven-node graph has **510,958 parameters and 768 physical experts**. Only the four producers and their edge value projections learn; the seven-node composer and common byte decoder remain frozen. Queries leave all four memory owners inactive and preserve their state. Pure update suffixes after three live queries score at least **97.66%** across every task/field/seed. Either source alone supports its shared and private answers at **99.61% or better**; the unavailable private field stays near chance.
 
-See the [joint-retention report](docs/SHoEbox_Joint_Retention_Report.md), [locked protocol](docs/SHoEbox_Joint_Retention_Protocol.md), and [audited comparison](experiments/text_regions/results/joint_retained). The next target is simultaneous shared/private fact retention in this graph; M7 remains open.
+On the matched shared-correction condition, two rounds average **99.61%**, one round averages **23.96%**, and blocked-memory or reset controls average **24.52%**. All **401 regression checks pass**. See the [multi-fact report](docs/SHoEbox_Multifact_Report.md), [locked protocol](docs/SHoEbox_Multifact_Protocol.md), [audited results](experiments/text_regions/results/multifact), and [reproduction commands](experiments/text_regions/README.md#simultaneous-shared-and-private-retention). The next target is joint natural-text training and a generative byte-stream interface; M7 remains open.
 
-The preceding [retained-composition phase](docs/SHoEbox_Retained_Composition_Report.md) connected the producer through 1,024 learned edge weights with both components frozen. The [selective-publication phase](docs/SHoEbox_Selective_Publication_Report.md) established learned write/hold behavior, and the [gradient-horizon report](docs/SHoEbox_Gradient_Horizon_Report.md) records the unchanged composition parent.
+The preceding [joint-retention phase](docs/SHoEbox_Joint_Retention_Report.md) trained one producer and its edge together, reaching **99.80% recall, 99.87% correction, and 99.74% with the correction withheld**. The [retained-composition phase](docs/SHoEbox_Retained_Composition_Report.md) first connected that producer through 1,024 learned edge weights with both components frozen. The [selective-publication phase](docs/SHoEbox_Selective_Publication_Report.md) established learned write/hold behavior, and the [gradient-horizon report](docs/SHoEbox_Gradient_Horizon_Report.md) records the unchanged composition parent.
 
 ## Earlier experiments
 

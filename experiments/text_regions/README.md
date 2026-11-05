@@ -721,3 +721,35 @@ configuration, weights and selected update; initialize `RegionLanguageModel` fro
 that configuration and use `retained_composition.ingest` and `query`. Neither path
 accepts fact labels as model inputs. The runtime and its default configuration
 remain unchanged.
+
+## Simultaneous shared and private retention
+
+`multifact.py` extends the integrated graph with four independent memory owners.
+F/L consume the same complete left byte description; G/R consume the right one.
+Learned publication gates separate common and private fields. A query supplies
+an explicit shared/left-private/right-private address. Shared reads choose the
+latest valid common publication; the existing frozen two-round composer uses
+that continuous value. Queries do not activate the memory owners.
+
+The [protocol](../../docs/SHoEbox_Multifact_Protocol.md) defines held-out fact
+combinations, single-source and erased-source controls, pure update suffixes
+after live queries, and the three-parent acceptance targets.
+The [report](../../docs/SHoEbox_Multifact_Report.md) and
+[audited results](results/multifact) record the completed comparison.
+
+```bash
+python scripts/run_multifact.py
+python scripts/audit_multifact.py artifacts/multifact/20261220
+python scripts/report_multifact.py
+```
+
+Each run saves initial/selected/final optimizer checkpoints and an `inference.pt`
+export. Repeating the runner resumes training, evaluation and audit progress
+only when the saved protocol, checkpoint and source hashes match. A direct audit
+recomputes every prediction; `--resume` permits verified audit progress to resume.
+
+Load the export with `torch.load(..., weights_only=True)`, construct
+`RegionLanguageModel(GraphConfig.from_dict(export['config']))`, load `weights`,
+and restore `GraphState.from_dict(export['state'])`. `multifact.query` accepts
+two `[B,4]` byte tables and an int64 `[B]` address tensor: 0 common, 1 left
+private, 2 right private. No target labels are needed for inference.

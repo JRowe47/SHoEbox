@@ -1,0 +1,42 @@
+{
+  "schema": "shoebox-multifact-protocol-v1",
+  "seeds": [
+    20261220,
+    20261221,
+    20261222
+  ],
+  "parent_seeds": [
+    20261130,
+    20261131,
+    20261132
+  ],
+  "steps": 120,
+  "batch": 32,
+  "validation_count": 64,
+  "validate_every": 20,
+  "test_count": 512,
+  "primary_gap": 16,
+  "long_gap": 64,
+  "learning_rates": {
+    "producer": 0.0003,
+    "edge": 0.001
+  },
+  "gaps": [
+    0,
+    4,
+    8,
+    16
+  ],
+  "segment": 16,
+  "primary_target": "Every seed >=90% on each field for recall, either-source shared correction, either-private correction, and withheld corrections",
+  "source_target": "Each source alone >=90% on common and its own private field; unsupported private <=35% on independent factors",
+  "live_target": "After three field queries, a pure update suffix yields >=90% on each field; no initial-fact re-observation",
+  "controls": "Exact owner preservation and exports; blocked/reset <=35%; K2 exceeds K1 by >=5 points; matched expert counts",
+  "selection": "Validation-only lexicographic minimum field/task accuracy, mean accuracy, lower NLL; earliest exact tie",
+  "parent_sha256": [
+    "b8a19a773aa664ccc03160e5f35f6f26fad8231ed9bb0be6bbd5292b4ed37840",
+    "281786b049286d701ede131ad982ed8e35bb1cf300279a4433a3852f026b321d",
+    "bcd2a4a69d54aea2061abec9bbfa3cdc4b2df74765f56f14bd1652d881bc3a4a"
+  ],
+  "protocol_document_sha256": "0003c4ce827d0b72cb558a60aa2a6f99a97087ea8478f196dacc1177272bff1a"
+}

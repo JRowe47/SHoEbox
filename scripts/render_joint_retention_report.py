@@ -14,7 +14,10 @@ from reportlab.platypus import SimpleDocTemplate,Paragraph,Spacer,Table,TableSty
 
 def main():
     parser=argparse.ArgumentParser(description=__doc__);parser.add_argument('markdown',type=Path)
-    parser.add_argument('pdf',type=Path);args=parser.parse_args()
+    parser.add_argument('pdf',type=Path)
+    parser.add_argument('--title',default='SHoEbox - Joint producer and connection learning')
+    parser.add_argument('--footer',default='SHoEbox  /  Joint retention  /  November 5, 2026')
+    args=parser.parse_args()
     fonts=Path('/usr/share/fonts/truetype/dejavu')
     for name,filename in (('ReportSans','DejaVuSans.ttf'),('ReportSans-Bold','DejaVuSans-Bold.ttf'),('ReportMono','DejaVuSansMono.ttf')):
         pdfmetrics.registerFont(TTFont(name,str(fonts/filename)))
@@ -67,11 +70,11 @@ def main():
         canvas.setStrokeColor(colors.HexColor('#bacbd0'));canvas.setLineWidth(.4)
         canvas.line(48,39,A4[0]-48,39)
         canvas.setFont('ReportSans',7.5);canvas.setFillColor(colors.HexColor('#536a72'))
-        canvas.drawString(48,26,'SHoEbox  /  Joint retention  /  November 5, 2026')
+        canvas.drawString(48,26,args.footer)
         canvas.drawRightString(A4[0]-48,26,str(doc.page))
     args.pdf.parent.mkdir(parents=True,exist_ok=True)
     doc=SimpleDocTemplate(str(args.pdf),pagesize=A4,leftMargin=48,rightMargin=48,topMargin=43,bottomMargin=54,
-                          title='SHoEbox - Joint producer and connection learning',author='SHoEbox project')
+                          title=args.title,author='SHoEbox project')
     doc.build(story,onFirstPage=footer,onLaterPages=footer)
 
 
