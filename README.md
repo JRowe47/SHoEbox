@@ -50,6 +50,8 @@ P and Q feed the shared byte readout. B has one state owner and publishes to bot
 
 ## Development status
 
+The full-rank decoder follow-up is complete: **72 deterministic refits on twelve frozen graphs**, with the same 960/3,840 training cohorts and fixed evaluations. The refits do not consistently improve on the retained compact identity correction. A new compiled readout folds normalization and affine corrections into a single matrix multiplication; all exported predictions are independently checked. See the [full-rank and inference-cost report](docs/SHoEbox_Full_Rank_Readout_Report.md), [aggregate results](experiments/text_regions/results/full_rank), and [reproduction and deployment commands](experiments/text_regions/README.md#full-rank-refits-and-compiled-readouts).
+
 The missing cohort-diversity phase has been rebuilt and rerun across **twelve frozen graphs and 432 corrections**. The [reproduction report](docs/SHoEbox_Cohort_Reproduction_Report.md) compares the fresh results with the [preserved original findings](docs/SHoEbox_Cohort_Diversity_Report.md). Source, resumable fitting, independent audits and aggregate results are included; the downloadable artifact package contains all fitted tensors, expanded features and dependencies. See the [reproduction commands](experiments/text_regions/README.md#decoder-cohort-diversity-reproduction).
 
 **All 80 reported accuracy values reproduce at their published precision.** Nonzero identity corrections accepted by validation rise from 3/36 to 33/36 when the fitting cohort grows from 960 to 3,840 cases. All 307 automated tests pass; artifact audits reproduce 2,880 new prediction groups and 720 retained legacy groups.

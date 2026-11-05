@@ -510,3 +510,51 @@ base tensors before using saved heads. The new study's
 [audited aggregates](results/cohort_reproduction) include the original-report
 comparison and verification logs. The [report](../../docs/SHoEbox_Cohort_Reproduction_Report.md)
 and its PDF document the results and exact historical recovery boundary.
+
+## Full-rank refits and compiled readouts
+
+The next decoder phase fits a common 64-feature, 256-byte affine decoder on the
+same nested 960/3,840 cohorts. Graphs and normalization remain frozen. The 72
+new fits cover twelve graphs, two cohort sizes and penalties 0/1/10. Fitting is
+deterministic; validation selects strength and positive preservation penalty.
+The independent audit also reconstructs all 432 earlier identity/GELU fits.
+
+```bash
+python scripts/run_full_rank_study.py --out artifacts/full_rank_v1 --jobs 4 --threads 2
+python -m experiments.text_regions.full_rank_compare --export-compiled \
+  --out artifacts/full_rank_comparison.json
+python scripts/benchmark_full_rank_readout.py --out artifacts/full_rank_benchmark.json
+```
+
+Use the full artifact archive for the fixed graph/feature dependencies. To
+repeat fitting, pass a new `--out`; add `--resume` after interruption. Resuming
+checks source, settings, input hashes and frozen-base identity. For a different
+study directory, pass the same `--source` to the audit and timing scripts.
+
+`compiled_readout.py` provides an optional frozen `nn.Module` with no query or
+source-label inputs. It folds normalization and affine corrections offline.
+An identity correction or full-rank interpolation requires one affine matrix;
+GELU retains its nonlinear correction. Every export is checked against its
+reference decoder on both training cohorts, validation and all evaluations.
+The graph's default decoder is unchanged.
+
+```python
+import torch
+from experiments.text_regions.compiled_readout import restore_compiled
+
+export = torch.load(
+    'artifacts/full_rank_v1/original_dropout_seed1/compiled.pt',
+    map_location='cpu', weights_only=True)
+head = restore_compiled(export['heads']['256/identity/20261121'])
+# raw_pq: [batch, 64], the concatenated final P/Q feature vector.
+# This exported head must be paired with the same frozen graph and feature layout.
+with torch.inference_mode():
+    logits = head(raw_pq)       # [batch, 256], float64
+    answer_bytes = logits.argmax(-1)
+```
+
+The compiled buffers are independent copies and support PyTorch device/dtype
+moves. Published equivalence and CPU timings use float64; converting dtype is
+a separate numerical change. The artifact keeps graph and feature provenance
+alongside the buffers. See the [full-rank report](../../docs/SHoEbox_Full_Rank_Readout_Report.md)
+and [aggregate results](results/full_rank).
