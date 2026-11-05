@@ -50,11 +50,11 @@ P and Q feed the shared byte readout. B has one state owner and publishes to bot
 
 ## Development status
 
-**Learned regional composition reaches 75.00% held-out accuracy**, up from 33.78% in the previous phase. A matched continuation without regional supervision reaches 47.30%. The same trained model scores 24.83% at K=1 and 75.00% at K=2; disabling delayed exchange returns it to 24.83%. P's first lookup reaches 92.23%, and both source tables remain fully recoverable before and after the query.
+**Learned regional composition reaches 95.78% held-out accuracy**, up from 75.00%. Continuing the existing regional objective brings P's first lookup to 96.45% and Q's second lookup to 96.11%. Both source tables remain fully recoverable before and after the query. The same model scores 25.00% at K=1 and 95.78% at K=2; disabling delayed exchange returns it to 25.00%.
 
-This round adds a mastery-gated curriculum, optional differentiable round publications, and training-only regional lookup supervision. The common byte readout and 252,478-parameter inference graph are unchanged. Inference-only checkpoints remove the auxiliary heads with exact logit agreement. **All 336 tests pass. M7 remains open: common-answer lookup is still below 90%, and integrated capability training, wider one-pass controls and independent initializations remain.**
+This round adds exact optimizer/RNG continuation and capability-qualified checkpoint selection. The selected checkpoint passes every validation and test threshold, including separate lookups and exact source retention. The subsequent checkpoint loses one complete-table reconstruction, so the two-consecutive-pass stability target remains open. The common byte head and 252,478-parameter inference graph are unchanged. **All 342 tests pass. M7 remains open: integrated capability training, longer-round stability, comparable-budget one-pass controls, independent initializations and natural-text evaluation remain.**
 
-See the [lookup and regional-learning report](docs/SHoEbox_Lookup_Report.md), [protocol and reproduction commands](docs/SHoEbox_Lookup_Protocol.md), and [audited raw results](experiments/text_regions/results/lookup_mastery). The [previous composition report](docs/SHoEbox_Composition_Report.md) preserves the starting result.
+See the [second lookup report](docs/SHoEbox_Second_Lookup_Report.md), [continuation protocol](docs/SHoEbox_Second_Lookup_Protocol.md), and [audited raw results](experiments/text_regions/results/second_lookup). The [previous regional-learning report](docs/SHoEbox_Lookup_Report.md) preserves the matched intervention that established the regional objective.
 
 ## Earlier experiments
 

@@ -579,8 +579,27 @@ and [aggregate results](results/full_rank).
 
 ## Lookup mastery and regional supervision
 
-The latest round reaches **75.00%** on 592 held-out relation-composition queries, versus 47.30% for a matched continuation and 33.78% previously. See the [report](../../docs/SHoEbox_Lookup_Report.md) and [complete protocol](../../docs/SHoEbox_Lookup_Protocol.md).
+The regional-supervision round reached **75.00%** on 592 held-out relation-composition queries, versus 47.30% for a matched continuation and 33.78% previously. See the [report](../../docs/SHoEbox_Lookup_Report.md) and [complete protocol](../../docs/SHoEbox_Lookup_Protocol.md).
 
 `composition_curriculum` implements separate consecutive lookup gates and checkpointed stage transitions. `composition_train --regional-supervision 1` adds a shared training-only head at P round one and Q round two. `--initialize` starts a new continuation from a saved composition model; `--resume` restores the complete current run.
 
 `RegionLanguageModel(..., return_round_activity=True)` exposes differentiable readout-node payloads `[B,T,K,width]` and validity `[B,T,K]` under `round_activity`. The observations preserve predictions, state and expert counts. The export audit in `results.lookup_mastery.audit` removes both training-only heads and verifies unchanged inference.
+
+## Second lookup continuation
+
+The subsequent continuation reaches **95.78%** held-out composition, 96.45% local P first lookup and 96.11% local Q second lookup, with both complete source tables retained in every case. The architecture and losses are unchanged. See the [report](../../docs/SHoEbox_Second_Lookup_Report.md), [protocol](../../docs/SHoEbox_Second_Lookup_Protocol.md) and [audit](results/second_lookup/audit.json).
+
+`composition_continue` restores optimizer moments, counters and both RNG states from its parent. `optimizer_step_offset` keeps the existing learning-rate schedule. Full validation checks answer, lookup, regional and source-retention capabilities; checkpoint selection uses the lowest validation NLL among qualifying checkpoints. Two consecutive passes establish a separate stability gate. The recorded run selects phase update 500 (regional optimizer update 1,100), and finishes its 600-update budget without passing the consecutive-check gate.
+
+```bash
+python -m experiments.text_regions.composition_continue \
+  --parent artifacts/second_lookup/parent.pt --out artifacts/second_lookup/continuation \
+  --steps 600 --validate-every 100 --stop-on-mastery
+python -m experiments.text_regions.composition_eval \
+  artifacts/second_lookup/continuation/best.pt --controls --threads 1 \
+  --out artifacts/second_lookup/continuation/test.json
+python -m experiments.text_regions.results.second_lookup.audit \
+  --root artifacts/second_lookup --out artifacts/second_lookup/audit.json
+```
+
+Append `--resume` to the same continuation command after an interruption. The artifact package contains the parent, full resumable states and an inference-only export. `selection.json` records the selected filename and hash; `history.json` distinguishes local phase steps from regional optimizer updates. Full-cohort evaluation, exact resumption and guarded selection are covered by the six new tests; all 342 repository tests pass.
