@@ -2,6 +2,7 @@
 import contextlib
 from dataclasses import replace
 import io
+import math
 from pathlib import Path
 import random
 import tempfile
@@ -20,7 +21,7 @@ from .regional_train import main
 from .test_integrated import progress
 from .test_probe import assert_tree_equal
 from .view_data import make_view_batch, QUERY_TYPES
-from scripts.train_integrated_balanced import balanced_update
+from scripts.train_integrated_balanced import balanced_update, clip_task_gradients
 
 torch.set_num_threads(1)
 
@@ -34,6 +35,34 @@ def model_fixture():
 
 
 class FactSupervisionChecks(unittest.TestCase):
+    def test_gradient_clipping_handles_finite_overflow_without_changing_direction(self):
+        parameter = torch.nn.Parameter(torch.zeros(2))
+        parameter.grad = torch.tensor([3e20, 4e20])
+        self.assertTrue(torch.isfinite(parameter.grad).all())
+        self.assertFalse(torch.isfinite(parameter.grad.norm()))
+        norm = clip_task_gradients([parameter])
+        self.assertTrue(math.isfinite(float(norm)))
+        self.assertAlmostEqual(float(norm)/5e20, 1., places=6)
+        torch.testing.assert_close(parameter.grad, torch.tensor([.6, .8]))
+        self.assertAlmostEqual(float(parameter.grad.norm()), 1., places=6)
+
+    def test_gradient_clipping_preserves_ordinary_path_and_rejects_nonfinite(self):
+        for values in ([.03, .04], [3., 4.], [0., 0.]):
+            actual = torch.nn.Parameter(torch.zeros(2))
+            expected = torch.nn.Parameter(torch.zeros(2))
+            actual.grad = torch.tensor(values); expected.grad = actual.grad.clone()
+            norm = clip_task_gradients([actual])
+            reference = torch.nn.utils.clip_grad_norm_([expected], 1., error_if_nonfinite=True)
+            self.assertTrue(torch.equal(norm, reference))
+            self.assertTrue(torch.equal(actual.grad, expected.grad))
+        for value in (float('nan'), float('inf'), -float('inf')):
+            parameter = torch.nn.Parameter(torch.zeros(2))
+            parameter.grad = torch.tensor([value, 1.])
+            before = parameter.grad.clone()
+            with self.assertRaises(RuntimeError):
+                clip_task_gradients([parameter])
+            torch.testing.assert_close(parameter.grad, before, equal_nan=True, rtol=0, atol=0)
+
     def test_correction_targets_follow_observed_writes_and_resets(self):
         for control in ('carried', 'withhold_update', 'reset_query'):
             batch = make_batch('correction', 'train', 0, 4, gap=16, control=control)

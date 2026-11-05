@@ -16,6 +16,30 @@ from experiments.text_regions.integrated_train import make_streams, stream_loss,
 from experiments.text_regions.integrated_eval import evaluate_capabilities, selection_key
 
 
+@torch.no_grad()
+def clip_task_gradients(parameters, max_norm=1.):
+    """Keep ordinary clipping exact, with FP64 reduction on FP32 overflow.
+
+    Recurrent gradients can be finite while their FP32 sum of squares is not.
+    The fallback changes only the norm reduction, not the gradient direction or
+    cap. NaN/Inf gradients still fail before any gradient is modified.
+    """
+    parameters = list(parameters)
+    try:
+        return torch.nn.utils.clip_grad_norm_(parameters, max_norm, error_if_nonfinite=True)
+    except RuntimeError as error:
+        if 'is non-finite' not in str(error):
+            raise
+        gradients = [p.grad for p in parameters if p.grad is not None]
+        norm = torch.linalg.vector_norm(torch.stack([g.double().norm() for g in gradients]))
+        if not bool(torch.isfinite(norm)):
+            raise
+        coefficient = (max_norm/(norm + 1e-6)).clamp(max=1.)
+        for gradient in gradients:
+            gradient.mul_(coefficient.to(device=gradient.device, dtype=gradient.dtype))
+        return norm
+
+
 def balanced_update(model, optimizer, rng, streams, states, protocol):
     parameters = list(model.parameters())
     accumulated = [None for _ in parameters]
@@ -45,7 +69,7 @@ def balanced_update(model, optimizer, rng, streams, states, protocol):
                 row[name+'_'+key] = value
         if not bool(torch.isfinite(loss)): raise FloatingPointError('Nonfinite task loss.')
         loss.backward()
-        norm = torch.nn.utils.clip_grad_norm_(parameters, 1., error_if_nonfinite=True)
+        norm = clip_task_gradients(parameters)
         row[name+'_gradient_norm'] = float(norm)
         for index, parameter in enumerate(parameters):
             if parameter.grad is not None:
@@ -55,7 +79,7 @@ def balanced_update(model, optimizer, rng, streams, states, protocol):
         for key in ('expert_executions', 'source_occurrences', 'external_events'): row[key] += result[key]
         del loss, result
     for parameter, gradient in zip(parameters, accumulated): parameter.grad = gradient
-    norm = torch.nn.utils.clip_grad_norm_(parameters, 1., error_if_nonfinite=True)
+    norm = clip_task_gradients(parameters)
     optimizer.step()
     row.update(gradient_norm=float(norm), lr=protocol['lr'])
     return next_states, row
