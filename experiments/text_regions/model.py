@@ -104,7 +104,12 @@ class RegionLanguageModel(nn.Module):
                 availability=None, node_masks=None, edge_masks=None, substitutions=None,
                 trace=False, reverse_independent=False, return_view_activity=False,
                 return_edge_activity=False, edge_bias=None, lace_bias=None,
-                return_round_activity=False, return_node_activity=()):
+                return_round_activity=False, return_node_activity=(),
+                return_publication_activity=False, publication_overrides=None):
+        publication_overrides = publication_overrides or {}
+        if set(publication_overrides)-set(self.cfg.selective_publication) or any(
+                value not in ('always', 'hold') for value in publication_overrides.values()):
+            raise ValueError('Publication controls require configured nodes and always/hold policies.')
         if len(set(return_node_activity)) != len(return_node_activity) or set(return_node_activity)-set(self.nodes):
             raise ValueError('Activity capture requires distinct known node names.')
         availability, node_masks = availability or {}, node_masks or {}
@@ -132,6 +137,8 @@ class RegionLanguageModel(nn.Module):
         all_active = torch.ones(b, dtype=torch.bool, device=device)
         logits, records = [], []
         node_activity = {name: {'payload': [], 'valid': []} for name in return_node_activity}
+        publication_activity = {name: {'candidate': [], 'logit': [], 'written': []}
+                                for name in self.cfg.selective_publication} if return_publication_activity else {}
         round_activity = {name: {'payload': [], 'valid': []} for name in self.cfg.readout} if return_round_activity else {}
         view_activity = {view: {'payload': [], 'available': []} for view in events} if return_view_activity else {}
         edge_names = tuple(self.connections.edges)
@@ -141,6 +148,8 @@ class RegionLanguageModel(nn.Module):
         hat_aux = aux
         activations = ingress_activations = executed = 0
         for event_index in range(t):
+            event_publications = {name: {key: [] for key in activity}
+                                  for name, activity in publication_activity.items()}
             event_activity = {name: {'payload': [], 'valid': []} for name in round_activity}
             if reset is not None and (reset.ndim == 2 or event_index == 0):
                 rows = reset[:, event_index] if reset.ndim == 2 else reset
@@ -184,14 +193,25 @@ class RegionLanguageModel(nn.Module):
                                     usage[:, event_index, edge_indices[dependency.edge]] += dependency.consumed.long()
                         result = self.nodes[name](payload, context, state.nodes[name], active, trace, lace_bias.get(name))
                         node_states[name] = result['state']
-                        publication = publish(current[name], result['latent'], result['header'], active,
+                        writing = active
+                        if name in self.cfg.selective_publication:
+                            logit = self.nodes[name].publication_logit(result['latent'])
+                            decision = logit.ge(0)
+                            if name in publication_overrides:
+                                decision = torch.full_like(active, publication_overrides[name] == 'always')
+                            writing = active & decision
+                            if return_publication_activity:
+                                event_publications[name]['candidate'].append(result['latent'])
+                                event_publications[name]['logit'].append(logit)
+                                event_publications[name]['written'].append(writing)
+                        publication = publish(current[name], result['latent'], result['header'], writing,
                                               state.epochs, state.events_seen, torch.full_like(state.events_seen, k),
                                               dependencies)
                         if self.cfg.evidence_gated_ports:
                             evidence = torch.zeros_like(active)
                             for dependency in dependencies:
                                 evidence = evidence | dependency.consumed
-                            publication = replace(publication, valid=current[name].valid | evidence)
+                            publication = replace(publication, valid=current[name].valid | (evidence & writing))
                         state.ports.stage(staged, publication)
                         weight = int(active.sum())
                         aux = aux + result['aux']*weight
@@ -213,6 +233,9 @@ class RegionLanguageModel(nn.Module):
             for name, activity in event_activity.items():
                 for key, values in activity.items():
                     round_activity[name][key].append(torch.stack(values, 1))
+            for name, activity in event_publications.items():
+                for key, values in activity.items():
+                    publication_activity[name][key].append(torch.stack(values, 1))
             for name, activity in node_activity.items():
                 publication = state.ports.latest[name]
                 activity['payload'].append(publication.payload)
@@ -241,10 +264,13 @@ class RegionLanguageModel(nn.Module):
                           for name, values in round_activity.items()}
         node_activity = {name: {key: torch.stack(parts, 1) for key, parts in values.items()}
                          for name, values in node_activity.items()}
+        publication_activity = {name: {key: torch.stack(parts, 1) for key, parts in values.items()}
+                                for name, values in publication_activity.items()}
         return {'logits': logits, 'loss': loss, 'ce': ce, 'aux': aux, 'hat_aux': hat_aux,
                 'state': state, 'trace': records, 'expert_executions': executed,
                 'view_activity': view_activity, 'edge_activity': usage, 'edge_names': edge_names,
                 'round_activity': round_activity, 'node_activity': node_activity,
+                'publication_activity': publication_activity,
                 'external_events': b*t, 'source_occurrences': ingress_activations, 'internal_rounds': b*t*k_total}
 
     def parameter_summary(self):

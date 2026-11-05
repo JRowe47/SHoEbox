@@ -66,6 +66,7 @@ class GraphConfig:
     feedback_gate_init: float = .05
     zero_safe_norm: bool = True
     evidence_gated_ports: bool = False
+    selective_publication: tuple[str, ...] = ()
     context: int = 128
     auxiliary_loss_weight: float = .01
     hat_balance_weight: float = .001
@@ -106,6 +107,9 @@ class GraphConfig:
             raise ValueError('At least one source view and distinct readout nodes are required.')
         if any(n not in names for n in self.readout):
             raise ValueError('Readout references an unknown node.')
+        if len(set(self.selective_publication)) != len(self.selective_publication) or any(
+                n not in names for n in self.selective_publication):
+            raise ValueError('Selective publication requires distinct known nodes.')
         if self.readout_mode not in ('mixed', 'concat'):
             raise ValueError('Readout mode must be mixed or concat.')
         if len(set(e.key for e in self.edges)) != len(self.edges):
@@ -145,6 +149,7 @@ class GraphConfig:
         data['nodes'] = tuple(NodeSpec(**n) for n in data['nodes'])
         data['edges'] = tuple(EdgeSpec(**e) for e in data['edges'])
         data['readout'] = tuple(data['readout'])
+        data['selective_publication'] = tuple(data.get('selective_publication', ()))
         return cls(**data)
 
     @classmethod

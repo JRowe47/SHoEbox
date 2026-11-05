@@ -59,6 +59,14 @@ class RecurrentNode(nn.Module):
         self.core = RecurrentChild(hat_cfg.child_config(index), hat_cfg, shared, with_decoder=False)
         for block in self.core.blocks:
             block.memory.safe_zero = cfg.zero_safe_norm
+        if spec.name in cfg.selective_publication:
+            self.publication_gate = nn.Linear(cfg.width, 1)
+            nn.init.zeros_(self.publication_gate.weight)
+            nn.init.constant_(self.publication_gate.bias, 2.)
+
+    def publication_logit(self, latent):
+        """A producer's write decision reads only its computed latent."""
+        return self.publication_gate(latent).squeeze(-1)
 
     def initial_state(self, batch, device, dtype):
         return NodeState(tuple(level.memory.initial_state(batch, device, dtype) for level in self.adapter.levels),

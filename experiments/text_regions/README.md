@@ -2,6 +2,38 @@
 
 This is SHoEbox's event-major reference implementation of the [development specification](../../docs/SHoE_Text_Development_Specification.md). It reuses the baseline's SymbolLevel, RecurrentChild, minKron, lace controller, and split expert banks. No old experiment is copied into this directory.
 
+## Learned publication retention
+
+`GraphConfig.selective_publication` names the nodes whose computed latent
+controls a hard write/hold decision. It defaults to an empty tuple, preserving
+legacy checkpoint shapes and behavior. Each enabled node adds one affine
+gate (`width + 1` parameters). Holding retains the publication while the
+node continues its ordinary sparse computation and recurrent update.
+
+`return_publication_activity=True` returns `candidate` with shape `[B,T,K,D]`
+and `logit`/`written` with shape `[B,T,K]` for configured nodes. The optional
+`publication_overrides={name: 'always'}` or `'hold'` controls support ablations;
+ordinary learned inference omits them. Write labels never enter `forward`.
+
+The producer experiment extracts node A and its existing ingress/shared banks
+from the selected gradient-horizon checkpoint. It compares learned and
+unconditional publication at matched initialization, labels and expert work.
+See the [locked protocol](../../docs/SHoEbox_Selective_Publication_Protocol.md),
+[report](../../docs/SHoEbox_Selective_Publication_Report.md), and
+[raw results](results/selective_publication).
+
+```bash
+python scripts/run_selective_publication.py
+python scripts/audit_selective_publication.py --evaluations
+```
+
+The artifact archive includes resumable `last.pt`, validation-selected
+`best.pt`, and compact `inference.pt` for each run. Inference exports contain
+`config`, `weights`, and `publication_policy`. Load the first two into
+`RegionLanguageModel(GraphConfig.from_dict(saved['config']))`; use an
+`always` override for the control export and no override for the learned
+export. Both use the same 256-byte decoder and return ordinary `GraphState`.
+
 ## Learned regional composition
 
 The composition phase trains the graph on `g(f(x))`: B and C independently encode two relation tables, then A receives the query. All seven nodes execute during each query round. Evaluation compares K=1,2,4 from the same encoded prefix, with delayed-exchange, shuffled-bridge, counterfactual-answer and state-reset controls. One shared affine byte head reads the full P/Q outputs; it is trained jointly with the graph.
