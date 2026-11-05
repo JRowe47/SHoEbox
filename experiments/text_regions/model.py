@@ -104,7 +104,9 @@ class RegionLanguageModel(nn.Module):
                 availability=None, node_masks=None, edge_masks=None, substitutions=None,
                 trace=False, reverse_independent=False, return_view_activity=False,
                 return_edge_activity=False, edge_bias=None, lace_bias=None,
-                return_round_activity=False):
+                return_round_activity=False, return_node_activity=()):
+        if len(set(return_node_activity)) != len(return_node_activity) or set(return_node_activity)-set(self.nodes):
+            raise ValueError('Activity capture requires distinct known node names.')
         availability, node_masks = availability or {}, node_masks or {}
         edge_masks, substitutions = edge_masks or {}, substitutions or {}
         events, state, b, t, controlled = self._prepare(inputs, state, availability, node_masks,
@@ -129,6 +131,7 @@ class RegionLanguageModel(nn.Module):
         device = state.events_seen.device
         all_active = torch.ones(b, dtype=torch.bool, device=device)
         logits, records = [], []
+        node_activity = {name: {'payload': [], 'valid': []} for name in return_node_activity}
         round_activity = {name: {'payload': [], 'valid': []} for name in self.cfg.readout} if return_round_activity else {}
         view_activity = {view: {'payload': [], 'available': []} for view in events} if return_view_activity else {}
         edge_names = tuple(self.connections.edges)
@@ -210,6 +213,10 @@ class RegionLanguageModel(nn.Module):
             for name, activity in event_activity.items():
                 for key, values in activity.items():
                     round_activity[name][key].append(torch.stack(values, 1))
+            for name, activity in node_activity.items():
+                publication = state.ports.latest[name]
+                activity['payload'].append(publication.payload)
+                activity['valid'].append(publication.valid)
             values = [state.ports.latest[n].payload*state.ports.latest[n].valid[:, None] for n in self.cfg.readout]
             latent = self.readout_norm(self.readout_mix(torch.cat(values, -1)))
             logits.append(self.readout(latent))
@@ -232,10 +239,12 @@ class RegionLanguageModel(nn.Module):
                 activity['provenance'] = 'independent_ingress'
         round_activity = {name: {key: torch.stack(parts, 1) for key, parts in values.items()}
                           for name, values in round_activity.items()}
+        node_activity = {name: {key: torch.stack(parts, 1) for key, parts in values.items()}
+                         for name, values in node_activity.items()}
         return {'logits': logits, 'loss': loss, 'ce': ce, 'aux': aux, 'hat_aux': hat_aux,
                 'state': state, 'trace': records, 'expert_executions': executed,
                 'view_activity': view_activity, 'edge_activity': usage, 'edge_names': edge_names,
-                'round_activity': round_activity,
+                'round_activity': round_activity, 'node_activity': node_activity,
                 'external_events': b*t, 'source_occurrences': ingress_activations, 'internal_rounds': b*t*k_total}
 
     def parameter_summary(self):

@@ -33,6 +33,7 @@ class ProbeBatch:
     query_types: tuple[str, ...]
     identities: tuple[str, ...]
     distances: tuple[int, ...]
+    retained_targets: torch.Tensor | None = None
 
     @property
     def length(self):
@@ -42,7 +43,28 @@ class ProbeBatch:
         inputs = {k: v[:, start:stop] for k, v in self.inputs.items()} if isinstance(self.inputs, dict) else self.inputs[:, start:stop]
         return ProbeBatch(inputs, {k: v[:, start:stop] for k, v in self.availability.items()},
                           self.targets[:, start:stop], self.reset[:, start:stop], self.final[:, start:stop],
-                          self.answers, self.old_answers, self.query_types, self.identities, self.distances)
+                          self.answers, self.old_answers, self.query_types, self.identities, self.distances,
+                          None if self.retained_targets is None else self.retained_targets[:, start:stop])
+
+
+def observed_memory_targets(inputs, reset):
+    """Loss-only current-value labels from actual writes, including controls.
+
+    Compute before slicing so a later TBPTT segment retains causal eligibility.
+    A reset discards the old fact; a withheld write cannot change its label.
+    """
+    labels = torch.full_like(inputs, -100)
+    current = torch.full_like(inputs[:, 0], -100)
+    previous = torch.full_like(current, -100)
+    for t in range(inputs.shape[1]):
+        current = current.masked_fill(reset[:, t], -100)
+        previous = previous.masked_fill(reset[:, t], -100)
+        value = inputs[:, t]
+        written = previous.eq(ord('=')) & value.ge(65) & value.le(68)
+        current = torch.where(written, value, current)
+        labels[:, t] = current
+        previous = value
+    return labels
 
 
 def make_probe(kind='correction', split='train', index=0, seed=0, gap=16, query_every=4):
@@ -152,7 +174,8 @@ def make_batch(kind, split, start, batch_size, seed=0, gap=16, query_every=4, co
     return ProbeBatch(views if kind=='shared_private' else views['text'], availability, targets, reset, final,
                       torch.tensor([e.answer for e in episodes]), torch.tensor([e.old_answer for e in episodes]),
                       tuple(e.query_type for e in episodes), tuple(e.identity for e in episodes),
-                      tuple(e.final_query-e.last_value_position for e in episodes))
+                      tuple(e.final_query-e.last_value_position for e in episodes),
+                      None if kind == 'shared_private' else observed_memory_targets(views['text'], reset))
 
 
 class EpisodeStream:

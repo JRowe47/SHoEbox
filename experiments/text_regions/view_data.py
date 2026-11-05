@@ -193,6 +193,7 @@ class ViewBatch:
     control: str
     description_end: int = DESCRIPTION_END
     time_offset: int = 0
+    last_reset_positions: torch.Tensor | None = None
 
     @property
     def length(self): return self.targets.shape[1]
@@ -244,7 +245,8 @@ class ViewBatch:
                          self.query_types, self.identities, self.fact_positions, self.observation_positions,
                          temporal(self.private_targets), temporal(self.private_masks), temporal(self.shared_targets),
                          self.answer_available[:, start:stop], self.template_ids, self.retained_views,
-                         self.split, self.control, self.description_end, self.time_offset+start)
+                         self.split, self.control, self.description_end, self.time_offset+start,
+                         None if self.last_reset_positions is None else self.last_reset_positions[:, start:stop])
 
 
 def _causal_targets(episodes, availability, reset):
@@ -321,7 +323,8 @@ def make_view_batch(split, start, batch_size, seed=0, gap=8, query_every=4,
                      tuple(episode.query_type for episode in episodes), tuple(episode.identity for episode in episodes),
                      positions, observed, private, {view: values != IGNORE for view, values in private.items()}, shared,
                      answer_available, {view: torch.tensor([episode.template_ids[view] for episode in episodes]) for view in VIEWS},
-                     retained, split, control)
+                     retained, split, control, last_reset_positions=torch.where(
+                         reset, torch.arange(length)[None], -1).cummax(1).values)
 
 
 class ViewStream:

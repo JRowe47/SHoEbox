@@ -37,7 +37,8 @@ def export_inference(path, out):
     model.eval()
     inference = RegionLanguageModel(GraphConfig.from_dict(saved['config'])).eval()
     weights = {k: v for k, v in saved['weights'].items()
-               if not k.startswith(('source_reconstruction.', 'regional_readout.'))}
+               if not k.startswith(('source_reconstruction.', 'regional_readout.',
+                                    'memory_retention.', 'fact_retention.'))}
     inference.load_state_dict(weights, strict=True)
     batch = batch_from_keys(evaluation_keys('test')[:64])
     a = answer_query(model, batch, encode_sources(model, batch)['state'])
@@ -60,7 +61,8 @@ def export_inference(path, out):
                       'weights': weights, 'parent_sha256': hashlib.sha256(Path(path).read_bytes()).hexdigest()})
     return {'exact_logits_and_states': True, 'cases': cases,
             'parameters': inference.parameter_summary(),
-            'removed_heads': ['source_reconstruction', 'regional_readout'],
+            'removed_heads': [name for name in ('source_reconstruction', 'regional_readout',
+                                               'memory_retention', 'fact_retention') if hasattr(model, name)],
             'inference_sha256': hashlib.sha256(Path(out).read_bytes()).hexdigest()}
 
 

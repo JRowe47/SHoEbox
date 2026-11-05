@@ -17,7 +17,7 @@ def digest(path):
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
-def audit_one(root, checkpoint_path, evaluation_path, expected_step):
+def audit_one(root, checkpoint_path, evaluation_path, expected_step, expected_count=192):
     checkpoint = torch.load(root/checkpoint_path, map_location='cpu', weights_only=True)
     report = json.loads((root/evaluation_path).read_text())
     assert report['checkpoint_step'] == checkpoint['step'] == expected_step
@@ -57,12 +57,12 @@ def audit_one(root, checkpoint_path, evaluation_path, expected_step):
                                         gap=8, control=control, query_type=kind)
                 assert row['episode_ids'] == list(batch.identities)
                 assert row['targets'] == batch.answers.tolist()
-                assert row['episodes'] == 192
+                assert row['episodes'] == expected_count
                 assert row['external_events'] == len(batch.identities)*batch.length
                 assert row['expert_executions'] == 168*len(batch.identities)*batch.length
                 for value, class_row in row['by_answer'].items():
                     mask = [target == ord(value) for target in row['targets']]
-                    assert class_row['episodes'] == sum(mask) == 48
+                    assert class_row['episodes'] == sum(mask) == expected_count//4
                     assert class_row['correct'] == sum(enabled and pred == target for enabled,pred,target
                                                       in zip(mask,row['predictions'],row['targets']))
     capabilities = report['test_capabilities']
@@ -71,7 +71,7 @@ def audit_one(root, checkpoint_path, evaluation_path, expected_step):
             assert evaluation['seed'] == seed
             assert evaluation['split'] == 'test' and evaluation['gap'] == int(gap)
             assert evaluation['query_every'] == 4
-            assert all(row['episodes'] == 192 for row in evaluation['controls'].values())
+            assert all(row['episodes'] == expected_count for row in evaluation['controls'].values())
     for kind in ('recall', 'correction'):
         assert capabilities['scores'][kind] == report['memory_controls']['16'][kind]['controls']['carried']['exact_accuracy']
     for kind in ('shared', 'left', 'right'):

@@ -27,15 +27,20 @@ def make_streams(protocol):
                                 seed=protocol['seed'], source_schedule='balanced')}
 
 
-def stream_loss(model, chunk, state):
+def stream_loss(model, chunk, state, regional_weight=0.):
     # Query labels are loss-only; forward receives observations and causal masks.
     mask = chunk.targets.ne(-100)
     result = model(chunk.inputs, state=state, reset=chunk.reset,
-                   availability=chunk.availability, rounds=2, feedback=True)
+                   availability=chunk.availability, rounds=2, feedback=True,
+                   return_node_activity=tuple(model.nodes) if regional_weight else ())
     loss = (torch.nn.functional.cross_entropy(result['logits'][mask], chunk.targets[mask])
             if bool(mask.any()) else result['logits'].sum()*0.)
     result['ce'] = loss
     loss = loss + model.cfg.auxiliary_loss_weight*result['aux'] + model.cfg.hat_balance_weight*result['hat_aux']
+    if regional_weight:
+        from .fact_supervision import retention_loss
+        local, result['retention'] = retention_loss(model, chunk, result['node_activity'])
+        loss = loss + regional_weight*local
     return loss, result
 
 
@@ -91,6 +96,9 @@ def load_integrated(path, expected_protocol=None):
     if expected_protocol is not None and saved['protocol'] != expected_protocol:
         raise ValueError('Resume requires identical source and protocol.')
     model = build_model(GraphConfig.from_dict(saved['config']), .5, 1.)
+    if 'fact_supervision' in saved['protocol']:
+        from .fact_supervision import attach_heads
+        attach_heads(model, seed=saved['protocol']['fact_supervision']['head_seed'])
     model.load_state_dict(saved['weights'])
     optimizer = optimizer_for(model, saved['protocol']['lr']); optimizer.load_state_dict(saved['optimizer'])
     rng = random.Random(); rng.setstate(saved['rng'])

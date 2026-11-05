@@ -34,12 +34,15 @@ def balanced_update(model, optimizer, rng, streams, states, protocol):
             del ce, prefix
         else:
             chunk = streams[name].next_chunk(protocol['segment'])
-            loss, result = stream_loss(model, chunk, states[name])
+            loss, result = stream_loss(model, chunk, states[name],
+                                      protocol.get('fact_supervision', {}).get('weight', 0.))
             next_states[name] = result['state'].detach()
             row[name+'_nats'] = float(result['ce'].detach())
             row[name+'_supervised'] = int(chunk.targets.ne(-100).sum())
             row[name+'_final_queries'] = int(chunk.final.sum())
             row[name+'_episodes_started'] = int(chunk.reset[:, 0].sum())
+            for key, value in result.get('retention', {}).items():
+                row[name+'_'+key] = value
         if not bool(torch.isfinite(loss)): raise FloatingPointError('Nonfinite task loss.')
         loss.backward()
         norm = torch.nn.utils.clip_grad_norm_(parameters, 1., error_if_nonfinite=True)
