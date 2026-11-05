@@ -3,6 +3,8 @@ import contextlib
 import copy
 from dataclasses import replace
 import io
+import hashlib
+import json
 from pathlib import Path
 import tempfile
 import unittest
@@ -111,6 +113,63 @@ class IntegrationChecks(unittest.TestCase):
             self.assertEqual(rows[0]['episodes'], 4)
             self.assertEqual(rows[0]['majority_class_chance'], .25)
         assert_tree_equal(self, before, model.state_dict())
+
+
+
+class BalancedIntegrationChecks(unittest.TestCase):
+    def fixture(self, root):
+        parent = root/'parent.pt'; IntegrationChecks().make_parent(parent)
+        protocol = dict(stream_batch=4, composition_batch=4, segment=16, memory_gap=16,
+                        view_gap=8, seed=507, lr=.0005, threads=1, validation_count=64,
+                        validate_every=1, save_every=1,
+                        task_weights={'composition': 1., 'correction': 1., 'views': 1.},
+                        parent_sha256=hashlib.sha256(parent.read_bytes()).hexdigest())
+        path = root/'baseline.json'; path.write_text(json.dumps(protocol))
+        return parent, path, protocol
+
+    def test_gradient_cap_preserves_examples_costs_losses_and_forward_states(self):
+        from scripts.train_integrated_balanced import balanced_update
+        from .integrated_train import make_streams, joint_update
+        from .composition_train import load_checkpoint
+        with tempfile.TemporaryDirectory() as d:
+            parent, _, protocol = self.fixture(Path(d))
+            records = []
+            for update in (joint_update, balanced_update):
+                model, opt, rng, _ = load_checkpoint(parent)
+                streams = make_streams(protocol)
+                states, row = update(model, opt, rng, streams, {k: None for k in streams}, protocol)
+                records.append((row, {k: v.to_dict() for k, v in states.items()}))
+            for key in ('expert_executions', 'source_occurrences', 'external_events',
+                        'composition_nats', 'correction_nats', 'views_nats'):
+                self.assertEqual(records[0][0][key], records[1][0][key])
+            assert_tree_equal(self, records[0][1], records[1][1])
+            self.assertLessEqual(records[1][0]['gradient_norm'], 1.000001)
+            self.assertTrue(all(records[1][0][name+'_gradient_norm'] > 0
+                                for name in ('composition', 'correction', 'views')))
+
+    def test_balanced_cli_resume_preserves_weights_moments_rng_and_both_streams(self):
+        from scripts.train_integrated_balanced import main as balanced_main
+        def run(parent, protocol, out, extra=()):
+            args = ['balanced', '--parent', str(parent), '--baseline-protocol', str(protocol),
+                    '--out', str(out), '--steps', '2', *extra]
+            with patch('sys.argv', args), contextlib.redirect_stdout(io.StringIO()):
+                with patch('scripts.train_integrated_balanced.evaluate_capabilities',
+                           side_effect=lambda *a, **kw: progress()): balanced_main()
+        with tempfile.TemporaryDirectory() as d:
+            root = Path(d); parent, protocol, _ = self.fixture(root)
+            run(parent, protocol, root/'full')
+            run(parent, protocol, root/'split', ('--stop-after', '1'))
+            run(parent, protocol, root/'split', ('--resume',))
+            a = torch.load(root/'full/last.pt', weights_only=True)
+            b = torch.load(root/'split/last.pt', weights_only=True)
+            for key in ('weights', 'optimizer', 'rng', 'torch_rng', 'states', 'streams'):
+                assert_tree_equal(self, a[key], b[key])
+            self.assertIn('../scripts/train_integrated_balanced.py', a['protocol']['source_hashes'])
+            self.assertIn('Clip each', a['protocol']['gradient_policy'])
+            initial = torch.load(root/'full/initial.pt', weights_only=True)
+            old = torch.load(parent, weights_only=True)
+            for key in ('weights', 'optimizer', 'rng', 'torch_rng'):
+                assert_tree_equal(self, old[key], initial[key])
 
 
 if __name__ == '__main__': unittest.main()

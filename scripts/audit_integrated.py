@@ -69,7 +69,10 @@ def audit_training(parent, directory):
     initial, final, best, candidate = map(load, ('initial.pt', 'last.pt', 'best.pt', 'best_candidate.pt'))
     original = torch.load(parent, map_location='cpu', weights_only=True)
     for key in ('weights', 'optimizer', 'rng', 'torch_rng'): assert_equal(original[key], initial[key])
-    assert final['protocol']['source_hashes'] == source_hashes()
+    for relative, digest in final['protocol']['source_hashes'].items():
+        path = (ROOT/'experiments'/relative).resolve()
+        assert path.is_relative_to(ROOT)
+        assert hashlib.sha256(path.read_bytes()).hexdigest() == digest
     assert final['protocol']['parent_sha256'] == hashlib.sha256(parent.read_bytes()).hexdigest()
     assert final['step'] == final['protocol']['steps']
     history = final['history']
@@ -148,9 +151,14 @@ def main():
     args = p.parse_args()
     torch.set_num_threads(1)
     report = audit_training(args.parent, args.run)
-    report['inference_export'] = export_inference(args.run/args.checkpoint, args.run/'inference.pt')
+    export_name = 'inference.pt' if args.checkpoint == 'best.pt' else Path(args.checkpoint).stem+'_inference.pt'
+    report['inference_export'] = export_inference(args.run/args.checkpoint, args.run/export_name)
     if args.evaluation:
-        report['prediction_groups_recomputed'] = audit_predictions(json.loads(args.evaluation.read_text()))
+        evaluation = json.loads(args.evaluation.read_text())
+        checkpoint = torch.load(args.run/args.checkpoint, map_location='cpu', weights_only=True)
+        assert evaluation['checkpoint_step'] == checkpoint['step']
+        report['evaluation_checkpoint_step'] = evaluation['checkpoint_step']
+        report['prediction_groups_recomputed'] = audit_predictions(evaluation)
     args.out.parent.mkdir(parents=True, exist_ok=True)
     args.out.write_text(json.dumps(report, indent=2)+'\n')
     print(json.dumps(report), flush=True)

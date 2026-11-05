@@ -99,3 +99,38 @@ python scripts/check_all.py
 This experiment leaves extra-round stability, comparable-budget one-pass
 training, independent initializations and natural-text validation as subsequent
 acceptance work. It does not change the default model configuration.
+
+## Controlled gradient follow-up
+
+The first 100 baseline updates leave the new skills near chance. A recorded
+next-batch diagnostic at update 25 measures gradient norms of 14.09 for
+composition, 813.70 for correction and 111.14 for views. A second, fixed
+100-update run therefore tests one change: clip each unweighted task gradient
+to norm 1 before averaging the three gradients. Retain the final global clip,
+the same parent tensors and optimizer moments, learning rate, examples, stream
+cursors, objective weights, validation inputs and selection rule.
+
+This follow-up is declared after examining training/validation diagnostics and
+before any held-out test scoring. Its matched comparison is the preserved
+baseline update-100 checkpoint. The original run still completes 200 updates;
+that endpoint represents additional compute and is labeled separately.
+No inference component or auxiliary head changes. The script and its gradient
+policy are recorded in every follow-up checkpoint. Tests verify identical
+first-step observations, losses, execution counts and forward states, plus
+exact interrupted/resumed training under the new gradient rule.
+
+```bash
+python scripts/train_integrated_balanced.py \
+  --parent artifacts/integrated/parent.pt \
+  --baseline-protocol artifacts/integrated/joint/protocol.json \
+  --out artifacts/integrated/balanced --steps 100
+
+python scripts/measure_joint_gradients.py \
+  artifacts/integrated/diagnostic_step25.pt \
+  --out reproduced_gradient_diagnostic.json
+```
+
+Compare accepted candidates across runs by the same validation selection key.
+Keep a diagnostic candidate separately when no new checkpoint retains all
+composition gates. Score the fixed matched endpoints as well as the selected
+candidate; do not select a model from held-out test results.
