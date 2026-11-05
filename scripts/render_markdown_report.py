@@ -5,7 +5,8 @@ from pathlib import Path
 import re
 
 
-def render(source, destination):
+def render(source, destination, *, title='SHoEbox: shared-answer preservation during training',
+           footer_text='SHoEbox | Shared-answer preservation | November 4, 2026'):
     from reportlab.lib import colors
     from reportlab.lib.enums import TA_LEFT
     from reportlab.lib.pagesizes import A4
@@ -78,12 +79,12 @@ def render(source, destination):
         canvas.saveState(); canvas.setStrokeColor(colors.HexColor('#c2d0c9'))
         canvas.line(43, 37, A4[0]-43, 37)
         canvas.setFillColor(colors.HexColor('#52695d')); canvas.setFont('Helvetica', 8)
-        canvas.drawString(43, 25, 'SHoEbox | Shared-answer preservation | November 4, 2026')
+        canvas.drawString(43, 25, footer_text)
         canvas.drawRightString(A4[0]-43, 25, str(doc.page)); canvas.restoreState()
 
     destination.parent.mkdir(parents=True, exist_ok=True)
     document = SimpleDocTemplate(str(destination), pagesize=A4, leftMargin=43, rightMargin=43,
-        topMargin=43, bottomMargin=49, title='SHoEbox: shared-answer preservation during training',
+        topMargin=43, bottomMargin=49, title=title,
         author='SHoEbox research project')
     document.build(story, onFirstPage=footer, onLaterPages=footer)
 
@@ -91,4 +92,6 @@ def render(source, destination):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('source', type=Path); parser.add_argument('destination', type=Path)
-    args = parser.parse_args(); render(args.source, args.destination)
+    parser.add_argument('--title', default='SHoEbox: shared-answer preservation during training')
+    parser.add_argument('--footer', default='SHoEbox | Shared-answer preservation | November 4, 2026')
+    args = parser.parse_args(); render(args.source, args.destination, title=args.title, footer_text=args.footer)

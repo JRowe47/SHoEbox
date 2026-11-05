@@ -10,6 +10,7 @@ import statistics
 import torch
 from torch.nn import functional as F
 
+from .audit_precision import same_audit_report
 from .emission_adapter import ACTIVATIONS, ADAPTER_SEEDS, sha, same_protocol
 from .emission_compare import summarize
 from .readout_compare import expected_cohort, require, digest
@@ -132,7 +133,11 @@ def audit_run(directory,run,rebuilt=None):
     require(all(not a&b for i,a in enumerate(ids.values()) for b in list(ids.values())[i+1:]),'Split identity overlap.')
     x=training['features']['final/raw'].double();mean=(x*mass[:,None]).sum(0)
     scale=((x-mean).square()*mass[:,None]).sum(0).sqrt().clamp_min(1e-6)
-    require(torch.equal(mean,base.mean) and torch.equal(scale,base.scale),'Normalization differs from weighted training data.')
+    # Recomputing a float64 reduction can differ by one ULP across CPU builds.
+    # Stored base tensors, source files and feature caches remain hash-checked.
+    require(torch.allclose(mean,base.mean,atol=1e-12,rtol=1e-12) and
+            torch.allclose(scale,base.scale,atol=1e-12,rtol=1e-12),
+            'Normalization differs from weighted training data.')
     for name,head in fitted['heads'].items():
         fit=head.correction.fit
         require(fit==report['fits'][name] and fit['hidden']==16 and fit['max_iter']==400 and fit['l2']==.001 and
@@ -150,7 +155,7 @@ def audit_run(directory,run,rebuilt=None):
         require(math.isclose(nll,fit['weighted_training_nll'],abs_tol=1e-12,rel_tol=1e-12) and
                 math.isclose(objective,fit['objective'],abs_tol=1e-12,rel_tol=1e-12),'Fit objective reconstruction differs.')
         chosen=select_strength(head,validation,fit_identities=fitted['fit_identities'])
-        require(chosen.strength==head.strength and same_protocol(chosen.selection,head.selection) and
+        require(chosen.strength==head.strength and same_audit_report(chosen.selection,head.selection) and
                 lock['heads'][name]=={'strength':head.strength,'selection':head.selection},'Validation decision differs.')
         feasible=[c for c in head.selection['candidates'] if c['eligible']]
         require(feasible and feasible[0]['strength']==0 and all(c['strength'] in STRENGTHS for c in feasible),
@@ -160,7 +165,7 @@ def audit_run(directory,run,rebuilt=None):
     prior_rows=[json.loads(line) for line in (prior/'predictions.jsonl').read_text().splitlines()]
     for split in ('test','independent'):
         rescored,predictions=score_residuals(cache[split],fitted)
-        require(same_protocol(rescored,report['evaluations'][split]) and predictions==[r for r in rows if r['split']==split],
+        require(same_audit_report(rescored,report['evaluations'][split]) and predictions==[r for r in rows if r['split']==split],
                 'Restored residual predictions or losses differ.')
         for now,old in zip(predictions,[r for r in prior_rows if r['split']==split],strict=True):
             require(now['episode_ids']==old['episode_ids'] and now['answers']==old['answers'] and

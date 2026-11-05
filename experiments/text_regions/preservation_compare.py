@@ -9,6 +9,7 @@ import statistics
 import torch
 from torch.nn import functional as F
 
+from .audit_precision import same_audit_report
 from .emission_adapter import ACTIVATIONS, ADAPTER_SEEDS, same_protocol, sha
 from .emission_compare import summarize
 from .readout_compare import require
@@ -96,7 +97,7 @@ def audit_run(directory, run, rebuilt):
             audit_objective(training, head)
             if family != 'selected':
                 decision = select_strength(head, validation, fit_identities=bundle['fit_identities'])
-                require(decision.strength == head.strength and same_protocol(decision.selection, head.selection),
+                require(decision.strength == head.strength and same_audit_report(decision.selection, head.selection),
                     'Validation strength decision differs.')
     for name, head in selected['heads'].items():
         choices = {p: bundles[f'penalty_{p:g}']['heads'][name] for p in PENALTIES}
@@ -118,7 +119,7 @@ def audit_run(directory, run, rebuilt):
         family_rows = [{k: v for k, v in r.items() if k != 'family'} for r in rows if r['family'] == family]
         for split in ('test', 'independent'):
             scores, predictions = score_residuals(datasets[split], bundle)
-            require(same_protocol(scores, report['evaluations'][family][split])
+            require(same_audit_report(scores, report['evaluations'][family][split])
                 and predictions == [r for r in family_rows if r['split'] == split], 'Saved predictions or losses differ.')
         summary = summarize(audit_rows({'fits': bundle['heads'], 'evaluations': report['evaluations'][family]}, family_rows),
             family_rows[0]['predictions'])
@@ -205,7 +206,7 @@ def audit_convergence(source, directory):
             validation = torch.load(ROOT / run['residual_run'] / 'validation.pt', map_location='cpu', weights_only=True)
             audit_objective(datasets['train'], head)
             decision = select_strength(head, validation, fit_identities=bundle['fit_identities'])
-            require(head.strength == decision.strength and same_protocol(head.selection, decision.selection)
+            require(head.strength == decision.strength and same_audit_report(head.selection, decision.selection)
                 and same_protocol(json.loads((folder / 'selection_lock.json').read_text()),
                     {'head': name, 'selection': head.selection}), 'Convergence validation selection differs.')
             rows = [json.loads(s) for s in (folder / 'predictions.jsonl').read_text().splitlines()]
@@ -216,7 +217,7 @@ def audit_convergence(source, directory):
                     n: m for n, m in g['decoders'].items() if n.startswith(name + '/')}} for g in scores['groups']]}
                 expected_rows = [{**r, 'predictions': {n: p for n, p in r['predictions'].items()
                     if n.startswith(name + '/')}} for r in predictions]
-                require(same_protocol(expected, report['evaluations'][split])
+                require(same_audit_report(expected, report['evaluations'][split])
                     and expected_rows == [r for r in rows if r['split'] == split], 'Convergence predictions differ.')
             cases.append({'family': family, 'activation': activation, 'run': run['name'], 'head': name,
                 'prior_fit': prior_fit, 'extended_fit': head.correction.fit,

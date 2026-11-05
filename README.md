@@ -50,6 +50,8 @@ P and Q feed the shared byte readout. B has one state owner and publishes to bot
 
 ## Development status
 
+The latest [cohort-diversity findings](docs/SHoEbox_Cohort_Diversity_Report.md) are preserved, but that phase's implementation and 432 fitted heads were not recovered after the workspace disconnected. The [recovery report](docs/SHoEbox_Recovery_Report.md) identifies the available source and checkpoint bundle, the exact missing revision, and working reproduction commands. The recovered package supports the preceding shared-preservation study; it includes the later cohort findings as a report only.
+
 The first implementation includes reusable latent nodes, typed publication records, functional graph state, fixed synchronous schedules, a runnable byte language model, ordered stream training, exact checkpoint continuation, whole-region rounds, input/edge interventions, and CPU measurements. Baseline parity and engine behavior are covered by automated tests.
 
 The probe harness trains recall/correction across chunk boundaries, with optional independent shared/private view objectives and explicit post-optimizer edge/lace utility commits. Both learning additions are disabled by default. Probe checkpoints resume the complete model, optimizer, utility buffers, stream cursor, RNG, and graph state.
@@ -99,6 +101,8 @@ See the [probe and learning report](docs/SHoEbox_Probe_Development_Report.md) fo
 - [Shared emission adapters with matched linear controls](docs/SHoEbox_Emission_Adapter_Report.md)
 - [Residual byte decoders with validation-selected strength](docs/SHoEbox_Residual_Adapter_Report.md)
 - [Shared-answer preservation during residual training](docs/SHoEbox_Shared_Preservation_Report.md)
+- [Decoder cohort-diversity findings](docs/SHoEbox_Cohort_Diversity_Report.md)
+- [Recovery status, available artifacts, and reproduction](docs/SHoEbox_Recovery_Report.md)
 - [Original SHoE overview and results](SHoE_BASELINE.md)
 - [Preserved HAT/minKron baseline](experiments/hat_minkron)
 - [Source lineage and third-party notices](THIRD_PARTY_NOTICES.md)

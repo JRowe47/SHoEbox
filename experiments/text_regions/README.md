@@ -2,6 +2,19 @@
 
 This is SHoEbox's event-major reference implementation of the [development specification](../../docs/SHoE_Text_Development_Specification.md). It reuses the baseline's SymbolLevel, RecurrentChild, minKron, lace controller, and split expert banks. No old experiment is copied into this directory.
 
+## Recovery package
+
+The cohort-diversity report survived; its implementation, expanded features, and 432 fitted heads did not. Use the [recovery report](../../docs/SHoEbox_Recovery_Report.md) for the available files and exact missing revision. The recovered-artifacts ZIP restores all twelve frozen graphs and the preceding shared-preservation study, including its dependencies and four longer-fit diagnostics.
+
+The preservation audit accepts at most 1e-12 absolute/relative roundoff in rebuilt float64 normalization and named loss fields. It still checks stored file hashes, predictions, chosen strengths and penalties, eligibility flags, and correct counts exactly.
+
+```bash
+python -m experiments.text_regions.preservation_compare \
+  --source artifacts/shared_preservation_v1 \
+  --convergence artifacts/preservation_convergence_v1 \
+  --out artifacts/reproduced_preservation_comparison.json
+```
+
 ## Components
 
 | File | Responsibility |
