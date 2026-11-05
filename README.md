@@ -50,7 +50,9 @@ P and Q feed the shared byte readout. B has one state owner and publishes to bot
 
 ## Development status
 
-The latest [cohort-diversity findings](docs/SHoEbox_Cohort_Diversity_Report.md) are preserved, but that phase's implementation and 432 fitted heads were not recovered after the workspace disconnected. The [recovery report](docs/SHoEbox_Recovery_Report.md) identifies the available source and checkpoint bundle, the exact missing revision, and working reproduction commands. The recovered package supports the preceding shared-preservation study; it includes the later cohort findings as a report only.
+The missing cohort-diversity phase has been rebuilt and rerun across **twelve frozen graphs and 432 corrections**. The [reproduction report](docs/SHoEbox_Cohort_Reproduction_Report.md) compares the fresh results with the [preserved original findings](docs/SHoEbox_Cohort_Diversity_Report.md). Source, resumable fitting, independent audits and aggregate results are included; the downloadable artifact package contains all fitted tensors, expanded features and dependencies. See the [reproduction commands](experiments/text_regions/README.md#decoder-cohort-diversity-reproduction).
+
+**All 80 reported accuracy values reproduce at their published precision.** Nonzero identity corrections accepted by validation rise from 3/36 to 33/36 when the fitting cohort grows from 960 to 3,840 cases. All 307 automated tests pass; artifact audits reproduce 2,880 new prediction groups and 720 retained legacy groups.
 
 The first implementation includes reusable latent nodes, typed publication records, functional graph state, fixed synchronous schedules, a runnable byte language model, ordered stream training, exact checkpoint continuation, whole-region rounds, input/edge interventions, and CPU measurements. Baseline parity and engine behavior are covered by automated tests.
 
@@ -102,6 +104,7 @@ See the [probe and learning report](docs/SHoEbox_Probe_Development_Report.md) fo
 - [Residual byte decoders with validation-selected strength](docs/SHoEbox_Residual_Adapter_Report.md)
 - [Shared-answer preservation during residual training](docs/SHoEbox_Shared_Preservation_Report.md)
 - [Decoder cohort-diversity findings](docs/SHoEbox_Cohort_Diversity_Report.md)
+- [Reproduced cohort study, 432 fresh fits and original-result comparison](docs/SHoEbox_Cohort_Reproduction_Report.md)
 - [Recovery status, available artifacts, and reproduction](docs/SHoEbox_Recovery_Report.md)
 - [Original SHoE overview and results](SHoE_BASELINE.md)
 - [Preserved HAT/minKron baseline](experiments/hat_minkron)

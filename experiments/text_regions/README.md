@@ -471,3 +471,42 @@ changes from **80.5% to 79.4%** and **87.4% to 87.5%**, respectively. Nineteen
 of 36 GELU selections remain zero. All 295 tests pass. See the
 [report](../../docs/SHoEbox_Shared_Preservation_Report.md) and
 [audited aggregates](results/shared_preservation) for complete results.
+
+## Decoder cohort-diversity reproduction
+
+The unavailable cohort phase has been rebuilt from its preserved protocol and
+rerun with the original twelve frozen graphs. Each graph receives nested training
+cohorts of 64 and 256 examples per supported source/query cell (960 and 3,840 total),
+penalties 0/1/10, identity/GELU corrections and three initializations: 432 fits.
+The inherited linear base, its normalization and all validation/evaluation
+caches are fixed. Smaller-cohort features are exact slices of the fresh larger
+capture. Fitting and selection use the existing preservation/residual mechanisms.
+
+Extract `SHoEbox_cohort_reproduction_artifacts.zip` before auditing or repeating
+the study. The source-only archive includes tests and published aggregate results,
+but lacks the required graph checkpoints and caches.
+
+```bash
+# Audit every objective, selection, prediction and retained legacy output:
+python -m experiments.text_regions.diversity_compare \
+  --source artifacts/cohort_reproduction_v1 \
+  --out artifacts/reproduced_cohort_comparison.json --jobs 4 --threads 2
+
+# Fit a fresh repetition into a separate directory:
+python scripts/run_diversity_study.py \
+  --out artifacts/cohort_repeat --jobs 4 --threads 2
+
+# Continue an interrupted repetition with the identical inputs and source:
+python scripts/run_diversity_study.py \
+  --out artifacts/cohort_repeat --jobs 4 --threads 2 --resume
+
+python scripts/check_all.py
+```
+
+Each graph saves `training.pt`, an atomically replaced `fitted.pt` after every
+completed fit, `invocation.json`, and final results/predictions. Resume verifies
+runtime-source and input hashes, fitting settings, capture identity and frozen
+base tensors before using saved heads. The new study's
+[audited aggregates](results/cohort_reproduction) include the original-report
+comparison and verification logs. The [report](../../docs/SHoEbox_Cohort_Reproduction_Report.md)
+and its PDF document the results and exact historical recovery boundary.

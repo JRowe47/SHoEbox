@@ -7,20 +7,31 @@ import re
 
 def render(source, destination, *, title='SHoEbox: shared-answer preservation during training',
            footer_text='SHoEbox | Shared-answer preservation | November 4, 2026'):
+    import reportlab
     from reportlab.lib import colors
     from reportlab.lib.enums import TA_LEFT
     from reportlab.lib.pagesizes import A4
     from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
     from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, PageBreak, Preformatted
+    from reportlab.pdfbase import pdfmetrics
+    from reportlab.pdfbase.ttfonts import TTFont
+
+    # ReportLab bundles these fonts; embedding them avoids viewer substitutions.
+    font_root = Path(reportlab.__file__).parent / 'fonts'
+    for suffix, filename in [('', 'Vera.ttf'), ('-Bold', 'VeraBd.ttf'),
+                             ('-Italic', 'VeraIt.ttf'), ('-BoldItalic', 'VeraBI.ttf')]:
+        pdfmetrics.registerFont(TTFont('ReportSans'+suffix, str(font_root/filename)))
+    pdfmetrics.registerFontFamily('ReportSans', normal='ReportSans', bold='ReportSans-Bold',
+                                  italic='ReportSans-Italic', boldItalic='ReportSans-BoldItalic')
 
     styles = getSampleStyleSheet()
-    styles.add(ParagraphStyle(name='Body', fontName='Helvetica', fontSize=9.2, leading=12.4,
+    styles.add(ParagraphStyle(name='Body', fontName='ReportSans', fontSize=9.2, leading=12.4,
         textColor=colors.HexColor('#24333c'), spaceAfter=7))
-    styles.add(ParagraphStyle(name='TitleReport', fontName='Helvetica-Bold', fontSize=23, leading=26,
+    styles.add(ParagraphStyle(name='TitleReport', fontName='ReportSans-Bold', fontSize=23, leading=26,
         textColor=colors.HexColor('#163f37'), spaceAfter=12))
-    styles.add(ParagraphStyle(name='SectionReport', fontName='Helvetica-Bold', fontSize=13, leading=16,
+    styles.add(ParagraphStyle(name='SectionReport', fontName='ReportSans-Bold', fontSize=13, leading=16,
         textColor=colors.HexColor('#163f37'), spaceBefore=10, spaceAfter=8, keepWithNext=True))
-    styles.add(ParagraphStyle(name='Cell', fontName='Helvetica', fontSize=8.1, leading=10.8,
+    styles.add(ParagraphStyle(name='Cell', fontName='ReportSans', fontSize=8.1, leading=10.8,
         alignment=TA_LEFT))
     styles.add(ParagraphStyle(name='CodeReport', fontName='Courier', fontSize=7.2, leading=10,
         backColor=colors.HexColor('#f1f4f3'), borderPadding=8, spaceAfter=10))
@@ -78,7 +89,7 @@ def render(source, destination, *, title='SHoEbox: shared-answer preservation du
     def footer(canvas, doc):
         canvas.saveState(); canvas.setStrokeColor(colors.HexColor('#c2d0c9'))
         canvas.line(43, 37, A4[0]-43, 37)
-        canvas.setFillColor(colors.HexColor('#52695d')); canvas.setFont('Helvetica', 8)
+        canvas.setFillColor(colors.HexColor('#52695d')); canvas.setFont('ReportSans', 8)
         canvas.drawString(43, 25, footer_text)
         canvas.drawRightString(A4[0]-43, 25, str(doc.page)); canvas.restoreState()
 

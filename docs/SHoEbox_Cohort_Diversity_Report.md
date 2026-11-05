@@ -1,6 +1,8 @@
 # SHoEbox — decoder cohort diversity
 Date: 2026-11-05 UTC
 
+Subsequent reproduction: the missing implementation has now been rebuilt and all 432 fits rerun. See [the reproduction report](SHoEbox_Cohort_Reproduction_Report.md) for fresh results, agreement with the figures below, and complete downloadable artifacts. This document preserves the original study and its historical recovery status.
+
 Expanding the decoder fitting cohort from 960 to 3,840 cases substantially increased validation acceptance of the linear residual correction. Its selected preservation variant improved both private and shared accuracy in three of four conditions. The nonlinear GELU variant improved private accuracy in all four conditions, but reduced shared accuracy in three.
 
 The default model and readout remain unchanged.
