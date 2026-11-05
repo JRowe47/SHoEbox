@@ -693,3 +693,31 @@ python scripts/evaluate_retained_composition.py artifacts/retained_composition_f
 The `last.pt` checkpoints include optimizer moments, RNG, protocol, history and counters. Resume with the identical arguments plus `--resume`; `--stop-after` supports a bounded partial run. Inference exports contain the complete graph configuration and weights, without training heads. Load `RegionLanguageModel(GraphConfig.from_dict(saved['config']))`, load the state dictionary, then use `ingest` and `query` to preserve the runtime contracts. Source fact batches are ordinary observed byte streams; their labels are never forwarded.
 
 See the [report](../../docs/SHoEbox_Retained_Composition_Report.md), [locked protocol](../../docs/SHoEbox_Retained_Composition_Protocol.md), and [raw results](results/retained_composition). The eight-node result does not complete M7's shared/private or natural-text requirements.
+
+## Joint producer and connection learning
+
+`joint_retained.py` trains the owned F producer and its F-to-A value projection
+while preserving the seven-node composer. Local acquisition, retained-payload,
+and write/hold losses are applied before each 16-event detach boundary. Final
+query cross-entropy trains through the ordinary retained-composition interface.
+The edge-only arm receives the same observations, objectives and expert budget.
+
+See the [locked protocol](../../docs/SHoEbox_Joint_Retention_Protocol.md) and
+[report](../../docs/SHoEbox_Joint_Retention_Report.md). The artifact archive includes
+three complete parents, all six optimizer runs, inference exports, full predictions
+and the development pilot. Extract it alongside the source archive, then run:
+
+```bash
+python scripts/check_all.py
+python scripts/audit_joint_retained.py artifacts/joint_retained/joint_20261131
+python scripts/report_joint_retained.py
+# A fresh six-run comparison, reusing the packaged parent checkpoints:
+python scripts/run_joint_retained.py --root artifacts/joint_retained_fresh
+```
+
+Repeat the audit for each edge/joint seed directory. Repeating the runner command
+resumes checkpoints and unfinished evaluations. An inference export contains only
+configuration, weights and selected update; initialize `RegionLanguageModel` from
+that configuration and use `retained_composition.ingest` and `query`. Neither path
+accepts fact labels as model inputs. The runtime and its default configuration
+remain unchanged.

@@ -50,15 +50,15 @@ P and Q feed the shared byte readout. B has one state owner and publishes to bot
 
 ## Development status
 
-**Retained facts now drive live two-step composition in one eight-node graph.** The previously trained producer joins the seven-node recurrent model through an ordinary latent edge. Across three seeds, held-out accuracy is **99.54% for recall, 98.31% after correction, and 99.35% when a correction is withheld**. Every seed exceeds the 90% target on all three conditions.
+**Joint local learning now passes the stronger 95% memory/query target in all three parent/data pairs.** Mean held-out accuracy is **99.80% recall, 99.87% correction, and 99.74% with the correction withheld**. The weakest pair's minimum task score rises from **96.09%** with either the unchanged parent or matched edge-only continuation to **99.22%** with joint learning.
 
-F keeps the fact while B/C supply new relation tables. The existing regional experts compute `g(f(x))`; the retained fact is never decoded into an intermediate input byte. Four successive queries leave F's contextual state, recurrent state and retained publication unchanged. Only the new edge's 1,024 weights are fitted in this component-integration phase. The combined model has 317,098 parameters and 480 physical experts.
+F's fact producer and its F-to-A value projection now learn together. Local acquisition, retention and write/hold losses are applied before each 16-event gradient boundary. The seven-node recurrent composer and common byte decoder remain exactly frozen. Both arms see the same observations, relation tables and expert executions. No new inference head or model parameters are added: the graph remains at 317,098 parameters and 480 physical experts.
 
-The independent source-ownership option defaults off. The original seven-node checkpoint still produces exactly the same logits, states and execution counts, including **100% two-round composition on all 592 held-out cases**. The next step is joint local refinement of the weakest producer/connection pair. M7 remains open pending the broader integrated capability suite.
+The source F is inactive during live queries. Two regional rounds use its retained latent to answer new `g(f(x))` questions, without decoding x into an intermediate byte. Longer-delay, repeated-query, shuffled-memory, reset, blocked-edge and no-exchange controls accompany the three-seed comparison.
 
-See the [retained-composition report](docs/SHoEbox_Retained_Composition_Report.md), [locked protocol](docs/SHoEbox_Retained_Composition_Protocol.md), and [audited results](experiments/text_regions/results/retained_composition).
+See the [joint-retention report](docs/SHoEbox_Joint_Retention_Report.md), [locked protocol](docs/SHoEbox_Joint_Retention_Protocol.md), and [audited comparison](experiments/text_regions/results/joint_retained). The next target is simultaneous shared/private fact retention in this graph; M7 remains open.
 
-The preceding [selective-publication phase](docs/SHoEbox_Selective_Publication_Report.md) established the isolated producer: learned publication reached 99.09% recall at four times the training delay versus 68.55% with unconditional writes. Two of three seeds met its stricter write-precision/recall target. The [gradient-horizon report](docs/SHoEbox_Gradient_Horizon_Report.md) records the unchanged composition parent.
+The preceding [retained-composition phase](docs/SHoEbox_Retained_Composition_Report.md) connected the producer through 1,024 learned edge weights with both components frozen. The [selective-publication phase](docs/SHoEbox_Selective_Publication_Report.md) established learned write/hold behavior, and the [gradient-horizon report](docs/SHoEbox_Gradient_Horizon_Report.md) records the unchanged composition parent.
 
 ## Earlier experiments
 
