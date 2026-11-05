@@ -33,6 +33,8 @@ Validation selects the lowest answer NLL at the trained round count after the lo
 
 The same trained recurrent model is evaluated at K=1,2,4, with each query starting from the same immutable encoded prefix state. External query bytes are ingested once regardless of K. Controls disable delayed exchange at K=2, reset memory before the query, or shuffle whole B tables while preserving C and the query. For shuffling, both the original answer and the answer implied by the replacement table are scored.
 
+The original full test cohort has 592 unique queries. Shuffling is a paired intervention on those cases, not a new independent sample: with batch size 64 it yields 524 distinct replacement keys, changes B in 552 cases and changes the implied answer in 432 cases. Accuracy denominators remain 592, and the saved keys expose the duplicates.
+
 A separate one-pass control activates twice as many experts per block, has the same allocated parameter count and starts with identical initial parameter tensors for its matched seed. It has no delayed regional exchange. Its query expert budget equals K=2; its prefix costs more because it also uses twice as many experts while encoding the tables. Report both costs, rather than labeling the entire run compute-matched.
 
 | Configuration | Prefix calls/case | Query calls/case | Total calls/case |
@@ -42,7 +44,7 @@ A separate one-pass control activates twice as many experts per block, has the s
 | Sparse K=4 | 96 | 336 | 432 |
 | Wider one-pass control | 192 | 168 | 360 |
 
-Each intact case supplies eight table bytes and three query-time bytes, independent of K. Each model has 252,478 parameters and 384 physical experts. Independent initializations are used for recurrent seeds; the feedforward query graph is paired with the first seed. A successful bounded composition result does not by itself complete M7's combined memory/shared-private/natural-text demonstration.
+Each intact case supplies eight table bytes and three query-time bytes, independent of K. Each inference model has 252,478 parameters and 384 physical experts. Independent initializations are supported for recurrent seeds; the feedforward query graph is paired with the first seed. The completed phase contains one full base run and one full reconstruction follow-up. Additional seeds and the wider control were stopped early and are excluded from completed comparisons. A successful bounded composition result would not by itself complete M7's combined memory/shared-private/natural-text demonstration. See the [phase report](SHoEbox_Composition_Report.md) for measured outcomes and unfinished acceptance criteria.
 
 ## Commands
 
@@ -66,6 +68,14 @@ python -m experiments.text_regions.composition_train \
   --out artifacts/composition_reconstruction_seed1 --steps 1000 --batch 64 \
   --seed 20261105 --copy-warmup 100 --lookup-warmup 200 \
   --source-reconstruction 0.5
+
+python -m experiments.text_regions.composition_eval \
+  artifacts/composition_reconstruction_seed1/best.pt --split test --controls \
+  --out artifacts/composition_reconstruction_seed1/test.json
+
+python -m experiments.text_regions.results.composition.retention_diagnostic \
+  artifacts/composition_reconstruction_seed1/best.pt --split test \
+  --out artifacts/composition_reconstruction_seed1/retention.json
 ```
 
 To continue an interrupted run, repeat its exact training command with `--resume`. To stop at a planned checkpoint without changing the schedule, add `--stop-after N`. Recurrent repetitions use seeds 20261106 and 20261107 with separate output directories.
