@@ -603,3 +603,32 @@ python -m experiments.text_regions.results.second_lookup.audit \
 ```
 
 Append `--resume` to the same continuation command after an interruption. The artifact package contains the parent, full resumable states and an inference-only export. `selection.json` records the selected filename and hash; `history.json` distinguishes local phase steps from regional optimizer updates. Full-cohort evaluation, exact resumption and guarded selection are covered by the six new tests; all 342 repository tests pass.
+
+## Integrated capability training
+
+`integrated_train` trains composition, delayed correction and factorized views
+in every update, with separate carried stream states and one shared graph and
+byte head. It preserves the parent optimizer moments and RNG state, uses atomic
+complete checkpoints, and supports exact `--resume`. Validation selection first
+requires full capability qualification, then preserves all composition gates,
+then maximizes the weakest capability, macro accuracy and negative macro NLL.
+
+The 200-update baseline and matched 100-update per-task gradient-cap follow-up
+are complete. Held-out composition is 99.83% for balanced 100 versus
+94.43% for baseline 100. Baseline 200 is selected by validation and
+scores 97.97% composition. The additional tasks remain near chance, so
+full integration is not mastered. Balanced updates 50 and 100 both preserve
+every composition validation gate. No inference capacity is added.
+
+`integrated_eval` evaluates the same checkpoint on full composition cohorts,
+fresh recall/correction at gaps 16/32, held-out factor combinations and an
+independent full-factorial source-control cohort. All answers are argmax over
+256 bytes. Pure inference exports remove the existing training-only source
+and regional heads with exact logit/state parity checks.
+
+See the [report](../../docs/SHoEbox_Integrated_Report.md),
+[protocol](../../docs/SHoEbox_Integrated_Protocol.md) and
+[complete training/evaluation/audit commands](results/integrated/README.md).
+All 349 repository tests pass. The artifact package includes both full runs,
+the parent, the matched baseline-100 snapshot, diagnostic checkpoint 25,
+inference-only exports, raw predictions and the audited validation selection.

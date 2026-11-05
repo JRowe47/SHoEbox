@@ -99,3 +99,26 @@ python check_delivery.py
 AdamW uses betas (0.9, 0.95), peak learning rate 0.002, gradient clipping at 1, warmup, a plateau and cooldown. Each `protocol.json` records the exact schedule, parameter treatment, seed, configuration and evaluation procedure. The trainers start fresh runs; they do not expose a resume flag. Checkpoints include optimizer state, but are generated locally rather than stored in git.
 
 Timing and memory measurements describe the original CPU executions; some comparison runs overlapped. They are not isolated throughput benchmarks. The repository's correctness suites can run without data or trained weights.
+
+## SHoEbox integrated capability training
+
+From the selected second-lookup parent, a joint trainer now updates composition,
+delayed correction and shared/private objectives on the same seven-node graph.
+The matched 100-update comparison uses identical weights, AdamW moments, RNGs,
+samples, streams and 9,084,288 expert executions per arm.
+
+| Held-out composition | Accuracy |
+|---|---:|
+| Baseline, 100 updates | 94.43% |
+| Per-task gradient cap, 100 updates | 99.83% |
+| Baseline, 200 updates; validation-selected integrated candidate | 97.97% |
+
+The balanced model retains all composition validation gates at both updates 50
+and 100. Neither run learns reliable memory/correction or shared/private fact
+recovery; M7 remains open. Inference keeps the existing 252,478 parameters,
+384 physical experts and common 256-byte head. All 349 tests pass, alongside
+training, selection, export and raw-prediction audits.
+
+See the [integrated report](SHoEbox_Integrated_Report.md),
+[declared protocol](SHoEbox_Integrated_Protocol.md) and
+[raw results](../experiments/text_regions/results/integrated/README.md).

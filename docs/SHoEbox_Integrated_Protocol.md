@@ -134,3 +134,24 @@ Compare accepted candidates across runs by the same validation selection key.
 Keep a diagnostic candidate separately when no new checkpoint retains all
 composition gates. Score the fixed matched endpoints as well as the selected
 candidate; do not select a model from held-out test results.
+
+## Completed round and audits
+
+The baseline completed 200 updates and the follow-up completed 100. The
+validation selection audit ran before test scoring and selected baseline
+update 200. Balanced updates 50 and 100 both passed all composition gates;
+neither run passed the full joint gates. The final report records the held-out
+results for the fixed baseline-100, balanced-100 and selected baseline-200
+checkpoints.
+
+`scripts/audit_integrated_comparison.py` verifies the matched initialization,
+samplers, stream cursors, per-update costs and validation-only selection.
+`scripts/audit_integrated.py` checks each completed run and exports the
+inference-only graph with exact parity checks. The independent raw-result
+audit, `scripts/audit_integrated_evaluations.py`, reconstructs labels and
+identities, recomputes accuracy from predictions, verifies the evaluated
+checkpoint steps and compares intervention budgets across all three models.
+
+The [result bundle](../experiments/text_regions/results/integrated/README.md)
+contains the complete evaluation and audit commands. Both runs retain full
+resumable checkpoints and their inference-only exports in the artifact ZIP.

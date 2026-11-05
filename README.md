@@ -50,11 +50,11 @@ P and Q feed the shared byte readout. B has one state owner and publishes to bot
 
 ## Development status
 
-**Learned regional composition reaches 95.78% held-out accuracy**, up from 75.00%. Continuing the existing regional objective brings P's first lookup to 96.45% and Q's second lookup to 96.11%. Both source tables remain fully recoverable before and after the query. The same model scores 25.00% at K=1 and 95.78% at K=2; disabling delayed exchange returns it to 25.00%.
+**Joint capability training is implemented and evaluated.** Per-task gradient clipping reaches **99.83% held-out composition** at 100 updates, versus 94.43% for the matched baseline. Both runs share identical initialization, examples and 9,084,288 expert executions. The balanced model passes every composition validation gate at updates 50 and 100.
 
-This round adds exact optimizer/RNG continuation and capability-qualified checkpoint selection. The selected checkpoint passes every validation and test threshold, including separate lookups and exact source retention. The subsequent checkpoint loses one complete-table reconstruction, so the two-consecutive-pass stability target remains open. The common byte head and 252,478-parameter inference graph are unchanged. **All 342 tests pass. M7 remains open: integrated capability training, longer-round stability, comparable-budget one-pass controls, independent initializations and natural-text evaluation remain.**
+The same graph now trains on composition, delayed correction and shared/private facts with exact checkpoint continuation. **The memory and fact tasks remain near chance.** The validation-selected integrated candidate is the baseline at 200 updates, scoring 97.97% composition. The common byte head and 252,478-parameter inference graph remain unchanged. **All 349 tests pass. M7 remains open.** The next focused step is regional supervision for retained facts and corrections while preserving composition.
 
-See the [second lookup report](docs/SHoEbox_Second_Lookup_Report.md), [continuation protocol](docs/SHoEbox_Second_Lookup_Protocol.md), and [audited raw results](experiments/text_regions/results/second_lookup). The [previous regional-learning report](docs/SHoEbox_Lookup_Report.md) preserves the matched intervention that established the regional objective.
+See the [integrated report](docs/SHoEbox_Integrated_Report.md), [protocol](docs/SHoEbox_Integrated_Protocol.md), and [audited results and reproduction commands](experiments/text_regions/results/integrated). The [second lookup report](docs/SHoEbox_Second_Lookup_Report.md) records the 95.78% parent used for both runs.
 
 ## Earlier experiments
 
