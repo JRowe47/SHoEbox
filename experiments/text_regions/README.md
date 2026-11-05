@@ -2,6 +2,22 @@
 
 This is SHoEbox's event-major reference implementation of the [development specification](../../docs/SHoE_Text_Development_Specification.md). It reuses the baseline's SymbolLevel, RecurrentChild, minKron, lace controller, and split expert banks. No old experiment is copied into this directory.
 
+## Learned regional composition
+
+The composition phase trains the graph on `g(f(x))`: B and C independently encode two relation tables, then A receives the query. All seven nodes execute during each query round. Evaluation compares K=1,2,4 from the same encoded prefix, with delayed-exchange, shuffled-bridge, counterfactual-answer and state-reset controls. One shared affine byte head reads the full P/Q outputs; it is trained jointly with the graph.
+
+See the [composition protocol](../../docs/SHoEbox_Composition_Protocol.md) for the exact source boundaries, held-out table combinations, lookup curriculum, checkpoints, and compute comparison. Run:
+
+```bash
+python -m experiments.text_regions.composition_train \
+  --out artifacts/composition_seed1 --steps 1000 --batch 64 --seed 20261105
+python -m experiments.text_regions.composition_eval \
+  artifacts/composition_seed1/best.pt --split test --controls \
+  --out artifacts/composition_seed1/test.json
+```
+
+`GraphConfig(readout_mode='concat')` enables the common affine head over concatenated publications. The default `mixed` setting retains the previous mixing projection, normalization, decoder dimensions and parameter initialization. Existing configurations that omit `readout_mode` load as `mixed`.
+
 ## Recovery package
 
 The cohort-diversity report survived; its implementation, expanded features, and 432 fitted heads did not. Use the [recovery report](../../docs/SHoEbox_Recovery_Report.md) for the available files and exact missing revision. The recovered-artifacts ZIP restores all twelve frozen graphs and the preceding shared-preservation study, including its dependencies and four longer-fit diagnostics.

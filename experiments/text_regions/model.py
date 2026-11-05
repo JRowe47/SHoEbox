@@ -24,9 +24,18 @@ class RegionLanguageModel(nn.Module):
         self.nodes = nn.ModuleDict({n.name: RecurrentNode(n, self.cfg, self.shared_banks, i)
                                    for i, n in enumerate(self.cfg.nodes)})
         self.connections = GraphConnections(self.cfg)
-        self.readout_mix = nn.Linear(len(self.cfg.readout)*self.cfg.width, self.cfg.width, bias=False)
-        self.readout_norm = nn.LayerNorm(self.cfg.width)
-        self.readout = nn.Linear(self.cfg.width, 256, bias=False)
+        if self.cfg.readout_mode == 'mixed':
+            self.readout_mix = nn.Linear(len(self.cfg.readout)*self.cfg.width, self.cfg.width, bias=False)
+            self.readout_norm = nn.LayerNorm(self.cfg.width)
+            self.readout = nn.Linear(self.cfg.width, 256, bias=False)
+        else:
+            # One common affine byte decoder over complete P/Q publications.
+            # Regional computation, rather than a nonlinear output adapter,
+            # must perform cross-region composition.
+            self.readout_mix = nn.Identity()
+            self.readout_norm = nn.Identity()
+            self.readout = nn.Linear(len(self.cfg.readout)*self.cfg.width, 256)
+            nn.init.zeros_(self.readout.bias)
         nn.init.normal_(self.readout.weight, std=.02)
         self.specs = {n.name: n for n in self.cfg.nodes}
         self.stages = self.cfg.stages()

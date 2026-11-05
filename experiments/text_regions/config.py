@@ -44,6 +44,7 @@ class GraphConfig:
     nodes: tuple[NodeSpec, ...] = field(default_factory=default_nodes)
     edges: tuple[EdgeSpec, ...] = field(default_factory=default_edges)
     readout: tuple[str, ...] = ('P', 'Q')
+    readout_mode: str = 'mixed'
     width: int = 100
     experts_per_block: int = 128
     shared_per_block: int = 64
@@ -105,6 +106,8 @@ class GraphConfig:
             raise ValueError('At least one source view and distinct readout nodes are required.')
         if any(n not in names for n in self.readout):
             raise ValueError('Readout references an unknown node.')
+        if self.readout_mode not in ('mixed', 'concat'):
+            raise ValueError('Readout mode must be mixed or concat.')
         if len(set(e.key for e in self.edges)) != len(self.edges):
             raise ValueError('Duplicate edge.')
         for e in self.edges:

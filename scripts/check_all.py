@@ -34,7 +34,7 @@ def main():
                'test_baseline_compare', 'test_observability_compare', 'test_source_schedule_data',
                'test_source_schedule_training', 'test_source_schedule_compare', 'test_readout_diagnostic',
                'test_emission_adapter', 'test_residual_adapter', 'test_shared_preservation',
-               'test_audit_precision', 'test_cohort_diversity', 'test_full_rank_readout']
+               'test_audit_precision', 'test_cohort_diversity', 'test_full_rank_readout', 'test_composition']
     result = subprocess.run([sys.executable, '-m', 'unittest', '-v',
                              *['experiments.text_regions.' + name for name in modules]], cwd=ROOT)
     if result.returncode:
