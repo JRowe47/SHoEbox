@@ -122,3 +122,31 @@ training, selection, export and raw-prediction audits.
 See the [integrated report](SHoEbox_Integrated_Report.md),
 [declared protocol](SHoEbox_Integrated_Protocol.md) and
 [raw results](../experiments/text_regions/results/integrated/README.md).
+
+## SHoEbox complete-episode gradient horizon
+
+Two matched 32-update continuations start from the regional-facts control at
+update 100. Both train on the same 2,048 composition cases, 512 complete
+correction episodes and 512 complete fact episodes. Their only paired
+difference is detaching carried state every 16 events or retaining gradients
+through the full episode. Query and local losses use whole-episode means in
+both arms; each executes 6,561,792 experts.
+
+| Held-out capability | Truncated | Full horizon |
+|---|---:|---:|
+| Composition, K=2 | 98.82% | 100.00% |
+| Recall, gap 16 | 39.26% | 38.09% |
+| Correction, gap 16 | 39.26% | 29.69% |
+| Shared fact | 30.47% | 34.57% |
+| Left-private fact | 26.76% | 29.30% |
+| Right-private fact | 29.69% | 27.54% |
+
+Validation selects the full-horizon update-32 checkpoint. Neither arm reaches
+the integrated memory/fact targets, so M7 remains open. The inference graph
+is unchanged. Composition uses all 592 held-out cases; stream conditions use
+512 episodes each. Audits reconstruct training batches, verify equal budgets,
+recompute 76 scored prediction groups and check exact inference exports.
+
+See the [report](SHoEbox_Gradient_Horizon_Report.md),
+[locked protocol](SHoEbox_Gradient_Horizon_Protocol.md), and
+[raw results](../experiments/text_regions/results/gradient_horizon/README.md).

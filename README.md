@@ -50,11 +50,11 @@ P and Q feed the shared byte readout. B has one state owner and publishes to bot
 
 ## Development status
 
-**The regional fact-supervision comparison is complete.** Two matched 100-update continuations each use 9,076,224 expert executions. The control reaches **100% held-out composition**; training-only local memory/fact supervision reaches **99.83%**. Validation selects the control at phase update 100. Both runs were recovered from exact update-90 checkpoints and completed with held-out controls, raw predictions, inference exports and audits.
+**The gradient-horizon comparison is complete.** Two matched 32-update runs see the same complete episodes and use 6,561,792 expert executions each. One cuts gradients every 16 events; the other carries gradients through the whole episode. Full-horizon training preserves **100% held-out composition**, compared with **98.82%** for truncation. Validation selects the full-horizon checkpoint at update 32.
 
-**Integrated memory and fact learning remain unresolved.** At the trained delay, recall is 43.75% for the control and 35.35% with regional supervision; correction is 32.23% and 27.15%. Local memory heads can read some values at the write but weaken by query time, while downstream fact acquisition is also weak. The common byte head and 252,478-parameter inference graph remain unchanged. **All 355 tests pass. M7 remains open.** The next focused work is retaining observed writes across subsequent events and improving fact acquisition while preserving composition.
+**Integrated memory and fact learning remain unresolved.** Shared-fact accuracy is 34.57% with full-horizon training versus 30.47% with truncation, while delayed correction falls from 39.26% to 29.69%. Recall is 38.09% versus 39.26%. Removing the gradient cut does not solve these capabilities. The common byte head and 252,478-parameter inference graph remain unchanged. **All 360 regression tests pass. M7 remains open.** The next focused step is reliable fact acquisition and learned write/retain decisions within regional experts.
 
-See the [regional-facts report](docs/SHoEbox_Regional_Facts_Report.md), [locked protocol](docs/SHoEbox_Regional_Facts_Protocol.md), and [audited results and reproduction commands](experiments/text_regions/results/regional_facts). The [integrated report](docs/SHoEbox_Integrated_Report.md) records the parent experiment, and the [second lookup report](docs/SHoEbox_Second_Lookup_Report.md) records its regional-composition precursor.
+See the [gradient-horizon report](docs/SHoEbox_Gradient_Horizon_Report.md), [locked protocol](docs/SHoEbox_Gradient_Horizon_Protocol.md), and [audited results and reproduction commands](experiments/text_regions/results/gradient_horizon). The [regional-facts report](docs/SHoEbox_Regional_Facts_Report.md) records the parent comparison, and the [integrated report](docs/SHoEbox_Integrated_Report.md) records its joint-training precursor.
 
 ## Earlier experiments
 

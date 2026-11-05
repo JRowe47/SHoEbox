@@ -36,7 +36,7 @@ def main():
                'test_emission_adapter', 'test_residual_adapter', 'test_shared_preservation',
                'test_audit_precision', 'test_cohort_diversity', 'test_full_rank_readout', 'test_composition',
                'test_composition_curriculum', 'test_composition_continue', 'test_integrated',
-               'test_fact_supervision']
+               'test_fact_supervision', 'test_gradient_horizon']
     result = subprocess.run([sys.executable, '-m', 'unittest', '-v',
                              *['experiments.text_regions.' + name for name in modules]], cwd=ROOT)
     if result.returncode:
