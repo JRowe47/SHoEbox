@@ -50,7 +50,11 @@ P and Q feed the shared byte readout. B has one state owner and publishes to bot
 
 ## Development status
 
-The current phase trains **learned regional composition** through the seven-node network with a simple common byte head. Two 1,000-step runs and held-out K=1/2/4 controls are complete. The follow-up reaches **33.78% at K=2 versus 26.35% at K=1**; disabling regional feedback reduces accuracy to 26.69%, and shuffling B reduces original-answer accuracy to 25.51%. Source tables are fully recoverable before and after the query. This is an initial functional signal from one seed. **M7 remains open; the next target is reliable query-driven lookup and composition, followed by completed budget controls and replications.** All 328 tests pass. See the [composition report](docs/SHoEbox_Composition_Report.md), [protocol and commands](docs/SHoEbox_Composition_Protocol.md), and [raw results](experiments/text_regions/results/composition).
+**Learned regional composition reaches 75.00% held-out accuracy**, up from 33.78% in the previous phase. A matched continuation without regional supervision reaches 47.30%. The same trained model scores 24.83% at K=1 and 75.00% at K=2; disabling delayed exchange returns it to 24.83%. P's first lookup reaches 92.23%, and both source tables remain fully recoverable before and after the query.
+
+This round adds a mastery-gated curriculum, optional differentiable round publications, and training-only regional lookup supervision. The common byte readout and 252,478-parameter inference graph are unchanged. Inference-only checkpoints remove the auxiliary heads with exact logit agreement. **All 336 tests pass. M7 remains open: common-answer lookup is still below 90%, and integrated capability training, wider one-pass controls and independent initializations remain.**
+
+See the [lookup and regional-learning report](docs/SHoEbox_Lookup_Report.md), [protocol and reproduction commands](docs/SHoEbox_Lookup_Protocol.md), and [audited raw results](experiments/text_regions/results/lookup_mastery). The [previous composition report](docs/SHoEbox_Composition_Report.md) preserves the starting result.
 
 ## Earlier experiments
 

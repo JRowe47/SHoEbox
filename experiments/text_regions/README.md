@@ -576,3 +576,11 @@ moves. Published equivalence and CPU timings use float64; converting dtype is
 a separate numerical change. The artifact keeps graph and feature provenance
 alongside the buffers. See the [full-rank report](../../docs/SHoEbox_Full_Rank_Readout_Report.md)
 and [aggregate results](results/full_rank).
+
+## Lookup mastery and regional supervision
+
+The latest round reaches **75.00%** on 592 held-out relation-composition queries, versus 47.30% for a matched continuation and 33.78% previously. See the [report](../../docs/SHoEbox_Lookup_Report.md) and [complete protocol](../../docs/SHoEbox_Lookup_Protocol.md).
+
+`composition_curriculum` implements separate consecutive lookup gates and checkpointed stage transitions. `composition_train --regional-supervision 1` adds a shared training-only head at P round one and Q round two. `--initialize` starts a new continuation from a saved composition model; `--resume` restores the complete current run.
+
+`RegionLanguageModel(..., return_round_activity=True)` exposes differentiable readout-node payloads `[B,T,K,width]` and validity `[B,T,K]` under `round_activity`. The observations preserve predictions, state and expert counts. The export audit in `results.lookup_mastery.audit` removes both training-only heads and verifies unchanged inference.

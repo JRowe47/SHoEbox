@@ -103,7 +103,8 @@ class RegionLanguageModel(nn.Module):
     def forward(self, inputs, targets=None, state=None, reset=None, rounds=None, feedback=None,
                 availability=None, node_masks=None, edge_masks=None, substitutions=None,
                 trace=False, reverse_independent=False, return_view_activity=False,
-                return_edge_activity=False, edge_bias=None, lace_bias=None):
+                return_edge_activity=False, edge_bias=None, lace_bias=None,
+                return_round_activity=False):
         availability, node_masks = availability or {}, node_masks or {}
         edge_masks, substitutions = edge_masks or {}, substitutions or {}
         events, state, b, t, controlled = self._prepare(inputs, state, availability, node_masks,
@@ -128,6 +129,7 @@ class RegionLanguageModel(nn.Module):
         device = state.events_seen.device
         all_active = torch.ones(b, dtype=torch.bool, device=device)
         logits, records = [], []
+        round_activity = {name: {'payload': [], 'valid': []} for name in self.cfg.readout} if return_round_activity else {}
         view_activity = {view: {'payload': [], 'available': []} for view in events} if return_view_activity else {}
         edge_names = tuple(self.connections.edges)
         edge_indices = {key: i for i, key in enumerate(edge_names)}
@@ -136,6 +138,7 @@ class RegionLanguageModel(nn.Module):
         hat_aux = aux
         activations = ingress_activations = executed = 0
         for event_index in range(t):
+            event_activity = {name: {'payload': [], 'valid': []} for name in round_activity}
             if reset is not None and (reset.ndim == 2 or event_index == 0):
                 rows = reset[:, event_index] if reset.ndim == 2 else reset
                 if bool(rows.any()):
@@ -200,6 +203,13 @@ class RegionLanguageModel(nn.Module):
                                             'dependencies': tuple(d for d in dependencies if bool(d.consumed.any()))})
                     state = replace(state, nodes=node_states, ports=state.ports.commit(staged))
                 state = replace(state, rounds_seen=state.rounds_seen+1)
+                for name, activity in event_activity.items():
+                    publication = state.ports.latest[name]
+                    activity['payload'].append(publication.payload)
+                    activity['valid'].append(publication.valid)
+            for name, activity in event_activity.items():
+                for key, values in activity.items():
+                    round_activity[name][key].append(torch.stack(values, 1))
             values = [state.ports.latest[n].payload*state.ports.latest[n].valid[:, None] for n in self.cfg.readout]
             latent = self.readout_norm(self.readout_mix(torch.cat(values, -1)))
             logits.append(self.readout(latent))
@@ -220,9 +230,12 @@ class RegionLanguageModel(nn.Module):
                              for name, values in view_activity.items()}
             for activity in view_activity.values():
                 activity['provenance'] = 'independent_ingress'
+        round_activity = {name: {key: torch.stack(parts, 1) for key, parts in values.items()}
+                          for name, values in round_activity.items()}
         return {'logits': logits, 'loss': loss, 'ce': ce, 'aux': aux, 'hat_aux': hat_aux,
                 'state': state, 'trace': records, 'expert_executions': executed,
                 'view_activity': view_activity, 'edge_activity': usage, 'edge_names': edge_names,
+                'round_activity': round_activity,
                 'external_events': b*t, 'source_occurrences': ingress_activations, 'internal_rounds': b*t*k_total}
 
     def parameter_summary(self):

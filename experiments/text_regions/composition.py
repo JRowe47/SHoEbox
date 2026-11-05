@@ -18,7 +18,8 @@ def encode_sources(model, batch, control='intact'):
     return model(inputs, availability=availability, node_masks=node_masks, rounds=1, feedback=False)
 
 
-def answer_query(model, batch, prefix_state, rounds=2, feedback=True, trace=False):
+def answer_query(model, batch, prefix_state, rounds=2, feedback=True, trace=False,
+                 return_round_activity=False):
     n = batch.size
     # A carries the only query-dependent byte. B/C receive a fixed read cue,
     # which can address their recurrent state without revealing A's query.
@@ -27,12 +28,17 @@ def answer_query(model, batch, prefix_state, rounds=2, feedback=True, trace=Fals
     availability = {v: torch.ones(n,1,dtype=torch.bool) for v in inputs}
     # The source byte is ingested exactly once, regardless of internal rounds.
     return model(inputs, state=prefix_state, availability=availability,
-                 rounds=rounds, feedback=feedback, trace=trace)
+                 rounds=rounds, feedback=feedback, trace=trace,
+                 return_round_activity=return_round_activity)
 
 
-def training_loss(model, batch, rounds=2, feedback=True, source_reconstruction=0.):
+def training_loss(model, batch, rounds=2, feedback=True, source_reconstruction=0.,
+                  regional_supervision=0.):
+    if regional_supervision and (rounds < 2 or not feedback):
+        raise ValueError('Regional supervision requires at least two communicating rounds.')
     prefix = encode_sources(model, batch)
-    query = answer_query(model, batch, prefix['state'], rounds=rounds, feedback=feedback)
+    query = answer_query(model, batch, prefix['state'], rounds=rounds, feedback=feedback,
+                         return_round_activity=bool(regional_supervision))
     ce = F.cross_entropy(query['logits'][:, -1], batch.answers)
     cfg = model.cfg
     loss = ce + cfg.auxiliary_loss_weight*(prefix['aux'] + query['aux'])/2
@@ -48,6 +54,21 @@ def training_loss(model, batch, rounds=2, feedback=True, source_reconstruction=0
         query['source_loss'] = local
         query['source_accuracy'] = reconstructed.argmax(-1).eq(targets.flatten()).float().mean()
         loss = loss + source_reconstruction*local
+    if regional_supervision:
+        # P can know f(x) after round one; Q can combine it with g after
+        # delayed exchange. Targets are loss-only and never enter graph inputs.
+        intermediate = batch.first.gather(1, batch.query-65).flatten()-65
+        activity = query['round_activity']
+        values = torch.cat([activity['P']['payload'][:,0,0],
+                            activity['Q']['payload'][:,0,-1]])
+        targets = torch.cat([intermediate,batch.answers-65])
+        local_logits = model.regional_readout(values)
+        regional = F.cross_entropy(local_logits,targets)
+        query['regional_loss'] = regional
+        predictions = local_logits.argmax(-1)
+        query['intermediate_accuracy'] = predictions[:batch.size].eq(intermediate).float().mean()
+        query['regional_answer_accuracy'] = predictions[batch.size:].eq(batch.answers-65).float().mean()
+        loss = loss + regional_supervision*regional
     return loss, ce, prefix, query
 
 

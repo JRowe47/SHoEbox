@@ -14,11 +14,13 @@ from .config import GraphConfig
 from .model import RegionLanguageModel
 
 
-def build_model(config, source_reconstruction=0.):
+def build_model(config, source_reconstruction=0., regional_supervision=0.):
     model = RegionLanguageModel(config)
     if source_reconstruction:
         # A shared, training-only head; predictions still use model.readout.
         model.source_reconstruction = torch.nn.Linear(config.width,16)
+    if regional_supervision:
+        model.regional_readout = torch.nn.Linear(config.width,4)
     return model
 
 
@@ -49,7 +51,8 @@ def load_checkpoint(path, expected_protocol=None):
         raise ValueError('Unknown composition checkpoint schema.')
     if expected_protocol is not None and saved['protocol'] != expected_protocol:
         raise ValueError('Resume requires unchanged source and training protocol.')
-    model = build_model(GraphConfig.from_dict(saved['config']), saved['protocol'].get('source_reconstruction',0.))
+    model = build_model(GraphConfig.from_dict(saved['config']), saved['protocol'].get('source_reconstruction',0.),
+                        saved['protocol'].get('regional_supervision',0.))
     model.load_state_dict(saved['weights'])
     optimizer = optimizer_for(model, saved['protocol']['lr'])
     optimizer.load_state_dict(saved['optimizer'])
@@ -65,7 +68,8 @@ def update(model, optimizer, batch, step, protocol):
     optimizer.zero_grad(set_to_none=True)
     loss, ce, prefix, query = training_loss(model, batch, rounds=protocol['rounds'],
                                            feedback=protocol['feedback'],
-                                           source_reconstruction=protocol.get('source_reconstruction',0.))
+                                           source_reconstruction=protocol.get('source_reconstruction',0.),
+                                           regional_supervision=protocol.get('regional_supervision',0.))
     if not bool(torch.isfinite(loss)):
         raise FloatingPointError('Nonfinite composition training loss.')
     loss.backward()
@@ -79,6 +83,10 @@ def update(model, optimizer, batch, step, protocol):
     if 'source_loss' in query:
         row.update(source_nats=float(query['source_loss'].detach()),
                    source_accuracy=float(query['source_accuracy'].detach()))
+    if 'regional_loss' in query:
+        row.update(regional_nats=float(query['regional_loss'].detach()),
+                   intermediate_accuracy=float(query['intermediate_accuracy'].detach()),
+                   regional_answer_accuracy=float(query['regional_answer_accuracy'].detach()))
     return row
 
 
@@ -92,6 +100,8 @@ def main():
     p.add_argument('--lookup-warmup', type=int, default=200)
     p.add_argument('--copy-warmup', type=int, default=0)
     p.add_argument('--source-reconstruction', type=float, default=0.)
+    p.add_argument('--regional-supervision', type=float, default=0.)
+    p.add_argument('--initialize', type=Path)
     p.add_argument('--rounds', type=int, default=2)
     p.add_argument('--no-feedback', action='store_true')
     p.add_argument('--active-groups', type=int, default=2)
@@ -103,10 +113,15 @@ def main():
     p.add_argument('--resume', action='store_true')
     p.add_argument('--stop-after', type=int)
     args = p.parse_args()
+    if not math.isfinite(args.regional_supervision) or args.regional_supervision < 0:
+        p.error('Regional supervision weight must be finite and nonnegative.')
+    if args.regional_supervision and (args.rounds < 2 or args.no_feedback):
+        p.error('Regional supervision requires at least two communicating rounds.')
     if min(args.steps,args.batch,args.warmup,args.rounds,args.threads,args.validate_every,args.save_every) < 1 or min(args.lookup_warmup,args.copy_warmup,args.source_reconstruction) < 0 or not math.isfinite(args.source_reconstruction) or args.batch % 4 or not math.isfinite(args.lr) or args.lr <= 0:
         p.error('Invalid positive training count or learning rate.')
     torch.set_num_threads(args.threads)
-    protocol = {k:v for k,v in vars(args).items() if k not in ('out','resume','stop_after','no_feedback')}
+    protocol = {k:v for k,v in vars(args).items() if k not in ('out','resume','stop_after','no_feedback','initialize')}
+    protocol['initialize_sha256'] = hashlib.sha256(args.initialize.read_bytes()).hexdigest() if args.initialize else None
     protocol.update(feedback=not args.no_feedback, source_hashes=source_hashes(), coverage=coverage(),
                     optimizer='AdamW beta=(0.9,0.95), weight decay 0.01 on matrices, clip 1',
                     schedule='linear warmup then constant', task='g(f(x)), B=f, C=g, A=query',
@@ -123,7 +138,18 @@ def main():
         cfg = GraphConfig.tiny(readout_mode='concat', rounds=args.rounds,
                                recurrent_feedback=not args.no_feedback, evidence_gated_ports=True,
                                active_groups=args.active_groups, feedback_gate_init=.1, seed=args.seed)
-        model = build_model(cfg,args.source_reconstruction)
+        if args.initialize:
+            parent, _, _, parent_saved = load_checkpoint(args.initialize)
+            if parent.cfg.active_groups != args.active_groups:
+                p.error('Initialization must match active groups.')
+            torch.manual_seed(args.seed)
+            model = build_model(parent.cfg,args.source_reconstruction,args.regional_supervision)
+            status = model.load_state_dict(parent.state_dict(),strict=False)
+            allowed = {'regional_readout.weight','regional_readout.bias'} if args.regional_supervision else set()
+            if set(status.missing_keys)-allowed or status.unexpected_keys:
+                p.error('Initialization has incompatible auxiliary heads.')
+        else:
+            model = build_model(cfg,args.source_reconstruction,args.regional_supervision)
         optimizer = optimizer_for(model, args.lr)
         rng = random.Random(args.seed)
         start, best, history = 0, float('inf'), []
