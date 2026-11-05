@@ -109,7 +109,10 @@ class SourceScheduleDataChecks(unittest.TestCase):
         for dropout, fingerprint in expected.items():
             for kwargs in ({}, {'source_schedule': 'dropout'}):
                 batch = make_view_batch('train', 37, 48, seed=20261106, gap=8, dropout=dropout, **kwargs)
-                encoded = json.dumps(canonical(vars(batch)), sort_keys=True, separators=(',', ':')).encode()
+                # Preserve the original data contract byte-for-byte. The new
+                # reset-history metadata has its own causal slicing checks.
+                legacy = {k: v for k, v in vars(batch).items() if k != 'last_reset_positions'}
+                encoded = json.dumps(canonical(legacy), sort_keys=True, separators=(',', ':')).encode()
                 self.assertEqual(hashlib.sha256(encoded).hexdigest(), fingerprint)
 
     def test_balanced_rejects_dropout_evaluation_controls_and_unknown_schedule(self):

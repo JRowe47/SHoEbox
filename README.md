@@ -50,11 +50,11 @@ P and Q feed the shared byte readout. B has one state owner and publishes to bot
 
 ## Development status
 
-**Joint capability training is implemented and evaluated.** Per-task gradient clipping reaches **99.83% held-out composition** at 100 updates, versus 94.43% for the matched baseline. Both runs share identical initialization, examples and 9,084,288 expert executions. The balanced model passes every composition validation gate at updates 50 and 100.
+**The regional fact-supervision comparison is complete.** Two matched 100-update continuations each use 9,076,224 expert executions. The control reaches **100% held-out composition**; training-only local memory/fact supervision reaches **99.83%**. Validation selects the control at phase update 100. Both runs were recovered from exact update-90 checkpoints and completed with held-out controls, raw predictions, inference exports and audits.
 
-The same graph now trains on composition, delayed correction and shared/private facts with exact checkpoint continuation. **The memory and fact tasks remain near chance.** The validation-selected integrated candidate is the baseline at 200 updates, scoring 97.97% composition. The common byte head and 252,478-parameter inference graph remain unchanged. **All 349 tests pass. M7 remains open.** The next focused step is regional supervision for retained facts and corrections while preserving composition.
+**Integrated memory and fact learning remain unresolved.** At the trained delay, recall is 43.75% for the control and 35.35% with regional supervision; correction is 32.23% and 27.15%. Local memory heads can read some values at the write but weaken by query time, while downstream fact acquisition is also weak. The common byte head and 252,478-parameter inference graph remain unchanged. **All 355 tests pass. M7 remains open.** The next focused work is retaining observed writes across subsequent events and improving fact acquisition while preserving composition.
 
-See the [integrated report](docs/SHoEbox_Integrated_Report.md), [protocol](docs/SHoEbox_Integrated_Protocol.md), and [audited results and reproduction commands](experiments/text_regions/results/integrated). The [second lookup report](docs/SHoEbox_Second_Lookup_Report.md) records the 95.78% parent used for both runs.
+See the [regional-facts report](docs/SHoEbox_Regional_Facts_Report.md), [locked protocol](docs/SHoEbox_Regional_Facts_Protocol.md), and [audited results and reproduction commands](experiments/text_regions/results/regional_facts). The [integrated report](docs/SHoEbox_Integrated_Report.md) records the parent experiment, and the [second lookup report](docs/SHoEbox_Second_Lookup_Report.md) records its regional-composition precursor.
 
 ## Earlier experiments
 

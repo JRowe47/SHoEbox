@@ -62,6 +62,14 @@ combinations and independent full-factorial source controls, using 512 episodes
 per memory condition or view query. The four-value
 reference is 25%; answers are argmax over all 256 byte logits.
 
+Held-out stream evaluation uses batches of 256, while composition retains its
+original 64-case batching and table-shuffle controls. Capability summaries reuse
+the already scored control cohorts. The summary assembly is checked against
+both preserved integrated reports (all metrics and cohort contents, excluding
+wall-clock timing). Batch-64 versus batch-256 predictions are checked on fresh
+validation episodes before held-out evaluation. Each completed evaluation stage
+is saved atomically and can resume independently of training.
+
 Tests must cover causal correction labels, source observability, reset and
 slice consistency, unchanged inference/costs, gradients into the graph,
 auxiliary-head removal and exact interrupted/resumed training. The matched
