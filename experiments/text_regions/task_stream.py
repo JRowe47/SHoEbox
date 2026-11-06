@@ -29,6 +29,7 @@ class TaskStreamConfig:
     relations: bool = False
     holdout_combinations: bool = False
     interference: bool = False
+    acquisition_queries: bool = False
 
     def validate(self):
         if (len(self.entities) < 2 or len(set(self.entities)) != len(self.entities)
@@ -46,6 +47,8 @@ class TaskStreamConfig:
             raise ValueError('Invalid delay multiplier or semantic fraction.')
         if not isinstance(self.interference, bool):
             raise ValueError('Interference must be boolean.')
+        if not isinstance(self.acquisition_queries, bool):
+            raise ValueError('Acquisition queries must be boolean.')
         if self.holdout_combinations and len(self.attributes) < 2:
             raise ValueError('Combination holdout requires at least two attributes.')
 
@@ -209,6 +212,10 @@ def make_document(config=None, *, split='train', seed=0, index=0):
         rng.shuffle(shuffled)
         for ei, e in enumerate(cfg.entities):
             write((e, a), shuffled[(ei + ai) % len(shuffled)])
+            if cfg.acquisition_queries:
+                # A learning curriculum, never an input hint or forced write.
+                # Mark these questions only in evaluator provenance.
+                ask((e, a), -1, min(cfg.delays))
     if cfg.relations:
         for e, leader in relation.items():
             append(f'{e} follows {leader};'.encode('ascii'), 'relation_observation')

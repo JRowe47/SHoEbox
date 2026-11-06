@@ -2,6 +2,33 @@
 
 This is SHoEbox's event-major reference implementation of the [development specification](../../docs/SHoE_Text_Development_Specification.md). It reuses the baseline's SymbolLevel, RecurrentChild, minKron, lace controller, and split expert banks. No old experiment is copied into this directory.
 
+## Acquisition-to-retention curriculum
+
+The [acquisition protocol](../../docs/SHoEbox_Acquisition_Protocol.md) trains short
+observation/question pairs before increasing delays and interfering updates.
+The model and byte-only input interface remain unchanged. A 64-byte live graph
+allows historical payload, feature and recurrent learning within each window;
+the existing delayed write-head trace still spans detached windows.
+
+```bash
+python scripts/run_task_curriculum.py --out artifacts/acquisition/29
+```
+
+This runs four matched arms: curriculum with stored publications, curriculum
+with current producer outputs, curriculum detached every 16 bytes, and direct
+target-stream training. All arms process 64 bytes per row per optimizer update;
+the truncated control aggregates all answer/text terms before one update.
+Use `--workers 1` to run sequentially. The runner saves complete selected/final
+evaluations and whole-query content audits, including cells older than 16 bytes.
+
+The underlying trainer accepts `--curriculum acquisition --stream-preset retention`,
+`--acquire-steps 200 --bridge-steps 200 --context 64` and optional
+`--truncate-every 16`. Stage boundaries are explicit, preserving exact resume
+when the final budget changes. Weights and optimizer moments persist across
+stages; runtime state restarts with the new independent documents. Coverage
+counts record actual source and observation connectivity inside each gradient
+segment. Fixed target validation selects checkpoints throughout the curriculum.
+
 ## Task-driven memory retention
 
 `task_memory.py` runs ordinary bytes through independent owner states and shared

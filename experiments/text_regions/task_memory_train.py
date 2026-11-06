@@ -13,6 +13,7 @@ from torch.nn import functional as F
 from .task_stream import TaskStreamConfig, TaskByteStreams, make_documents
 from .task_memory import TaskMemoryConfig, TaskMemoryModel, TaskMemoryState
 from .task_credit import WriteEligibility, CompetitiveWriteEligibility
+from .task_curriculum import stage_for_step, stage_config, window_forward, SourceCoverage
 
 
 def byte_loss(logits, targets):
@@ -116,6 +117,8 @@ def evaluate(model, data_config, seed, count=16, context=16, split='validation',
             q = queries[row, position]
             labels = [q.kind, 'corrected' if q.correction else 'initial',
                       'beyond_chunk' if q.delay > context else 'within_chunk']
+            if q.cycle == -1:
+                labels.append('acquisition')
             for label in labels:
                 g = groups.setdefault(label, dict(count=0, correct=0, nats=0.))
                 g['count'] += 1; g['correct'] += hit; g['nats'] += loss
@@ -206,6 +209,10 @@ def validate_resume(saved, args, model, data_cfg):
     for name, default in (('write_mode', 'independent'), ('memory_aware_write', False), ('bootstrap_empty', False), ('stream_preset', 'basic')):
         if saved['args'].get(name, default) != getattr(args, name, default):
             raise ValueError(f'Resume {name} mismatch.')
+    for name, default in (('curriculum', 'none'), ('acquire_steps', 200),
+                          ('bridge_steps', 200), ('truncate_every', 0)):
+        if saved['args'].get(name, default) != getattr(args, name, default):
+            raise ValueError(f'Resume {name} mismatch.')
     if args.steps < saved['step']:
         raise ValueError('Requested budget precedes the saved training step.')
 
@@ -275,6 +282,11 @@ def main():
     p.add_argument('--memory-aware-write', action='store_true')
     p.add_argument('--bootstrap-empty', action='store_true')
     p.add_argument('--stream-preset', choices=('basic', 'retention'), default='basic')
+    p.add_argument('--curriculum', choices=('none', 'acquisition'), default='none')
+    p.add_argument('--acquire-steps', type=int, default=200)
+    p.add_argument('--bridge-steps', type=int, default=200)
+    p.add_argument('--truncate-every', type=int, default=0,
+                   help='Detach inside each context window; keep one optimizer update and whole-window loss.')
     p.add_argument('--owners', type=int, default=4)
     p.add_argument('--lr', type=float, default=.002)
     p.add_argument('--text-weight', type=float, default=.1)
@@ -288,6 +300,11 @@ def main():
     args = p.parse_args()
     if min(args.steps, args.batch, args.context, args.eval_every, args.eval_count, args.threads) < 1:
         p.error('Positive step, batch, context, evaluation and thread counts required.')
+    if min(args.acquire_steps, args.bridge_steps) < 1 or args.truncate_every < 0 or (
+            args.truncate_every and args.context % args.truncate_every):
+        p.error('Positive curriculum lengths and truncation zero or a divisor of context required.')
+    if args.curriculum != 'none' and args.stream_preset != 'retention':
+        p.error('The acquisition curriculum requires the retention target stream.')
     if args.resume and args.init_from:
         p.error('--resume and --init-from are mutually exclusive.')
     try:
@@ -305,8 +322,13 @@ def main():
     initialization = initialize_weights(model, args.init_from) if args.init_from else None
     data_cfg = TaskStreamConfig() if args.stream_preset == 'basic' else TaskStreamConfig(
         entities='ABCD', queries_per_cycle=4, delays=(2,48), interference=True)
-    documents = make_documents(data_cfg, seed=args.data_seed, count=4096)
+    saved = torch.load(args.resume, map_location='cpu', weights_only=False) if args.resume else None
+    training_stage = stage_for_step(saved['step'] if saved else 0, args.curriculum,
+                                    args.acquire_steps, args.bridge_steps)
+    current_cfg = stage_config(data_cfg, training_stage)
+    documents = make_documents(current_cfg, seed=args.data_seed, count=4096)
     streams = TaskByteStreams(documents, args.batch)
+    coverage = SourceCoverage(documents)
     optimizer = torch.optim.AdamW(model.parameters(), lr=args.lr, betas=(.9, .95), weight_decay=.01)
     state = model.initial_state(args.batch)
     credit_type = CompetitiveWriteEligibility if args.write_mode == 'competitive' else WriteEligibility
@@ -314,8 +336,8 @@ def main():
                                     model.memory_dim, model.cfg.policy_features)
     start = 0; best = float('inf')
     external = experts = 0; delayed_norm = prior_seconds = 0.
+    stage_totals = {}
     if args.resume:
-        saved = torch.load(args.resume, map_location='cpu', weights_only=False)
         validate_resume(saved, args, model, data_cfg)
         model.load_state_dict(saved['weights']); optimizer.load_state_dict(saved['optimizer'])
         state = TaskMemoryState.from_dict(saved['state']); credit = credit_type.from_dict(saved['credit'])
@@ -328,6 +350,7 @@ def main():
                              model.cfg.active_groups*model.cfg.experts_per_group)
         delayed_norm = totals.get('delayed_gradient_norm_sum', 0.)
         prior_seconds = totals.get('elapsed_seconds', 0.)
+        stage_totals = totals.get('stages', {})
         if not (args.out/'best.pt').exists():
             previous_best = args.resume.parent/'best.pt'
             if previous_best.exists():
@@ -336,40 +359,69 @@ def main():
                 raise FileNotFoundError('Resume requires the accompanying best.pt checkpoint.')
         if not (args.out/'last.pt').exists():
             shutil.copy2(args.resume, args.out/'last.pt')
+        for stage_name in ('acquire', 'bridge'):
+            previous_stage = args.resume.parent/(stage_name+'.pt')
+            if previous_stage.exists() and not (args.out/previous_stage.name).exists():
+                shutil.copy2(previous_stage, args.out/previous_stage.name)
     invocation = {**{k: str(v) if isinstance(v, Path) else v for k, v in vars(args).items()},
                   'data_digest': streams.fingerprint, 'model_parameters': sum(p.numel() for p in model.parameters()),
                   'config': model.cfg.to_dict(), 'data_config': data_cfg.to_dict(),
+                  'training_stages': {stage: stage_config(data_cfg, stage).to_dict()
+                                      for stage in (('acquire', 'bridge', 'target')
+                                                    if args.curriculum != 'none' else ('target',))},
                   'initialization': initialization}
     (args.out/'invocation.json').write_text(json.dumps(invocation, indent=2)+'\n')
     started = time.perf_counter()
     model.train()
     for step in range(start+1, args.steps+1):
+        next_stage = stage_for_step(step, args.curriculum, args.acquire_steps, args.bridge_steps)
+        if next_stage != training_stage:
+            training_stage = next_stage
+            current_cfg = stage_config(data_cfg, training_stage)
+            documents = make_documents(current_cfg, seed=args.data_seed, count=4096)
+            streams = TaskByteStreams(documents, args.batch)
+            coverage = SourceCoverage(documents)
+            # New independent documents; learned weights and AdamW continue.
+            state = model.initial_state(args.batch)
+            credit = credit_type.zeros(args.batch, model.owner_names,
+                                       model.memory_dim, model.cfg.policy_features)
         chunk = streams.next_chunk(args.context)
         optimizer.zero_grad(set_to_none=True)
-        boundary = credit.capture(state.memory_tensor())
-        state = state.with_memory_tensor(boundary.memory)
-        result = model(chunk.values, state=state, reset=chunk.reset,
-                       control=training_control(args.arm))
+        result, credit, boundaries = window_forward(model, chunk, state, credit,
+            control=training_control(args.arm), truncate_every=args.truncate_every)
         loss, answer, text = objective(result, chunk, args.text_weight, args.write_cost)
         loss.backward()
         if args.arm == 'integrated':
-            delayed_norm += boundary.apply(model.write_policy)
-        credit = credit.advance_chunk(result)
+            delayed_norm += sum(boundary.apply(model.write_policy) for boundary in boundaries)
         torch.nn.utils.clip_grad_norm_(model.parameters(), 1.)
         optimizer.step()
         state = result['state'].detach()
         external += result['external_events']; experts += result['expert_executions']
-        if step % args.eval_every == 0 or step == args.steps:
+        counts = coverage.count(chunk, args.truncate_every)
+        counts.update(updates=1, external_bytes=result['external_events'],
+                      expert_executions=result['expert_executions'])
+        accumulated = stage_totals.setdefault(training_stage, {key: 0 for key in counts})
+        for key, value in counts.items():
+            accumulated[key] += value
+        stage_end = training_stage != stage_for_step(step+1, args.curriculum,
+                                                     args.acquire_steps, args.bridge_steps)
+        if step % args.eval_every == 0 or step == args.steps or stage_end:
             evaluation, _ = evaluate(model, data_cfg, args.data_seed, args.eval_count, args.context,
                                      control=training_control(args.arm))
+            stage_evaluation = evaluation if training_stage == 'target' else evaluate(
+                model, current_cfg, args.data_seed, args.eval_count, args.context,
+                control=training_control(args.arm))[0]
             elapsed = prior_seconds+time.perf_counter()-started
             totals = dict(external_bytes=external, expert_executions=experts,
-                          elapsed_seconds=elapsed, delayed_gradient_norm_sum=delayed_norm)
+                          elapsed_seconds=elapsed, delayed_gradient_norm_sum=delayed_norm,
+                          stages=stage_totals)
             record = dict(step=step, loss=float(loss.detach()), train_answer_nll=float(answer.detach()),
                           train_text_nll=float(text.detach()), validation=evaluation,
                           training_external_bytes=external, training_expert_executions=experts,
                           elapsed_seconds=elapsed, run_seconds=time.perf_counter()-started,
                           delayed_gradient_norm_sum=delayed_norm,
+                          training_stage=training_stage, stage_validation=stage_evaluation,
+                          stage_totals=stage_totals,
                           trace_bytes=credit.storage_bytes())
             with (args.out/'history.jsonl').open('a') as f:
                 f.write(json.dumps(record)+'\n')
@@ -377,6 +429,8 @@ def main():
                 best = evaluation['answer_nll']
                 checkpoint(args.out/'best.pt', model, optimizer, state, credit, streams, args, data_cfg, step, best, totals, initialization)
             checkpoint(args.out/'last.pt', model, optimizer, state, credit, streams, args, data_cfg, step, best, totals, initialization)
+            if stage_end:
+                shutil.copy2(args.out/'last.pt', args.out/(training_stage+'.pt'))
             print(json.dumps({k: record[k] for k in ('step', 'train_answer_nll', 'elapsed_seconds')} |
                              dict(val_nll=evaluation['answer_nll'], val_accuracy=evaluation['accuracy'])), flush=True)
     if args.final_eval:
