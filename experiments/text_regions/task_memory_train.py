@@ -1,5 +1,6 @@
 """Paired, resumable pilot for task-driven publications and detached credit."""
 import argparse
+import hashlib
 from dataclasses import asdict, replace
 import json
 from pathlib import Path
@@ -11,7 +12,7 @@ from torch.nn import functional as F
 
 from .task_stream import TaskStreamConfig, TaskByteStreams, make_documents
 from .task_memory import TaskMemoryConfig, TaskMemoryModel, TaskMemoryState
-from .task_credit import WriteEligibility
+from .task_credit import WriteEligibility, CompetitiveWriteEligibility
 
 
 def byte_loss(logits, targets):
@@ -53,7 +54,8 @@ def evaluate(model, data_config, seed, count=16, context=16, split='validation',
     x, y, answer, valid, queries = packed_documents(documents)
     state = None
     nats = text_nats = correct = n = nt = executions = 0
-    write_sum = read_sum = 0.
+    write_sum = read_sum = old_read_sum = query_old_read_sum = 0.
+    bootstrap_events = learned_writes = 0
     owner_writes = torch.zeros(model.cfg.owners, dtype=torch.float64)
     owner_valid = torch.zeros_like(owner_writes)
     owner_reads = torch.zeros_like(owner_writes)
@@ -80,6 +82,10 @@ def evaluate(model, data_config, seed, count=16, context=16, split='validation',
             publication_ages = publication_ages.roll(1, 0)
         result = model(x[:, position:position+1], state=prestate, control=control)
         state = result['state']
+        if control == 'fresh':
+            publication_valid = result['read_valid'][:, 0]
+            publication_occurrences = torch.full_like(publication_occurrences, position)
+            publication_ages = torch.zeros_like(publication_ages)
         read_weights = result['read_weights'][:, 0, :-1]*publication_valid
         nonnull_mass = read_weights.sum(1)
         weighted_ages = (read_weights*publication_ages).sum(1)/nonnull_mass.clamp_min(1e-12)
@@ -114,8 +120,8 @@ def evaluate(model, data_config, seed, count=16, context=16, split='validation',
                 g = groups.setdefault(label, dict(count=0, correct=0, nats=0.))
                 g['count'] += 1; g['correct'] += hit; g['nats'] += loss
             record = dict(**asdict(q), document=row, prediction=int(logits[row].argmax()),
-                          nll=loss, read_weights=result['read_weights'][row, 0].tolist(),
-                          read_versions=result['read_versions'][(row-1) % len(documents) if control == 'shuffle' else row, 0].tolist(),
+                          nll=loss, read_source=result.get('read_source', 'publication'), read_weights=result['read_weights'][row, 0].tolist(),
+                          read_versions=result['read_versions'][row, 0].tolist(),
                           read_source_owners=list(model.owner_names),
                           read_source_document=(row-1) % len(documents) if control == 'shuffle' else row,
                           read_valid=publication_valid[row].tolist(),
@@ -126,6 +132,8 @@ def evaluate(model, data_config, seed, count=16, context=16, split='validation',
                           weighted_publication_age=float(weighted_ages[row]) if nonnull_mass[row] > 0 else None,
                           effective_weighted_publication_age=float(weighted_ages[row]) if
                               control != 'blocked' and nonnull_mass[row] > 0 else None)
+            record['old_read_mass'] = float((read_weights[row]*publication_ages[row].gt(context)).sum())
+            query_old_read_sum += record['old_read_mass']
             if nonnull_mass[row] > 0:
                 query_age_sum += float(weighted_ages[row]); query_age_count += 1
             for intervention, values in counterfactuals.items():
@@ -137,6 +145,10 @@ def evaluate(model, data_config, seed, count=16, context=16, split='validation',
             records.append(record)
         executions += result['expert_executions']
         active = valid[:, position]
+        bootstrap = result.get('bootstrap_mask', torch.zeros_like(x[:, position:position+1], dtype=torch.bool))[:, 0]
+        bootstrap_events += int((bootstrap & active).sum())
+        learned_writes += int((result['write_actions'][:, 0] & ~bootstrap[:, None])[active].sum())
+        old_read_sum += float((read_weights*publication_ages.gt(context))[active].sum())
         write_sum += float(result['write_actions'][:, 0][active].float().sum())
         read_sum += float((1-result['read_weights'][:, 0, -1])[active].sum())
         owner_writes += result['write_actions'][:, 0][active].sum(0).double()
@@ -148,9 +160,14 @@ def evaluate(model, data_config, seed, count=16, context=16, split='validation',
     def rates(g):
         return dict(count=g['count'], accuracy=g['correct']/max(g['count'], 1),
                     nll=g['nats']/max(g['count'], 1))
-    summary = dict(split=split, control=control, answers=n, accuracy=correct/max(n, 1), answer_nll=nats/max(n, 1),
+    summary = dict(split=split, control=control, read_source='candidate' if control == 'fresh' else 'publication', answers=n, accuracy=correct/max(n, 1), answer_nll=nats/max(n, 1),
                    ordinary_nll=text_nats/max(nt, 1), groups={k: rates(v) for k, v in groups.items()},
                    interventions={k: rates(v) for k, v in controls.items()},
+                   bootstrap_events=bootstrap_events, learned_writes=learned_writes,
+                   learned_write_rate=learned_writes/(max(int(valid.sum())-bootstrap_events, 1)*model.cfg.owners),
+                   old_read_mass=old_read_sum/int(valid.sum()), query_old_read_mass=query_old_read_sum/max(n, 1),
+                   effective_old_read_mass=0. if control == 'blocked' else old_read_sum/int(valid.sum()),
+                   effective_query_old_read_mass=0. if control == 'blocked' else query_old_read_sum/max(n, 1),
                    write_rate=write_sum/(int(valid.sum())*model.cfg.owners),
                    read_mass=read_sum/int(valid.sum()), effective_read_mass=0. if control == 'blocked' else read_sum/int(valid.sum()),
                    owners={name: dict(write_fraction=float(owner_writes[i])/int(valid.sum()),
@@ -159,7 +176,7 @@ def evaluate(model, data_config, seed, count=16, context=16, split='validation',
                            for i, name in enumerate(model.owner_names)},
                    mean_weighted_publication_age=weighted_age_sum/weighted_age_count if weighted_age_count else None,
                    query_mean_weighted_publication_age=query_age_sum/query_age_count if query_age_count else None,
-                   publication_age_definition='Pre-event byte clock minus committed occurrence; valid nonnull read weights normalized per event. Valid fraction is pre-read occupancy.',
+                   publication_age_definition='Fresh candidates have age 0 and version -1. Pre-event byte clock minus committed occurrence; valid nonnull read weights normalized per event. Valid fraction is pre-read occupancy.',
                    state_bytes=state.storage_bytes(),
                    expert_executions=executions, external_bytes=int(valid.sum()),
                    executed_bytes=x.numel(), seconds=time.perf_counter()-started)
@@ -167,7 +184,7 @@ def evaluate(model, data_config, seed, count=16, context=16, split='validation',
     return summary, records
 
 
-def checkpoint(path, model, optimizer, state, credit, streams, args, data_cfg, step, best, totals=None):
+def checkpoint(path, model, optimizer, state, credit, streams, args, data_cfg, step, best, totals=None, initialization=None):
     path = Path(path)
     temporary = path.with_suffix(path.suffix+'.tmp')
     serialized_args = {key: str(value) if isinstance(value, Path) else value for key, value in vars(args).items()}
@@ -175,16 +192,19 @@ def checkpoint(path, model, optimizer, state, credit, streams, args, data_cfg, s
         weights=model.state_dict(), optimizer=optimizer.state_dict(),
         state=None if state is None else state.to_dict(), credit=credit.to_dict(),
         stream=streams.state_dict(), rng=torch.get_rng_state(), args=serialized_args,
-        step=step, best=best, totals=totals or {}), temporary)
+        step=step, best=best, totals=totals or {}, initialization=initialization), temporary)
     temporary.replace(path)
 
 
 def validate_resume(saved, args, model, data_cfg):
-    if saved['config'] != model.cfg.to_dict() or saved['data_config'] != data_cfg.to_dict():
+    if TaskMemoryConfig.from_dict(saved['config']).to_dict() != model.cfg.to_dict() or TaskStreamConfig.from_dict(saved['data_config']).to_dict() != data_cfg.to_dict():
         raise ValueError('Resume configuration mismatch.')
     for name in ('seed', 'data_seed', 'arm', 'batch', 'context', 'width', 'owners',
                  'lr', 'text_weight', 'write_cost', 'threads', 'eval_count'):
         if saved['args'].get(name, 0. if name == 'write_cost' else None) != getattr(args, name, 0. if name == 'write_cost' else None):
+            raise ValueError(f'Resume {name} mismatch.')
+    for name, default in (('write_mode', 'independent'), ('memory_aware_write', False), ('bootstrap_empty', False), ('stream_preset', 'basic')):
+        if saved['args'].get(name, default) != getattr(args, name, default):
             raise ValueError(f'Resume {name} mismatch.')
     if args.steps < saved['step']:
         raise ValueError('Requested budget precedes the saved training step.')
@@ -214,16 +234,47 @@ def final_evaluation(out, model, data_cfg, data_seed, count, context, control):
     return summaries
 
 
+def initialize_weights(model, path):
+    """Start a new independent study from compatible learned weights only."""
+    path = Path(path)
+    saved = torch.load(path, map_location='cpu', weights_only=False)
+    # Only the optional zero-initialized conditioning projection may be new.
+    missing, unexpected = model.load_state_dict(saved['weights'], strict=False)
+    allowed = {'memory_policy_features.weight'} if model.cfg.memory_aware_write else set()
+    if set(missing)-allowed or unexpected:
+        raise ValueError(f'Incompatible parent weights: missing={missing}, unexpected={unexpected}')
+    return dict(path=str(path), sha256=hashlib.sha256(path.read_bytes()).hexdigest(),
+                parent_step=saved.get('step'), new_parameters=missing,
+                optimizer='fresh AdamW', runtime_state='fresh independent streams')
+
+
+def training_control(arm):
+    return {'no_memory': 'blocked', 'fresh': 'fresh'}.get(arm, 'intact')
+
+
+def validate_resume_destination(out, resume):
+    """Keep another run's checkpoints/history out of a resumed study."""
+    if resume is None:
+        return
+    out, resume = Path(out), Path(resume)
+    if out.resolve() != resume.parent.resolve() and out.exists() and any(out.iterdir()):
+        raise ValueError('Resuming into another directory requires an empty output directory.')
+
+
 def main():
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument('--out', type=Path, required=True)
     p.add_argument('--steps', type=int, default=200)
     p.add_argument('--seed', type=int, default=17)
     p.add_argument('--data-seed', type=int, default=123)
-    p.add_argument('--arm', choices=('integrated', 'no_credit', 'no_memory'), default='integrated')
+    p.add_argument('--arm', choices=('integrated', 'no_credit', 'no_memory', 'fresh'), default='integrated')
     p.add_argument('--batch', type=int, default=8)
     p.add_argument('--context', type=int, default=16)
     p.add_argument('--width', type=int, default=80)
+    p.add_argument('--write-mode', choices=('independent', 'competitive'), default='independent')
+    p.add_argument('--memory-aware-write', action='store_true')
+    p.add_argument('--bootstrap-empty', action='store_true')
+    p.add_argument('--stream-preset', choices=('basic', 'retention'), default='basic')
     p.add_argument('--owners', type=int, default=4)
     p.add_argument('--lr', type=float, default=.002)
     p.add_argument('--text-weight', type=float, default=.1)
@@ -232,23 +283,34 @@ def main():
     p.add_argument('--eval-count', type=int, default=8)
     p.add_argument('--threads', type=int, default=1)
     p.add_argument('--resume', type=Path)
+    p.add_argument('--init-from', type=Path, help='Compatible learned weights for a new paired study; fresh optimizer/state.')
     p.add_argument('--final-eval', action='store_true')
     args = p.parse_args()
     if min(args.steps, args.batch, args.context, args.eval_every, args.eval_count, args.threads) < 1:
         p.error('Positive step, batch, context, evaluation and thread counts required.')
+    if args.resume and args.init_from:
+        p.error('--resume and --init-from are mutually exclusive.')
+    try:
+        validate_resume_destination(args.out, args.resume)
+    except ValueError as error:
+        p.error(str(error))
     if not 0 <= args.write_cost <= 1:
         p.error('Write cost must be between zero and one.')
     if not args.resume and any((args.out/name).exists() for name in ('best.pt', 'last.pt', 'history.jsonl')):
         p.error('Output already contains a run; use --resume or a fresh --out directory.')
     torch.set_num_threads(args.threads); torch.manual_seed(args.seed)
     args.out.mkdir(parents=True, exist_ok=True)
-    model = TaskMemoryModel(TaskMemoryConfig(width=args.width, owners=args.owners))
-    data_cfg = TaskStreamConfig()
+    model = TaskMemoryModel(TaskMemoryConfig(width=args.width, owners=args.owners, write_mode=args.write_mode,
+                                            memory_aware_write=args.memory_aware_write, bootstrap_empty=args.bootstrap_empty))
+    initialization = initialize_weights(model, args.init_from) if args.init_from else None
+    data_cfg = TaskStreamConfig() if args.stream_preset == 'basic' else TaskStreamConfig(
+        entities='ABCD', queries_per_cycle=4, delays=(2,48), interference=True)
     documents = make_documents(data_cfg, seed=args.data_seed, count=4096)
     streams = TaskByteStreams(documents, args.batch)
     optimizer = torch.optim.AdamW(model.parameters(), lr=args.lr, betas=(.9, .95), weight_decay=.01)
     state = model.initial_state(args.batch)
-    credit = WriteEligibility.zeros(args.batch, model.owner_names,
+    credit_type = CompetitiveWriteEligibility if args.write_mode == 'competitive' else WriteEligibility
+    credit = credit_type.zeros(args.batch, model.owner_names,
                                     model.memory_dim, model.cfg.policy_features)
     start = 0; best = float('inf')
     external = experts = 0; delayed_norm = prior_seconds = 0.
@@ -256,9 +318,10 @@ def main():
         saved = torch.load(args.resume, map_location='cpu', weights_only=False)
         validate_resume(saved, args, model, data_cfg)
         model.load_state_dict(saved['weights']); optimizer.load_state_dict(saved['optimizer'])
-        state = TaskMemoryState.from_dict(saved['state']); credit = WriteEligibility.from_dict(saved['credit'])
+        state = TaskMemoryState.from_dict(saved['state']); credit = credit_type.from_dict(saved['credit'])
         streams.load_state_dict(saved['stream']); torch.set_rng_state(saved['rng'])
         start, best = saved['step'], saved['best']
+        initialization = saved.get('initialization', initialization)
         totals = saved.get('totals', {})
         external = totals.get('external_bytes', start*args.batch*args.context)
         experts = totals.get('expert_executions', external*(args.owners+1)*3*
@@ -273,9 +336,10 @@ def main():
                 raise FileNotFoundError('Resume requires the accompanying best.pt checkpoint.')
         if not (args.out/'last.pt').exists():
             shutil.copy2(args.resume, args.out/'last.pt')
-    invocation = {**vars(args), 'out': str(args.out), 'resume': str(args.resume) if args.resume else None,
+    invocation = {**{k: str(v) if isinstance(v, Path) else v for k, v in vars(args).items()},
                   'data_digest': streams.fingerprint, 'model_parameters': sum(p.numel() for p in model.parameters()),
-                  'config': model.cfg.to_dict(), 'data_config': data_cfg.to_dict()}
+                  'config': model.cfg.to_dict(), 'data_config': data_cfg.to_dict(),
+                  'initialization': initialization}
     (args.out/'invocation.json').write_text(json.dumps(invocation, indent=2)+'\n')
     started = time.perf_counter()
     model.train()
@@ -285,7 +349,7 @@ def main():
         boundary = credit.capture(state.memory_tensor())
         state = state.with_memory_tensor(boundary.memory)
         result = model(chunk.values, state=state, reset=chunk.reset,
-                       control='blocked' if args.arm == 'no_memory' else 'intact')
+                       control=training_control(args.arm))
         loss, answer, text = objective(result, chunk, args.text_weight, args.write_cost)
         loss.backward()
         if args.arm == 'integrated':
@@ -297,7 +361,7 @@ def main():
         external += result['external_events']; experts += result['expert_executions']
         if step % args.eval_every == 0 or step == args.steps:
             evaluation, _ = evaluate(model, data_cfg, args.data_seed, args.eval_count, args.context,
-                                     control='blocked' if args.arm == 'no_memory' else 'intact')
+                                     control=training_control(args.arm))
             elapsed = prior_seconds+time.perf_counter()-started
             totals = dict(external_bytes=external, expert_executions=experts,
                           elapsed_seconds=elapsed, delayed_gradient_norm_sum=delayed_norm)
@@ -311,13 +375,13 @@ def main():
                 f.write(json.dumps(record)+'\n')
             if evaluation['answer_nll'] < best:
                 best = evaluation['answer_nll']
-                checkpoint(args.out/'best.pt', model, optimizer, state, credit, streams, args, data_cfg, step, best, totals)
-            checkpoint(args.out/'last.pt', model, optimizer, state, credit, streams, args, data_cfg, step, best, totals)
+                checkpoint(args.out/'best.pt', model, optimizer, state, credit, streams, args, data_cfg, step, best, totals, initialization)
+            checkpoint(args.out/'last.pt', model, optimizer, state, credit, streams, args, data_cfg, step, best, totals, initialization)
             print(json.dumps({k: record[k] for k in ('step', 'train_answer_nll', 'elapsed_seconds')} |
                              dict(val_nll=evaluation['answer_nll'], val_accuracy=evaluation['accuracy'])), flush=True)
     if args.final_eval:
         final_evaluation(args.out, model, data_cfg, args.data_seed, args.eval_count*2, args.context,
-                         'blocked' if args.arm == 'no_memory' else 'intact')
+                         training_control(args.arm))
 
 
 if __name__ == '__main__':

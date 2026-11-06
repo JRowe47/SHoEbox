@@ -5,7 +5,7 @@ from pathlib import Path
 import torch
 from .task_memory import TaskMemoryConfig, TaskMemoryModel
 from .task_stream import TaskStreamConfig
-from .task_memory_train import final_evaluation
+from .task_memory_train import final_evaluation, training_control
 
 
 def main():
@@ -21,7 +21,7 @@ def main():
     cfg = TaskStreamConfig.from_dict(saved['data_config'])
     run = saved['args']
     result = final_evaluation(args.run, model, cfg, run['data_seed'], run['eval_count']*2,
-                             run['context'], 'blocked' if run['arm'] == 'no_memory' else 'intact')
+                             run['context'], training_control(run['arm']))
     print(json.dumps(dict(run=str(args.run), selected_step=result['selected_step'],
                           test_nll=result['test']['answer_nll'], test_accuracy=result['test']['accuracy'])))
 

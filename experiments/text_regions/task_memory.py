@@ -40,6 +40,9 @@ class TaskMemoryConfig:
     kron_key: int = 4
     kron_value: int = 4
     seed: int = 1
+    write_mode: str = 'independent'
+    memory_aware_write: bool = False
+    bootstrap_empty: bool = False
 
     def to_dict(self):
         return asdict(self)
@@ -50,10 +53,12 @@ class TaskMemoryConfig:
 
     def graph_config(self):
         values = self.to_dict()
-        for key in ('owners', 'policy_features'):
+        for key in ('owners', 'policy_features', 'write_mode', 'memory_aware_write', 'bootstrap_empty'):
             values.pop(key)
         if self.owners < 1 or self.policy_features < 1:
             raise ValueError('Positive owner and policy feature counts required.')
+        if self.write_mode not in ('independent', 'competitive'):
+            raise ValueError('Write mode must be independent or competitive.')
         return GraphConfig(**values, nodes=(NodeSpec('M', 'memory', 'ordinary'),
                                             NodeSpec('C', 'composer')),
                            edges=(), readout=('C',), context=32)
@@ -156,6 +161,12 @@ class TaskMemoryModel(nn.Module):
         nn.init.normal_(self.decoder.weight, std=.02)
         nn.init.zeros_(self.decoder.bias)
         self.owner_names = tuple(f'M{i}' for i in range(m))
+        if self.cfg.memory_aware_write:
+            # Preserve common initialization and the caller's random stream.
+            # Zero initialization also preserves initial policy logits exactly.
+            with torch.random.fork_rng(devices=[]):
+                self.memory_policy_features = nn.Linear(d+s+4, f, bias=False)
+            nn.init.zeros_(self.memory_policy_features.weight)
 
     @property
     def memory_dim(self):
@@ -186,7 +197,7 @@ class TaskMemoryModel(nn.Module):
             raise ValueError('Inputs must be nonempty int64 [B,T] bytes.')
         if bool(((inputs < 0) | (inputs > 255)).any()):
             raise ValueError('Inputs must use the byte vocabulary.')
-        if control not in ('intact', 'blocked', 'shuffle'):
+        if control not in ('intact', 'blocked', 'shuffle', 'fresh'):
             raise ValueError('Unknown memory control.')
         if write_override not in (None, 'hold', 'always'):
             raise ValueError('Write override must be hold or always.')
@@ -198,8 +209,10 @@ class TaskMemoryModel(nn.Module):
         if reset is not None and (reset.dtype != torch.bool or reset.shape not in ((b,), (b, t)) or reset.device != inputs.device):
             raise ValueError('Reset must be bool [B] or [B,T].')
         logits, records = [], {k: [] for k in (
-            'read_weights', 'read_versions', 'write_probs', 'write_actions', 'write_features',
+            'read_weights', 'read_versions', 'read_valid', 'read_is_current',
+            'write_probs', 'write_actions', 'write_features',
             'memory_before', 'memory_candidates', 'memory_versions', 'memory_valid', 'write_eligible')}
+        bootstrap_masks = []
         aux = self.write_policy.new_zeros(())
         hat_aux = aux
         active = torch.ones(b, dtype=torch.bool, device=inputs.device)
@@ -221,10 +234,17 @@ class TaskMemoryModel(nn.Module):
             candidates = torch.cat((candidate_payload, candidate_header), -1)
             query = F.normalize(self.query(x)+self.query_semantic(candidate_header.mean(1)), dim=-1)
             memory = before
-            valid = torch.stack([p.valid for p in state.publications.values()], 1)
+            owned_valid = torch.stack([p.valid for p in state.publications.values()], 1)
+            valid = owned_valid
             versions = torch.stack([p.version for p in state.publications.values()], 1)
             if control == 'shuffle':
-                memory, valid = memory.roll(1, 0), valid.roll(1, 0)
+                memory, valid, versions = memory.roll(1, 0), valid.roll(1, 0), versions.roll(1, 0)
+            elif control == 'fresh':
+                # Same producer/composer compute, with current expert outputs
+                # replacing persistent publications at the read interface.
+                memory = candidates
+                valid = torch.ones_like(owned_valid)
+                versions = torch.full_like(versions, -1)
             keys = F.normalize(self.key(memory), dim=-1)
             scores = 4*(query[:, None]*keys).sum(-1)
             scores = scores.masked_fill(~valid, -1e4)
@@ -235,12 +255,35 @@ class TaskMemoryModel(nn.Module):
                                      self.read_context(retrieved[:, d:]).reshape(b, 3, c.groups),
                                      state.composer, active)
             logits.append(self.decoder(composer['latent']))
-            features = self.policy_features(candidate_payload).tanh()
+            feature_input = self.policy_features(candidate_payload)
+            if c.memory_aware_write:
+                old = before.detach()
+                observed = candidates.detach()
+                occurrence = torch.stack([p.occurrence for p in state.publications.values()], 1)
+                age = (state.events_seen[:, None]-occurrence).clamp_min(0)*owned_valid
+                statistics = torch.stack((owned_valid.to(old.dtype), age.to(old.dtype).log1p(),
+                    F.cosine_similarity(observed[:, :, :d], old[:, :, :d], dim=-1),
+                    F.cosine_similarity(observed[:, :, d:], old[:, :, d:], dim=-1)), -1).detach()
+                feature_input = feature_input+self.memory_policy_features(torch.cat((old, statistics), -1))
+            features = feature_input.tanh()
             write_logits = (features*self.write_policy[None, :, :-1]).sum(-1)+self.write_policy[None, :, -1]
-            probabilities = write_logits.sigmoid()
-            actions = probabilities.ge(.5)
+            if c.write_mode == 'competitive':
+                scores = torch.cat((write_logits, write_logits.new_zeros(b, 1)), -1)
+                probabilities = scores.softmax(-1)[:, :m]
+                actions = F.one_hot(scores.argmax(-1), m+1)[:, :m].bool()
+            else:
+                probabilities = write_logits.sigmoid()
+                actions = probabilities.ge(.5)
+            bootstrap = torch.zeros(b, dtype=torch.bool, device=inputs.device)
             if write_override is not None:
                 actions = torch.full_like(actions, write_override == 'always')
+            elif c.bootstrap_empty:
+                bootstrap = (~owned_valid).any(-1)
+                first_empty = (~owned_valid).long().argmax(-1)
+                recruited = F.one_hot(first_empty, m).bool()
+                actions = torch.where(bootstrap[:, None], recruited, actions)
+            eligible = torch.full_like(actions, write_override is None) & ~bootstrap[:, None]
+            bootstrap_masks.append(bootstrap)
             publications = {}
             for owner, name in enumerate(self.owner_names):
                 old = state.publications[name]
@@ -250,19 +293,22 @@ class TaskMemoryModel(nn.Module):
                 new = publish(old, candidate_payload[:, owner], header, actions[:, owner], state.epochs,
                               state.events_seen, torch.zeros_like(state.events_seen), ())
                 if write_override is None and torch.is_grad_enabled():
-                    tangent = (probabilities[:, owner]-probabilities[:, owner].detach())[:, None]
+                    tangent = ((probabilities[:, owner]-probabilities[:, owner].detach())*
+                               eligible[:, owner])[:, None]
                     # Forward values exactly match publish, including true holds.
                     new = replace(new, payload=new.payload+tangent*(candidate_payload[:, owner]-old.payload),
                                   header=replace(new.header, memberships=new.header.memberships+
                                                  tangent[:, :, None]*(header.memberships-old.header.memberships)))
                 publications[name] = new
             if capture:
-                values = dict(read_weights=weights, read_versions=versions, write_probs=probabilities,
+                values = dict(read_weights=weights, read_versions=versions, read_valid=valid,
+                              read_is_current=torch.full_like(active, control == 'fresh'),
+                              write_probs=probabilities,
                               write_actions=actions, write_features=features, memory_before=before,
                               memory_candidates=candidates,
                               memory_versions=torch.stack([p.version for p in publications.values()], 1),
                               memory_valid=torch.stack([p.valid for p in publications.values()], 1),
-                              write_eligible=torch.full_like(actions, write_override is None))
+                              write_eligible=eligible)
                 for name, value in values.items():
                     records[name].append(value)
             state = TaskMemoryState(ingress['state'], producer['state'], composer['state'], publications,
@@ -271,7 +317,10 @@ class TaskMemoryModel(nn.Module):
             hat_aux = hat_aux+(ingress['aux']+producer['hat_aux']+composer['hat_aux'])/3
         result = dict(logits=torch.stack(logits, 1), state=state, aux=aux/t, hat_aux=hat_aux/t,
                       expert_executions=b*t*(m+1)*3*c.active_groups*c.experts_per_group,
-                      external_events=b*t, source_occurrences=b*t, internal_rounds=b*t)
+                      external_events=b*t, source_occurrences=b*t, internal_rounds=b*t,
+                      write_mode=c.write_mode, bootstrap_mask=torch.stack(bootstrap_masks, 1),
+                      bootstrap_empty=c.bootstrap_empty, memory_aware_write=c.memory_aware_write,
+                      read_source='candidate' if control == 'fresh' else 'publication')
         if capture:
             result.update({key: torch.stack(parts, 1) for key, parts in records.items()})
             result['reset'] = (torch.zeros_like(inputs, dtype=torch.bool) if reset is None else

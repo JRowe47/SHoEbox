@@ -2,6 +2,99 @@
 
 This is SHoEbox's event-major reference implementation of the [development specification](../../docs/SHoE_Text_Development_Specification.md). It reuses the baseline's SymbolLevel, RecurrentChild, minKron, lace controller, and split expert banks. No old experiment is copied into this directory.
 
+## Task-driven memory retention
+
+`task_memory.py` runs ordinary bytes through independent owner states and shared
+sparse producer experts. Context reads committed publications before the composer
+predicts; new writes commit afterward. The optional
+[retention protocol](../../docs/SHoEbox_Task_Retention_Protocol.md) adds competing
+writes and a stream with recurring entities, corrections and interfering facts.
+
+`--memory-aware-write` conditions each write on its candidate and detached owned
+publication, validity, age and similarity. Its projection starts at zero.
+`--write-mode competitive` selects one owner or a fixed null option per byte.
+`--bootstrap-empty` fills each invalid owner once, one owner per byte; these forced
+commits receive no policy credit, and explicit hold controls still take precedence.
+Both conditioned comparison arms should use the same bootstrap setting. Omitting
+these flags preserves the original independent writer and checkpoint layout.
+
+Run from the repository root in Bash. These commands start separate paired runs
+with identical initialization and stream seeds:
+
+```bash
+common=(--stream-preset retention --memory-aware-write --bootstrap-empty
+        --steps 800 --batch 16 --context 16 --seed 29 --data-seed 229
+        --eval-every 100 --eval-count 8 --threads 1 --final-eval)
+
+python -m experiments.text_regions.task_memory_train "${common[@]}" \
+  --write-mode competitive --arm integrated --out artifacts/retention_reproduction/competitive
+python -m experiments.text_regions.task_memory_train "${common[@]}" \
+  --write-mode competitive --arm fresh --out artifacts/retention_reproduction/fresh
+```
+
+The trained `fresh` arm reads current producer candidates directly, retaining the
+same recurrence and expert budget while removing persistent-publication access.
+Use `--arm no_credit` for the matched competitive learner without delayed credit;
+use `--write-mode independent --arm integrated` for conditioned independent writes.
+The default write-cost penalty is zero.
+
+For the paired continuation study, extract the retention artifact
+package into the checkout; it includes the published seed-17 parent at the path below. Use the same
+`common` arguments:
+
+```bash
+parent=artifacts/task_memory/pilot_v2/integrated/best.pt
+python -m experiments.text_regions.task_memory_train "${common[@]}" \
+  --init-from "$parent" --write-mode independent --arm integrated \
+  --out artifacts/retention_continuation_reproduction/conditioned
+python -m experiments.text_regions.task_memory_train "${common[@]}" \
+  --init-from "$parent" --write-mode competitive --arm integrated \
+  --out artifacts/retention_continuation_reproduction/competitive
+python -m experiments.text_regions.task_memory_train "${common[@]}" \
+  --init-from "$parent" --write-mode competitive --arm fresh \
+  --out artifacts/retention_continuation_reproduction/fresh
+```
+
+`--init-from` imports compatible weights into a new study: optimizer, runtime
+state, eligibility and stream cursors start fresh, and every model parameter
+remains trainable. It records the parent hash and training step. `--resume` instead
+restores the exact saved optimizer, state, traces, RNG and stream cursor; repeat
+the run's arguments, omit `--init-from`, and add `--resume <run>/last.pt`.
+Checkpoints are selected by validation answer NLL, with final-budget results
+reported separately.
+
+Audit complete queries from identical pre-query states, including blocked reads,
+held publications, shuffled content and current candidates:
+
+```bash
+python -m experiments.text_regions.task_query_audit \
+  --checkpoint artifacts/retention_reproduction/competitive/best.pt \
+  --out artifacts/retention_reproduction/competitive/query_audit \
+  --count 16 --split test --fresh-control
+```
+
+Repeat with `--split long_delay` and a separate output directory. The audit writes
+`summary.json` and `queries.jsonl`, including per-query-byte read weights, versions
+and ages. Source-fact delay and publication age are distinct measurements. The
+age-filtered shuffle changes only pre-query publications older than the training
+chunk (override with `--age-threshold`); it reports actual content changes and
+keeps ordinary query writes active.
+
+For direct use, construct
+`TaskMemoryModel(TaskMemoryConfig(write_mode='competitive', memory_aware_write=True,
+bootstrap_empty=True))`, then call `model(bytes, state=state, control='intact')`.
+Inputs are int64 `[B,T]` bytes; `result['state'].detach()` carries state to the next
+chunk. Controls also include `blocked`, `shuffle` and `fresh`; `write_override='hold'`
+preserves publication contents and versions. Capture returns write decisions,
+eligibility masks and read provenance. Fresh reads have version `-1` and age zero.
+
+`CompetitiveWriteEligibility` stores bounded sensitivities for every publication
+owner against every policy owner, including softmax competition. At a detach
+boundary, later gradients through carried publications update the earlier write
+heads. These are conditional publication derivatives: historic features and
+candidate encoders are fixed, and detached recurrent-state paths are excluded.
+The independent trace remains available for the original writer.
+
 ## Learned publication retention
 
 `GraphConfig.selective_publication` names the nodes whose computed latent

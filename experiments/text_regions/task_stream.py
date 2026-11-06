@@ -28,6 +28,7 @@ class TaskStreamConfig:
     contextual_questions: bool = True
     relations: bool = False
     holdout_combinations: bool = False
+    interference: bool = False
 
     def validate(self):
         if (len(self.entities) < 2 or len(set(self.entities)) != len(self.entities)
@@ -43,6 +44,8 @@ class TaskStreamConfig:
             raise ValueError('Positive cycles, at least two queries and nonnegative delays are required.')
         if self.long_delay_multiplier < 1 or not 0 <= self.semantic_fraction <= 1:
             raise ValueError('Invalid delay multiplier or semantic fraction.')
+        if not isinstance(self.interference, bool):
+            raise ValueError('Interference must be boolean.')
         if self.holdout_combinations and len(self.attributes) < 2:
             raise ValueError('Combination holdout requires at least two attributes.')
 
@@ -121,6 +124,9 @@ def make_document(config=None, *, split='train', seed=0, index=0):
     when holdout_combinations is enabled. All facts are still observed, so this
     measures query composition rather than access to unobserved facts.
     ``long_delay`` uses the same grammar with multiplied acquisition/use gaps.
+    With interference enabled, delay gaps contain real updates to other facts.
+    These values are irrelevant to the pending query but remain available to
+    later questions; no permanently irrelevant entity is introduced.
     """
     cfg = config or TaskStreamConfig()
     cfg.validate()
@@ -155,8 +161,20 @@ def make_document(config=None, *, split='train', seed=0, index=0):
 
     def wait_for(pair, delay):
         # Query tokens provide additional delay; ensure the declared minimum
-        # using already observed bytes only. Filler has no value digits.
+        # using already observed bytes only. The default path preserves its
+        # original bytes and RNG draws exactly.
         missing = max(0, delay - (len(data) - 1 - source[pair]))
+        if cfg.interference:
+            while missing:
+                candidates = [other for other in facts if other != pair
+                              and len(f'{other[0]} {other[1]}=0;') <= missing]
+                if not candidates:
+                    break
+                other = rng.choice(candidates)
+                value = rng.choice([v for v in cfg.values if v != facts[other]])
+                start = len(data)
+                write(other, value, correction=True)
+                missing -= len(data) - start
         if missing:
             append(bytes(rng.choice(b' .,:~') for _ in range(missing)), 'distractor')
 

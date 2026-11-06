@@ -78,6 +78,10 @@ P and Q feed the shared byte readout. B has one state owner and publishes to bot
 
 ## Development status
 
+The [retention update](docs/SHoEbox_Task_Retention_Report.md) adds publication-aware write decisions, optional one-owner-or-hold competition, cross-owner delayed credit, and whole-query content interventions. A separately trained current-output control distinguishes useful stored publications from ongoing recurrent computation. The harder stream includes four changing entities and intervening updates that can become relevant later. All additions are optional; legacy defaults and checkpoints are preserved. See the [retention protocol](docs/SHoEbox_Task_Retention_Protocol.md) and [reproduction commands](experiments/text_regions/README.md#task-driven-memory-retention).
+
+Older publications are now measurable and manipulable independently of query-time writes. In the scratch pilot, competitive exact-answer NLL is 1.356 versus 1.361 for trained current-output reads, and changing older content has negligible effect. The common-parent continuation reaches 1.276 with competitive storage versus 1.258 for trained current-output reads. Useful longer-lived storage remains open; reduced write rates and older read ages do not count as success. The report separates the two cohorts and preserves the selected and final checkpoints of every arm. Next is payload representation learning across longer delays; the current delayed trace updates write heads only.
+
 The new [task-driven memory mode](docs/SHoEbox_Task_Memory_Protocol.md) connects the ordinary byte stream to four owned publications, contextual reads and a sparse regional composer. Its bounded eligibility traces train earlier write policies across detached chunks. The 548,195-parameter pilot uses no field-address input, fixed latent teacher, replay store or retention threshold. See the [task-memory results](docs/SHoEbox_Task_Memory_Report.md) for behavioral outcomes and remaining phase exits.
 
 ```bash
