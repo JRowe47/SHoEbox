@@ -1,0 +1,126 @@
+{
+  "schema": 1,
+  "implementation_commit": "3d63e238478cbe3b93addf24ff8471231c17ea7c",
+  "source_base": "0bbe3c1ddb23e9345bd206fc852ebd0e488188ec",
+  "seed": 29,
+  "data_seed": 229,
+  "parameters": 549059,
+  "updates": 600,
+  "batch": 8,
+  "optimizer_window": 64,
+  "external_bytes_per_arm": 307200,
+  "expert_executions_per_arm": 18432000,
+  "validation_documents": 16,
+  "test_documents": 32,
+  "test_exact_answers": 216,
+  "validation_every": 100,
+  "checkpoint_selection": "Lowest all-answer NLL on fixed target validation.",
+  "arms": {
+    "curriculum": {
+      "selected_step": 500,
+      "selected_exact_nll": 1.1828696845784887,
+      "selected_accuracy": 0.4074074074074074,
+      "final_exact_nll": 1.17581505755273,
+      "final_accuracy": 0.39814814814814814,
+      "selected_long_exact_nll": 1.208326230989769,
+      "final_long_exact_nll": 1.1809451916746587,
+      "training_validation_seconds": 1473.4965926670047,
+      "selected_normal_shuffle_delta": 0.0003527996251013743,
+      "selected_aged_changed_query_delta": 0.0001478218649213492,
+      "selected_aged_changed_queries": 159,
+      "selected_aged_changed_slots": 212,
+      "final_normal_shuffle_delta": 0.000522945800589314,
+      "final_aged_changed_query_delta": -0.00013838216227335387
+    },
+    "fresh": {
+      "selected_step": 600,
+      "selected_exact_nll": 1.1986681372099728,
+      "selected_accuracy": 0.38425925925925924,
+      "final_exact_nll": 1.1986681372099728,
+      "final_accuracy": 0.38425925925925924,
+      "selected_long_exact_nll": 1.1853945767981242,
+      "final_long_exact_nll": 1.1853945767981242,
+      "training_validation_seconds": 1472.530123438999
+    },
+    "truncated": {
+      "selected_step": 500,
+      "gradient_segment": 16,
+      "selected_exact_nll": 1.2258019464918308,
+      "selected_accuracy": 0.37962962962962965,
+      "final_exact_nll": 1.1851551054493972,
+      "final_accuracy": 0.4027777777777778,
+      "selected_long_exact_nll": 1.3604754340593461,
+      "final_long_exact_nll": 1.3432531453393124,
+      "training_validation_seconds": 1470.260145221997,
+      "selected_normal_shuffle_delta": -0.002570769025219688,
+      "selected_aged_changed_query_delta": -0.0022694137949628157
+    },
+    "direct": {
+      "selected_step": 600,
+      "selected_exact_nll": 1.1897725147341758,
+      "selected_accuracy": 0.37037037037037035,
+      "final_exact_nll": 1.1897725147341758,
+      "final_accuracy": 0.37037037037037035,
+      "selected_long_exact_nll": 1.228266866032586,
+      "final_long_exact_nll": 1.228266866032586,
+      "training_validation_seconds": 1461.9137578980008,
+      "selected_normal_shuffle_delta": -0.0005119369339405822,
+      "selected_aged_changed_query_delta": -0.0004719733937172954
+    }
+  },
+  "aged_shuffle_threshold": 16,
+  "gradient_coverage_pilot": {
+    "acquire": {
+      "exact_queries": 9848,
+      "observation_connected_64": 0.5313769293257514,
+      "observation_connected_16": 0.20826563769293258
+    },
+    "bridge": {
+      "exact_queries": 7161,
+      "observation_connected_64": 0.41348973607038125,
+      "observation_connected_16": 0.06800726155564865
+    },
+    "target": {
+      "exact_queries": 4197,
+      "observation_connected_64": 0.3714558017631642,
+      "observation_connected_16": 0.07410054801048369
+    }
+  },
+  "verification": {
+    "checks": 497,
+    "suites": {
+      "semantic_1m": 10,
+      "semantic_10m": 16,
+      "two_child": 14,
+      "hat_minkron": 20,
+      "text_regions": 437
+    },
+    "regional_modules": 50,
+    "regional_execution": "Independent subprocess per module after combined process stalled."
+  },
+  "confirmations": {
+    "status": "Incomplete: execution workspace became unavailable. No completed confirmation results claimed.",
+    "last_observed_step": 300,
+    "pairs": [
+      {
+        "seed": 31,
+        "data_seed": 231,
+        "validation_exact_nll": {
+          "curriculum": 1.2436,
+          "fresh": 1.2355
+        }
+      },
+      {
+        "seed": 37,
+        "data_seed": 237,
+        "validation_exact_nll": {
+          "curriculum": 1.222,
+          "fresh": 1.2454
+        }
+      }
+    ]
+  },
+  "recovery_archive": "SHoEbox_Acquisition_Artifacts.zip",
+  "recovery_archive_bytes": 100473332,
+  "evidence_note": "Compact summary reconstructed from observed completed outputs after workspace failure. Full pilot evidence, checkpoints and hashes are preserved in the recovery archive."
+}
