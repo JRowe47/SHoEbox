@@ -1,0 +1,382 @@
+{
+  "baseline_commit": "c80daedccfb85d44b9c576846f8222afa5ced42b",
+  "environment": {
+    "python": "3.12.14",
+    "torch": "2.15.0+cpu",
+    "machine": "x86_64",
+    "cpu_capability": "AVX512",
+    "threads": 1,
+    "torch_build": "PyTorch built with:\n  - GCC 13.3\n  - C++ Version: 202002\n  - Intel(R) oneAPI Math Kernel Library Version 2024.2-Product Build 20240605 for Intel(R) 64 architecture applications\n  - Intel(R) MKL-DNN v3.13.3 (Git Hash b38f97eb6f2173513112f15a0481750b8a66e901)\n  - OpenMP 201511 (a.k.a. OpenMP 4.5)\n  - LAPACK is enabled (usually provided by MKL)\n  - NNPACK is enabled\n  - CPU capability usage: AVX512\n  - Build settings: BLAS_INFO=mkl, BUILD_TYPE=Release, COMMIT_SHA=d0f2af8b66b20da4baa50644c0cd3f887a2eae2e, CUDA_FLAGS= -DLIBCUDACXX_ENABLE_SIMPLIFIED_COMPLEX_OPERATIONS -Xfatbin -compress-all  -Wno-deprecated-gpu-targets --expt-extended-lambda -DCUB_WRAPPED_NAMESPACE=at_cuda_detail -DDISABLE_CUSPARSE_DEPRECATED -DCUDA_HAS_FP16=1 -D__CUDA_NO_HALF_OPERATORS__ -D__CUDA_NO_HALF_CONVERSIONS__ -D__CUDA_NO_HALF2_OPERATORS__ -D__CUDA_NO_BFLOAT16_CONVERSIONS__ -DC10_NODEPRECATED, CXX_COMPILER=/opt/rh/gcc-toolset-13/root/usr/bin/c++, CXX_FLAGS= -fvisibility-inlines-hidden -DUSE_PTHREADPOOL -DNDEBUG -DUSE_KINETO -DUSE_FBGEMM -DUSE_PYTORCH_QNNPACK -DSYMBOLICATE_MOBILE_DEBUG_HANDLE -O2 -fPIC -DC10_NODEPRECATED -Wall -Wextra -Werror=return-type -Werror=non-virtual-dtor -Werror=range-loop-construct -Werror=bool-operation -Wnarrowing -Wno-missing-field-initializers -Wno-unknown-pragmas -Wno-unused-parameter -Wno-strict-overflow -Wno-strict-aliasing -Wno-stringop-overflow -Wsuggest-override -Wno-psabi -Wno-error=old-style-cast -faligned-new -Wno-maybe-uninitialized -fno-math-errno -fno-trapping-math -Werror=format -Wno-dangling-reference -Wno-error=dangling-reference -Wno-stringop-overflow, LAPACK_INFO=mkl, PERF_WITH_AVX=1, PERF_WITH_AVX2=1, TORCH_VERSION=2.15.0, USE_CUDA=0, USE_CUDNN=OFF, USE_CUSPARSELT=OFF, USE_GFLAGS=OFF, USE_GLOG=OFF, USE_GLOO=ON, USE_HIPSPARSELT=OFF, USE_MKL=ON, USE_MKLDNN=ON, USE_MPI=OFF, USE_NCCL=OFF, USE_NNPACK=ON, USE_OPENMP=ON, USE_ROCM=OFF, USE_ROCM_KERNEL_ASSERT=OFF, USE_XCCL=OFF, USE_XPU=OFF, \n"
+  },
+  "measurements": [
+    {
+      "size": "checkpoint",
+      "workload": "text_train",
+      "parameters": {
+        "total_unique_parameters": 510958,
+        "physical_experts": 768,
+        "expert_matrix_parameters": 196608,
+        "logical_experts_per_node": 96,
+        "expert_calls_per_round_per_external_event": 132,
+        "nodes": 11,
+        "regions": 4,
+        "byte_vocabulary": 256
+      },
+      "timings": {
+        "reference": {
+          "seconds": [
+            3.941969077000067,
+            3.800402714000029,
+            4.020471411000017
+          ],
+          "median_seconds": 3.941969077000067,
+          "min_seconds": 3.800402714000029,
+          "max_seconds": 4.020471411000017
+        },
+        "optimized": {
+          "seconds": [
+            3.8183237090001967,
+            3.5524147869998615,
+            3.499288374000116
+          ],
+          "median_seconds": 3.5524147869998615,
+          "min_seconds": 3.499288374000116,
+          "max_seconds": 3.8183237090001967
+        }
+      },
+      "speedup": 1.109659010379584,
+      "matching_checks": true
+    },
+    {
+      "size": "checkpoint",
+      "workload": "text_inference",
+      "parameters": {
+        "total_unique_parameters": 510958,
+        "physical_experts": 768,
+        "expert_matrix_parameters": 196608,
+        "logical_experts_per_node": 96,
+        "expert_calls_per_round_per_external_event": 132,
+        "nodes": 11,
+        "regions": 4,
+        "byte_vocabulary": 256
+      },
+      "timings": {
+        "reference": {
+          "seconds": [
+            1.2285741860000599,
+            1.2333116659999632,
+            1.2124069649999
+          ],
+          "median_seconds": 1.2285741860000599,
+          "min_seconds": 1.2124069649999,
+          "max_seconds": 1.2333116659999632
+        },
+        "optimized": {
+          "seconds": [
+            1.0269597730000442,
+            0.9951970570000412,
+            1.0982338210001217
+          ],
+          "median_seconds": 1.0269597730000442,
+          "min_seconds": 0.9951970570000412,
+          "max_seconds": 1.0982338210001217
+        }
+      },
+      "speedup": 1.1963216265141936,
+      "matching_checks": true
+    },
+    {
+      "size": "checkpoint",
+      "workload": "joint_update",
+      "parameters": {
+        "total_unique_parameters": 510958,
+        "physical_experts": 768,
+        "expert_matrix_parameters": 196608,
+        "logical_experts_per_node": 96,
+        "expert_calls_per_round_per_external_event": 132,
+        "nodes": 11,
+        "regions": 4,
+        "byte_vocabulary": 256
+      },
+      "timings": {
+        "reference": {
+          "seconds": [
+            12.581274948999635,
+            11.802040129000034,
+            12.863637309000296
+          ],
+          "median_seconds": 12.581274948999635,
+          "min_seconds": 11.802040129000034,
+          "max_seconds": 12.863637309000296
+        },
+        "optimized": {
+          "seconds": [
+            10.487639691999902,
+            10.749475644000086,
+            10.391365179999866
+          ],
+          "median_seconds": 10.487639691999902,
+          "min_seconds": 10.391365179999866,
+          "max_seconds": 10.749475644000086
+        }
+      },
+      "speedup": 1.199628831508846,
+      "matching_checks": true
+    },
+    {
+      "size": "checkpoint",
+      "workload": "memory_eval",
+      "parameters": {
+        "total_unique_parameters": 510958,
+        "physical_experts": 768,
+        "expert_matrix_parameters": 196608,
+        "logical_experts_per_node": 96,
+        "expert_calls_per_round_per_external_event": 132,
+        "nodes": 11,
+        "regions": 4,
+        "byte_vocabulary": 256
+      },
+      "timings": {
+        "reference": {
+          "seconds": [
+            7.1217152629997145,
+            7.669477650999852,
+            6.957478354000159
+          ],
+          "median_seconds": 7.1217152629997145,
+          "min_seconds": 6.957478354000159,
+          "max_seconds": 7.669477650999852
+        },
+        "optimized": {
+          "seconds": [
+            5.983157597999707,
+            6.186875582000084,
+            6.48350219599979
+          ],
+          "median_seconds": 6.186875582000084,
+          "min_seconds": 5.983157597999707,
+          "max_seconds": 6.48350219599979
+        }
+      },
+      "speedup": 1.1511004494286947,
+      "matching_checks": true
+    },
+    {
+      "size": "default",
+      "workload": "text_train",
+      "parameters": {
+        "total_unique_parameters": 2561212,
+        "physical_experts": 1536,
+        "expert_matrix_parameters": 1228800,
+        "logical_experts_per_node": 384,
+        "expert_calls_per_round_per_external_event": 168,
+        "nodes": 7,
+        "regions": 3,
+        "byte_vocabulary": 256
+      },
+      "timings": {
+        "reference": {
+          "seconds": [
+            4.166058955000153,
+            4.604433675000109,
+            4.380688239000392
+          ],
+          "median_seconds": 4.380688239000392,
+          "min_seconds": 4.166058955000153,
+          "max_seconds": 4.604433675000109
+        },
+        "optimized": {
+          "seconds": [
+            3.7143512239999836,
+            3.668699290999939,
+            4.523926245999974
+          ],
+          "median_seconds": 3.7143512239999836,
+          "min_seconds": 3.668699290999939,
+          "max_seconds": 4.523926245999974
+        }
+      },
+      "speedup": 1.1793952630798414,
+      "matching_checks": true
+    },
+    {
+      "size": "default",
+      "workload": "text_inference",
+      "parameters": {
+        "total_unique_parameters": 2561212,
+        "physical_experts": 1536,
+        "expert_matrix_parameters": 1228800,
+        "logical_experts_per_node": 384,
+        "expert_calls_per_round_per_external_event": 168,
+        "nodes": 7,
+        "regions": 3,
+        "byte_vocabulary": 256
+      },
+      "timings": {
+        "reference": {
+          "seconds": [
+            1.9169896960002006,
+            1.7476210830000127,
+            1.7163612560002548
+          ],
+          "median_seconds": 1.7476210830000127,
+          "min_seconds": 1.7163612560002548,
+          "max_seconds": 1.9169896960002006
+        },
+        "optimized": {
+          "seconds": [
+            1.5131104370002504,
+            1.5305963219998375,
+            1.198237374999735
+          ],
+          "median_seconds": 1.5131104370002504,
+          "min_seconds": 1.198237374999735,
+          "max_seconds": 1.5305963219998375
+        }
+      },
+      "speedup": 1.1549858095385825,
+      "matching_checks": true
+    },
+    {
+      "size": "25m",
+      "workload": "text_train",
+      "parameters": {
+        "total_unique_parameters": 24912484,
+        "physical_experts": 20736,
+        "expert_matrix_parameters": 21233664,
+        "logical_experts_per_node": 2592,
+        "expert_calls_per_round_per_external_event": 132,
+        "nodes": 11,
+        "regions": 4,
+        "byte_vocabulary": 256
+      },
+      "timings": {
+        "reference": {
+          "seconds": [
+            4.651745518000098,
+            5.3140855999999985,
+            4.430731960999765
+          ],
+          "median_seconds": 4.651745518000098,
+          "min_seconds": 4.430731960999765,
+          "max_seconds": 5.3140855999999985
+        },
+        "optimized": {
+          "seconds": [
+            4.140234358000271,
+            3.9892072360003112,
+            3.867093443000158
+          ],
+          "median_seconds": 3.9892072360003112,
+          "min_seconds": 3.867093443000158,
+          "max_seconds": 4.140234358000271
+        }
+      },
+      "speedup": 1.166082693328328,
+      "matching_checks": true
+    },
+    {
+      "size": "25m",
+      "workload": "text_inference",
+      "parameters": {
+        "total_unique_parameters": 24912484,
+        "physical_experts": 20736,
+        "expert_matrix_parameters": 21233664,
+        "logical_experts_per_node": 2592,
+        "expert_calls_per_round_per_external_event": 132,
+        "nodes": 11,
+        "regions": 4,
+        "byte_vocabulary": 256
+      },
+      "timings": {
+        "reference": {
+          "seconds": [
+            1.343893375999869,
+            1.2321790519999922,
+            1.335466815000018,
+            1.2984457620000285,
+            1.2508932719997574,
+            1.2918253920001916,
+            1.249897171000157
+          ],
+          "median_seconds": 1.2918253920001916,
+          "min_seconds": 1.2321790519999922,
+          "max_seconds": 1.343893375999869
+        },
+        "optimized": {
+          "seconds": [
+            1.1841014040001028,
+            1.1055946240003323,
+            1.0905781470000875,
+            1.124887449000198,
+            1.1688653210003395,
+            1.0609657019999759,
+            1.2936372459998893
+          ],
+          "median_seconds": 1.124887449000198,
+          "min_seconds": 1.0609657019999759,
+          "max_seconds": 1.2936372459998893
+        }
+      },
+      "speedup": 1.1484041298072694,
+      "matching_checks": true
+    }
+  ],
+  "python_calls": {
+    "reference": 469191,
+    "optimized": 285044
+  },
+  "regression_checks": 426,
+  "verification": {
+    "checkpoint": "artifacts/performance2/best.pt",
+    "exact_logits": true,
+    "exact_loss": true,
+    "exact_state": true,
+    "gradient_relative_l2_error": 1.3173741388620436e-07,
+    "gradient_max_absolute_error": 0.00048828125,
+    "continuation": {
+      "reference": [
+        {
+          "text_nats": 6.235306262969971,
+          "memory_loss": 0.10406916084320983,
+          "gradient_norm": 1.7380308873909356,
+          "expert_executions": 66432
+        },
+        {
+          "text_nats": 6.003006458282471,
+          "memory_loss": 0.06560136086955026,
+          "gradient_norm": 1.5063095102025024,
+          "expert_executions": 71040
+        },
+        {
+          "text_nats": 3.950678586959839,
+          "memory_loss": 0.046673536736534516,
+          "gradient_norm": 1.4784884197449648,
+          "expert_executions": 75648
+        }
+      ],
+      "optimized": [
+        {
+          "text_nats": 6.235306262969971,
+          "memory_loss": 0.10406916084320983,
+          "gradient_norm": 1.738030888453953,
+          "expert_executions": 66432
+        },
+        {
+          "text_nats": 6.003017902374268,
+          "memory_loss": 0.06560135244217236,
+          "gradient_norm": 1.5063094299595885,
+          "expert_executions": 71040
+        },
+        {
+          "text_nats": 3.950678586959839,
+          "memory_loss": 0.04667352278283943,
+          "gradient_norm": 1.4784894793309553,
+          "expert_executions": 75648
+        }
+      ]
+    },
+    "continuation_max_weight_difference": 4.76837158203125e-07,
+    "passed": true
+  }
+}

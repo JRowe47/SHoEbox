@@ -51,9 +51,13 @@ def main():
     p.add_argument('--memory-count', type=int, default=128)
     p.add_argument('--profile', action='store_true')
     p.add_argument('--baseline-root', type=Path, help='Untouched source checkout to measure as reference.')
+    p.add_argument('--baseline-backend', choices=('reference', 'optimized'), default='reference',
+                   help='Execution mode in the untouched checkout; optimized compares published releases.')
     a = p.parse_args()
     if min(a.threads, a.repeats, a.batch, a.context, a.memory_count) < 1:
         p.error('Counts must be positive.')
+    if a.baseline_backend != 'reference' and a.baseline_root is None:
+        p.error('--baseline-backend optimized requires --baseline-root.')
     torch.set_num_threads(a.threads)
     a.out.mkdir(parents=True, exist_ok=True)
     saved = torch.load(a.checkpoint, weights_only=True, map_location='cpu')
@@ -126,7 +130,7 @@ def main():
                 model, opt = models[mode], optimizers[mode]
                 legacy_mode = bool(legacy and mode == 'reference')
                 if hasattr(model, 'set_execution_backend'):
-                    model.set_execution_backend(mode)
+                    model.set_execution_backend(a.baseline_backend if legacy_mode else mode)
                 model.zero_grad(set_to_none=True)
                 if workload == 'joint_update':
                     model.load_state_dict(initial)

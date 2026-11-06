@@ -1,0 +1,294 @@
+{
+  "environment": {
+    "python": "3.12.14",
+    "torch": "2.15.0+cpu",
+    "machine": "x86_64",
+    "cpu_capability": "AVX512",
+    "threads": 1,
+    "torch_build": "PyTorch built with:\n  - GCC 13.3\n  - C++ Version: 202002\n  - Intel(R) oneAPI Math Kernel Library Version 2024.2-Product Build 20240605 for Intel(R) 64 architecture applications\n  - Intel(R) MKL-DNN v3.13.3 (Git Hash b38f97eb6f2173513112f15a0481750b8a66e901)\n  - OpenMP 201511 (a.k.a. OpenMP 4.5)\n  - LAPACK is enabled (usually provided by MKL)\n  - NNPACK is enabled\n  - CPU capability usage: AVX512\n  - Build settings: BLAS_INFO=mkl, BUILD_TYPE=Release, COMMIT_SHA=d0f2af8b66b20da4baa50644c0cd3f887a2eae2e, CUDA_FLAGS= -DLIBCUDACXX_ENABLE_SIMPLIFIED_COMPLEX_OPERATIONS -Xfatbin -compress-all  -Wno-deprecated-gpu-targets --expt-extended-lambda -DCUB_WRAPPED_NAMESPACE=at_cuda_detail -DDISABLE_CUSPARSE_DEPRECATED -DCUDA_HAS_FP16=1 -D__CUDA_NO_HALF_OPERATORS__ -D__CUDA_NO_HALF_CONVERSIONS__ -D__CUDA_NO_HALF2_OPERATORS__ -D__CUDA_NO_BFLOAT16_CONVERSIONS__ -DC10_NODEPRECATED, CXX_COMPILER=/opt/rh/gcc-toolset-13/root/usr/bin/c++, CXX_FLAGS= -fvisibility-inlines-hidden -DUSE_PTHREADPOOL -DNDEBUG -DUSE_KINETO -DUSE_FBGEMM -DUSE_PYTORCH_QNNPACK -DSYMBOLICATE_MOBILE_DEBUG_HANDLE -O2 -fPIC -DC10_NODEPRECATED -Wall -Wextra -Werror=return-type -Werror=non-virtual-dtor -Werror=range-loop-construct -Werror=bool-operation -Wnarrowing -Wno-missing-field-initializers -Wno-unknown-pragmas -Wno-unused-parameter -Wno-strict-overflow -Wno-strict-aliasing -Wno-stringop-overflow -Wsuggest-override -Wno-psabi -Wno-error=old-style-cast -faligned-new -Wno-maybe-uninitialized -fno-math-errno -fno-trapping-math -Werror=format -Wno-dangling-reference -Wno-error=dangling-reference -Wno-stringop-overflow, LAPACK_INFO=mkl, PERF_WITH_AVX=1, PERF_WITH_AVX2=1, TORCH_VERSION=2.15.0, USE_CUDA=0, USE_CUDNN=OFF, USE_CUSPARSELT=OFF, USE_GFLAGS=OFF, USE_GLOG=OFF, USE_GLOO=ON, USE_HIPSPARSELT=OFF, USE_MKL=ON, USE_MKLDNN=ON, USE_MPI=OFF, USE_NCCL=OFF, USE_NNPACK=ON, USE_OPENMP=ON, USE_ROCM=OFF, USE_ROCM_KERNEL_ASSERT=OFF, USE_XCCL=OFF, USE_XPU=OFF, \n"
+  },
+  "checkpoint_sha256": "a57acce044b700efc3cdd3c506f797a90d849454c01588cc0289cadeb355dc19",
+  "protocol": {
+    "checkpoint": "/workspace/scratch/09e8b70b6b35/SHoEbox/artifacts/joint_stability/study/20261401/group_clip/best.pt",
+    "out": "artifacts/performance2/scaled_inference_recheck",
+    "sizes": [
+      "25m"
+    ],
+    "workloads": [
+      "text_inference"
+    ],
+    "threads": 1,
+    "repeats": 7,
+    "batch": 8,
+    "context": 16,
+    "memory_count": 128,
+    "profile": false,
+    "baseline_root": "../SHoEbox_reference",
+    "baseline_backend": "optimized"
+  },
+  "measurements": [
+    {
+      "size": "25m",
+      "workload": "text_inference",
+      "config": {
+        "nodes": [
+          {
+            "name": "A",
+            "region": "R0",
+            "view": "A"
+          },
+          {
+            "name": "B",
+            "region": "R0",
+            "view": "B"
+          },
+          {
+            "name": "C",
+            "region": "R0",
+            "view": "C"
+          },
+          {
+            "name": "U",
+            "region": "R1",
+            "view": null
+          },
+          {
+            "name": "P",
+            "region": "R1",
+            "view": null
+          },
+          {
+            "name": "V",
+            "region": "R2",
+            "view": null
+          },
+          {
+            "name": "Q",
+            "region": "R2",
+            "view": null
+          },
+          {
+            "name": "F",
+            "region": "memory",
+            "view": "F"
+          },
+          {
+            "name": "L",
+            "region": "memory",
+            "view": "L"
+          },
+          {
+            "name": "G",
+            "region": "memory",
+            "view": "G"
+          },
+          {
+            "name": "R",
+            "region": "memory",
+            "view": "R"
+          }
+        ],
+        "edges": [
+          {
+            "source": "A",
+            "destination": "U",
+            "kind": "forward"
+          },
+          {
+            "source": "B",
+            "destination": "U",
+            "kind": "forward"
+          },
+          {
+            "source": "B",
+            "destination": "V",
+            "kind": "forward"
+          },
+          {
+            "source": "C",
+            "destination": "V",
+            "kind": "forward"
+          },
+          {
+            "source": "A",
+            "destination": "P",
+            "kind": "forward"
+          },
+          {
+            "source": "U",
+            "destination": "P",
+            "kind": "forward"
+          },
+          {
+            "source": "V",
+            "destination": "Q",
+            "kind": "forward"
+          },
+          {
+            "source": "C",
+            "destination": "Q",
+            "kind": "forward"
+          },
+          {
+            "source": "P",
+            "destination": "Q",
+            "kind": "lateral"
+          },
+          {
+            "source": "Q",
+            "destination": "P",
+            "kind": "lateral"
+          },
+          {
+            "source": "P",
+            "destination": "U",
+            "kind": "descending"
+          },
+          {
+            "source": "P",
+            "destination": "A",
+            "kind": "descending"
+          },
+          {
+            "source": "P",
+            "destination": "B",
+            "kind": "descending"
+          },
+          {
+            "source": "Q",
+            "destination": "V",
+            "kind": "descending"
+          },
+          {
+            "source": "Q",
+            "destination": "B",
+            "kind": "descending"
+          },
+          {
+            "source": "Q",
+            "destination": "C",
+            "kind": "descending"
+          },
+          {
+            "source": "F",
+            "destination": "A",
+            "kind": "forward"
+          },
+          {
+            "source": "L",
+            "destination": "A",
+            "kind": "forward"
+          },
+          {
+            "source": "G",
+            "destination": "A",
+            "kind": "forward"
+          },
+          {
+            "source": "R",
+            "destination": "A",
+            "kind": "forward"
+          }
+        ],
+        "readout": [
+          "P",
+          "Q"
+        ],
+        "readout_mode": "concat",
+        "width": 128,
+        "experts_per_block": 864,
+        "shared_per_block": 432,
+        "expert_hidden": 4,
+        "groups": 16,
+        "active_groups": 2,
+        "experts_per_group": 2,
+        "address_dim": 16,
+        "laces": 64,
+        "active_laces": 2,
+        "hat_levels": 2,
+        "hat_symbols": 64,
+        "hat_active_symbols": 2,
+        "kron_heads": 4,
+        "kron_key": 8,
+        "kron_value": 8,
+        "rounds": 2,
+        "recurrent_feedback": true,
+        "feedback_gate_init": 0.1,
+        "zero_safe_norm": true,
+        "evidence_gated_ports": true,
+        "selective_publication": [
+          "F",
+          "L",
+          "G",
+          "R"
+        ],
+        "independent_sources": [
+          "F",
+          "L",
+          "G",
+          "R"
+        ],
+        "context": 16,
+        "auxiliary_loss_weight": 0.01,
+        "hat_balance_weight": 0.001,
+        "seed": 20261221
+      },
+      "parameters": {
+        "total_unique_parameters": 24912484,
+        "physical_experts": 20736,
+        "expert_matrix_parameters": 21233664,
+        "logical_experts_per_node": 2592,
+        "expert_calls_per_round_per_external_event": 132,
+        "nodes": 11,
+        "regions": 4,
+        "byte_vocabulary": 256
+      },
+      "batch": 8,
+      "context": 16,
+      "timings": {
+        "reference": {
+          "seconds": [
+            1.343893375999869,
+            1.2321790519999922,
+            1.335466815000018,
+            1.2984457620000285,
+            1.2508932719997574,
+            1.2918253920001916,
+            1.249897171000157
+          ],
+          "median_seconds": 1.2918253920001916,
+          "min_seconds": 1.2321790519999922,
+          "max_seconds": 1.343893375999869
+        },
+        "optimized": {
+          "seconds": [
+            1.1841014040001028,
+            1.1055946240003323,
+            1.0905781470000875,
+            1.124887449000198,
+            1.1688653210003395,
+            1.0609657019999759,
+            1.2936372459998893
+          ],
+          "median_seconds": 1.124887449000198,
+          "min_seconds": 1.0609657019999759,
+          "max_seconds": 1.2936372459998893
+        }
+      },
+      "checks": {
+        "reference": {
+          "logits": "89c72b4082740a8a107f47c7ebe73205d21456c7e9d3c8a03e69348045c29aa4",
+          "state": "d289a3a9594b598e6e4d587bcc12d838af3fcdb472d0d0a88a6b69017ca5a748",
+          "expert_executions": 21504
+        },
+        "optimized": {
+          "logits": "89c72b4082740a8a107f47c7ebe73205d21456c7e9d3c8a03e69348045c29aa4",
+          "state": "d289a3a9594b598e6e4d587bcc12d838af3fcdb472d0d0a88a6b69017ca5a748",
+          "expert_executions": 21504
+        }
+      },
+      "speedup": 1.1484041298072694,
+      "peak_process_rss_mib": 768.02734375
+    }
+  ]
+}

@@ -6,7 +6,6 @@ independent backwards and checkpoint loads cannot leave stale cached graphs.
 """
 from contextvars import ContextVar
 from functools import wraps
-import math
 import torch
 from torch import nn
 from torch.nn import functional as F
@@ -15,6 +14,7 @@ from ..hat_minkron.kron import MinKron
 from ..hat_minkron.model import RecurrentChild, RecurrentBlock, StreamingRouter
 from ..hat_minkron.semantic_core import LaceController, normalize, switch_balance
 from ..hat_minkron.hierarchy_reference import SplitExpertBank
+from .runtime_kernels import event as recurrent_event, symbol_read, expert_bank
 
 _cache = ContextVar('shoebox_forward_cache', default=None)
 
@@ -28,7 +28,10 @@ def forward_scope(function):
     def wrapped(self, *args, **kwargs):
         token = _cache.set({} if self.execution_backend == 'optimized' else None)
         try:
-            return function(self, *args, **kwargs)
+            # Use the scripted operator interpreter without algebraic fusion.
+            # This keeps the eager arithmetic and ordinary autograd operations.
+            with torch.jit.optimized_execution(False):
+                return function(self, *args, **kwargs)
         finally:
             _cache.reset(token)
     return wrapped
@@ -51,13 +54,6 @@ def cached(module, name, compute):
     return cache[key]
 
 
-def direction(x, safe_zero):
-    # F.normalize and the zero-direction guard used to calculate this norm twice.
-    norm = x.norm(dim=-1, keepdim=True)
-    value = x / norm.clamp_min(1e-12).expand_as(x)
-    return torch.where(norm > 1e-12, value, torch.zeros_like(value)) if safe_zero else value
-
-
 class RuntimeMinKron(MinKron):
     def forward(self, x, state=None, backend='chunk', reset_each=False):
         if not enabled() or x.shape[1] != 1:
@@ -67,29 +63,12 @@ class RuntimeMinKron(MinKron):
         b, t, _ = x.shape
         if state is not None and state.shape != (b, self.H, self.K, self.V):
             raise ValueError('Wrong minKron state shape.')
-        qkv, erase, write, forget, gate = self.projection(x).split(self.splits, -1)
-        q, k, v = F.silu(qkv).split([self.H*self.K, self.H*self.K, self.H*self.V], -1)
-        q, k, v = [direction(a.reshape(b, self.H, d), self.safe_zero)
-                   for a, d in ((q, self.K), (k, self.K), (v, self.V))]
         acc = torch.float64 if x.dtype == torch.float64 else torch.float32
-        f = self.forget_projection(forget).to(acc) + self.dt_bias.to(acc)
         decay = cached(self, ('decay', acc), lambda: self.A_log.to(acc).exp())
-        g = -decay[None, :, None]*F.softplus(f).reshape(b, self.H, self.K)
-        # The event-major engine always supplies one timestep. Avoid the
-        # sequence transposes and repeated slice/select backward nodes.
-        q, k, v = (a.to(acc) for a in (q, k, v))
-        previous = q.new_zeros(b, self.H, self.K, self.V) if state is None or reset_each else state.to(acc)
-        decayed = previous*g.exp().unsqueeze(-1)
-        norm = v.square().sum(-1)
-        inv = norm.clamp_min(1e-18).reciprocal()
-        score = ((k.unsqueeze(-1)*decayed)*v.unsqueeze(-2)).sum((-2, -1))
-        u = write.to(acc).sigmoid().squeeze(1)*norm*inv-erase.sigmoid().to(acc).squeeze(1)*inv*score
-        final = decayed+u[..., None, None]*k.unsqueeze(-1)*v.unsqueeze(-2)
-        out = (q.unsqueeze(-1)*final).sum(-2)*self.K**-.5
-        z = out.to(x.dtype).unsqueeze(1).to(acc)
-        z = z*torch.rsqrt(z.square().mean(-1, keepdim=True)+1e-5)*self.norm_weight.to(acc)
-        z = z*(gate+self.output_gate_bias).reshape(b, t, self.H, self.V).sigmoid()
-        return self.output(z.reshape(b, t, self.H*self.V).to(x.dtype)), final
+        return recurrent_event(x, self.projection.weight, self.forget_projection.weight,
+            decay, self.dt_bias, self.norm_weight, self.output_gate_bias, self.output.weight,
+            None if reset_each else state, self.H, self.K, self.V, self.safe_zero)
+
 
 
 class RuntimeSymbolLevel(SymbolLevel):
@@ -107,14 +86,10 @@ class RuntimeSymbolLevel(SymbolLevel):
     def single(self, x, state, backend='step', memory_enabled=True):
         context, final = self.memory(self.norm(x), state, backend, not memory_enabled)
         h = x+context
-        q = direction(self.query(self.norm(h)), self.safe_zero)
         keys = cached(self, 'keys', lambda: F.normalize(self.keys, dim=-1))
-        scores = 4*F.linear(q, keys)
-        probabilities = scores.softmax(-1)
-        ids = scores.topk(self.cfg.hat_active_symbols, -1).indices
-        weights = probabilities.gather(-1, ids)*self.cfg.hat_symbols/self.cfg.hat_active_symbols
-        symbol = (self.values[ids]*weights[..., None]).sum(-2)/math.sqrt(self.cfg.hat_active_symbols)
-        return h+symbol, final, dict(ids=ids, weights=weights, balance=switch_balance(probabilities, ids))
+        result, ids, weights, aux = symbol_read(h, self.norm.weight, self.norm.bias,
+            self.query.weight, keys, self.values, self.cfg.hat_active_symbols, self.safe_zero)
+        return result, final, dict(ids=ids, weights=weights, balance=aux)
 
     def forward(self, x, links, states, backend='chunk', memory_enabled=True):
         if enabled() and x.shape[1] == 1 and bool((links == links[0, 0]).all()):
@@ -217,13 +192,21 @@ class RuntimeRouter(StreamingRouter):
                     gates=(eg*gg[..., None]).flatten(-2), aux=switch_balance(prob, groups))
 
 
+class RuntimeSplitExpertBank(SplitExpertBank):
+    def forward(self, x, ids, gates):
+        if not enabled():
+            return super().forward(x, ids, gates)
+        return expert_bank(x, ids, gates, self.shared.up, self.shared.down,
+                           self.private.up, self.private.down)
+
+
 class RuntimeBlock(RecurrentBlock):
     def __init__(self, c, cfg, layer, count, shared):
         nn.Module.__init__(self)
         self.norm1, self.norm2 = nn.LayerNorm(c.width), nn.LayerNorm(c.width)
         self.memory = RuntimeMinKron(c.width, cfg.kron_heads, cfg.kron_key, cfg.kron_value, cfg.chunk_size)
         self.router = RuntimeRouter(c, layer, count)
-        self.experts = SplitExpertBank(c, shared, count-shared.up.shape[0])
+        self.experts = RuntimeSplitExpertBank(c, shared, count-shared.up.shape[0])
 
 
 class RuntimeChild(RecurrentChild):
