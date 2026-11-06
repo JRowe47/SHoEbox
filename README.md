@@ -78,6 +78,20 @@ P and Q feed the shared byte readout. B has one state owner and publishes to bot
 
 ## Development status
 
+The new [task-driven memory mode](docs/SHoEbox_Task_Memory_Protocol.md) connects the ordinary byte stream to four owned publications, contextual reads and a sparse regional composer. Its bounded eligibility traces train earlier write policies across detached chunks. The 548,195-parameter pilot uses no field-address input, fixed latent teacher, replay store or retention threshold. See the [task-memory results](docs/SHoEbox_Task_Memory_Report.md) for behavioral outcomes and remaining phase exits.
+
+```bash
+python -m experiments.text_regions.task_memory_train \
+  --out artifacts/task_memory/integrated --steps 300 --batch 16 --final-eval
+# Paired controls: add --arm no_credit or --arm no_memory with separate output paths.
+# Continue exactly: add --resume artifacts/task_memory/integrated/last.pt --steps 600.
+python -m experiments.text_regions.task_memory_evaluate --run artifacts/task_memory/integrated
+```
+
+Across three paired initialization/stream seeds, the new integrated model reaches **78.9% held-out answer accuracy versus 70.3% without memory**, with mean answer NLL **0.524 versus 0.644** at matched expert count. Delayed credit improves mean accuracy over credit-disabled training (75.5%), while selected-loss gains are positive in only one of three pairs. Useful publication reads are demonstrated; selective retrieval over a complete query and longer-lived useful commits remain next targets.
+
+Earlier milestone:
+
 **The joint-stability continuation is complete. All three capped runs preserve the 90% held-out memory target; one of three meets the full joint text-and-memory target. M7 remains open.** Three parent/data pairs each completed two matched 60-update continuations: ordinary task-gradient summation and separate caps for each task within the core, readout, and producer optimizer groups.
 
 These are the validation-selected checkpoints, evaluated on 4,096 new text targets and 512 fresh episodes in each of nine memory conditions:
@@ -92,7 +106,7 @@ Memory minimum is the weakest of all 27 recall, correction, and withheld-correct
 
 The graph remains at **510,958 parameters and 768 physical experts**. Each continuation adds 7,680 ordered natural-text bytes and 960 fresh procedural memory episodes; each final lineage has seen 28,160 natural-text bytes during the joint-text phases. All six run audits pass, including paired-data reconstruction, retained-owner state checks, and exact 128-byte generation after saving at byte 41. All **416 regression tests pass**.
 
-See the [joint-stability report](docs/SHoEbox_Joint_Stability_Report.md), [locked protocol](docs/SHoEbox_Joint_Stability_Protocol.md), [audited results](experiments/text_regions/results/joint_stability), and [reproduction commands](experiments/text_regions/README.md#joint-text-and-memory-gradient-stability). The next target is consistent natural-text learning while preserving these retention guards. The [preceding joint-text report](docs/SHoEbox_Joint_Text_Report.md) records the three starting lineages and the resumable byte interface.
+See the [joint-stability report](docs/SHoEbox_Joint_Stability_Report.md), [locked protocol](docs/SHoEbox_Joint_Stability_Protocol.md), [audited results](experiments/text_regions/results/joint_stability), and [reproduction commands](experiments/text_regions/README.md#joint-text-and-memory-gradient-stability). Those retention guards apply to the historical diagnostic; the new task-memory mode selects on validation task loss. The [preceding joint-text report](docs/SHoEbox_Joint_Text_Report.md) records the three starting lineages and the resumable byte interface.
 
 The preceding [multi-fact phase](docs/SHoEbox_Multifact_Report.md) passed its 90% target across all three parent/data pairs: mean recall was **99.93% shared, 99.80% left-private and 99.87% right-private**. Its four independently owned producers feed a frozen two-round composer. That published result remains the starting point for the joint-text study. Earlier [joint retention](docs/SHoEbox_Joint_Retention_Report.md), [retained composition](docs/SHoEbox_Retained_Composition_Report.md), and [selective publication](docs/SHoEbox_Selective_Publication_Report.md) established the memory interface and learned write/hold behavior.
 
