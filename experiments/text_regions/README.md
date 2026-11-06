@@ -802,3 +802,55 @@ python scripts/diagnose_joint_text_validation.py artifacts/joint_text/20261311 \
 
 This replays the weakest final validation condition, expands its cohort, and
 checks batch-size invariance. It does not select a replacement checkpoint.
+
+## Joint text and memory gradient stability
+
+`joint_stability.py` continues the three joint-text endpoints in matched
+ordinary-sum and task/group-cap arms. Each pair inherits identical weights,
+AdamW moments, text cursor, carried graph state, and alignment targets. Both
+arms consume the same 7,680 new text bytes and 960 fresh memory episodes over
+60 updates. The cap bounds each task's gradient within the core, readout, and
+producer optimizer groups before addition and the common global clip.
+
+Validation now covers all nine recall, correction, and withheld-correction
+conditions with 512 episodes each. Every field must reach 90% before text NLL
+determines selection. Test text targets occupy new positions in the reserved
+split; they do not overlap the preceding phase's primary scored positions.
+
+See the [locked protocol](../../docs/SHoEbox_Joint_Stability_Protocol.md),
+[report](../../docs/SHoEbox_Joint_Stability_Report.md), and
+[audited results](results/joint_stability). Extract the source and artifact
+archives together, then run from the repository root:
+
+```bash
+python scripts/check_all.py
+python scripts/run_joint_stability.py \
+  --parents artifacts/joint_stability/parents --stage audit
+python -m pip install -r requirements-reports.txt
+python scripts/plot_joint_stability.py
+python scripts/report_joint_stability.py
+
+# Start a fresh matched study; repeat the same command to resume it.
+python scripts/run_joint_stability.py \
+  --parents artifacts/joint_stability/parents --root artifacts/stability_fresh
+python scripts/run_joint_stability.py \
+  --parents artifacts/joint_stability/parents --root artifacts/stability_fresh \
+  --stage evaluate
+python scripts/run_joint_stability.py \
+  --parents artifacts/joint_stability/parents --root artifacts/stability_fresh \
+  --stage audit
+
+python -m experiments.text_regions.byte_stream \
+  --checkpoint artifacts/joint_stability/study/20261400/group_clip/best.pt \
+  --prompt "ROMEO:" --count 128 --out sample.bin
+```
+
+Training saves full resumable checkpoints every five updates. Evaluation saves
+completed conditions and verifies its checkpoint, data, and evaluator hashes
+before continuing. `initial.pt`, `best.pt`, and `last.pt` retain the starting,
+validation-selected, and fixed-budget final states. Their gradients, subsystem
+norms, paired batch hashes, execution counts, and predictions accompany the
+artifacts. Each audit also serializes a live generation session at byte 41 and
+checks exact continuation through byte 128, including retained owner state.
+Run the memory-heavy regression suite separately from parallel training and
+evaluation. Optional report dependencies are listed in `requirements-reports.txt`.

@@ -12,7 +12,7 @@ def render(source, destination, *, title='SHoEbox: shared-answer preservation du
     from reportlab.lib.enums import TA_LEFT
     from reportlab.lib.pagesizes import A4
     from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
-    from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, PageBreak, Preformatted
+    from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, PageBreak, Preformatted, Image
     from reportlab.pdfbase import pdfmetrics
     from reportlab.pdfbase.ttfonts import TTFont
 
@@ -26,7 +26,7 @@ def render(source, destination, *, title='SHoEbox: shared-answer preservation du
 
     styles = getSampleStyleSheet()
     styles.add(ParagraphStyle(name='Body', fontName='ReportSans', fontSize=9.2, leading=12.4,
-        textColor=colors.HexColor('#24333c'), spaceAfter=7))
+        textColor=colors.HexColor('#24333c'), spaceAfter=6))
     styles.add(ParagraphStyle(name='TitleReport', fontName='ReportSans-Bold', fontSize=23, leading=26,
         textColor=colors.HexColor('#163f37'), spaceAfter=12))
     styles.add(ParagraphStyle(name='SectionReport', fontName='ReportSans-Bold', fontSize=13, leading=16,
@@ -50,6 +50,15 @@ def render(source, destination, *, title='SHoEbox: shared-answer preservation du
             i += 1
         elif line == '---':
             story.append(PageBreak()); i += 1
+        elif re.fullmatch(r'!\[.*?\]\((.+)\)', line):
+            path = source.parent / re.fullmatch(r'!\[.*?\]\((.+)\)', line).group(1)
+            figure = Image(str(path))
+            factor = min(1., width / figure.imageWidth)
+            figure.drawWidth = figure.imageWidth * factor
+            figure.drawHeight = figure.imageHeight * factor
+            figure.keepWithNext = True
+            after_figure = Spacer(1, 9); after_figure.keepWithNext = True
+            story.extend([figure, after_figure]); i += 1
         elif line.startswith('```'):
             i += 1; block = []
             while i < len(lines) and not lines[i].startswith('```'):
@@ -62,7 +71,8 @@ def render(source, destination, *, title='SHoEbox: shared-answer preservation du
                 if not all(re.fullmatch(r'[:\- ]+', v) for v in values):
                     rows.append(values)
                 i += 1
-            count = len(rows[0]); first = width * (.32 if count > 2 else .29)
+            count = len(rows[0])
+            first = width * (.15 if count > 2 and rows[0][0] == 'Seed' else (.32 if count > 2 else .29))
             widths = [first] + [(width - first)/(count - 1)]*(count - 1)
             content = [[Paragraph(('<b>' + inline(v) + '</b>') if n == 0 else inline(v), styles['Cell'])
                         for v in row] for n, row in enumerate(rows)]
@@ -72,7 +82,7 @@ def render(source, destination, *, title='SHoEbox: shared-answer preservation du
                 ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.white, colors.HexColor('#f6f8f7')]),
                 ('VALIGN', (0, 0), (-1, -1), 'TOP'),
                 ('LEFTPADDING', (0, 0), (-1, -1), 7), ('RIGHTPADDING', (0, 0), (-1, -1), 7),
-                ('TOPPADDING', (0, 0), (-1, -1), 6), ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
+                ('TOPPADDING', (0, 0), (-1, -1), 5), ('BOTTOMPADDING', (0, 0), (-1, -1), 5),
                 ('LINEBELOW', (0, 0), (-1, 0), .6, colors.HexColor('#9eafa7')),
             ]))
             story.extend([table, Spacer(1, 9)])
