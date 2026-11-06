@@ -28,6 +28,24 @@ class RuntimeChecks(unittest.TestCase):
         for x, y in zip(left, right):
             torch.testing.assert_close(x, y, rtol=0, atol=0)
 
+    def same_gradient(self, actual, expected, name='gradient'):
+        self.assertTrue(bool(torch.isfinite(expected).all()), name)
+        self.assertTrue(bool(torch.isfinite(actual).all()), name)
+        if expected.dtype == torch.float64:
+            rtol, atol, relative_limit = 1e-10, 1e-10, 1e-10
+        else:
+            # Projection reuse sums incoming derivatives before the shared
+            # matrix multiply. FP32 cancellation can therefore move a small
+            # coordinate by a few ulps of the tensor's larger coordinates.
+            # Keep the original coordinate check, with a scale-aware rounding
+            # floor, AND the unchanged per-parameter relative L2 bound.
+            scale = float(expected.abs().max())
+            rtol, atol = 1e-4, 2e-6 + 2*torch.finfo(expected.dtype).eps*scale
+            relative_limit = 5e-6
+        torch.testing.assert_close(actual, expected, rtol=rtol, atol=atol, msg=name)
+        relative = (actual.double()-expected.double()).norm()/expected.double().norm().clamp_min(1e-12)
+        self.assertLessEqual(float(relative), relative_limit, name)
+
     def compare(self, inputs, **kwargs):
         self.model.set_execution_backend('reference')
         a = self.model(inputs, self.x, **kwargs)
@@ -46,11 +64,8 @@ class RuntimeChecks(unittest.TestCase):
             if grads[name] is None:
                 self.assertIsNone(p.grad, name)
             else:
-                # Sharing intermediate graphs changes FP32 gradient summation
-                # order. Bound both each coordinate and total relative error.
-                torch.testing.assert_close(p.grad, grads[name], rtol=1e-4, atol=2e-6, msg=name)
-                relative = (p.grad-grads[name]).double().norm()/grads[name].double().norm().clamp_min(1e-12)
-                self.assertLessEqual(float(relative), 5e-6, name)
+                self.assertIsNotNone(p.grad, name)
+                self.same_gradient(p.grad, grads[name], name)
         self.assertIsNone(runtime._cache.get())
 
     def test_text_forward_state_routes_and_gradients(self):
@@ -70,6 +85,22 @@ class RuntimeChecks(unittest.TestCase):
         links = torch.tensor([[1, 2, 1], [2, 1, 2]])
         events = ByteBatch(self.x, links, torch.full_like(self.x, 7))
         self.compare(events, availability={'A': torch.tensor([[True, True, False], [True, False, True]])})
+
+    def test_multiple_live_links_float64_gradients(self):
+        # Check the entire graph at high precision, not only the recurrence.
+        # This distinguishes FP32 cancellation from a wrong shared derivative.
+        self.model.double()
+        self.test_multiple_live_links_and_partial_arrivals()
+
+    def test_gradient_comparison_rejects_wrong_derivatives(self):
+        # The rounding floor must not hide missing small gradients, a spurious
+        # gradient at zero, or a locally wrong coordinate in a larger tensor.
+        for actual, expected in (([0.], [1e-8]), ([1e-8], [0.]),
+                                 ([1., 1e-5], [1., 0.]), ([1.01], [1.]),
+                                 ([float('nan')], [1.]), ([float('inf')], [1.])):
+            with self.subTest(actual=actual, expected=expected):
+                with self.assertRaises(AssertionError):
+                    self.same_gradient(torch.tensor(actual), torch.tensor(expected))
 
     def test_constructor_keeps_original_weights_and_rng(self):
         cfg = self.cfg.hat_config()
