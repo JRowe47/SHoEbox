@@ -50,15 +50,23 @@ P and Q feed the shared byte readout. B has one state owner and publishes to bot
 
 ## Development status
 
-**Simultaneous shared/private retention now passes the 90% primary target in all three parent/data pairs.** Mean held-out composed-query recall is **99.93% shared, 99.80% left-private, and 99.87% right-private**. The weakest individual primary recall, correction or withheld-correction score is **97.66%**.
+**Joint natural-text training and exact resumable byte generation are implemented. The combined learning target is not met; M7 remains open.** Three parent/data pairs each completed 160 joint updates on 20,480 natural-text bytes and 2,560 fresh memory episodes. The same eleven-node graph and shared 256-byte decoder learn both tasks.
 
-Four independent memory owners retain three logical facts. F/L consume the complete left-source byte stream; G/R consume the complete right-source stream. Learned write gates distinguish shared and private observations. Queries supply an explicit field address, and shared reads select the latest valid replica. The selected continuous publication feeds the frozen two-round composer to answer `g(f(x))`, without decoding x into an intermediate byte.
+Validation's memory guard selects these checkpoints:
 
-The eleven-node graph has **510,958 parameters and 768 physical experts**. Only the four producers and their edge value projections learn; the seven-node composer and common byte decoder remain frozen. Queries leave all four memory owners inactive and preserve their state. Pure update suffixes after three live queries score at least **97.66%** across every task/field/seed. Either source alone supports its shared and private answers at **99.61% or better**; the unavailable private field stays near chance.
+| Parent/data pair | Update | Held-out text nats/byte | Minimum primary memory accuracy |
+|---|---:|---:|---:|
+| 20261310 | 40 | 7.8371 | 90.82% |
+| 20261311 | 40 | 8.5279 | 87.70% |
+| 20261312 | 80 | 8.0587 | 91.99% |
 
-On the matched shared-correction condition, two rounds average **99.61%**, one round averages **23.96%**, and blocked-memory or reset controls average **24.52%**. All **401 regression checks pass**. See the [multi-fact report](docs/SHoEbox_Multifact_Report.md), [locked protocol](docs/SHoEbox_Multifact_Protocol.md), [audited results](experiments/text_regions/results/multifact), and [reproduction commands](experiments/text_regions/README.md#simultaneous-shared-and-private-retention). The next target is joint natural-text training and a generative byte-stream interface; M7 remains open.
+The final-weight diagnostic is more promising for one pair: **3.4657 nats/byte and at least 96.09% on all five recall/correction tasks**. Its weakest 64-episode validation condition scored 87.50%; a post-test coverage check expands that condition to 512 episodes and obtains **95.90%**, with identical answers for the original examples across batch sizes. Both selected and final checkpoints are preserved. The diagnostic does not replace locked selection, and the three runs remain uneven.
 
-The preceding [joint-retention phase](docs/SHoEbox_Joint_Retention_Report.md) trained one producer and its edge together, reaching **99.80% recall, 99.87% correction, and 99.74% with the correction withheld**. The [retained-composition phase](docs/SHoEbox_Retained_Composition_Report.md) first connected that producer through 1,024 learned edge weights with both components frozen. The [selective-publication phase](docs/SHoEbox_Selective_Publication_Report.md) established learned write/hold behavior, and the [gradient-horizon report](docs/SHoEbox_Gradient_Horizon_Report.md) records the unchanged composition parent.
+The graph remains at **510,958 parameters and 768 physical experts**. Text leaves the four memory owners inactive and masks their outgoing edges. Generation sessions carry graph state, next-byte logits and sampling RNG, allowing exact continuation without re-ingesting earlier output. All **408 regression checks pass**.
+
+See the [joint-text report](docs/SHoEbox_Joint_Text_Report.md), [locked protocol](docs/SHoEbox_Joint_Text_Protocol.md), [audited results](experiments/text_regions/results/joint_text), and [streaming/generation commands](experiments/text_regions/README.md#joint-natural-text-and-retained-memory). The next stage is broader retention validation, extended text learning, and subsystem gradient measurements to explain the variation between pairs.
+
+The preceding [multi-fact phase](docs/SHoEbox_Multifact_Report.md) passed its 90% target across all three parent/data pairs: mean recall was **99.93% shared, 99.80% left-private and 99.87% right-private**. Its four independently owned producers feed a frozen two-round composer. That published result remains the starting point for the joint-text study. Earlier [joint retention](docs/SHoEbox_Joint_Retention_Report.md), [retained composition](docs/SHoEbox_Retained_Composition_Report.md), and [selective publication](docs/SHoEbox_Selective_Publication_Report.md) established the memory interface and learned write/hold behavior.
 
 ## Earlier experiments
 

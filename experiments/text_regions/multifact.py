@@ -139,9 +139,11 @@ def project(model,owner,payload):
     return edge.gate(payload).sigmoid()*edge.value(payload)
 
 
-def update(model,optimizer,batch,table_batches):
-    optimizer.zero_grad(set_to_none=True)
-    reference=teacher_inputs(model,torch.arange(65,69));scale=reference.square().mean().clamp_min(1e-8)
+def backward(model,batch,table_batches,weight=1.,reference=None):
+    """Accumulate the segmented objective without changing weights or clearing gradients."""
+    if weight <= 0:raise ValueError('A positive objective weight is required.')
+    reference=teacher_inputs(model,torch.arange(65,69)) if reference is None else reference.detach()
+    scale=reference.square().mean().clamp_min(1e-8)
     denominators={o:(int(batch.retained[o].ne(-100).sum()),int(batch.writes[o].sum()),
         int(batch.writes[OTHER_FIELD[o]].sum()),
         int((~batch.writes[o]&~batch.writes[OTHER_FIELD[o]]&batch.available[:,:,SOURCE[o]]).sum())) for o in OWNERS}
@@ -172,11 +174,17 @@ def update(model,optimizer,batch,table_batches):
                 result=query(model,tb.first,tb.second,r['state'],torch.full_like(batch.answers[:,0],field))
                 ce=F.cross_entropy(result['logits'][:,-1],tb.answers)/3;local=local+ce;metrics['nats']+=float(ce.detach())
                 for k in costs:costs[k]+=result[k]
-        local.backward();state=r['state'].detach()
+        (weight*local).backward();state=r['state'].detach()
+    return dict(loss=sum(metrics.values()),batch_sha256=batch_digest(batch),
+                table_keys=[tb.keys for tb in table_batches],**metrics,**costs)
+
+
+def update(model,optimizer,batch,table_batches):
+    optimizer.zero_grad(set_to_none=True)
+    metrics=backward(model,batch,table_batches)
     norm=torch.nn.utils.clip_grad_norm_([p for p in model.parameters() if p.requires_grad],1.,error_if_nonfinite=True)
     optimizer.step()
-    return dict(loss=sum(metrics.values()),gradient_norm=float(norm),batch_sha256=batch_digest(batch),
-                table_keys=[tb.keys for tb in table_batches],**metrics,**costs)
+    return dict(gradient_norm=float(norm),**metrics)
 
 
 def table_batches(batch,split,start,seed,request=0):

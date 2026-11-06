@@ -150,3 +150,34 @@ recompute 76 scored prediction groups and check exact inference exports.
 See the [report](SHoEbox_Gradient_Horizon_Report.md),
 [locked protocol](SHoEbox_Gradient_Horizon_Protocol.md), and
 [raw results](../experiments/text_regions/results/gradient_horizon/README.md).
+
+## SHoEbox joint natural text and retained memory
+
+Three parent/data pairs complete 160 joint optimizer updates in the unchanged
+510,958-parameter, eleven-node graph. Each sees 20,480 natural-text bytes and
+2,560 fresh memory episodes. Text and structured queries share one decoder.
+
+| Run seed | Selected update | Test text nats/byte | Weakest primary memory score |
+| --- | ---: | ---: | ---: |
+| 20261310 | 40 | 7.8371 | 90.82% |
+| 20261311 | 40 | 8.5279 | 87.70% |
+| 20261312 | 80 | 8.0587 | 91.99% |
+
+The joint target is not met: all selected models miss the text threshold of
+4 nats/byte, and one misses the 90% memory threshold. The separate final-weight
+diagnostic reaches 3.4657 nats/byte and at least 96.09% on the five memory tasks
+for pair 20261311. A post-test validation check expands that pair's weakest
+condition from 64 to 512 episodes: its minimum rises from 87.50% to 95.90%,
+with the original answers identical across batch sizes. Selection remains
+unchanged. The full three-pair results and validation trajectories are in the
+report. M7 remains open; broader retention validation and more reliable joint
+learning are the next targets.
+
+The byte-stream interface is implemented, with exact continuation of graph
+state, logits and sampling RNG. Text leaves the independent memory owners
+inactive. All 408 regression checks pass. The artifact package retains the
+selected and final weights, complete training histories, predictions and audits.
+
+See the [report](SHoEbox_Joint_Text_Report.md),
+[locked protocol](SHoEbox_Joint_Text_Protocol.md), and
+[portable results](../experiments/text_regions/results/joint_text/README.md).
