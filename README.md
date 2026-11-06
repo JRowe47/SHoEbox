@@ -38,6 +38,27 @@ python -m experiments.text_regions.train \
 python -m experiments.text_regions.verify
 ```
 
+## CPU execution
+
+The regional engine uses an optimized PyTorch path by default. It reuses derived routing tables and projections within each forward, specializes the one-event recurrence, and avoids gathers and scatters when every row is active. Weights, topology, expert counts and checkpoint keys are unchanged. PyTorch selects the host's supported CPU instructions, including AVX-512 on the profiled machine.
+
+Use `model.set_execution_backend('reference')` to select the preserved arithmetic path, or `'optimized'` to switch back. Both paths run the same sparse experts and regional rounds. Caches expire at the end of every forward, including failed calls; they never retain derived weights across optimizer updates.
+
+The [runtime profiling report](docs/SHoEbox_Runtime_Profiling_Report.md) includes timings, checkpoint comparisons and remaining bottlenecks. Reproduce the matched measurements with:
+
+```bash
+python scripts/benchmark_runtime.py \
+  --checkpoint artifacts/joint_stability/study/20261401/group_clip/best.pt \
+  --sizes checkpoint default 25m --repeats 3 --threads 1 \
+  --memory-count 512 --profile --out artifacts/performance/benchmark
+python scripts/verify_runtime.py \
+  --checkpoint artifacts/joint_stability/study/20261401/group_clip/best.pt \
+  --out artifacts/performance/checkpoint_verification.json
+```
+
+The 25M setting is a capacity stress test initialized from a fixed seed. The checkpoint setting uses the trained eleven-node graph.
+Add `--baseline-root /path/to/original/checkout` to compare directly with an untouched source tree; otherwise the benchmark uses the selectable reference backend.
+
 ## Topology
 
 | Region | Owned nodes | Forward inputs |

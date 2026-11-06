@@ -11,6 +11,7 @@ from torch.nn import functional as F
 from .composition import training_loss
 from .composition_data import training_batch
 from .fact_supervision import retention_loss
+from scripts.train_integrated_balanced import clip_task_gradients
 
 
 def episode_forward(model, batch, segment=16, detach_between=False, capture=True):
@@ -111,7 +112,7 @@ def horizon_update(model, optimizer, rng, streams, protocol):
         row['batch_sha256'][name] = batch_digest(batch)
         if not bool(torch.isfinite(loss)): raise FloatingPointError('Nonfinite task loss.')
         loss.backward()
-        norm = torch.nn.utils.clip_grad_norm_(parameters, 1., error_if_nonfinite=True)
+        norm = clip_task_gradients(parameters)
         row[name + '_gradient_norm'] = float(norm)
         for i, parameter in enumerate(parameters):
             if parameter.grad is not None:
@@ -120,7 +121,7 @@ def horizon_update(model, optimizer, rng, streams, protocol):
         for key in ('expert_executions', 'source_occurrences', 'external_events'): row[key] += result[key]
         del loss, result
     for parameter, gradient in zip(parameters, accumulated): parameter.grad = gradient
-    norm = torch.nn.utils.clip_grad_norm_(parameters, 1., error_if_nonfinite=True)
+    norm = clip_task_gradients(parameters)
     optimizer.step()
     row.update(gradient_norm=float(norm), lr=protocol['lr'])
     return row

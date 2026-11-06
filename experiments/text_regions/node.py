@@ -1,9 +1,9 @@
 """Adapters around the existing SymbolLevel and three-block RecurrentChild."""
 import torch
 from torch import nn
-from ..hat_minkron.hat import HATState, SymbolLevel
+from ..hat_minkron.hat import HATState
 from ..hat_minkron.events import ByteBatch
-from ..hat_minkron.model import RecurrentChild
+from .runtime import RuntimeSymbolLevel as SymbolLevel, RuntimeChild as RecurrentChild, enabled
 from .ports import SemanticHeader
 from .state import NodeState
 
@@ -16,6 +16,9 @@ def masked_ingress(hat, events, state, active):
     rows = active.nonzero().flatten()
     if not rows.numel():
         return payload, state, aux
+    if enabled() and rows.numel() == b:
+        result = hat(events, state, backend='step')
+        return result['payload'][:, 0], result['state'], result['aux']
     small = HATState(len(rows), tuple({k: v[rows] for k, v in layer.items()} for layer in state.levels),
                      {k: v[rows] for k, v in state.clocks.items()})
     subset = ByteBatch(events.values[rows], events.links[rows], events.slots[rows])
@@ -44,8 +47,12 @@ class LatentAdapter(nn.Module):
         links = torch.zeros(x.shape[:2], dtype=torch.long, device=x.device)
         final, aux = [], x.new_zeros(())
         for level, state in zip(self.levels, states):
-            x, updated, record = level(x, links, {0: state}, backend='step')
-            final.append(updated[0])
+            if enabled():
+                x, updated, record = level.single(x, state)
+                final.append(updated)
+            else:
+                x, updated, record = level(x, links, {0: state}, backend='step')
+                final.append(updated[0])
             aux = aux + record['balance']/len(self.levels)
         return self.norm(x), tuple(final), aux
 
@@ -85,23 +92,27 @@ class RecurrentNode(nn.Module):
         if not rows.numel():
             return {'latent': latent, 'header': SemanticHeader(self.name, memberships, groups, laces),
                     'state': state, 'aux': aux, 'hat_aux': aux, 'executions': 0, 'trace': None}
-        x, adapter_state, hat_aux = self.adapter(payload[rows], tuple(s[rows] for s in state.contextualizer))
+        full = enabled() and rows.numel() == b
+        x, adapter_state, hat_aux = self.adapter(payload if full else payload[rows],
+            state.contextualizer if full else tuple(s[rows] for s in state.contextualizer))
         evidence = torch.stack([block.router.pilot(x) for block in self.core.blocks], -2)
-        prior, lace = self.core.lace(evidence + routing_context[rows, None], x, utility_bias=lace_bias)
-        result = self.core.execute(x, prior, tuple(s[rows] for s in state.blocks), backend='step',
+        prior, lace = self.core.lace(evidence + (routing_context[:, None] if full else routing_context[rows, None]), x, utility_bias=lace_bias)
+        execute = self.core.execute_node if enabled() else self.core.execute
+        result = execute(x, prior, state.blocks if full else tuple(s[rows] for s in state.blocks), backend='step',
                                    trace=trace, decode=False)
-        final = NodeState(tuple(old.index_copy(0, rows, new) for old, new in zip(state.contextualizer, adapter_state)),
-                          tuple(old.index_copy(0, rows, new) for old, new in zip(state.blocks, result['state'])),
+        final = NodeState(adapter_state if full else tuple(old.index_copy(0, rows, new) for old, new in zip(state.contextualizer, adapter_state)),
+                          result['state'] if full else tuple(old.index_copy(0, rows, new) for old, new in zip(state.blocks, result['state'])),
                           state.clock + active.long())
-        header = SemanticHeader(self.name, memberships.index_copy(0, rows, result['semantic'][:, 0]),
-                                groups.index_copy(0, rows, result['group_ids'][:, 0]),
-                                laces.index_copy(0, rows, result['feedback_lace_ids'][:, 0]))
+        header = SemanticHeader(self.name,
+            result['semantic'][:, 0] if full else memberships.index_copy(0, rows, result['semantic'][:, 0]),
+            result['group_ids'][:, 0] if full else groups.index_copy(0, rows, result['group_ids'][:, 0]),
+            result['feedback_lace_ids'][:, 0] if full else laces.index_copy(0, rows, result['feedback_lace_ids'][:, 0]))
         record = None
         if trace:
             record = {'rows': rows.detach(), 'groups': result['group_ids'][:, 0].detach(),
                       'laces': lace['lace_ids'][:, 0].detach(),
                       'observed_laces': result['feedback_lace_ids'][:, 0].detach(),
                       'experts': result['expert_ids'][:, 0].detach()}
-        return {'latent': latent.index_copy(0, rows, result['latent'][:, 0]), 'header': header,
+        return {'latent': result['latent'][:, 0] if full else latent.index_copy(0, rows, result['latent'][:, 0]), 'header': header,
                 'state': final, 'aux': result['aux'] + .1*lace['balance'], 'hat_aux': hat_aux,
                 'executions': len(rows)*3*cfg.active_groups*cfg.experts_per_group, 'trace': record}

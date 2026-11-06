@@ -3,6 +3,7 @@ from dataclasses import dataclass, replace
 import math
 import torch
 from torch import nn
+from .runtime import cached
 
 
 @dataclass(frozen=True)
@@ -52,7 +53,9 @@ class GraphConnections(nn.Module):
         dependencies = []
         if ingress is not None:
             used = ingress.valid & active
-            values = values + self.ingress[spec.name](ingress.payload)*used[:, None]
+            projection = self.ingress[spec.name]
+            value = cached(projection, ingress.payload, lambda: projection(ingress.payload))
+            values = values + value*used[:, None]
             count = count + used.to(count.dtype)
             dependencies.append(ingress.dependency(f'{ingress.source}__{spec.name}', used))
         for edge in self.incoming[spec.name]:
@@ -69,7 +72,10 @@ class GraphConnections(nn.Module):
                 payload = substitute.payload[:, event_index]
                 memberships = substitute.memberships[:, event_index]
                 intervention = 'substitution'
-            value, evidence = self.edges[edge.key](payload, memberships, (edge_bias or {}).get(edge.key, 0.))
+            projection = self.edges[edge.key]
+            bias = (edge_bias or {}).get(edge.key, 0.)
+            value, evidence = cached(projection, (payload, memberships, bias),
+                                     lambda: projection(payload, memberships, bias))
             values = values + value*used[:, None]
             context = context + evidence*used[:, None, None]
             count = count + used.to(count.dtype)

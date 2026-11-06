@@ -4,7 +4,7 @@ import torch
 from torch import nn
 from torch.nn import functional as F
 from ..hat_minkron.events import ByteBatch
-from ..hat_minkron.hat import HAT
+from .runtime import RuntimeHAT as HAT, forward_scope
 from ..hat_minkron.semantic_core import ExpertBank
 from .config import GraphConfig
 from .graph import GraphConnections
@@ -14,8 +14,9 @@ from .state import GraphState
 
 
 class RegionLanguageModel(nn.Module):
-    def __init__(self, cfg=None):
+    def __init__(self, cfg=None, execution_backend='optimized'):
         super().__init__()
+        self.set_execution_backend(execution_backend)
         self.cfg = cfg or GraphConfig()
         self.cfg.validate()
         c = self.cfg.hat_config()
@@ -113,6 +114,14 @@ class RegionLanguageModel(nn.Module):
                 raise ValueError('Reset must be bool [B] or [B,T] on the input device.')
         return events, state, b, t, controlled
 
+    def set_execution_backend(self, backend):
+        """Select execution only; weights, topology and checkpoint schema are unchanged."""
+        if backend not in ('reference', 'optimized'):
+            raise ValueError('Execution backend must be reference or optimized.')
+        self.execution_backend = backend
+        return self
+
+    @forward_scope
     def forward(self, inputs, targets=None, state=None, reset=None, rounds=None, feedback=None,
                 availability=None, node_masks=None, edge_masks=None, substitutions=None,
                 trace=False, reverse_independent=False, return_view_activity=False,

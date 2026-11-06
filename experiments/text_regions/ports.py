@@ -2,6 +2,7 @@
 from dataclasses import dataclass, fields, is_dataclass, replace
 from typing import Mapping
 import torch
+from .runtime import enabled
 
 
 def map_tensors(value, function):
@@ -133,6 +134,25 @@ class TensorPorts:
 
 def publish(previous, payload, header, active, epoch, occurrence, round_index, dependencies, links=None, slots=None):
     """Functional row replacement; inactive rows keep both state and publication."""
+    if enabled():
+        all_rows = bool(active.all())
+        if all_rows or not bool(active.any()):
+            # Uniform masks need no per-field where, but disappeared dependency
+            # IDs still need zero tombstones, exactly as in the reference.
+            old = {d.edge: d for d in previous.dependencies}
+            new = {d.edge: d for d in dependencies}
+            selected = new if all_rows else old
+            merged = tuple(normalize_dependency(selected[key] if key in selected else
+                           map_tensors(new.get(key, old.get(key)), torch.zeros_like))
+                           for key in sorted(old.keys() | new.keys()))
+            return Publication(previous.source, previous.port,
+                payload if all_rows else previous.payload, previous.valid | active,
+                previous.version+active.long(), epoch if all_rows else previous.epoch,
+                occurrence if all_rows else previous.occurrence,
+                round_index if all_rows else previous.round_index,
+                header if all_rows else previous.header, merged,
+                links.clone() if links is not None else previous.links,
+                slots.clone() if slots is not None else previous.slots)
     old_deps = {d.edge: normalize_dependency(d) for d in previous.dependencies}
     new_deps = {d.edge: normalize_dependency(d) for d in dependencies}
     merged = []
