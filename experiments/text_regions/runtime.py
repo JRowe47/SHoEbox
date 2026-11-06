@@ -1,8 +1,7 @@
 """Execution optimizations for the regional graph, with unchanged parameters.
 
-The preserved SHoE experiments remain the reference implementation. Derived
-weight tensors live for ONE graph forward only, so updates, device changes,
-independent backwards and checkpoint loads cannot leave stale cached graphs.
+The preserved SHoE experiments remain the reference implementation. Training
+caches live for one forward; generation reuses version-checked weight caches.
 """
 from contextvars import ContextVar
 from functools import wraps
@@ -14,19 +13,62 @@ from ..hat_minkron.kron import MinKron
 from ..hat_minkron.model import RecurrentChild, RecurrentBlock, StreamingRouter
 from ..hat_minkron.semantic_core import LaceController, normalize, switch_balance
 from ..hat_minkron.hierarchy_reference import SplitExpertBank
-from .runtime_kernels import event as recurrent_event, symbol_read, expert_bank
+from .runtime_kernels import event as recurrent_event, inference_event, symbol_read, expert_bank
+from .runtime_autograd import DenseBankGradient, SelectedRows, SelectedExpert
 
 _cache = ContextVar('shoebox_forward_cache', default=None)
+_generation = ContextVar('shoebox_generation_cache', default=None)
+
+
+def generation_scope(function):
+    @wraps(function)
+    def wrapped(model, *args, **kwargs):
+        token = _generation.set([model, None, {}])
+        try:
+            return function(model, *args, **kwargs)
+        finally:
+            _generation.reset(token)
+    return wrapped
+
+
+def weight_signature(model):
+    # Versions catch optimizer/in-place updates and load_state_dict; identity,
+    # dtype and device also catch replacement and module conversion.
+    try:
+        return tuple((id(p), p._version, p.dtype, p.device) for module in model.modules()
+                     for p in (*module._parameters.values(), *module._buffers.values()) if p is not None) + (
+            torch.is_autocast_enabled('cpu'), torch.get_autocast_dtype('cpu'),
+            torch.is_autocast_enabled('cuda'), torch.get_autocast_dtype('cuda'),
+            torch.is_inference_mode_enabled())
+    except RuntimeError:  # Inference tensors do not carry version counters.
+        return object()
 
 
 def enabled():
     return _cache.get() is not None
 
 
+def next_event():
+    cache = _cache.get()
+    if cache is not None:
+        # Keep compact backward accumulation bounded to one external event.
+        # Longer sparse concatenation chains cost more than their zeroing saves.
+        cache['expert_event'] = cache.get('expert_event', -1)+1
+
+
 def forward_scope(function):
     @wraps(function)
     def wrapped(self, *args, **kwargs):
-        token = _cache.set({} if self.execution_backend == 'optimized' else None)
+        cache = {} if self.execution_backend == 'optimized' else None
+        generation = _generation.get()
+        if cache is not None and not torch.is_grad_enabled() and generation is not None and generation[0] is self:
+            signature = weight_signature(self)
+            if signature != generation[1]:
+                generation[1], generation[2] = signature, {}
+            cache = generation[2]
+        if cache is not None:
+            cache['fused_recurrence'] = self._large_expert_banks
+        token = _cache.set(cache)
         try:
             # Use the scripted operator interpreter without algebraic fusion.
             # This keeps the eager arithmetic and ordinary autograd operations.
@@ -48,7 +90,8 @@ def cached(module, name, compute):
         training_key = (module, name, True)
         if not grad and training_key in cache:
             value = cache[training_key]
-            cache[key] = tuple(v.detach() for v in value) if isinstance(value, tuple) else value.detach()
+            cache[key] = tuple(v.detach() for v in value) if isinstance(value, tuple) else (
+                value.detach() if torch.is_tensor(value) else value)
         else:
             cache[key] = compute()
     return cache[key]
@@ -65,7 +108,8 @@ class RuntimeMinKron(MinKron):
             raise ValueError('Wrong minKron state shape.')
         acc = torch.float64 if x.dtype == torch.float64 else torch.float32
         decay = cached(self, ('decay', acc), lambda: self.A_log.to(acc).exp())
-        return recurrent_event(x, self.projection.weight, self.forget_projection.weight,
+        kernel = recurrent_event if torch.is_grad_enabled() and _cache.get().get('fused_recurrence', True) else inference_event
+        return kernel(x, self.projection.weight, self.forget_projection.weight,
             decay, self.dt_bias, self.norm_weight, self.output_gate_bias, self.output.weight,
             None if reset_each else state, self.H, self.K, self.V, self.safe_zero)
 
@@ -118,7 +162,7 @@ class RuntimeHAT(HAT):
 
 class RuntimeLaceController(LaceController):
     def forward(self, evidence, context, enabled=True, permutation=None, utility_bias=None,
-                observe_only=False):
+                observe_only=False, probabilities=None):
         if _cache.get() is None or not enabled or permutation is not None:
             return super().forward(evidence, context, enabled, permutation, utility_bias)
         c = self.c
@@ -132,7 +176,8 @@ class RuntimeLaceController(LaceController):
         layer_ids = cached(self, 'layer_ids', lambda: torch.arange(c.layers, device=e.device)[None, :, None])
         current = e
         for iteration in range(c.refinement_rounds):
-            agreement = torch.einsum('nlg,mlg->nml', current.softmax(-1), templates)
+            prob = probabilities.reshape_as(e) if iteration == 0 and probabilities is not None else current.softmax(-1)
+            agreement = torch.einsum('nlg,mlg->nml', prob, templates)
             support = agreement.clamp_min(1e-8).log()
             external = (ctx[:, :, None]+support.sum(-1, keepdim=True)-support).transpose(1, 2)
             if utility_bias is not None:
@@ -163,7 +208,8 @@ class RuntimeRouter(StreamingRouter):
             return super().forward(x, prior)
         c = self.c
         prototypes = cached(self, 'prototypes', lambda: normalize(self.prototypes))
-        query = normalize(self.query(x)+c.lace_gain*self.message(prior@prototypes))
+        projected = cached(self, 'message_prototypes', lambda: F.linear(prototypes, self.message.weight))
+        query = normalize(self.query(x)+c.lace_gain*(prior@projected))
         scores = 4*F.linear(query, prototypes)
         message = prior.clamp_min(1e-8).log()
         scores = scores+c.lace_gain*(message-message.mean(-1, keepdim=True))
@@ -171,7 +217,7 @@ class RuntimeRouter(StreamingRouter):
         groups = scores.topk(c.active_groups, -1).indices
         candidates = self.membership[groups]
         valid = candidates >= 0
-        if x.shape[0]*x.shape[1]*c.active_groups >= c.groups:
+        if x.shape[0]*x.shape[1]*c.active_groups >= c.groups or _generation.get() is not None:
             # These are small routing addresses, not expert MLP weights. When
             # the batch already requests at least one table's worth of rows,
             # normalize the table once and reuse it across bytes and rounds.
@@ -196,8 +242,29 @@ class RuntimeSplitExpertBank(SplitExpertBank):
     def forward(self, x, ids, gates):
         if not enabled():
             return super().forward(x, ids, gates)
-        return expert_bank(x, ids, gates, self.shared.up, self.shared.down,
-                           self.private.up, self.private.down)
+        if not torch.is_grad_enabled() or max(self.shared.up.numel(), self.private.up.numel()) < 65536:
+            return expert_bank(x, ids, gates, self.shared.up, self.shared.down,
+                               self.private.up, self.private.down)
+        flat_ids, flat_gates = ids.reshape(-1), gates.reshape(-1)
+        flat_x = x.reshape(-1, x.shape[-1])
+        out = torch.zeros_like(flat_x)
+        count, active = self.shared.up.shape[0], ids.shape[-1]
+        for shared, bank in ((True, self.shared), (False, self.private)):
+            selected = ((flat_ids < count) == shared).nonzero().flatten()
+            if not selected.numel():
+                continue
+            local = flat_ids[selected] - (0 if shared else count)
+            owners = selected.div(active, rounding_mode='floor')
+            event = _cache.get().get('expert_event', 0)
+            if bank.up.numel() >= 65536:
+                up = SelectedRows.apply(cached(bank, ('up_gradient', event), lambda: DenseBankGradient.apply(bank.up)), local)
+                down = SelectedRows.apply(cached(bank, ('down_gradient', event), lambda: DenseBankGradient.apply(bank.down)), local)
+            else:
+                up, down = bank.up.index_select(0, local), bank.down.index_select(0, local)
+            values = flat_x.index_select(0, owners)
+            values = SelectedExpert.apply(values, up, down, flat_gates[selected])
+            out = out.index_add(0, owners, values)
+        return out.reshape_as(x)/float(active)**.5
 
 
 class RuntimeBlock(RecurrentBlock):
@@ -238,10 +305,12 @@ class RuntimeChild(RecurrentChild):
         latent = self.final_norm(x)
         if decode and self.decoder is None:
             raise ValueError('This reusable node has no byte decoder; use decode=False.')
+        semantic = torch.stack(semantic, -2)
         with torch.no_grad():
             _, lace = self.lace(torch.stack(actual, -2).detach(),
-                                F.layer_norm(payload.detach(), (self.cfg.width,)), observe_only=True)
+                                F.layer_norm(payload.detach(), (self.cfg.width,)), observe_only=True,
+                                probabilities=semantic.detach())
         return dict(logits=self.decoder(latent) if decode else None, state=tuple(final), aux=aux/len(self.blocks),
-                    latent=latent, semantic=torch.stack(semantic, -2), group_ids=torch.stack(group_ids, -2),
+                    latent=latent, semantic=semantic, group_ids=torch.stack(group_ids, -2),
                     expert_ids=torch.stack(expert_ids, -2) if trace else None,
                     feedback_lace_ids=lace['lace_ids'], trace=details)

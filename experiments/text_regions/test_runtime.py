@@ -1,6 +1,6 @@
 """Reference equivalence, gradients, masking and cache lifetime for execution."""
 import copy
-from dataclasses import replace
+from dataclasses import replace, is_dataclass, fields
 import unittest
 import torch
 from ..hat_minkron.events import ByteBatch
@@ -29,6 +29,37 @@ class RuntimeChecks(unittest.TestCase):
         for x, y in zip(left, right):
             torch.testing.assert_close(x, y, rtol=0, atol=0)
 
+    def equivalent(self, a, b):
+        left, right = tensor_list(a), tensor_list(b)
+        self.assertEqual(len(left), len(right))
+        for x, y in zip(left, right):
+            # Composed projections reassociate matrix products. Discrete
+            # routes and metadata remain exact; floating values allow rounding.
+            tol = (1e-10, 1e-10) if x.dtype == torch.float64 else (2e-5, 1e-5)
+            if not x.is_floating_point():
+                tol = (0, 0)
+            torch.testing.assert_close(x, y, rtol=tol[0], atol=tol[1])
+
+    def precision_check(self, actual, baseline, exact, name='tensor'):
+        """Compare FP32 drift against the reference's own FP64 error.
+
+        Reassociated projections perturb recurrent normalization. A fixed
+        coordinate epsilon mischaracterizes its small cancelling derivatives.
+        Bound the error by measured reference rounding AND a relative L2 floor.
+        FP64 and isolated derivative tests keep their strict fixed tolerances.
+        """
+        if not actual.is_floating_point():
+            torch.testing.assert_close(actual, baseline, rtol=0, atol=0)
+            return
+        a, b, e = actual.detach().double(), baseline.detach().double(), exact.detach().double()
+        self.assertTrue(bool(torch.isfinite(a).all()), name)
+        reference_error = (b-e).norm()
+        floor = 8*(b-e).abs().max()+8*torch.finfo(actual.dtype).eps*e.abs().max()+1e-12
+        torch.testing.assert_close(a, e, rtol=1e-3, atol=float(floor), msg=name)
+        # At most 0.1% per-tensor drift beyond amplified baseline FP32 error.
+        budget = 4*reference_error+1e-3*e.norm()
+        self.assertLessEqual(float((a-e).norm()), float(budget)+1e-12, name)
+
     def same_gradient(self, actual, expected, name='gradient'):
         self.assertTrue(bool(torch.isfinite(expected).all()), name)
         self.assertTrue(bool(torch.isfinite(actual).all()), name)
@@ -51,6 +82,22 @@ class RuntimeChecks(unittest.TestCase):
         self.assertLessEqual(float(relative), relative_limit, name)
 
     def compare(self, inputs, **kwargs):
+        precise = None
+        if next(self.model.parameters()).dtype == torch.float32:
+            def convert(value):
+                if torch.is_tensor(value):
+                    return value.double() if value.is_floating_point() else value
+                if is_dataclass(value):
+                    return replace(value, **{f.name: convert(getattr(value, f.name)) for f in fields(value)})
+                if isinstance(value, dict):
+                    return {k: convert(v) for k, v in value.items()}
+                if isinstance(value, tuple):
+                    return tuple(convert(v) for v in value)
+                return value
+            high = copy.deepcopy(self.model).double().set_execution_backend('reference')
+            precise = high(convert(inputs), self.x, **convert(kwargs))
+            precise['loss'].backward()
+            precise_gradients = dict(high.named_parameters())
         self.model.set_execution_backend('reference')
         a = self.model(inputs, self.x, **kwargs)
         a['loss'].backward()
@@ -60,7 +107,11 @@ class RuntimeChecks(unittest.TestCase):
         b = self.model(inputs, self.x, **kwargs)
         for key in ('logits', 'aux', 'hat_aux', 'state', 'trace', 'view_activity', 'edge_activity',
                     'round_activity', 'node_activity', 'publication_activity'):
-            self.same(a[key], b[key])
+            if precise is None:
+                self.equivalent(a[key], b[key])
+            else:
+                for old, new, exact in zip(tensor_list(a[key]), tensor_list(b[key]), tensor_list(precise[key])):
+                    self.precision_check(new, old, exact, key)
         for key in ('expert_executions', 'external_events', 'source_occurrences', 'internal_rounds'):
             self.assertEqual(a[key], b[key])
         b['loss'].backward()
@@ -69,7 +120,10 @@ class RuntimeChecks(unittest.TestCase):
                 self.assertIsNone(p.grad, name)
             else:
                 self.assertIsNotNone(p.grad, name)
-                self.same_gradient(p.grad, grads[name], name)
+                if precise is None:
+                    self.same_gradient(p.grad, grads[name], name)
+                else:
+                    self.precision_check(p.grad, grads[name], precise_gradients[name].grad, name)
         self.assertIsNone(runtime._cache.get())
 
     def test_text_forward_state_routes_and_gradients(self):
@@ -135,6 +189,8 @@ class RuntimeChecks(unittest.TestCase):
             with self.subTest(actual=actual, expected=expected):
                 with self.assertRaises(AssertionError):
                     self.same_gradient(torch.tensor(actual), torch.tensor(expected))
+                with self.assertRaises(AssertionError):
+                    self.precision_check(torch.tensor(actual), torch.tensor(expected), torch.tensor(expected).double())
 
     def test_constructor_keeps_original_weights_and_rng(self):
         cfg = self.cfg.hat_config()
@@ -157,7 +213,7 @@ class RuntimeChecks(unittest.TestCase):
             fast = self.model(self.x)
             self.model.set_execution_backend('reference')
             reference = self.model(self.x)
-            self.same(fast['logits'], reference['logits'])
+            self.equivalent(fast['logits'], reference['logits'])
         with self.assertRaises(ValueError):
             self.model.set_execution_backend('unknown')
         self.model.set_execution_backend('optimized')
@@ -182,7 +238,7 @@ class RuntimeChecks(unittest.TestCase):
                     b = new(y, other, 'step', reset)
                 finally:
                     runtime._cache.reset(token)
-                self.same(a, b)
+                self.equivalent(a, b)
                 sum(t.square().sum() for t in a).backward()
                 sum(t.square().sum() for t in b).backward()
                 for p, q in [(x, y), (state, other), *zip(old.parameters(), new.parameters())]:

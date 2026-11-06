@@ -80,7 +80,7 @@ class RecurrentNode(nn.Module):
                          tuple(block.memory.initial_state(batch, device, dtype) for block in self.core.blocks),
                          torch.zeros(batch, dtype=torch.long, device=device))
 
-    def forward(self, payload, routing_context, state, active, trace=False, lace_bias=None):
+    def forward(self, payload, routing_context, state, active, trace=False, lace_bias=None, prepared=None):
         cfg = self.cfg
         b, d = payload.shape
         rows = active.nonzero().flatten()
@@ -93,9 +93,12 @@ class RecurrentNode(nn.Module):
             return {'latent': latent, 'header': SemanticHeader(self.name, memberships, groups, laces),
                     'state': state, 'aux': aux, 'hat_aux': aux, 'executions': 0, 'trace': None}
         full = enabled() and rows.numel() == b
-        x, adapter_state, hat_aux = self.adapter(payload if full else payload[rows],
-            state.contextualizer if full else tuple(s[rows] for s in state.contextualizer))
-        evidence = torch.stack([block.router.pilot(x) for block in self.core.blocks], -2)
+        if prepared is None:
+            x, adapter_state, hat_aux = self.adapter(payload if full else payload[rows],
+                state.contextualizer if full else tuple(s[rows] for s in state.contextualizer))
+            evidence = torch.stack([block.router.pilot(x) for block in self.core.blocks], -2)
+        else:
+            x, adapter_state, hat_aux, evidence = prepared
         prior, lace = self.core.lace(evidence + (routing_context[:, None] if full else routing_context[rows, None]), x, utility_bias=lace_bias)
         execute = self.core.execute_node if enabled() else self.core.execute
         result = execute(x, prior, state.blocks if full else tuple(s[rows] for s in state.blocks), backend='step',

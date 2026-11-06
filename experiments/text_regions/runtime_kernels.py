@@ -3,6 +3,7 @@ from typing import Optional, Tuple
 import torch
 from torch import Tensor
 from torch.nn import functional as F
+from .runtime_autograd import kron_step, recurrence_forward
 
 
 @torch.jit.script
@@ -22,8 +23,54 @@ def direction(x: Tensor, safe_zero: bool) -> Tensor:
     return value
 
 
-@torch.jit.script
 def event(x: Tensor, projection: Tensor, forget_weight: Tensor, decay: Tensor,
+          dt_bias: Tensor, norm_weight: Tensor, gate_bias: Tensor, output: Tensor,
+          state: Optional[Tensor], heads: int, key: int, value: int,
+          safe_zero: bool) -> Tuple[Tensor, Tensor]:
+    packed = F.linear(x, projection)
+    forget = packed[..., heads*(2*key+value)+2*heads:heads*(2*key+value)+2*heads+value]
+    acc = torch.float64 if x.dtype == torch.float64 else torch.float32
+    f = F.linear(forget, forget_weight).to(acc)+dt_bias.to(acc)
+    z, final = projected_event(packed, f, decay[None], norm_weight.to(acc), gate_bias,
+                               state, heads, key, value, safe_zero)
+    return F.linear(z, output), final
+
+
+def projected_event(packed: Tensor, f: Tensor, decay: Tensor, norm_weight: Tensor,
+                    gate_bias: Tensor, state: Optional[Tensor], heads: int, key: int,
+                    value: int, safe_zero: bool) -> Tuple[Tensor, Tensor]:
+    b = packed.shape[0]
+    qkv, erase, write, forget, gate = packed.split(
+        [heads*(2*key+value), heads, heads, value, heads*value], -1)
+    if key == value:
+        q, k, v = direction(F.silu(qkv).reshape(b, 3, heads, key), safe_zero).unbind(1)
+    else:
+        q0, k0, v0 = F.silu(qkv).split([heads*key, heads*key, heads*value], -1)
+        q = direction(q0.reshape(b, heads, key), safe_zero)
+        k = direction(k0.reshape(b, heads, key), safe_zero)
+        v = direction(v0.reshape(b, heads, value), safe_zero)
+    acc = torch.float64 if packed.dtype == torch.float64 else torch.float32
+    g = -decay[:, :, None]*F.softplus(f).reshape(b, heads, key)
+    q, k, v = q.to(acc), k.to(acc), v.to(acc)
+    previous = q.new_zeros((b, heads, key, value)) if state is None else state.to(acc)
+    beta, writing = erase.sigmoid().to(acc).squeeze(1), write.to(acc).sigmoid().squeeze(1)
+    if torch.is_grad_enabled():
+        out, final = kron_step(q, k, v, g, beta, writing, previous)
+    else:
+        out, final, _, _, _, _, _, _ = recurrence_forward(q, k, v, g, beta, writing, previous)
+    z = out.to(packed.dtype).unsqueeze(1).to(acc)
+    z = z*torch.rsqrt(z.square().mean(-1, keepdim=True)+1e-5)*norm_weight.to(acc)
+    z = z*(gate+gate_bias).reshape(b, 1, heads, value).sigmoid()
+    return z.reshape(b, 1, heads*value).to(packed.dtype), final
+
+
+projected_event = torch.jit.script(projected_event)
+event = torch.jit.script(event)
+
+
+# Flat scripted inference avoids the training autograd boundary and dispatch.
+@torch.jit.script
+def inference_event(x: Tensor, projection: Tensor, forget_weight: Tensor, decay: Tensor,
           dt_bias: Tensor, norm_weight: Tensor, gate_bias: Tensor, output: Tensor,
           state: Optional[Tensor], heads: int, key: int, value: int,
           safe_zero: bool) -> Tuple[Tensor, Tensor]:

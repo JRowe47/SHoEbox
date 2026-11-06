@@ -1,0 +1,54 @@
+{
+  "baseline_commit": "bd0842e524401514b4dd7b7971a57677f27fba33",
+  "unique_tests": 433,
+  "initial_full_suite": {
+    "tests": 432,
+    "passed": 430,
+    "failures": [
+      "test_11_occurrences_count_once_and_every_round_runs_every_pipeline (experiments.text_regions.verify.RegionChecks.test_11_occurrences_count_once_and_every_round_runs_every_pipeline)",
+      "test_26_carried_state_does_not_retain_the_input_window_storage (experiments.text_regions.verify.RegionChecks.test_26_carried_state_does_not_retain_the_input_window_storage)"
+    ]
+  },
+  "final_integration": {
+    "tests": 59,
+    "passed": 59,
+    "modules": [
+      "verify",
+      "test_joint_text",
+      "test_gradient_balance",
+      "test_runtime",
+      "test_runtime_fusion"
+    ]
+  },
+  "final_runtime": {
+    "tests": 19,
+    "passed": 19
+  },
+  "portable_fallback": {
+    "tests": 7,
+    "passed": 7
+  },
+  "all_failures_resolved": true,
+  "new_expert_derivative_test_added_after_initial_suite": true,
+  "repairs": [
+    "Preserve adapter hooks by using the individual path for hooked adapters.",
+    "Clone each carried contextualizer state to own only its node storage."
+  ],
+  "logs": {
+    "full_suite_initial.txt": {
+      "sha256": "cb607320fb37a7db8241ec114ad598829d77cf1e5f0c45a94281864507ca9355"
+    },
+    "integration_checks.txt": {
+      "sha256": "cbe38aefb7b0fcbefc53c40dc9abfe7fddf8c9403c6e730d32140bf2d4ef3c4d"
+    },
+    "runtime_checks.txt": {
+      "sha256": "f5574e819594c9e1f10483b41c9b159682956b5a30cf810a820466e9ed079594"
+    },
+    "fallback_checks.txt": {
+      "sha256": "6e70b7b4eaf1d6d934aee8883c527920ee9fd223de068f460d715c3ccb605435"
+    }
+  },
+  "precision": "FP64 whole-graph and independent finite-difference checks; FP32 drift bounded against an FP64 reference. Discrete routes are exact in tested equivalence cases.",
+  "optimizer": "Dense gradients preserve absent-bank None, AdamW moments and weight decay; functional gradients, repeated selections and retained backwards are tested.",
+  "reproduction": "python scripts/check_all.py"
+}

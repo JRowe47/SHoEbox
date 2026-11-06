@@ -20,14 +20,30 @@ def norm(values):
 
 
 def statistics(left, right):
-    a, b = norm(left), norm(right)
-    dot = sum(float((x.double()*y.double()).sum()) for x, y in zip(left, right)
-              if x is not None and y is not None)
+    return aggregate_statistics(gradient_moments(left, right), range(len(left)))
+
+
+def gradient_moments(left, right):
+    """One FP64 reduction per parameter, reused by every reporting partition."""
+    result = []
+    for x, y in zip(left, right):
+        x = x.double() if x is not None else None
+        y = y.double() if y is not None else None
+        result.append((float(x.square().sum()) if x is not None else 0.,
+                       float(y.square().sum()) if y is not None else 0.,
+                       float((x*y).sum()) if x is not None and y is not None else 0.))
+    return result
+
+
+def aggregate_statistics(moments, indices):
+    selected = [moments[i] for i in indices]
+    a, b = (math.sqrt(sum(row[j] for row in selected)) for j in (0, 1))
+    dot = sum(row[2] for row in selected)
     return dict(text_norm=a, memory_norm=b, dot=dot,
                 cosine=dot/(a*b) if a and b else None)
 
 
-def combine(parameters, text, memory, groups, mode='sum', cap=1.):
+def combine(parameters, text, memory, groups, mode='sum', cap=1., *, moments=None):
     """Bound each task within each optimizer group, preserving sparse absence.
 
     `sum` is the matched unmodified-objective control. `group_clip` caps each
@@ -47,8 +63,10 @@ def combine(parameters, text, memory, groups, mode='sum', cap=1.):
            for values in (text, memory) for p, v in zip(parameters, values)):
         raise FloatingPointError('Nonfinite or misaligned task gradients.')
     report = {}
+    if moments is None:
+        moments = gradient_moments(text, memory)
     for name, indices in groups.items():
-        row = statistics([text[i] for i in indices], [memory[i] for i in indices])
+        row = aggregate_statistics(moments, indices)
         scales = [min(1., cap/max(row[key], 1e-300)) if mode == 'group_clip' else 1.
                   for key in ('text_norm', 'memory_norm')]
         row.update(text_scale=scales[0], memory_scale=scales[1])
@@ -95,9 +113,10 @@ def update(model, optimizer, chunk, state, batch, tables, reference,
     for name, p in model.named_parameters():
         if p.requires_grad:
             sections.setdefault(subsystem(name), []).append(positions[id(p)])
-    row['subsystems'] = {name: statistics([text[i] for i in ids], [memory[i] for i in ids])
+    moments = gradient_moments(text, memory)
+    row['subsystems'] = {name: aggregate_statistics(moments, ids)
                          for name, ids in sections.items()}
-    row['gradient_groups'] = combine(parameters, text, memory, groups, mode, cap)
+    row['gradient_groups'] = combine(parameters, text, memory, groups, mode, cap, moments=moments)
     row['gradient_norm'] = norm([p.grad for p in parameters])
     # Stable even when FP32 squared norms overflow. Nonfinite inputs were
     # rejected by combine before it wrote any optimizer gradient.

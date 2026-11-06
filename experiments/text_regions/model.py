@@ -4,13 +4,14 @@ import torch
 from torch import nn
 from torch.nn import functional as F
 from ..hat_minkron.events import ByteBatch
-from .runtime import RuntimeHAT as HAT, forward_scope
+from .runtime import RuntimeHAT as HAT, forward_scope, generation_scope, next_event
 from ..hat_minkron.semantic_core import ExpertBank
 from .config import GraphConfig
 from .graph import GraphConnections
 from .node import RecurrentNode, masked_ingress
 from .ports import Publication, SemanticHeader, TensorPorts, publish
 from .state import GraphState
+from .stage_runtime import prepare_stage
 
 
 class RegionLanguageModel(nn.Module):
@@ -19,6 +20,9 @@ class RegionLanguageModel(nn.Module):
         self.set_execution_backend(execution_backend)
         self.cfg = cfg or GraphConfig()
         self.cfg.validate()
+        self._large_expert_banks = max(self.cfg.shared_per_block,
+            self.cfg.experts_per_block-self.cfg.shared_per_block)*self.cfg.width*self.cfg.expert_hidden >= 65536
+        self.batch_independent = self._large_expert_banks
         c = self.cfg.hat_config()
         self.hat = HAT(c, safe_zero=self.cfg.zero_safe_norm)
         self.shared_banks = nn.ModuleList(ExpertBank(c.child_config(), self.cfg.shared_per_block) for _ in range(3))
@@ -170,6 +174,7 @@ class RegionLanguageModel(nn.Module):
         hat_aux = aux
         activations = ingress_activations = executed = 0
         for event_index in range(t):
+            next_event()
             event_publications = {name: {key: [] for key in activity}
                                   for name, activity in publication_activity.items()}
             event_activity = {name: {'payload': [], 'valid': []} for name in round_activity}
@@ -200,6 +205,7 @@ class RegionLanguageModel(nn.Module):
                 delayed = state.ports.snapshot() if feedback else None
                 for stage in self.stages:
                     current, staged, node_states = state.ports.snapshot(), {}, dict(state.nodes)
+                    requests = {}
                     for name in reversed(stage) if reverse_independent else stage:
                         spec = self.specs[name]
                         active = node_masks[name][:, event_index] if name in node_masks else all_active
@@ -213,7 +219,11 @@ class RegionLanguageModel(nn.Module):
                             for dependency in dependencies:
                                 if dependency.edge in edge_indices:
                                     usage[:, event_index, edge_indices[dependency.edge]] += dependency.consumed.long()
-                        result = self.nodes[name](payload, context, state.nodes[name], active, trace, lace_bias.get(name))
+                        requests[name] = (payload, context, state.nodes[name], active, dependencies)
+                    prepared = prepare_stage(self, requests)
+                    for name, (payload, context, node_state, active, dependencies) in requests.items():
+                        spec = self.specs[name]
+                        result = self.nodes[name](payload, context, node_state, active, trace, lace_bias.get(name), prepared.get(name))
                         node_states[name] = result['state']
                         writing = active
                         if name in self.cfg.selective_publication:
@@ -308,6 +318,7 @@ class RegionLanguageModel(nn.Module):
                 'nodes': len(c.nodes), 'regions': len(c.regions), 'byte_vocabulary': 256}
 
     @torch.no_grad()
+    @generation_scope
     def generate(self, prompt, count=100, temperature=.8, seed=123, state=None, reset=None, **kwargs):
         if count < 0 or temperature <= 0:
             raise ValueError('Nonnegative count and positive temperature required.')

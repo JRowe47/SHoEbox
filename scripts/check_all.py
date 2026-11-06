@@ -37,7 +37,8 @@ def main():
                'test_audit_precision', 'test_cohort_diversity', 'test_full_rank_readout', 'test_composition',
                'test_composition_curriculum', 'test_composition_continue', 'test_integrated',
                'test_fact_supervision', 'test_gradient_horizon', 'test_publication', 'test_retained_composition',
-               'test_joint_retained', 'test_multifact', 'test_joint_text', 'test_gradient_balance', 'test_runtime']
+               'test_joint_retained', 'test_multifact', 'test_joint_text', 'test_gradient_balance', 'test_runtime',
+               'test_runtime_fusion']
     result = subprocess.run([sys.executable, '-m', 'unittest', '-v',
                              *['experiments.text_regions.' + name for name in modules]], cwd=ROOT)
     if result.returncode:

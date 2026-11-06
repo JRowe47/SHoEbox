@@ -1,0 +1,696 @@
+{
+  "torch": "2.15.0+cpu",
+  "cpu": "AVX512",
+  "threads": 1,
+  "native_kernel": true,
+  "protocol": {
+    "baseline_root": "/workspace/scratch/ef3d832a7970/SHoEbox_speed",
+    "out": "experiments/text_regions/results/fusion_runtime/measurements.json",
+    "sizes": [
+      "default",
+      "25m"
+    ],
+    "batch": 8,
+    "context": 16,
+    "repeats": 5,
+    "generate": 32,
+    "no_stage_batching": false,
+    "profile": true
+  },
+  "measurements": [
+    {
+      "size": "default",
+      "parameters": {
+        "total_unique_parameters": 2561212,
+        "physical_experts": 1536,
+        "expert_matrix_parameters": 1228800,
+        "logical_experts_per_node": 384,
+        "expert_calls_per_round_per_external_event": 168,
+        "nodes": 7,
+        "regions": 3,
+        "byte_vocabulary": 256
+      },
+      "config": {
+        "nodes": [
+          {
+            "name": "A",
+            "region": "R0",
+            "view": "A"
+          },
+          {
+            "name": "B",
+            "region": "R0",
+            "view": "B"
+          },
+          {
+            "name": "C",
+            "region": "R0",
+            "view": "C"
+          },
+          {
+            "name": "U",
+            "region": "R1",
+            "view": null
+          },
+          {
+            "name": "P",
+            "region": "R1",
+            "view": null
+          },
+          {
+            "name": "V",
+            "region": "R2",
+            "view": null
+          },
+          {
+            "name": "Q",
+            "region": "R2",
+            "view": null
+          }
+        ],
+        "edges": [
+          {
+            "source": "A",
+            "destination": "U",
+            "kind": "forward"
+          },
+          {
+            "source": "B",
+            "destination": "U",
+            "kind": "forward"
+          },
+          {
+            "source": "B",
+            "destination": "V",
+            "kind": "forward"
+          },
+          {
+            "source": "C",
+            "destination": "V",
+            "kind": "forward"
+          },
+          {
+            "source": "A",
+            "destination": "P",
+            "kind": "forward"
+          },
+          {
+            "source": "U",
+            "destination": "P",
+            "kind": "forward"
+          },
+          {
+            "source": "V",
+            "destination": "Q",
+            "kind": "forward"
+          },
+          {
+            "source": "C",
+            "destination": "Q",
+            "kind": "forward"
+          },
+          {
+            "source": "P",
+            "destination": "Q",
+            "kind": "lateral"
+          },
+          {
+            "source": "Q",
+            "destination": "P",
+            "kind": "lateral"
+          },
+          {
+            "source": "P",
+            "destination": "U",
+            "kind": "descending"
+          },
+          {
+            "source": "P",
+            "destination": "A",
+            "kind": "descending"
+          },
+          {
+            "source": "P",
+            "destination": "B",
+            "kind": "descending"
+          },
+          {
+            "source": "Q",
+            "destination": "V",
+            "kind": "descending"
+          },
+          {
+            "source": "Q",
+            "destination": "B",
+            "kind": "descending"
+          },
+          {
+            "source": "Q",
+            "destination": "C",
+            "kind": "descending"
+          }
+        ],
+        "readout": [
+          "P",
+          "Q"
+        ],
+        "readout_mode": "mixed",
+        "width": 100,
+        "experts_per_block": 128,
+        "shared_per_block": 64,
+        "expert_hidden": 4,
+        "groups": 16,
+        "active_groups": 2,
+        "experts_per_group": 4,
+        "address_dim": 16,
+        "laces": 64,
+        "active_laces": 2,
+        "hat_levels": 2,
+        "hat_symbols": 64,
+        "hat_active_symbols": 2,
+        "kron_heads": 4,
+        "kron_key": 8,
+        "kron_value": 8,
+        "rounds": 2,
+        "recurrent_feedback": true,
+        "feedback_gate_init": 0.05,
+        "zero_safe_norm": true,
+        "evidence_gated_ports": false,
+        "selective_publication": [],
+        "independent_sources": [],
+        "context": 128,
+        "auxiliary_loss_weight": 0.01,
+        "hat_balance_weight": 0.001,
+        "seed": 20261104
+      },
+      "workloads": {
+        "train": {
+          "seconds": {
+            "previous": [
+              4.07888978200026,
+              3.6509534300002997,
+              3.56956178099972,
+              3.149019971000598,
+              3.163903560998733
+            ],
+            "current": [
+              3.7842926129997068,
+              3.9717182610002055,
+              3.746111901000404,
+              3.2465508989989758,
+              3.4107472369996685
+            ]
+          },
+          "speedup": 0.952871103515745,
+          "max_output_error": 8.724629878997803e-06,
+          "output_rms_error": 1.0975264722546424e-06,
+          "gradient_errors_largest": [
+            [
+              0.00032339645747994427,
+              "connections.edges.A__U__forward.gate.bias",
+              3.4337863326072693e-06
+            ],
+            [
+              0.0002405376122065388,
+              "connections.edges.Q__C__descending.gate.bias",
+              9.997747838497162e-07
+            ],
+            [
+              0.00017071556726469536,
+              "connections.edges.Q__V__descending.gate.bias",
+              3.0582305043935776e-07
+            ],
+            [
+              8.888938548333694e-05,
+              "nodes.A.core.blocks.0.memory.A_log",
+              3.6836565986795274e-08
+            ],
+            [
+              8.806000383280413e-05,
+              "nodes.B.core.blocks.2.memory.A_log",
+              1.1099273947359018e-07
+            ],
+            [
+              8.73800353303381e-05,
+              "nodes.B.adapter.levels.1.memory.A_log",
+              6.364429849879123e-07
+            ],
+            [
+              8.402656260919182e-05,
+              "hat.levels.1.norm.bias",
+              0.0005140974091623655
+            ],
+            [
+              8.07341472496823e-05,
+              "hat.levels.0.values",
+              0.006805036516496141
+            ],
+            [
+              8.063318011125806e-05,
+              "hat.levels.1.memory.projection.weight",
+              0.008001587240483127
+            ],
+            [
+              8.041030163731137e-05,
+              "hat.levels.1.norm.weight",
+              0.0004420753810308212
+            ]
+          ],
+          "gradient_absence_mismatches": []
+        },
+        "inference": {
+          "seconds": {
+            "previous": [
+              1.1885777260013128,
+              1.0014014259995747,
+              1.0310762770004658,
+              1.0339902120012994,
+              1.0554945330004557
+            ],
+            "current": [
+              1.2056484120003006,
+              1.1207293719999143,
+              1.0260733619998064,
+              0.9837819430013042,
+              1.072611264000443
+            ]
+          },
+          "speedup": 0.9639934305229078,
+          "max_output_error": 8.724629878997803e-06,
+          "output_rms_error": 1.0975264722546424e-06
+        },
+        "generation": {
+          "seconds": {
+            "previous": [
+              2.099880100999144,
+              2.0410781409991614,
+              1.848924727000849,
+              1.7811998010001844,
+              1.7633193679994292
+            ],
+            "current": [
+              1.9717444030011393,
+              2.164868474999821,
+              1.7933197010006552,
+              1.8450131570007215,
+              1.9917680819999077
+            ]
+          },
+          "speedup": 0.9377101434580721,
+          "max_output_error": 0.0,
+          "output_rms_error": 0.0
+        }
+      },
+      "backward_allocations": {
+        "previous": {
+          "aten::index_select_backward": {
+            "calls": 252,
+            "allocated_bytes": 17472000
+          },
+          "expert_dense_bank_buffers": {
+            "calls": 168,
+            "allocated_bytes": 17203200
+          }
+        },
+        "current": {
+          "aten::index_select_backward": {
+            "calls": 252,
+            "allocated_bytes": 17472000
+          },
+          "expert_dense_bank_buffers": {
+            "calls": 168,
+            "allocated_bytes": 17203200
+          }
+        }
+      }
+    },
+    {
+      "size": "25m",
+      "parameters": {
+        "total_unique_parameters": 24912484,
+        "physical_experts": 20736,
+        "expert_matrix_parameters": 21233664,
+        "logical_experts_per_node": 2592,
+        "expert_calls_per_round_per_external_event": 132,
+        "nodes": 11,
+        "regions": 4,
+        "byte_vocabulary": 256
+      },
+      "config": {
+        "nodes": [
+          {
+            "name": "A",
+            "region": "R0",
+            "view": "A"
+          },
+          {
+            "name": "B",
+            "region": "R0",
+            "view": "B"
+          },
+          {
+            "name": "C",
+            "region": "R0",
+            "view": "C"
+          },
+          {
+            "name": "U",
+            "region": "R1",
+            "view": null
+          },
+          {
+            "name": "P",
+            "region": "R1",
+            "view": null
+          },
+          {
+            "name": "V",
+            "region": "R2",
+            "view": null
+          },
+          {
+            "name": "Q",
+            "region": "R2",
+            "view": null
+          },
+          {
+            "name": "F",
+            "region": "memory",
+            "view": "F"
+          },
+          {
+            "name": "L",
+            "region": "memory",
+            "view": "L"
+          },
+          {
+            "name": "G",
+            "region": "memory",
+            "view": "G"
+          },
+          {
+            "name": "R",
+            "region": "memory",
+            "view": "R"
+          }
+        ],
+        "edges": [
+          {
+            "source": "A",
+            "destination": "U",
+            "kind": "forward"
+          },
+          {
+            "source": "B",
+            "destination": "U",
+            "kind": "forward"
+          },
+          {
+            "source": "B",
+            "destination": "V",
+            "kind": "forward"
+          },
+          {
+            "source": "C",
+            "destination": "V",
+            "kind": "forward"
+          },
+          {
+            "source": "A",
+            "destination": "P",
+            "kind": "forward"
+          },
+          {
+            "source": "U",
+            "destination": "P",
+            "kind": "forward"
+          },
+          {
+            "source": "V",
+            "destination": "Q",
+            "kind": "forward"
+          },
+          {
+            "source": "C",
+            "destination": "Q",
+            "kind": "forward"
+          },
+          {
+            "source": "P",
+            "destination": "Q",
+            "kind": "lateral"
+          },
+          {
+            "source": "Q",
+            "destination": "P",
+            "kind": "lateral"
+          },
+          {
+            "source": "P",
+            "destination": "U",
+            "kind": "descending"
+          },
+          {
+            "source": "P",
+            "destination": "A",
+            "kind": "descending"
+          },
+          {
+            "source": "P",
+            "destination": "B",
+            "kind": "descending"
+          },
+          {
+            "source": "Q",
+            "destination": "V",
+            "kind": "descending"
+          },
+          {
+            "source": "Q",
+            "destination": "B",
+            "kind": "descending"
+          },
+          {
+            "source": "Q",
+            "destination": "C",
+            "kind": "descending"
+          },
+          {
+            "source": "F",
+            "destination": "A",
+            "kind": "forward"
+          },
+          {
+            "source": "L",
+            "destination": "A",
+            "kind": "forward"
+          },
+          {
+            "source": "G",
+            "destination": "A",
+            "kind": "forward"
+          },
+          {
+            "source": "R",
+            "destination": "A",
+            "kind": "forward"
+          }
+        ],
+        "readout": [
+          "P",
+          "Q"
+        ],
+        "readout_mode": "concat",
+        "width": 128,
+        "experts_per_block": 864,
+        "shared_per_block": 432,
+        "expert_hidden": 4,
+        "groups": 16,
+        "active_groups": 2,
+        "experts_per_group": 2,
+        "address_dim": 16,
+        "laces": 64,
+        "active_laces": 2,
+        "hat_levels": 2,
+        "hat_symbols": 64,
+        "hat_active_symbols": 2,
+        "kron_heads": 4,
+        "kron_key": 8,
+        "kron_value": 8,
+        "rounds": 2,
+        "recurrent_feedback": true,
+        "feedback_gate_init": 0.1,
+        "zero_safe_norm": true,
+        "evidence_gated_ports": true,
+        "selective_publication": [
+          "F",
+          "L",
+          "G",
+          "R"
+        ],
+        "independent_sources": [
+          "F",
+          "L",
+          "G",
+          "R"
+        ],
+        "context": 16,
+        "auxiliary_loss_weight": 0.01,
+        "hat_balance_weight": 0.001,
+        "seed": 20261221
+      },
+      "workloads": {
+        "train": {
+          "seconds": {
+            "previous": [
+              4.758258640998974,
+              4.031198351000057,
+              4.155774103999647,
+              4.14344993099985,
+              4.849471270999857
+            ],
+            "current": [
+              4.077773375000106,
+              4.974855542001023,
+              4.276786533000632,
+              4.598542715000804,
+              3.514683071000036
+            ]
+          },
+          "speedup": 0.9717048236877792,
+          "max_output_error": 3.2708048820495605e-05,
+          "output_rms_error": 3.8678576399933156e-06,
+          "gradient_errors_largest": [
+            [
+              0.0016505554993241289,
+              "connections.edges.Q__P__lateral.gate.bias",
+              3.3373944461345673e-06
+            ],
+            [
+              0.0006333503851769318,
+              "connections.edges.Q__B__descending.gate.bias",
+              3.6903657019138336e-06
+            ],
+            [
+              0.00042200163094542316,
+              "nodes.B.core.blocks.2.norm1.bias",
+              5.0413337420372946e-05
+            ],
+            [
+              0.00039031512181669873,
+              "nodes.V.core.blocks.0.memory.A_log",
+              1.8042244838217114e-07
+            ],
+            [
+              0.0003677684377953097,
+              "nodes.B.adapter.levels.0.values",
+              0.005260308320723622
+            ],
+            [
+              0.0003624348444917683,
+              "nodes.B.adapter.levels.1.memory.projection.weight",
+              0.005390199017957447
+            ],
+            [
+              0.0003525140737775379,
+              "nodes.C.core.blocks.2.experts.private.up",
+              0.00017615220739878375
+            ],
+            [
+              0.00034230583572752104,
+              "nodes.B.core.blocks.2.norm1.weight",
+              4.615699931459878e-05
+            ],
+            [
+              0.0003316279413335596,
+              "nodes.B.core.blocks.2.memory.projection.weight",
+              0.0009613205664906069
+            ],
+            [
+              0.000331237314858599,
+              "nodes.B.adapter.levels.0.keys",
+              7.370823461912696e-05
+            ]
+          ],
+          "gradient_absence_mismatches": []
+        },
+        "inference": {
+          "seconds": {
+            "previous": [
+              1.315100080000775,
+              1.3952757349998137,
+              1.2933738560004713,
+              1.1129172460005066,
+              1.0884829850001552
+            ],
+            "current": [
+              1.284369141998468,
+              1.443811856001048,
+              1.3451889429998118,
+              1.2927288339997176,
+              1.386769179998737
+            ]
+          },
+          "speedup": 0.9614811827966774,
+          "max_output_error": 3.2708048820495605e-05,
+          "output_rms_error": 3.8678576399933156e-06
+        },
+        "generation": {
+          "seconds": {
+            "previous": [
+              2.4637206099996547,
+              2.482283073000872,
+              2.4965627279998444,
+              2.8358204290016147,
+              2.5585310429996753
+            ],
+            "current": [
+              2.083948424000482,
+              2.2569913839997753,
+              2.4560596299997997,
+              2.899559387999034,
+              2.3553382240006613
+            ]
+          },
+          "speedup": 1.059959330919067,
+          "max_output_error": 0.0,
+          "output_rms_error": 0.0
+        }
+      },
+      "backward_allocations": {
+        "previous": {
+          "aten::index_select_backward": {
+            "calls": 252,
+            "allocated_bytes": 148979712
+          },
+          "expert_dense_bank_buffers": {
+            "calls": 168,
+            "allocated_bytes": 148635648
+          }
+        },
+        "current": {
+          "aten::index_select_backward": {
+            "calls": 84,
+            "allocated_bytes": 344064
+          },
+          "autograd::engine::evaluate_function: DenseBankGradientBackward": {
+            "calls": 48,
+            "allocated_bytes": 37027152
+          },
+          "DenseBankGradientBackward": {
+            "calls": 48,
+            "allocated_bytes": 37027152
+          },
+          "shoebox_kron_310f5088d75ce30c::dense_rows": {
+            "calls": 48,
+            "allocated_bytes": 42467328
+          },
+          "expert_dense_bank_buffers": {
+            "calls": 48,
+            "allocated_bytes": 42467328
+          }
+        }
+      }
+    }
+  ]
+}

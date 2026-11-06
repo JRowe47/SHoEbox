@@ -10,6 +10,7 @@ import torch
 from .multifact_data import OWNERS
 from .retained_composition import empty_inputs, masks
 from .state import GraphState
+from .runtime import generation_scope
 
 
 def forward(model, values, targets=None, state=None, reset=None, rounds=2, feedback=True):
@@ -62,6 +63,7 @@ def start(model,prompt,seed=123,temperature=.8,rounds=2,state=None):
 
 
 @torch.no_grad()
+@generation_scope
 def generate(model,session,count):
     if not isinstance(count,int) or count<0:raise ValueError('Nonnegative integer count required.')
     rng=torch.Generator();rng.set_state(session.rng_state)
