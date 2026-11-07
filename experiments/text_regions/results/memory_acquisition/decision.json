@@ -1,0 +1,60 @@
+{
+  "stage": "16-update learning-rate screen",
+  "selected": "lr003",
+  "criterion": "Minimum validation balanced acquisition NLL",
+  "screen": {
+    "lr001": {
+      "acquisition": {
+        "cases": 16,
+        "targets": 64,
+        "accuracy": 0.328125,
+        "nll": 1.4582430012524128,
+        "complete_set_accuracy": 0.0,
+        "answer_switch_fraction": 0.375,
+        "value_margin": 0.005604706704616547
+      },
+      "language": {
+        "nll": 3.381419062614441,
+        "targets": 256,
+        "state_bytes": 36644
+      }
+    },
+    "lr003": {
+      "acquisition": {
+        "cases": 16,
+        "targets": 64,
+        "accuracy": 0.25,
+        "nll": 1.4117679949849844,
+        "complete_set_accuracy": 0.0,
+        "answer_switch_fraction": 0.4375,
+        "value_margin": 0.008240945637226105
+      },
+      "language": {
+        "nll": 3.544083833694458,
+        "targets": 256,
+        "state_bytes": 36772
+      }
+    }
+  },
+  "continuation_updates": 96,
+  "test_used": false,
+  "retention_branch": {
+    "parent_update": 48,
+    "validation_accuracy": 0.578125,
+    "updates": 48,
+    "gaps": [
+      0,
+      4,
+      8,
+      16,
+      32
+    ],
+    "source_cursors": "carried",
+    "test_used": false
+  },
+  "memory_only_stop": {
+    "updates": 32,
+    "reason": "No validation advantage over the joint run; natural-language loss rose sharply",
+    "test_used": false
+  }
+}

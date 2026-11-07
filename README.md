@@ -78,6 +78,19 @@ P and Q feed the shared byte readout. B has one state owner and publishes to bot
 
 ## Development status
 
+The [balanced memory experiments](docs/memory_acquisition.md) break the
+constant-answer acquisition failure: held-out immediate four-value recall
+reaches **97.7% versus 25.0%**. A separate retention continuation maintains
+**75.0% through 64 added natural-text bytes and 68.0% through 128**, after
+training with at most 32 added bytes. Its remaining consistent confusion is
+stored 1 versus answer 0. Both main lineages complete 96 optimizer updates
+with the same 1,536 answer targets; architecture and trainable capacity are
+unchanged. Later exact and correction queries improve on the ordinary task,
+while competing-write long-delay recall and semantic/context answers remain
+the next memory-learning targets. See the [audited results](experiments/text_regions/results/memory_acquisition/summary.json)
+and [handoff](STATUS.md). GPU preparation and broader acceptance/scaling work
+are deferred during this memory-focused phase.
+
 The [connected recall continuation](docs/SHoEbox_Connected_Recall_Report.md)
 completes 16 matched shared-stream updates per arm. Connected source coverage
 rises from 22.0% to 71.8%, while balanced immediate four-value recall remains

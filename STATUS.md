@@ -1,6 +1,52 @@
 # SHoEbox handoff
 
-## Latest: connected recall continuation and bounded activation memory
+## Latest: balanced memory acquisition and retention
+
+Memory-only development focus; GPU preparation, broader integrated acceptance
+and scaling are deferred at the user's request.
+
+The unchanged 312,440-parameter graph learns source-conditioned values after
+dense balanced acquisition training. Held-out immediate recall rises from
+25.0% to 97.7% (125/128), with 29/32 complete four-value sets. All parameters
+remain trainable; no answer labels, owner hints, forced writes or replay enter
+inference. Learning rate 0.003 wins the 16-update validation screen over 0.001.
+The acquisition continuation completes 96 updates from connected recall's
+selected update-16 parent.
+
+A retention branch starts at acquisition update 48 and carries its weights,
+AdamW moments, language state/cursor, RNG and next document index. It trains
+48 further updates with 0/4/8/16/32 added natural-text bytes. Both lineages have
+96 updates, 1,536 answer targets and 12,288 natural-source bytes; retention
+adds 8,832 distractor bytes. Their validation selections are their final weights.
+
+Retention scores 75.0% with 0/8/24/64 added bytes and 68.0% with 128. The base
+source-to-query delay is 8 bytes. Through the 64-byte insertion, values 0/2/3
+are correct and stored 1 consistently produces 0; no complete four-value sets
+pass. Acquisition-only scores 24.2/19.5/16.4/15.6% at +8/+24/+64/+128.
+
+On the ordinary full task, later exact queries improve from 28.2% to 49.4%
+and corrected exact queries from 26.2% to 57.4% in both continuations. The harder
+long-delay stream with competing writes remains weak: retention's later exact
+accuracy is 29.6% on 81 queries. Semantic/context answers weaken under focused
+exact-value supervision. Held-out natural NLL is 3.109 before, 3.126 after
+acquisition and 3.505 after retention. The 32-update memory-only diagnostic
+does not beat the joint run on validation and sharply worsens language loss.
+
+Four data-integrity checks pass. The first retention update with gap zero
+exactly matches uninterrupted acquisition update 49 in weights, optimizer,
+language state/cursor, RNG and document index. All training budgets and selected
+checkpoints reconstruct from saved evidence; all final weights are finite.
+
+Next memory experiment: begin retention from the fully acquired update-96
+checkpoint, resolve the 1-to-0 confusion, then train relevance among competing
+facts and corrections. Preserve the broader controls; add no deliberately
+higher-order curriculum. The current gap branch began before acquisition had
+fully separated the four values.
+
+[Protocol and results](docs/memory_acquisition.md) |
+[Audited summary](experiments/text_regions/results/memory_acquisition/summary.json).
+
+## Completed: connected recall continuation and bounded activation memory
 
 Both matched arms finish 16 paired-source updates from the selected update-32
 state-credit parent: 8,192 natural bytes and 8,192 task bytes, with 374 answer
