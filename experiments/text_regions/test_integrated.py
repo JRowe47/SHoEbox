@@ -7,6 +7,7 @@ import hashlib
 import json
 from pathlib import Path
 import tempfile
+from types import SimpleNamespace
 import unittest
 from unittest.mock import patch
 
@@ -15,7 +16,7 @@ import torch
 from .composition_train import build_model
 from .config import GraphConfig
 from .integrated_eval import evaluate_views, selection_key
-from .integrated_train import main, stream_loss
+from .integrated_train import main, stream_loss, joint_update
 from . import test_composition_continue as continuation_tests
 from .test_probe import assert_tree_equal
 from .view_data import make_view_batch
@@ -147,6 +148,43 @@ class BalancedIntegrationChecks(unittest.TestCase):
             self.assertTrue(all(records[1][0][name+'_gradient_norm'] > 0
                                 for name in ('composition', 'correction', 'views')))
 
+    def test_long_view_stream_preserves_reference_values_and_gradients(self):
+        from .integrated_train import make_streams
+        from .composition_train import load_checkpoint
+        with tempfile.TemporaryDirectory() as d:
+            parent, _, protocol = self.fixture(Path(d))
+            chunk = make_streams(protocol)['views'].next_chunk(protocol['segment'])
+            for dtype in (torch.float32, torch.float64):
+                with self.subTest(dtype=dtype):
+                    snapshots = []
+                    for backend in ('reference', 'optimized'):
+                        model, _, _, _ = load_checkpoint(parent)
+                        model.to(dtype).set_execution_backend(backend)
+                        loss, result = stream_loss(model, chunk, None)
+                        loss.backward()
+                        snapshots.append((float(loss.detach()), result['logits'].detach(),
+                            result['state'].detach().to_dict(),
+                            {name: None if p.grad is None else p.grad.detach().double().clone()
+                             for name, p in model.named_parameters()}))
+                    reference, actual = snapshots
+                    self.assertEqual(reference[0], actual[0])
+                    torch.testing.assert_close(reference[1], actual[1], rtol=0, atol=0)
+                    assert_tree_equal(self, reference[2], actual[2])
+                    self.assertEqual(reference[3].keys(), actual[3].keys())
+                    error2 = norm2 = 0.
+                    for name, expected in reference[3].items():
+                        gradient = actual[3][name]
+                        if expected is None:
+                            self.assertIsNone(gradient, name)
+                            continue
+                        self.assertIsNotNone(gradient, name)
+                        self.assertTrue(bool(torch.isfinite(expected).all()), name)
+                        self.assertTrue(bool(torch.isfinite(gradient).all()), name)
+                        error2 += float((gradient-expected).square().sum())
+                        norm2 += float(expected.square().sum())
+                    limit = 1e-10 if dtype == torch.float64 else 5e-6
+                    self.assertLessEqual((error2/max(norm2, 1e-30))**.5, limit)
+
     def test_balanced_cli_resume_preserves_weights_moments_rng_and_both_streams(self):
         from scripts.train_integrated_balanced import main as balanced_main
         def run(parent, protocol, out, extra=()):
@@ -170,6 +208,65 @@ class BalancedIntegrationChecks(unittest.TestCase):
             old = torch.load(parent, weights_only=True)
             for key in ('weights', 'optimizer', 'rng', 'torch_rng'):
                 assert_tree_equal(self, old[key], initial[key])
+
+
+class JointGradientClippingChecks(unittest.TestCase):
+    @contextlib.contextmanager
+    def update_with_gradient(self, gradient):
+        # Isolate the final joint clip from expensive data/model execution.
+        # Inject after a finite loss backward so NaN/Inf tests reach the clip.
+        model = torch.nn.Linear(2, 1, bias=False)
+        torch.nn.init.zeros_(model.weight)
+        model.weight.register_hook(lambda _: gradient.reshape_as(model.weight).clone())
+        optimizer = torch.optim.SGD(model.parameters(), lr=.25)
+        batch = SimpleNamespace(size=1, answers=torch.zeros(1, dtype=torch.long))
+        counts = dict(expert_executions=1, source_occurrences=1, external_events=1)
+
+        def loss(*args, **kwargs):
+            value = model.weight.sum()
+            return value, value.detach(), counts, dict(logits=torch.zeros(1, 1, 1), **counts)
+
+        protocol = dict(lr=.25, composition_batch=1, task_weights={'composition': 1.})
+        with patch('experiments.text_regions.integrated_train.training_batch', return_value=batch), \
+             patch('experiments.text_regions.integrated_train.training_loss', side_effect=loss), \
+             patch.object(optimizer, 'step', wraps=optimizer.step) as step:
+            yield lambda: joint_update(model, optimizer, None, {}, {}, protocol), model.weight, step
+
+    def test_joint_clip_handles_finite_fp32_norm_overflow(self):
+        gradient = torch.tensor([3e20, 4e20])
+        self.assertFalse(bool(torch.isfinite(gradient.norm())))
+        with self.update_with_gradient(gradient) as (update, parameter, step):
+            _, row = update()
+            self.assertAlmostEqual(row['gradient_norm']/5e20, 1., places=6)
+            torch.testing.assert_close(parameter.grad, torch.tensor([[.6, .8]]))
+            torch.testing.assert_close(parameter, torch.tensor([[-.15, -.2]]))
+            self.assertLessEqual(float(parameter.grad.double().norm()), 1.000001)
+            step.assert_called_once()
+
+    def test_joint_clip_preserves_ordinary_clipping_exactly(self):
+        for values in ([.03, .04], [3., 4.], [0., 0.]):
+            with self.subTest(values=values):
+                reference = torch.nn.Parameter(torch.zeros(1, 2))
+                reference.grad = torch.tensor([values])
+                norm = torch.nn.utils.clip_grad_norm_([reference], 1., error_if_nonfinite=True)
+                with self.update_with_gradient(torch.tensor(values)) as (update, parameter, step):
+                    _, row = update()
+                    self.assertEqual(row['gradient_norm'], float(norm))
+                    self.assertTrue(torch.equal(parameter.grad, reference.grad))
+                    self.assertTrue(torch.equal(parameter.detach(), -.25*reference.grad))
+                    step.assert_called_once()
+
+    def test_joint_clip_rejects_nonfinite_before_optimizer_step(self):
+        for value in (float('nan'), float('inf'), -float('inf')):
+            with self.subTest(value=value):
+                gradient = torch.tensor([value, 1.])
+                with self.update_with_gradient(gradient) as (update, parameter, step):
+                    with self.assertRaises(RuntimeError):
+                        update()
+                    step.assert_not_called()
+                    self.assertTrue(torch.equal(parameter.detach(), torch.zeros_like(parameter)))
+                    torch.testing.assert_close(parameter.grad, gradient[None],
+                                               equal_nan=True, rtol=0, atol=0)
 
 
 if __name__ == '__main__': unittest.main()

@@ -12,32 +12,9 @@ import torch
 from experiments.text_regions.composition import training_loss
 from experiments.text_regions.composition_data import training_batch
 from experiments.text_regions.composition_train import load_checkpoint, source_hashes
-from experiments.text_regions.integrated_train import make_streams, stream_loss, save_integrated, load_integrated
+from experiments.text_regions.integrated_train import (make_streams, stream_loss, save_integrated,
+                                                        load_integrated, clip_task_gradients)
 from experiments.text_regions.integrated_eval import evaluate_capabilities, selection_key
-
-
-@torch.no_grad()
-def clip_task_gradients(parameters, max_norm=1.):
-    """Keep ordinary clipping exact, with FP64 reduction on FP32 overflow.
-
-    Recurrent gradients can be finite while their FP32 sum of squares is not.
-    The fallback changes only the norm reduction, not the gradient direction or
-    cap. NaN/Inf gradients still fail before any gradient is modified.
-    """
-    parameters = list(parameters)
-    try:
-        return torch.nn.utils.clip_grad_norm_(parameters, max_norm, error_if_nonfinite=True)
-    except RuntimeError as error:
-        if 'is non-finite' not in str(error):
-            raise
-        gradients = [p.grad for p in parameters if p.grad is not None]
-        norm = torch.linalg.vector_norm(torch.stack([g.double().norm() for g in gradients]))
-        if not bool(torch.isfinite(norm)):
-            raise
-        coefficient = (max_norm/(norm + 1e-6)).clamp(max=1.)
-        for gradient in gradients:
-            gradient.mul_(coefficient.to(device=gradient.device, dtype=gradient.dtype))
-        return norm
 
 
 def balanced_update(model, optimizer, rng, streams, states, protocol):

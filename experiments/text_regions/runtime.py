@@ -208,8 +208,9 @@ class RuntimeRouter(StreamingRouter):
             return super().forward(x, prior)
         c = self.c
         prototypes = cached(self, 'prototypes', lambda: normalize(self.prototypes))
-        projected = cached(self, 'message_prototypes', lambda: F.linear(prototypes, self.message.weight))
-        query = normalize(self.query(x)+c.lace_gain*(prior@projected))
+        # Preserve multiplication order: reassociation can amplify tiny rounding
+        # differences through long recurrent streams, including in FP64.
+        query = normalize(self.query(x)+c.lace_gain*self.message(prior@prototypes))
         scores = 4*F.linear(query, prototypes)
         message = prior.clamp_min(1e-8).log()
         scores = scores+c.lace_gain*(message-message.mean(-1, keepdim=True))
