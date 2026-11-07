@@ -1,5 +1,27 @@
 # SHoEbox handoff
 
+## Latest: signal and gradient headcheck
+
+The November 7 audit of runtime `9f813f7` and the update-32 state-credit
+checkpoint found live forward modulation and nonzero answer-only gradients in
+all 757 parameter tensors. Global clipping is active: norm 3.807 becomes 1.000.
+Publication gates are unsaturated, and recall/feedback interventions change outputs.
+
+Native immediate acquisition still predicts `1` for every query (8/32 correct).
+Full historical autograd detaches every 16 bytes. Explicit delayed additions
+reach only 45 admission-policy and 20 payload-adapter parameters; older content
+construction remains outside that credit path. A 148-byte observation derivative
+is 0.0131649 with an intact graph and disconnected with 16-byte truncation, with
+identical forward logits. Sixty-three relevant regression checks pass.
+
+Prioritize broader content-level credit and reliable value-conditioned short
+recall before interpreting longer-delay scores. Retain global cap 1.0, existing
+activation normalization, shared language/task learning, and ablatable controls.
+This diagnostic takes priority over the earlier GPU-preparation target below.
+No model or trainer behavior was changed in the audit.
+
+[Audit measurements and reproduction](experiments/text_regions/results/headcheck/README.md)
+
 ## Completed: credit through recurrent producer state
 
 Continues public commit `4d919d1d4e23d6af3fb052987c2fe1cdd0bcad59` and the
