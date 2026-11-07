@@ -78,6 +78,18 @@ P and Q feed the shared byte readout. B has one state owner and publishes to bot
 
 ## Development status
 
+The [producer-state credit pass](docs/SHoEbox_State_Credit_Report.md) carries
+conditional admission gradients through existing contextualizer and expert-block
+MinKron state across gradient boundaries. It adds no trainable parameters or
+inference state. The optional training path passes 571 unique checks, including
+exact conditional-gradient agreement, source isolation and exact resume.
+A matched 32-update continuation produces held-out answer NLL 1.7732 with state
+credit versus 1.7688 with publication-only credit; exact accuracy beyond 96 bytes
+is 32.1% in both arms. The paired fact-change probe shows weak content sensitivity
+and no successful paired answer switches. Keep the feature ablatable for larger
+shared-stream runs. [Protocol](docs/state_credit.md) |
+[metrics](experiments/text_regions/results/state_credit/summary.json).
+
 The [contextual-learning continuation](docs/SHoEbox_Context_Balance_Report.md)
 trains language and memory at identical weights within each optimizer update,
 then combines their gradients. Natural-text distractors now appear between facts

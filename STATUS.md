@@ -1,79 +1,82 @@
 # SHoEbox handoff
 
-## Completed: paired learning through broader context
+## Completed: credit through recurrent producer state
 
-Continues published checkpoint `7f3ce944547d800e133e999046a77d4e029a1851`.
-`ContextBalancedRun` trains one language window and one memory window at identical
-weights before one AdamW step. Each source retains separate runtime state,
-demand, delayed credit and cursor. The optional `group_clip` control bounds each
-source's core/readout/recall/publication gradients before addition; `sum` directly
-adds them. Both receive the common final global clip. All controls remain ablatable.
+Continues public commit `4d919d1d4e23d6af3fb052987c2fe1cdd0bcad59` and the
+context-balance direct-sum checkpoint at update 128.
 
-The procedural stream now supports natural-text distractors alongside updates to
-competing facts. Corpus partitions stay separate. Answers and provenance remain
-outside model inputs. The existing generator is byte-identical without a corpus.
-The inference architecture and 312,440 parameters are unchanged.
+`StateCreditRun` adds a training-only producer-state eligibility trace alongside
+existing publication and payload credit. The local MinKron decay/erase Jacobian
+transports sensitivity to each owner's existing admission weights. Forced
+commits omit gate injection; inactive rows hold; document resets clear traces.
+Epochs and clocks bind traces to their state, and boundary receipts are single-use.
+All 312,440 parameters and the inference graph remain unchanged.
+
+The derivative is conditional on historical module inputs and policy features.
+Historical inter-layer/inter-region and already-detached state-to-publication
+paths remain truncated. Keep the mechanism independently ablatable and marked
+as a potentially threshold-dependent emergent feature. No replay or separate
+higher-order-memory curriculum was added.
 
 ## Completed evidence
 
-Both arms finish 128 paired updates: 16,384 language bytes, 16,384 task-stream
-bytes (including embedded natural text), 727 answer targets and 5,505,024 expert
-executions per arm. Every weight trains. The parent's language cursor continues;
-optimizer/runtime states start fresh. The fixed validation rule selects clipping
-update 96 and sum update 128.
+Both arms finished 32 paired updates: 4,096 natural bytes, 4,096 task-stream
+bytes, 203 answer targets and 1,376,256 expert executions per arm. Every weight
+trains. Both collect the new traces; only state-gradient contraction differs.
+Validation at 0/16/32 selects update 32 in both arms. Final and selected weights
+therefore coincide. The state arm's combined validation score is 2.436000 versus
+2.437005 for publication-only credit.
 
-| Held-out measure | Starting model | Group clipping | Direct sum |
+| Held-out measure | Parent | State credit | Publication only |
 |---|---:|---:|---:|
-| Natural-byte NLL | 3.367160 | 3.092152 | 3.081378 |
-| Answer NLL | 2.057892 | 1.928172 | 1.856024 |
-| Exact NLL beyond 96 bytes | 1.949739 | 1.680759 | 1.632492 |
-| Exact accuracy beyond 96 bytes | 23.47% | 22.45% | 23.47% |
+| Natural-byte NLL | 3.115499 | 3.121512 | 3.124802 |
+| Answer NLL | 1.863883 | 1.773150 | 1.768821 |
+| Exact NLL beyond 96 bytes | 1.609711 | 1.611467 | 1.602640 |
+| Exact accuracy beyond 96 bytes | 32.14% | 32.14% | 32.14% |
 
-The shared held-out protocol uses 2,048 language targets, 288 ordinary answer
-targets and 98 exact targets beyond 96 bytes in the long-delay split. Direct sum
-wins this matched comparison. Clipping stays optional for later scale/ablation.
-Language and answer loss improve, but exact recall stays near the four-value
-baseline. Selected producer reads older than a 16-byte segment remain absent.
-Blocking regional reads worsens answer NLL by 2.2562 for clipping and 0.3714 for
-sum. Other whole-rollout publication/demand/state controls have small effects.
+Testing uses 1,024 natural targets, 144 ordinary answer targets and 56 exact
+long-delay targets beyond 96 bytes. Eight paired observation-change probes
+alter only an earlier relevant value; no checkpoint answers both members of
+any pair correctly. Producer-state swaps have tiny query-time effects. The new
+learning path is verified; this run establishes no recall advantage.
 
-## Verification and recovery
+All 571 unique checks pass: the 568-check regression run and three separately
+completed probe checks. The current check driver includes both. Fixed-input
+FP64 derivative agreement, forced/inactive/reset behavior, disabled-credit
+parity, backend agreement, cleanup, source isolation and exact resume pass.
 
-558 unique checks pass: all 547 preceding checks and the complete 11-test new
-suite. The driver ended during new-suite reporting without its completion marker;
-the whole new suite was rerun separately and passed. The live-output example also
-passed. Initial gradients and validation agree exactly between arms.
-
-Training resumed from completed pairs 119/121 after the execution session was
-interrupted. Optimizer, both source states/cursors, demand, credit and RNG restore
-exactly. The validation schedule stayed fixed. Exposure counts exclude discarded
-partial work. Final evaluation caches each completed measurement and distinguishes
-selected weights from final weights. The archive preserves the recovery record.
+Persistent producer sensitivities add 115,520 bytes per four-stream source.
+The small CPU timing probe costs 1.40x the publication-only forward/backward
+path. Recording currently recomputes coefficients and bypasses stage batching
+for tracked contextualizers. The original ContextBalancedRun has no trace cost.
 
 ## Next development target
 
-Develop useful long-delay retention through the existing regional graph. Prioritize
-exact-answer accuracy and causal sensitivity to retained fact content. Publication
-age is a diagnostic, not a learning target: recent publications can carry older
-recurrent information. Investigate credit across producer-state transitions and
-longer task exposure while maintaining language learning. Keep publication,
-state-hold, demand, payload-credit, recall-role and gradient controls independently
-ablatable; their intended coordination remains potentially threshold-dependent.
+Prepare the integrated implementation for the planned laptop/GPU run. First
+reuse MinKron transition intermediates and preserve batched contextualizers
+while recording state credit; test GPU/device and precision behavior. Keep
+language and task learning shared. Use greater ordinary stream exposure to test
+useful retained content, without adding a special higher-order curriculum or
+optimizing publication age itself. Retain all existing controls for later ablation.
 
-[Report](docs/SHoEbox_Context_Balance_Report.md) |
-[PDF](docs/SHoEbox_Context_Balance_Report.pdf) |
-[protocol](docs/context_balance.md) |
-[metrics](experiments/text_regions/results/context_balance/summary.json).
+For continuing this feature, the archive contains
+`artifacts/state_credit/state/best.pt` and its publication-only comparator.
+A new continuation should advance the task seed; the current runner's fixed
+seed 483 reproduces this completed comparison. Both states/cursors/optimizers
+are also retained for exact recovery of the existing protocol.
+
+[Report](docs/SHoEbox_State_Credit_Report.md) |
+[PDF](docs/SHoEbox_State_Credit_Report.pdf) |
+[protocol](docs/state_credit.md) |
+[metrics](experiments/text_regions/results/state_credit/summary.json).
 
 ## Reproduce
 
 ```bash
-python scripts/run_context_balance.py --parent artifacts/context_balance/parent.pt --parallel
+python scripts/run_state_credit.py --parent artifacts/state_credit/parent.pt --out artifacts/reproduction
+python scripts/run_state_credit_evaluation.py --root artifacts/reproduction
 python scripts/check_all.py
-python scripts/summarize_context_balance.py
-python scripts/report_context_balance.py
 ```
 
-The download includes source, corpus, parent, selected/final checkpoints, full
-optimizer/runtime/credit state, histories, query traces, test logs and hashes.
-To rerun training from the parent, select a new output directory with `--out`.
+The archive includes runnable source, corpus, parent, selected/final checkpoints,
+optimizer/runtime/credit states, complete logs, causal query traces and hashes.
