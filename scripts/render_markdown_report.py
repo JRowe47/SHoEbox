@@ -38,6 +38,7 @@ def render(source, destination, *, title='SHoEbox: shared-answer preservation du
 
     def inline(value):
         value = escape(value)
+        value = re.sub(r'\[([^\]]+)\]\((https?://[^)]+)\)', r'<link href="\2" color="#17654d">\1</link>', value)
         value = re.sub(r'\*\*(.+?)\*\*', r'<b>\1</b>', value)
         value = re.sub(r'`(.+?)`', r'<font name="Courier">\1</font>', value)
         return value

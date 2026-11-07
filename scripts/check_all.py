@@ -40,7 +40,8 @@ def main():
                'test_joint_retained', 'test_multifact', 'test_joint_text', 'test_gradient_balance', 'test_runtime',
                'test_runtime_fusion', 'test_task_stream', 'test_task_credit', 'test_task_integration', 'test_task_retention', 'test_task_competitive_credit',
                'test_task_retention_integration', 'test_task_query_audit',
-               'test_task_initialization', 'test_task_resume_destination', 'test_task_curriculum', 'test_task_payload']
+               'test_task_initialization', 'test_task_resume_destination', 'test_task_curriculum', 'test_task_payload',
+               'test_task_state_commit', 'test_task_state_audit']
     # Reclaim tensor/JIT caches between modules. A combined regional process
     # otherwise retains gigabytes while running the expanding experiment suite.
     for name in modules:

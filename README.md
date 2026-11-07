@@ -78,6 +78,13 @@ P and Q feed the shared byte readout. B has one state owner and publishes to bot
 
 ## Development status
 
+The [selective state-commit pass](docs/SHoEbox_State_Commit_Protocol.md) adds optional
+holds for producer contextualizer and recurrent contents using the existing
+publication decision. Ingress and composer context continue advancing; candidate
+compute and parameter count stay fixed. New query interventions distinguish
+producer contents from publications and use actual state commit ages. The paired
+state/read-source study is in progress; [STATUS.md](STATUS.md) records the handoff.
+
 The [delayed payload-credit update](docs/SHoEbox_Payload_Credit_Report.md) adds an optional identity payload adapter with owner/version-bound historical credit. It adds 16 trainable coefficients and 768 bytes of credit state at batch eight. All 502 checks and GitHub CI pass. Six matched 600-update runs show mixed behavioral results: selected test NLL averages 1.2177 with payload credit versus 1.2079 with gate-only credit, and older-content interventions do not establish a consistent retention gain. The feature stays optional. [PDF report](docs/SHoEbox_Payload_Credit_Report.pdf) | [protocol](docs/SHoEbox_Payload_Credit_Protocol.md) | [metrics](experiments/text_regions/results/task_payload_credit/summary.json) | [handoff](STATUS.md).
 
 The [acquisition-to-retention update](docs/SHoEbox_Acquisition_Report.md) adds a three-stage acquisition curriculum, 64-byte live gradient windows, a matched 16-byte truncation control, source-window coverage accounting, and exact resume across stage changes. The model and its legacy defaults are unchanged. [PDF report](docs/SHoEbox_Acquisition_Report.pdf) | [pilot metrics](experiments/text_regions/results/task_acquisition/pilot_summary.json).

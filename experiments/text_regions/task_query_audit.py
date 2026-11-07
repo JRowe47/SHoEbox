@@ -4,6 +4,7 @@ Snapshots exist only in this evaluator. Labels and event boundaries never enter
 the model. Each fork begins immediately before the first query byte; only the
 intact stream is carried onward. Holding writes isolates the publications that
 were already committed before the query from newly computed query summaries.
+In coupled state-commit mode, forced holds also protect producer contents.
 """
 import argparse
 from dataclasses import asdict, fields, is_dataclass, replace
@@ -101,6 +102,45 @@ def aged_publication_shuffle(state, donors, age_threshold):
                           replaced=replaced, content_changed=changed)
 
 
+def shuffle_producer_content(state, donors, mask):
+    """Exchange owner recurrent contents while preserving every execution clock."""
+    batch, owners = len(state.events_seen), len(state.publications)
+    donors = torch.as_tensor(donors, dtype=torch.long, device=state.events_seen.device)
+    if donors.shape != (batch,) or mask.shape != (batch, owners) or mask.dtype != torch.bool:
+        raise ValueError('Producer donors must be [B] and mask must be bool [B,owners].')
+    def exchange(value):
+        shaped = value.reshape(batch, owners, *value.shape[1:])
+        selected = mask.reshape(batch, owners, *([1] * (value.ndim - 1)))
+        return torch.where(selected, shaped[donors], shaped).reshape_as(value)
+    return replace(state, producer=replace(state.producer,
+        contextualizer=tuple(exchange(x) for x in state.producer.contextualizer),
+        blocks=tuple(exchange(x) for x in state.producer.blocks)))
+
+
+def aged_producer_shuffle(state, donors, age_threshold, state_commit):
+    """Age refers to the producer commit, never an unrelated publication age."""
+    if age_threshold < 0 or state_commit not in ('always', 'publication'):
+        raise ValueError('Nonnegative age and a known state-commit mode are required.')
+    batch, owners = len(state.events_seen), len(state.publications)
+    donors = torch.as_tensor(donors, dtype=torch.long, device=state.events_seen.device)
+    if state_commit == 'publication':
+        existing = torch.stack([p.valid for p in state.publications.values()], 1)
+        occurrence = torch.stack([p.occurrence for p in state.publications.values()], 1)
+        ages = (state.events_seen[:, None] - occurrence) * existing
+    else:
+        existing = state.events_seen.gt(0)[:, None].expand(batch, owners)
+        ages = existing.long()  # Every owner advanced at the preceding event.
+    eligible = existing & (ages > age_threshold)
+    replaced = eligible & existing[donors] & (donors != torch.arange(batch, device=donors.device))[:, None]
+    shuffled = shuffle_producer_content(state, donors, replaced)
+    changed = torch.zeros_like(existing)
+    for old, new in zip((*state.producer.contextualizer, *state.producer.blocks),
+                        (*shuffled.producer.contextualizer, *shuffled.producer.blocks)):
+        changed |= (old != new).flatten(1).any(-1).reshape(batch, owners)
+    return shuffled, dict(existing=existing, ages=ages, age_eligible=eligible,
+                          replaced=replaced, content_changed=changed)
+
+
 def query_trace(state, result, values, blocked=False):
     """Per-byte publication ages refer to the pre-event read snapshot."""
     occurrence = torch.stack([p.occurrence for p in state.publications.values()], 1)
@@ -121,7 +161,8 @@ def query_trace(state, result, values, blocked=False):
                 read_ages=[int(a) if bool(v) else None for a, v in zip(ages[row], actual_valid[row])],
                 read_mass=float(mass[row]), effective_read_mass=0. if blocked else float(mass[row]),
                 weighted_publication_age=float(weighted_age[row]) if mass[row] > 0 else None,
-                write_actions=result['write_actions'][row, t].tolist()))
+                write_actions=result['write_actions'][row, t].tolist(),
+                state_actions=result['state_actions'][row, t].tolist() if 'state_actions' in result else None))
         actions = result['write_actions'][:, t]
         occurrence = torch.where(actions, clock[:, None], occurrence)
         valid = valid | actions
@@ -129,7 +170,8 @@ def query_trace(state, result, values, blocked=False):
 
 
 @torch.no_grad()
-def query_forks(model, values, state, donors=None, include_fresh=False, live_control='intact', age_threshold=None):
+def query_forks(model, values, state, donors=None, include_fresh=False, live_control='intact', age_threshold=None,
+                include_producer=False):
     """Return query predictions and traces from exactly the same pre-query state."""
     if live_control not in ('intact', 'fresh', 'blocked'):
         raise ValueError('Live control must be intact, fresh, or blocked.')
@@ -151,6 +193,14 @@ def query_forks(model, values, state, donors=None, include_fresh=False, live_con
             result = model(values, state=aged, control=live_control)
             outputs['aged_shuffle'] = dict(result=result, age_filter=metadata,
                 trace=query_trace(aged, result, values, live_control == 'blocked'))
+        if include_producer:
+            for name, threshold in (('producer_shuffle', 0), ('aged_producer_shuffle', age_threshold)):
+                if threshold is None:
+                    continue
+                shuffled, metadata = aged_producer_shuffle(state, donors, threshold, model.cfg.state_commit)
+                result = model(values, state=shuffled, control=live_control)
+                outputs[name] = dict(result=result, age_filter=metadata,
+                    trace=query_trace(shuffled, result, values, live_control == 'blocked'))
     # Reconstruct the intact prefix and block the terminal answer event alone.
     prefix_state = state
     prefix_executions = 0
@@ -169,7 +219,7 @@ def query_forks(model, values, state, donors=None, include_fresh=False, live_con
 
 @torch.no_grad()
 def audit(model, data_config, *, data_seed=123, split='test', count=16, include_fresh=False, live_control='intact',
-          age_threshold=16):
+          age_threshold=16, include_producer=False):
     """Audit fresh documents, with query event labels used for evaluation only."""
     if live_control not in ('intact', 'fresh', 'blocked'):
         raise ValueError('Live control must be intact, fresh, or blocked.')
@@ -217,7 +267,8 @@ def audit(model, data_config, *, data_seed=123, split='test', count=16, include_
                              next((j for j in range(i) if items[j][0] != row), None))
                 donors.append(i if other is None else other)
                 donor_valid.append(other is not None)
-            forks = query_forks(model, values, batch_state, donors, include_fresh, live_control, age_threshold)
+            forks = query_forks(model, values, batch_state, donors, include_fresh, live_control, age_threshold,
+                                include_producer)
             query_executions += forks['intact']['result']['expert_executions']
             for i, (row, event) in enumerate(items):
                 q = documents[row].queries[event.query_index]
@@ -280,6 +331,7 @@ def audit(model, data_config, *, data_seed=123, split='test', count=16, include_
                           consumed_read_age=age_mass/total_mass if total_mass else None)
             return scored
         summary = dict(schema=1, split=split, data_seed=data_seed, documents=count,
+            state_commit=model.cfg.state_commit,
             live_control=live_control,
             live_read_source={'intact': 'publication', 'fresh': 'candidate', 'blocked': 'disabled'}[live_control],
             query_count=len(records), groups={name: {branch: score(rows, branch) for branch in
@@ -295,8 +347,28 @@ def audit(model, data_config, *, data_seed=123, split='test', count=16, include_
                 shuffle='Other-document payload/header replaces initial publication content; normal query writes continue.',
                 aged_shuffle='Only existing pre-query cells strictly older than age_threshold receive valid other-document content; metadata is preserved and normal query writes continue.',
                 hold_shuffle='Other-document payload/header with publications held throughout query.',
-                fresh='Current producer candidates replace the publication read; age zero, no stored payload access.'),
-            scope='All forks preserve pre-query ingress/producer/composer recurrence. Hold/shuffle branches retain the trained read control. Publication-hold contrasts isolate pre-query publication access only when live_control is intact; fresh uses current candidates and blocked disables contribution. No branch erases information already present in recurrence.')
+                fresh='Current producer candidates replace read values; memory-aware admission can still consult stored publications.'),
+            scope='All forks preserve pre-query ingress and composer recurrence. Publication shuffles also preserve producer recurrence. Producer shuffles change only producer contents. Normal-write shuffle branches retain the trained read control. In publication state-commit mode, hold-versus-intact changes both publication and producer commits; comparisons within the hold branches share the same state hold. Fresh uses current candidates; blocked disables the read contribution.')
+        if include_producer:
+            summary['interventions'].update(
+                producer_shuffle='Other-document committed producer contents replace recipient contents; publications and all clocks are preserved.',
+                aged_producer_shuffle='Only producer contents strictly older than age_threshold receive other-document committed contents; publications and all clocks are preserved.')
+            def producer_metrics(rows, branch):
+                masks = [r['branches'][branch]['age_filter'] for r in rows]
+                changed = [r for r, mask in zip(rows, masks) if any(mask['content_changed'])]
+                return dict(query_count=len(rows),
+                    **{key + '_slot_count': sum(sum(mask[key]) for mask in masks)
+                       for key in ('existing', 'age_eligible', 'replaced', 'content_changed')},
+                    changed_query_count=len(changed),
+                    changed_queries={name: score(changed, name) for name in ('intact', branch)})
+            for branch, threshold in (('producer_shuffle', 0), ('aged_producer_shuffle', age_threshold)):
+                if threshold is None:
+                    continue
+                summary[branch] = dict(age_threshold=threshold, age_comparison='strictly_greater',
+                    age_source='publication commit' if model.cfg.state_commit == 'publication' else 'preceding event',
+                    count_unit='Owner state at query start; repeated owners across queries count separately.',
+                    changed_content='Exact difference across producer contextualizer and recurrent block contents; excludes clocks.',
+                    groups={name: producer_metrics(rows, branch) for name, rows in groups.items() if rows})
         if age_threshold is not None:
             def age_metrics(rows):
                 masks = [r['branches']['aged_shuffle']['age_filter'] for r in rows]
@@ -343,6 +415,7 @@ def main():
     parser.add_argument('--split', choices=('test', 'long_delay'), default='test')
     parser.add_argument('--threads', type=int, default=1)
     parser.add_argument('--fresh-control', action='store_true', help='Also read current producer candidates during each query.')
+    parser.add_argument('--producer-state', action='store_true', help='Also shuffle committed producer contents and age-filtered producer contents.')
     parser.add_argument('--age-threshold', type=int, help='Old-cell shuffle threshold; defaults to checkpoint training context.')
     args = parser.parse_args()
     torch.set_num_threads(args.threads)
@@ -353,6 +426,7 @@ def main():
     summary, records = audit(model, config, data_seed=saved['args']['data_seed'],
                              split=args.split, count=args.count, include_fresh=args.fresh_control,
                              live_control=training_control(saved['args']['arm']),
+                             include_producer=args.producer_state,
                              age_threshold=args.age_threshold if args.age_threshold is not None else saved['args'].get('context', 16))
     summary.update(checkpoint=str(args.checkpoint), selected_step=saved['step'])
     args.out.mkdir(parents=True, exist_ok=True)

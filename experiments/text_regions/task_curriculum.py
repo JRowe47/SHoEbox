@@ -58,6 +58,8 @@ def window_forward(model, chunk, state, credit, control='intact', truncate_every
                     aux=torch.stack([r['aux'] for r in results]).mean(),
                     state=state,
                     external_events=sum(r['external_events'] for r in results),
+                    producer_candidates=sum(r['producer_candidates'] for r in results),
+                    producer_commits=sum(r['producer_commits'] for r in results),
                     expert_executions=sum(r['expert_executions'] for r in results))
     return combined, credit, boundaries
 

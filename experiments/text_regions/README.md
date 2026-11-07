@@ -2,6 +2,31 @@
 
 This is SHoEbox's event-major reference implementation of the [development specification](../../docs/SHoE_Text_Development_Specification.md). It reuses the baseline's SymbolLevel, RecurrentChild, minKron, lace controller, and split expert banks. No old experiment is copied into this directory.
 
+## Selective producer-state commits
+
+The [state-commit protocol](../../docs/SHoEbox_State_Commit_Protocol.md) tests
+protecting an owner's contextualizer and recurrent block contents whenever its
+publication is held. Shared ingress and composer state keep processing context.
+All candidates still execute; this pass changes state retention, not compute.
+The option adds no parameters and defaults to the existing always-update mode.
+
+```bash
+python scripts/run_state_commit.py --out artifacts/state_commit --workers 4
+python scripts/summarize_state_commit.py --root artifacts/state_commit \
+  --out experiments/text_regions/results/task_state_commit/summary.json
+python -m experiments.text_regions.task_memory_train \
+  --out artifacts/state_example --state-commit publication
+```
+
+The study crosses state holding with stored-publication versus fresh-candidate
+reads. Fresh candidates replace only the read values; memory-aware admission
+still consults publications. Its whole-query audits can shuffle producer contents independently of
+publications (`task_query_audit --producer-state`). An old producer state is
+identified by its actual commit age, rather than an unrelated publication age.
+Forced query holds also protect producer state when this option is enabled.
+Live straight-through gate gradients include the state path; detached credit
+continues to cover the conditional publication path only.
+
 ## Delayed payload credit
 
 The [payload-credit protocol](../../docs/SHoEbox_Payload_Credit_Protocol.md)

@@ -211,7 +211,7 @@ def validate_resume(saved, args, model, data_cfg):
             raise ValueError(f'Resume {name} mismatch.')
     for name, default in (('curriculum', 'none'), ('acquire_steps', 200),
                           ('bridge_steps', 200), ('truncate_every', 0),
-                          ('payload_rank', 0), ('payload_credit', False)):
+                          ('payload_rank', 0), ('payload_credit', False), ('state_commit', 'always')):
         if saved['args'].get(name, default) != getattr(args, name, default):
             raise ValueError(f'Resume {name} mismatch.')
     if args.steps < saved['step']:
@@ -285,6 +285,8 @@ def main():
     p.add_argument('--memory-aware-write', action='store_true')
     p.add_argument('--bootstrap-empty', action='store_true')
     p.add_argument('--payload-rank', type=int, default=0)
+    p.add_argument('--state-commit', choices=('always', 'publication'), default='always',
+                   help='Advance all producer states or only owners committing a publication; candidate compute is unchanged.')
     p.add_argument('--payload-credit', action='store_true',
                    help='Apply version-owned delayed payload-adapter gradients after backward.')
     p.add_argument('--stream-preset', choices=('basic', 'retention'), default='basic')
@@ -327,7 +329,7 @@ def main():
     args.out.mkdir(parents=True, exist_ok=True)
     model = TaskMemoryModel(TaskMemoryConfig(width=args.width, owners=args.owners, write_mode=args.write_mode,
                                             memory_aware_write=args.memory_aware_write, bootstrap_empty=args.bootstrap_empty,
-                                            payload_rank=args.payload_rank))
+                                            payload_rank=args.payload_rank, state_commit=args.state_commit))
     initialization = initialize_weights(model, args.init_from) if args.init_from else None
     data_cfg = TaskStreamConfig() if args.stream_preset == 'basic' else TaskStreamConfig(
         entities='ABCD', queries_per_cycle=4, delays=(2,48), interference=True)
@@ -418,10 +420,11 @@ def main():
         external += result['external_events']; experts += result['expert_executions']
         counts = coverage.count(chunk, args.truncate_every)
         counts.update(updates=1, external_bytes=result['external_events'],
-                      expert_executions=result['expert_executions'])
+                      expert_executions=result['expert_executions'],
+                      producer_candidates=result['producer_candidates'], producer_commits=result['producer_commits'])
         accumulated = stage_totals.setdefault(training_stage, {key: 0 for key in counts})
         for key, value in counts.items():
-            accumulated[key] += value
+            accumulated[key] = accumulated.get(key, 0) + value
         stage_end = training_stage != stage_for_step(step+1, args.curriculum,
                                                      args.acquire_steps, args.bridge_steps)
         if step % args.eval_every == 0 or step == args.steps or stage_end:

@@ -18,6 +18,7 @@ from .ports import Publication, SemanticHeader, publish, map_tensors, plain_dict
 from .state import NodeState
 from .runtime import RuntimeHAT, forward_scope, next_event
 from .task_payload import PayloadAdapter
+from .task_state_commit import commit_producer_state
 
 
 @dataclass(frozen=True)
@@ -45,6 +46,7 @@ class TaskMemoryConfig:
     memory_aware_write: bool = False
     bootstrap_empty: bool = False
     payload_rank: int = 0
+    state_commit: str = 'always'
 
     def to_dict(self):
         return asdict(self)
@@ -55,8 +57,10 @@ class TaskMemoryConfig:
 
     def graph_config(self):
         values = self.to_dict()
-        for key in ('owners', 'policy_features', 'write_mode', 'memory_aware_write', 'bootstrap_empty', 'payload_rank'):
+        for key in ('owners', 'policy_features', 'write_mode', 'memory_aware_write', 'bootstrap_empty', 'payload_rank', 'state_commit'):
             values.pop(key)
+        if self.state_commit not in ('always', 'publication'):
+            raise ValueError('State commit must be always or publication.')
         if not 0 <= self.payload_rank <= self.width:
             raise ValueError('Payload rank must be between zero and payload width.')
         if self.owners < 1 or self.policy_features < 1:
@@ -216,9 +220,10 @@ class TaskMemoryModel(nn.Module):
             raise ValueError('Reset must be bool [B] or [B,T].')
         logits, records = [], {k: [] for k in (
             'read_weights', 'read_versions', 'read_valid', 'read_is_current',
-            'write_probs', 'write_actions', 'write_features',
+            'write_probs', 'write_actions', 'write_features', 'state_actions',
             'memory_before', 'memory_candidates', 'memory_versions', 'memory_valid', 'write_eligible')}
         bootstrap_masks = []
+        state_masks = []
         if c.payload_rank:
             records['payload_features'] = []
         aux = self.write_policy.new_zeros(())
@@ -295,6 +300,13 @@ class TaskMemoryModel(nn.Module):
                 recruited = F.one_hot(first_empty, m).bool()
                 actions = torch.where(bootstrap[:, None], recruited, actions)
             eligible = torch.full_like(actions, write_override is None) & ~bootstrap[:, None]
+            producer_state = producer['state']
+            state_actions = torch.ones_like(actions)
+            if c.state_commit == 'publication':
+                state_actions = actions
+                producer_state = commit_producer_state(state.producer, producer_state, actions,
+                    probabilities if write_override is None and torch.is_grad_enabled() else None, eligible)
+                state_masks.append(actions)
             bootstrap_masks.append(bootstrap)
             publications = {}
             for owner, name in enumerate(self.owner_names):
@@ -316,7 +328,7 @@ class TaskMemoryModel(nn.Module):
                 values = dict(read_weights=weights, read_versions=versions, read_valid=valid,
                               read_is_current=torch.full_like(active, control == 'fresh'),
                               write_probs=probabilities,
-                              write_actions=actions, write_features=features, memory_before=before,
+                              write_actions=actions, state_actions=state_actions, write_features=features, memory_before=before,
                               memory_candidates=candidates,
                               memory_versions=torch.stack([p.version for p in publications.values()], 1),
                               memory_valid=torch.stack([p.valid for p in publications.values()], 1),
@@ -325,7 +337,7 @@ class TaskMemoryModel(nn.Module):
                     values['payload_features'] = payload_features
                 for name, value in values.items():
                     records[name].append(value)
-            state = TaskMemoryState(ingress['state'], producer['state'], composer['state'], publications,
+            state = TaskMemoryState(ingress['state'], producer_state, composer['state'], publications,
                                     state.events_seen+1, state.epochs)
             aux = aux+(producer['aux']+composer['aux'])/2
             hat_aux = hat_aux+(ingress['aux']+producer['hat_aux']+composer['hat_aux'])/3
@@ -334,6 +346,8 @@ class TaskMemoryModel(nn.Module):
                       external_events=b*t, source_occurrences=b*t, internal_rounds=b*t,
                       write_mode=c.write_mode, bootstrap_mask=torch.stack(bootstrap_masks, 1),
                       bootstrap_empty=c.bootstrap_empty, memory_aware_write=c.memory_aware_write,
+                      state_commit=c.state_commit, producer_candidates=b*t*m,
+                      producer_commits=int(torch.stack(state_masks, 1).sum()) if state_masks else b*t*m,
                       read_source='candidate' if control == 'fresh' else 'publication')
         if capture:
             result.update({key: torch.stack(parts, 1) for key, parts in records.items()})

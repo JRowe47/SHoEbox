@@ -1,5 +1,25 @@
 # SHoEbox handoff
 
+## In progress: selective producer-state commits
+
+- Base `150c8a0`; implementation adds `--state-commit publication`.
+- Owner contextualizer and recurrent block contents hold on unpublished events.
+  Ingress, composer, event metadata, and candidate computation keep advancing.
+- No additional parameters; default behavior remains `always`.
+- Ten new checks cover initialization, commits/holds, row resets, gradients,
+  exact resume, isolated producer interventions, and correct commit ages.
+- Four new 600-update runs: seeds 41/43, Held and Held fresh. They share the
+  previous gate-only/fresh controls (mapped to Always/Always fresh), restored
+  with verified hashes. All eight arms have the same training and expert budget.
+- All 16 baseline producer/publication query audits have completed. The four
+  new runs passed update 400/600. All 512 checks and the live-output example
+  passed; the behavioral study is still in progress.
+- Protocol: [SHoEbox_State_Commit_Protocol.md](docs/SHoEbox_State_Commit_Protocol.md).
+- Reproduce all arms: `python scripts/run_state_commit.py --out artifacts/state_commit --workers 4`.
+- Actual training uses `--arms held held_fresh --skip-audits`; run the same arms
+  with `--audit-only` after completion. Baseline audit command uses
+  `--arms always always_fresh --audit-only`.
+
 ## Completed: delayed payload credit
 
 - Implementation: `a7a14ab`; base `d47ddc6`.
@@ -18,7 +38,7 @@
 - Resumable selected/final/acquisition/bridge checkpoints, raw audits, histories,
   logs and hashes are in `SHoEbox_Payload_Credit_Artifacts.zip`.
 
-## Next target
+## Prior handoff target
 
 Test Raven-style internal owner-state holds against publication-only holds at
 matched candidate compute. Keep read, internal-update and publication decisions
