@@ -27,6 +27,13 @@ Forced query holds also protect producer state when this option is enabled.
 Live straight-through gate gradients include the state path; detached credit
 continues to cover the conditional publication path only.
 
+The [completed study](../../docs/SHoEbox_State_Commit_Report.md) includes two seeds,
+eight 600-update arms and 32 checkpoint/split audits. Held state slightly improves
+mean standard-delay loss but does not produce a consistent long-delay gain.
+Producer-content shuffles barely affect the held models during queries, so the
+option stays off by default. All 512 checks pass. Raw aggregate results are in
+[summary.json](results/task_state_commit/summary.json).
+
 ## Delayed payload credit
 
 The [payload-credit protocol](../../docs/SHoEbox_Payload_Credit_Protocol.md)
