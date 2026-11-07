@@ -67,6 +67,12 @@ class GraphConfig:
     zero_safe_norm: bool = True
     evidence_gated_ports: bool = False
     selective_publication: tuple[str, ...] = ()
+    task_publication: tuple[str, ...] = ()
+    publication_features: int = 8
+    publication_payload_rank: int = 0
+    publication_state_commit: str = 'always'
+    publication_bootstrap: bool = True
+    publication_feedback: bool = True
     independent_sources: tuple[str, ...] = ()
     recall_slots: int = 0
     recall_nodes: tuple[str, ...] = ()  # Empty selects all nodes with incoming edges.
@@ -116,6 +122,17 @@ class GraphConfig:
         if len(set(self.selective_publication)) != len(self.selective_publication) or any(
                 n not in names for n in self.selective_publication):
             raise ValueError('Selective publication requires distinct known nodes.')
+        if len(set(self.task_publication)) != len(self.task_publication) or any(
+                n not in names or n in self.selective_publication for n in self.task_publication):
+            raise ValueError('Task publishers require distinct known nodes without legacy gates.')
+        if type(self.publication_features) is not int or self.publication_features < 1:
+            raise ValueError('Publication feature count must be positive.')
+        if type(self.publication_payload_rank) is not int or not 0 <= self.publication_payload_rank <= self.width:
+            raise ValueError('Publication payload rank must be between zero and width.')
+        if self.publication_state_commit not in ('always', 'publication'):
+            raise ValueError('Unknown publication state commit mode.')
+        if type(self.publication_bootstrap) is not bool or type(self.publication_feedback) is not bool:
+            raise ValueError('Publication bootstrap and feedback must be boolean.')
         if len(set(self.independent_sources)) != len(self.independent_sources):
             raise ValueError('Independent sources must be distinct.')
         for name in self.independent_sources:
@@ -175,6 +192,7 @@ class GraphConfig:
         data['edges'] = tuple(EdgeSpec(**e) for e in data['edges'])
         data['readout'] = tuple(data['readout'])
         data['selective_publication'] = tuple(data.get('selective_publication', ()))
+        data['task_publication'] = tuple(data.get('task_publication', ()))
         data['independent_sources'] = tuple(data.get('independent_sources', ()))
         data['recall_nodes'] = tuple(data.get('recall_nodes', ()))
         return cls(**data)

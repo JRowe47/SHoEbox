@@ -1,69 +1,86 @@
 # SHoEbox handoff
 
-## Completed: regional recall and mixed learning
+## Completed: unified regional publication and learning
 
-Base `37a94dc`. `RecallWorkspace` now lives in `recall.py`, with a compatibility
-import in `task_recall.py`. Ordinary graph receivers can use independent recall
-slots over their configured incoming ports. Original forward/delayed timing,
-masks, substitutions and state ownership are preserved. New output feedback
-advances independently of held public outputs. Zero slots preserves legacy
-weights, initialization and behavior.
+Base: `6e23e7a83b6bfee06c248c53b94a2e2696a0ce40`.
+The ordinary regional graph now supports task-trained publication admission,
+producer-state holds, low-rank payload adaptation, and conditional delayed credit.
+A/B/C/U/V use candidate content, stored content and preceding-round downstream
+read demand. P/Q retain always-published readout outputs. Defaults remain compatible.
+
+`GraphMixedRun` shares the prior mixed trainer's scheduling and checkpoint code.
+Natural text and task documents use one graph and shared trainable weights, with
+separate runtime state, demand, credit and cursors. Credit validates owner order,
+publication version and document epoch. No replay buffer was introduced.
 
 ## Completed evidence
 
-- All 530 checks across five suites pass; the live-output example also passes.
-  Ten new checks cover regional behavior and mixed-stream continuation.
-- Seven-slot ordinary graph: seven nodes, two rounds, 311,711 parameters,
-  32 updates, 2,048 bytes, 344,064 expert executions. Validation NLL falls from
-  5.5321 to 4.3244. Separate 128-byte test: intact 4.2228, blocked reads 4.4871.
-  All seven receivers learn role maps and feedback. Exact stream continuation
-  reproduces logits and state. Added feedback state: 896 bytes per stream.
-- Paired mixed continuations from the preceding distinct recall arm's final
-  checkpoint: 320 updates each, 564,519 parameters, 81,920 natural-text bytes
-  and 81,920 memory bytes, 9,830,400 expert executions. All weights train.
-- Both sources use state holding and delayed payload credit, with independent
-  runtime state, eligibility and cursors. Both produce delayed gate/payload
-  gradients. Resume verifies corpus, config, schedule and stream fingerprints.
-- Both arms select update 320. Distinct/pooled test natural-byte NLL:
-  2.5220/2.5703; exact-answer NLL: 1.1422/1.1571; long-delay: 1.1612/1.1792.
-- Distinct full-rollout interventions: pooling roles changes language/all-answer
-  NLL by +0.0051/-0.0006; disabling feedback by +0.1347/-0.0003; blocking reads
-  by +0.2563/+0.2639. These cover full rollouts, including later writes/state.
-- The ordinary graph and owned-memory training are separate configurations
-  sharing the recall module. Ordinary graph write gates still use their prior
-  training path; they have not acquired the task model's delayed credit.
+- Five-suite regression run: 543 passing checks. Three clipping checks and one
+  evaluation-cache check bring the unique count to 547; all 19 affected mixed/graph
+  checks passed after the clipping update. Exact resume includes optimizer, both
+  cursors, demand and eligibility. Legacy behavior is compared exactly.
+- Both arms finished and selected update 160. Seven nodes, seven recall slots,
+  two rounds, 312,440 parameters: 729 more than the common graph parent.
+- Each retained training trajectory: 10,240 natural bytes + 10,240 task bytes,
+  624 answer targets, 3,440,640 expert executions. Batch 4, byte window 32,
+  gradient segment 16, constant AdamW LR 0.002, seed 83, data seed 283.
+- Both arms start from the preceding regional graph weights with fresh optimizer
+  and runtime state. All weights train; only delayed gate/payload gradient
+  application differs. Both delayed-gradient types are nonzero on both sources.
 
-[Report](docs/SHoEbox_Regional_Recall_Report.md) |
-[PDF](docs/SHoEbox_Regional_Recall_Report.pdf) |
-[metrics](experiments/text_regions/results/regional_recall/summary.json).
-The artifact archive includes source, exact corpus, common parent, selected/final
-mixed checkpoints, graph checkpoint, optimizer/runtime/credit state, raw traces,
-checks and hashes. The suite runner returned zero; its redirected stdout snapshot
-is partial, and the final source's 530 tests were independently enumerated.
+| Held-out metric | Delayed credit | No delayed credit |
+|---|---:|---:|
+| Natural-byte NLL, 1,024 targets | 3.433866 | 3.568910 |
+| All-answer NLL, 80 targets | 2.108435 | 2.556905 |
+| Exact-answer NLL, 54 targets | 1.864421 | 2.229105 |
+| Exact-answer accuracy | 40.74% | 38.89% |
+| Long-delay exact NLL, 58 targets | 1.945042 | 2.237804 |
+| Long-delay exact accuracy | 10.34% | 10.34% |
+
+Blocking regional reads increases credit-arm language/answer NLL by
++0.3813/+1.0858. Other whole-rollout controls have small effects in this pilot.
+Selected valid publications average 0.18 bytes old; none at answer queries are
+older than the 16-byte gradient segment. The result demonstrates the integrated
+training path and useful reads, not long-held publication recall.
+
+The no-credit arm encountered one finite-gradient FP32 norm overflow after
+update 120. Clipping now falls back to an FP64 norm only when needed, preserving
+ordinary arithmetic exactly and rejecting nonfinite entries. The control resumed
+from 120 and completed normally. Counts exclude discarded work from that attempt.
+
+Evaluation now checkpoints individual measurements and reuses results for
+identical weights/configuration/data. The new cache behavior has a dedicated
+resume/invalidation check. It was added while the final pilot evaluations ran.
+
+[Report](docs/SHoEbox_Graph_Publication_Report.md) |
+[PDF](docs/SHoEbox_Graph_Publication_Report.pdf) |
+[architecture](docs/graph_publication.md) |
+[metrics](experiments/text_regions/results/graph_publication/summary.json).
+Artifacts are in `artifacts/graph_publication`; the export includes source, corpus,
+common parent, selected/final checkpoints, optimizer/runtime/credit state,
+query traces, complete check output, recovery record and hashes.
 
 ## Next development target
 
-Bring the task-trained publication and delayed-credit interface into the ordinary
-regional graph, then increase mixed-data exposure through the unified path. Keep
-state holds, payload credit, distinct roles and feedback independently controllable.
-The new mixed run supports useful recall and language feedback; it does not isolate
-older-publication retention. Use the existing query-fork audits for that question.
+Increase mixed-language and long-delay task exposure through the unified graph.
+Develop useful retention through distractors while monitoring language quality,
+answer quality and task-gradient balance separately. Reuse the existing gradient
+balance machinery if needed; avoid adding another separate memory model.
 
-Retain well-motivated mechanisms with trainable controls. Small probe outcomes
-are not feature-removal gates. Comments mark role specialization and feedback as
-potentially training-threshold-dependent features for later ablation. No replay
-store is added; slots are current views of existing owned publications.
+Keep demand feedback, state holding, payload credit and recall-role controls
+independently ablatable. The pilot's small effects are not removal gates. Code
+comments mark the intended coordination as potentially threshold-dependent.
 
 ## Reproduction
 
 ```bash
-python scripts/run_regional_recall.py --parent /path/to/parent.pt \
-  --data data/tiny_shakespeare.txt --out artifacts/regional_recall
-python scripts/audit_regional_recall.py
-python scripts/summarize_regional_recall.py
+python scripts/run_graph_publication.py --parent /path/to/parent.pt \
+  --data data/tiny_shakespeare.txt --out artifacts/graph_publication --parallel
 python scripts/check_all.py
+python scripts/summarize_graph_publication.py
+python scripts/report_graph_publication.py
 ```
 
-The paired runner resumes existing checkpoints. Graph training is a separate
-32-update invocation documented in the experiment README. Pauses between
-scheduled evaluations preserve the checkpoint-selection schedule.
+The paired runner resumes existing checkpoints and skips completed arms.
+Unscheduled pauses preserve the selection schedule. Final evaluation also resumes
+individual completed controls using its weight/configuration/data fingerprint.

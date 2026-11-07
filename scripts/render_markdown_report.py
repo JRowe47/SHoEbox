@@ -27,6 +27,8 @@ def render(source, destination, *, title='SHoEbox: shared-answer preservation du
     styles = getSampleStyleSheet()
     styles.add(ParagraphStyle(name='Body', fontName='ReportSans', fontSize=9.2, leading=12.4,
         textColor=colors.HexColor('#24333c'), spaceAfter=6))
+    styles.add(ParagraphStyle(name='BulletReport', parent=styles['Body'], leftIndent=10,
+        bulletIndent=0, bulletFontName='ReportSans', bulletFontSize=9.2))
     styles.add(ParagraphStyle(name='TitleReport', fontName='ReportSans-Bold', fontSize=23, leading=26,
         textColor=colors.HexColor('#163f37'), spaceAfter=12))
     styles.add(ParagraphStyle(name='SectionReport', fontName='ReportSans-Bold', fontSize=13, leading=16,
@@ -91,6 +93,11 @@ def render(source, destination, *, title='SHoEbox: shared-answer preservation du
             story.append(Paragraph(inline(line[2:]), styles['TitleReport'])); i += 1
         elif line.startswith('## '):
             story.append(Paragraph(inline(line[3:]), styles['SectionReport'])); i += 1
+        elif line.startswith('- '):
+            paragraph = [line[2:]]; i += 1
+            while i < len(lines) and lines[i].startswith('  ') and lines[i].strip():
+                paragraph.append(lines[i].strip()); i += 1
+            story.append(Paragraph(inline(' '.join(paragraph)), styles['BulletReport'], bulletText='-'))
         else:
             paragraph = [line]; i += 1
             while i < len(lines) and lines[i].strip() and not lines[i].startswith(('#', '|', '```', '---')):

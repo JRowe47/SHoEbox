@@ -1126,3 +1126,24 @@ final evaluations without training. The ordinary graph integration and mixed
 owned-memory training are separate configurations sharing the recall module;
 the graph's legacy publication gates have not acquired the task model's delayed
 credit mechanism.
+
+## Unified graph publication and mixed learning
+
+`graph_mixed_train` uses the ordinary graph for both ordered natural text and
+procedural memory tasks. A/B/C/U/V receive task-trained publication policies,
+state holds and conditional delayed gate/payload credit. Each policy can use
+mean/peak downstream read demand from the previous regional round. The model
+receives bytes only; answer annotations belong exclusively to the loss.
+
+```bash
+python scripts/run_graph_publication.py --parent /path/to/regional_graph.pt \
+  --out artifacts/graph_publication --parallel
+python scripts/summarize_graph_publication.py
+```
+
+This matched pilot preserves the preceding seven-node, seven-slot, two-round
+regional configuration. Both arms train all weights, alternate natural and task
+updates, and differ only in applying delayed publication credit. The runner
+resumes each source's exact state, demand, credit, cursor and optimizer. See
+[architecture and controls](../../docs/graph_publication.md) for configuration
+fields, estimator scope, timing and evaluation controls.

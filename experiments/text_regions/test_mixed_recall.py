@@ -9,11 +9,36 @@ from .mixed_recall_train import MixedRun, evaluate_language
 from .task_memory import TaskMemoryConfig
 from .task_stream import TaskStreamConfig
 from .ports import tensor_list
+from .mixed_gradients import clip_mixed_gradients
 
 torch.set_num_threads(1)
 
 
 class MixedRecallChecks(unittest.TestCase):
+    def test_finite_clipping_preserves_existing_arithmetic(self):
+        a,b = torch.nn.Parameter(torch.zeros(3)),torch.nn.Parameter(torch.zeros(3))
+        a.grad = torch.tensor([1.,-3.,8.]); b.grad = a.grad.clone()
+        expected = torch.nn.utils.clip_grad_norm_([a],1.)
+        actual,recovered = clip_mixed_gradients([b])
+        self.assertFalse(recovered)
+        torch.testing.assert_close(actual,expected,rtol=0,atol=0)
+        torch.testing.assert_close(a.grad,b.grad,rtol=0,atol=0)
+
+    def test_finite_gradient_norm_overflow_recovers_direction(self):
+        p = torch.nn.Parameter(torch.zeros(3)); p.grad = torch.tensor([1e25,-2e25,3e25])
+        original = p.grad.double().clone()
+        norm,recovered = clip_mixed_gradients([p])
+        self.assertTrue(recovered)
+        self.assertTrue(torch.isfinite(norm))
+        torch.testing.assert_close(p.grad.double(),original/original.norm(),atol=1e-7,rtol=1e-7)
+
+    def test_nonfinite_gradient_entries_rejected_before_mutation(self):
+        p,q = torch.nn.Parameter(torch.zeros(1)),torch.nn.Parameter(torch.zeros(1))
+        p.grad = torch.tensor([2.]); q.grad = torch.tensor([float('nan')])
+        with self.assertRaisesRegex(RuntimeError,'entries'):
+            clip_mixed_gradients([p,q])
+        self.assertEqual(float(p.grad),2.)
+
     def run_model(self, raw=None):
         return MixedRun(raw or b'A small language stream.\n' * 150,
             TaskMemoryConfig(width=32, experts_per_block=32, shared_per_block=16,

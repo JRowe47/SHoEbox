@@ -21,6 +21,7 @@ from .task_memory import TaskMemoryConfig, TaskMemoryModel, TaskMemoryState
 from .task_memory_train import byte_loss, evaluate, initialize_weights, objective
 from .task_payload import make_eligibility
 from .task_stream import TaskByteStreams, TaskChunk, TaskStreamConfig, make_documents
+from .mixed_gradients import clip_mixed_gradients
 
 
 def source_for_step(step):
@@ -62,14 +63,37 @@ def evaluate_language(model, raw, batch=4, context=64, chunks=4, control='intact
 
 class MixedRun:
     """Own all resumable training state; model inputs contain bytes only."""
+    kind = 'mixed_recall'
+    model_type = TaskMemoryModel
+    state_type = TaskMemoryState
+    credit_factory = staticmethod(make_eligibility)
+    forward_window = staticmethod(window_forward)
+
+    def initialize(self, parent):
+        return initialize_weights(self.model, parent) if parent else None
+
+    def apply_credit(self, boundaries):
+        delayed = sum(boundary.apply(self.model.write_policy) for boundary in boundaries)
+        payload = sum(boundary.apply_payload(self.model.payload_adapter, True)
+                      for boundary in boundaries) if self.model.cfg.payload_rank else 0.
+        return delayed, payload
+
+    def language_metrics(self, raw, chunks=None):
+        p = self.protocol
+        return evaluate_language(self.model, raw, p['batch'], p['context'], chunks or p['eval_chunks'])
+
+    def memory_metrics(self, split='validation', count=None):
+        p = self.protocol
+        return evaluate(self.model, self.data_config, p['data_seed'], count or p['eval_count'], p['context'], split)
+
     def __init__(self, raw, config, data_config, protocol, parent=None):
         self.protocol = dict(protocol)
         self.data_config = data_config
         self.raw_digest = hashlib.sha256(raw).hexdigest()
         self.train_raw, self.validation_raw, self.test_raw = split_bytes(raw)
         torch.manual_seed(protocol['seed'])
-        self.model = TaskMemoryModel(config)
-        self.initialization = initialize_weights(self.model, parent) if parent else None
+        self.model = self.model_type(config)
+        self.initialization = self.initialize(parent)
         self.optimizer = torch.optim.AdamW(self.model.parameters(), lr=protocol['lr'],
                                           betas=(.9, .95), weight_decay=.01)
         documents = make_documents(data_config, seed=protocol['data_seed'], count=protocol['documents'])
@@ -77,7 +101,7 @@ class MixedRun:
         self.streams = dict(language=OrderedByteStreams.from_bytes(self.train_raw, batch),
                             memory=TaskByteStreams(documents, batch))
         self.states = {key: self.model.initial_state(batch) for key in self.streams}
-        self.credits = {key: make_eligibility(self.model, batch) for key in self.streams}
+        self.credits = {key: self.credit_factory(self.model, batch) for key in self.streams}
         self.totals = {key: dict(updates=0, bytes=0, experts=0, answers=0,
             delayed_gradient_norm_sum=0., payload_gradient_norm_sum=0.) for key in self.streams}
         self.step, self.best = 0, float('inf')
@@ -90,7 +114,7 @@ class MixedRun:
         if source == 'language':
             chunk = language_chunk(chunk)
         self.optimizer.zero_grad(set_to_none=True)
-        result, credit, boundaries = window_forward(self.model, chunk, self.states[source],
+        result, credit, boundaries = self.forward_window(self.model, chunk, self.states[source],
             self.credits[source], truncate_every=self.protocol['truncate_every'])
         if source == 'language':
             primary = byte_loss(result['logits'], chunk.ordinary_targets)
@@ -100,27 +124,27 @@ class MixedRun:
         if not bool(torch.isfinite(loss)):
             raise RuntimeError('Nonfinite mixed training objective.')
         loss.backward()
-        delayed = sum(boundary.apply(self.model.write_policy) for boundary in boundaries)
-        payload = sum(boundary.apply_payload(self.model.payload_adapter, True)
-                      for boundary in boundaries) if self.model.cfg.payload_rank else 0.
-        norm = torch.nn.utils.clip_grad_norm_(self.model.parameters(), 1.)
+        delayed, payload = self.apply_credit(boundaries)
+        norm, norm_recovered = clip_mixed_gradients(self.model.parameters(), 1.)
         if not bool(torch.isfinite(norm)):
             raise RuntimeError('Nonfinite mixed training gradient.')
         self.optimizer.step()
         self.states[source], self.credits[source] = result['state'].detach(), credit
         totals = self.totals[source]
+        if norm_recovered:
+            totals['fp64_norm_recoveries'] = totals.get('fp64_norm_recoveries', 0) + 1
         for key, amount in dict(updates=1, bytes=result['external_events'],
                 experts=result['expert_executions'], answers=int(chunk.answer_mask.sum()),
                 delayed_gradient_norm_sum=delayed, payload_gradient_norm_sum=payload).items():
             totals[key] += amount
         self.step = step
         return dict(step=step, source=source, primary_nll=float(primary.detach()),
-                    gradient_norm=float(norm), totals=self.totals)
+                    gradient_norm=float(norm), fp64_norm_recovered=norm_recovered, totals=self.totals)
 
     def validation(self):
         p = self.protocol
-        language = evaluate_language(self.model, self.validation_raw, p['batch'], p['context'], p['eval_chunks'])
-        memory, _ = evaluate(self.model, self.data_config, p['data_seed'], p['eval_count'], p['context'])
+        language = self.language_metrics(self.validation_raw)
+        memory, _ = self.memory_metrics()
         # Same scale: nats per natural byte and nats per answer byte. The fixed
         # equal-weight criterion rewards both tasks; each metric is also exposed.
         return dict(language=language, memory=memory,
@@ -129,7 +153,7 @@ class MixedRun:
     def save(self, path):
         path = Path(path); path.parent.mkdir(parents=True, exist_ok=True)
         temporary = path.with_suffix('.tmp')
-        torch.save(dict(schema=1, kind='mixed_recall', config=self.model.cfg.to_dict(),
+        torch.save(dict(schema=1, kind=self.kind, config=self.model.cfg.to_dict(),
             data_config=self.data_config.to_dict(), protocol=self.protocol, raw_sha256=self.raw_digest,
             weights=self.model.state_dict(), optimizer=self.optimizer.state_dict(),
             states={k: s.to_dict() for k, s in self.states.items()},
@@ -141,7 +165,7 @@ class MixedRun:
 
     def restore(self, path):
         saved = torch.load(path, map_location='cpu', weights_only=True)
-        if saved.get('schema') != 1 or saved.get('kind') != 'mixed_recall':
+        if saved.get('schema') != 1 or saved.get('kind') != self.kind:
             raise ValueError('Not a mixed recall checkpoint.')
         for key, expected in dict(config=self.model.cfg.to_dict(), data_config=self.data_config.to_dict(),
                 protocol=self.protocol, raw_sha256=self.raw_digest).items():
@@ -151,8 +175,8 @@ class MixedRun:
             self.streams[key].load_state_dict(saved['streams'][key])
         self.model.load_state_dict(saved['weights'])
         self.optimizer.load_state_dict(saved['optimizer'])
-        self.states = {k: TaskMemoryState.from_dict(s) for k, s in saved['states'].items()}
-        self.credits = {k: make_eligibility(self.model, self.protocol['batch'], c)
+        self.states = {k: self.state_type.from_dict(s) for k, s in saved['states'].items()}
+        self.credits = {k: self.credit_factory(self.model, self.protocol['batch'], c)
                         for k, c in saved['credits'].items()}
         self.step, self.best, self.totals = saved['step'], saved['best'], saved['totals']
         self.initialization = saved['initialization']

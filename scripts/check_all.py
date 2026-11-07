@@ -42,7 +42,7 @@ def main():
                'test_task_retention_integration', 'test_task_query_audit',
                'test_task_initialization', 'test_task_resume_destination', 'test_task_curriculum', 'test_task_payload',
                'test_task_state_commit', 'test_task_state_audit', 'test_task_recall',
-               'test_regional_recall', 'test_mixed_recall']
+               'test_regional_recall', 'test_mixed_recall', 'test_graph_publication']
     # Reclaim tensor/JIT caches between modules. A combined regional process
     # otherwise retains gigabytes while running the expanding experiment suite.
     for name in modules:

@@ -25,6 +25,7 @@ class GraphState:
     epochs: torch.Tensor
     input_mode: str = ''
     recall_feedback: dict[str, torch.Tensor] = field(default_factory=dict)
+    publication_demand: dict[str, torch.Tensor] = field(default_factory=dict)
 
     def detach(self):
         return map_tensors(self, lambda x: x.detach())
@@ -43,7 +44,24 @@ class GraphState:
                        ports=self.ports.reset(rows), events_seen=self.events_seen*(~rows),
                        rounds_seen=self.rounds_seen*(~rows), epochs=self.epochs+rows.long(),
                        recall_feedback={k: choose_rows(rows, torch.zeros_like(v), v)
-                                        for k, v in self.recall_feedback.items()})
+                                        for k, v in self.recall_feedback.items()},
+                       publication_demand={k: choose_rows(rows, torch.zeros_like(v), v)
+                                           for k, v in self.publication_demand.items()})
+
+    def memory_tensor(self, owners):
+        return torch.stack([torch.cat((self.ports.latest[n].payload,
+            self.ports.latest[n].header.memberships.flatten(1)), -1) for n in owners], 1)
+
+    def with_memory_tensor(self, owners, memory):
+        if memory.shape != self.memory_tensor(owners).shape:
+            raise ValueError('Graph memory tensor shape mismatch.')
+        pubs = dict(self.ports.latest)
+        for i, name in enumerate(owners):
+            pub = pubs[name]
+            width = pub.payload.shape[-1]
+            pubs[name] = replace(pub, payload=memory[:, i, :width], header=replace(pub.header,
+                memberships=memory[:, i, width:].reshape_as(pub.header.memberships)))
+        return replace(self, ports=TensorPorts(pubs))
 
     def tensors(self):
         return tensor_list(self)
@@ -68,4 +86,5 @@ class GraphState:
                           for k, n in data['nodes'].items()},
                    ports=TensorPorts({k: Publication.from_dict(p) for k, p in data['ports']['latest'].items()}),
                    events_seen=data['events_seen'], rounds_seen=data['rounds_seen'], epochs=data['epochs'],
-                   input_mode=data['input_mode'], recall_feedback=data.get('recall_feedback', {}))
+                   input_mode=data['input_mode'], recall_feedback=data.get('recall_feedback', {}),
+                   publication_demand=data.get('publication_demand', {}))

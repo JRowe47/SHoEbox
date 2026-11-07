@@ -12,6 +12,7 @@ from .node import RecurrentNode, masked_ingress
 from .ports import Publication, SemanticHeader, TensorPorts, publish
 from .state import GraphState
 from .stage_runtime import prepare_stage
+from .graph_publication import GraphPublicationPolicy, accumulate_demand, finish_demand
 
 
 class RegionLanguageModel(nn.Module):
@@ -52,6 +53,11 @@ class RegionLanguageModel(nn.Module):
         self.specs = {n.name: n for n in self.cfg.nodes}
         self.stages = self.cfg.stages()
         self.connections.initialize_recall()
+        self.publisher = None
+        if self.cfg.task_publication:
+            with torch.random.fork_rng(devices=[]):
+                torch.manual_seed(self.cfg.seed + 17389)
+                self.publisher = GraphPublicationPolicy(self.cfg)
 
     def initial_state(self, batch, device=None):
         if batch < 1:
@@ -73,7 +79,9 @@ class RegionLanguageModel(nn.Module):
                           torch.zeros(batch, dtype=torch.long, device=device),
                           torch.zeros(batch, dtype=torch.long, device=device),
                           recall_feedback={name: torch.zeros(batch, c.width, device=device, dtype=dtype)
-                                           for name in self.connections.recall})
+                                           for name in self.connections.recall},
+                          publication_demand={name: torch.zeros(batch, 2, device=device, dtype=dtype)
+                                              for name in c.task_publication})
 
     def ingress_hat(self, view):
         owner = self.view_owners.get(view)
@@ -103,6 +111,11 @@ class RegionLanguageModel(nn.Module):
         for value in state.recall_feedback.values():
             if value.shape != (b, self.cfg.width) or value.device != first.values.device:
                 raise ValueError('Recall feedback batch/device mismatch.')
+        if set(state.publication_demand) != set(self.cfg.task_publication):
+            raise ValueError('Publication demand topology mismatch.')
+        for value in state.publication_demand.values():
+            if value.shape != (b, 2) or value.device != first.values.device:
+                raise ValueError('Publication demand batch/device mismatch.')
         mode = 'views' if controlled else 'text'
         if state.input_mode and state.input_mode != mode:
             raise ValueError('Start a fresh state when switching between text and controlled-view inputs.')
@@ -140,11 +153,12 @@ class RegionLanguageModel(nn.Module):
                 return_edge_activity=False, edge_bias=None, lace_bias=None,
                 return_round_activity=False, return_node_activity=(),
                 return_publication_activity=False, publication_overrides=None,
-                return_recall_activity=False, recall_control='intact'):
+                return_recall_activity=False, recall_control='intact', return_write_activity=False):
         if recall_control not in ('intact', 'pooled', 'no_feedback', 'blocked'):
             raise ValueError('Unknown regional recall control.')
         publication_overrides = publication_overrides or {}
-        if set(publication_overrides)-set(self.cfg.selective_publication) or any(
+        publishers = self.cfg.selective_publication + self.cfg.task_publication
+        if set(publication_overrides)-set(publishers) or any(
                 value not in ('always', 'hold') for value in publication_overrides.values()):
             raise ValueError('Publication controls require configured nodes and always/hold policies.')
         if len(set(return_node_activity)) != len(return_node_activity) or set(return_node_activity)-set(self.nodes):
@@ -173,10 +187,11 @@ class RegionLanguageModel(nn.Module):
         device = state.events_seen.device
         all_active = torch.ones(b, dtype=torch.bool, device=device)
         logits, records = [], []
+        write_activity, write_resets = [], []
         recall_activity = {name: [] for name in self.connections.recall} if return_recall_activity else {}
         node_activity = {name: {'payload': [], 'valid': []} for name in return_node_activity}
         publication_activity = {name: {'candidate': [], 'logit': [], 'written': []}
-                                for name in self.cfg.selective_publication} if return_publication_activity else {}
+                                for name in publishers} if return_publication_activity else {}
         round_activity = {name: {'payload': [], 'valid': []} for name in self.cfg.readout} if return_round_activity else {}
         view_activity = {view: {'payload': [], 'available': []} for view in events} if return_view_activity else {}
         edge_names = tuple(self.connections.edges)
@@ -191,6 +206,7 @@ class RegionLanguageModel(nn.Module):
             event_publications = {name: {key: [] for key in activity}
                                   for name, activity in publication_activity.items()}
             event_activity = {name: {'payload': [], 'valid': []} for name in round_activity}
+            rows = torch.zeros_like(all_active)
             if reset is not None and (reset.ndim == 2 or event_index == 0):
                 rows = reset[:, event_index] if reset.ndim == 2 else reset
                 if bool(rows.any()):
@@ -216,6 +232,8 @@ class RegionLanguageModel(nn.Module):
             state = replace(state, ingress=ingress_states, ports=state.ports.commit(staged_ingress))
             for k in range(k_total):
                 delayed = state.ports.snapshot() if feedback else None
+                demands = {name: [] for name in self.cfg.task_publication}
+                round_writes = {}
                 for stage in self.stages:
                     current, staged, node_states = state.ports.snapshot(), {}, dict(state.nodes)
                     requests = {}
@@ -227,12 +245,16 @@ class RegionLanguageModel(nn.Module):
                         if spec.view is not None:
                             ingress = current['@'+spec.view if controlled else '@text']
                             ingress = replace(ingress, valid=ingress.valid & available[spec.view])
-                        recall_record = {} if name in recall_activity else None
+                        recall_record = {} if name in self.connections.recall and (
+                            return_recall_activity or self.publisher is not None) else None
                         payload, context, dependencies = self.connections.gather(
                             spec, current, delayed, ingress, active, event_index, edge_masks, substitutions, edge_bias,
                             state.recall_feedback.get(name), recall_control, recall_record)
-                        if recall_record is not None:
+                        if name in event_recalls:
                             event_recalls[name].append(recall_record)
+                        if self.publisher is not None:
+                            accumulate_demand(demands, self.connections, name, recall_record,
+                                              dependencies, active, recall_control == 'blocked')
                         if return_edge_activity:
                             for dependency in dependencies:
                                 if dependency.edge in edge_indices:
@@ -257,9 +279,23 @@ class RegionLanguageModel(nn.Module):
                                 event_publications[name]['candidate'].append(result['latent'])
                                 event_publications[name]['logit'].append(logit)
                                 event_publications[name]['written'].append(writing)
-                        publication = publish(current[name], result['latent'], result['header'], writing,
-                                              state.epochs, state.events_seen, torch.full_like(state.events_seen, k),
-                                              dependencies)
+                        if name in self.cfg.task_publication:
+                            result['previous_state'] = node_state
+                            publication, node_states[name], admission = self.publisher(
+                                name, current[name], result, active, state.epochs, state.events_seen,
+                                torch.full_like(state.events_seen, k), dependencies,
+                                state.publication_demand[name], self.cfg, publication_overrides.get(name))
+                            writing = admission['write_actions'].bool()
+                            if return_write_activity:
+                                round_writes[name] = admission
+                            if return_publication_activity:
+                                event_publications[name]['candidate'].append(result['latent'])
+                                event_publications[name]['logit'].append(admission['logit'])
+                                event_publications[name]['written'].append(writing)
+                        else:
+                            publication = publish(current[name], result['latent'], result['header'], writing,
+                                                  state.epochs, state.events_seen, torch.full_like(state.events_seen, k),
+                                                  dependencies)
                         if self.cfg.evidence_gated_ports:
                             evidence = torch.zeros_like(active)
                             for dependency in dependencies:
@@ -279,7 +315,12 @@ class RegionLanguageModel(nn.Module):
                                             'dependencies': tuple(d for d in dependencies if bool(d.consumed.any()))})
                     state = replace(state, nodes=node_states, ports=state.ports.commit(staged),
                                     recall_feedback=recall_feedback)
-                state = replace(state, rounds_seen=state.rounds_seen+1)
+                state = replace(state, rounds_seen=state.rounds_seen+1,
+                                publication_demand=finish_demand(demands, state.publication_demand))
+                if return_write_activity and round_writes:
+                    write_activity.append({key: torch.stack([round_writes[n][key]
+                        for n in self.cfg.task_publication], 1) for key in next(iter(round_writes.values()))})
+                    write_resets.append(rows if k == 0 else torch.zeros_like(rows))
                 for name, activity in event_activity.items():
                     publication = state.ports.latest[name]
                     activity['payload'].append(publication.payload)
@@ -324,12 +365,16 @@ class RegionLanguageModel(nn.Module):
                                 for name, values in publication_activity.items()}
         recall_activity = {name: {key: torch.stack([r[key] for r in items], 1)
                                   for key in items[0]} for name, items in recall_activity.items()}
+        write_activity = ({key: torch.stack([a[key] for a in write_activity], 1)
+                           for key in write_activity[0]} | {'reset': torch.stack(write_resets, 1)}
+                          ) if write_activity else {}
         return {'logits': logits, 'loss': loss, 'ce': ce, 'aux': aux, 'hat_aux': hat_aux,
                 'state': state, 'trace': records, 'expert_executions': executed,
                 'view_activity': view_activity, 'edge_activity': usage, 'edge_names': edge_names,
                 'round_activity': round_activity, 'node_activity': node_activity,
                 'publication_activity': publication_activity,
                 'recall_activity': recall_activity,
+                'write_activity': write_activity,
                 'recall_edges': {n: tuple(e.key for e in self.connections.incoming[n]) for n in recall_activity},
                 'external_events': b*t, 'source_occurrences': ingress_activations, 'internal_rounds': b*t*k_total}
 

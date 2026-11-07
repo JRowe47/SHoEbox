@@ -78,6 +78,17 @@ P and Q feed the shared byte readout. B has one state owner and publishes to bot
 
 ## Development status
 
+The [unified regional publication interface](docs/graph_publication.md) brings
+task-trained write/hold policies, producer-state commits and delayed payload
+credit into the ordinary graph. Each region can use downstream recall demand
+from the preceding round. Natural text and memory tasks train the same graph,
+with independent runtime states and credit histories for the two sources.
+The new behavior is optional; existing graph configurations retain their defaults.
+The [completed matched run](docs/SHoEbox_Graph_Publication_Report.md) trains a
+312,440-parameter graph on both sources. Delayed credit lowers held-out natural
+byte NLL from 3.5689 to 3.4339 and answer NLL from 2.5569 to 2.1084. The model
+mostly reads fresh publications; longer useful retention is the next training target.
+
 The [regional recall and mixed-learning pass](docs/SHoEbox_Regional_Recall_Report.md)
 reuses the recall workspace at ordinary graph input ports, preserving forward and
 delayed edge timing with receiver-specific feedback. A seven-node, seven-slot
