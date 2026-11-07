@@ -1,6 +1,59 @@
 # SHoEbox handoff
 
-## Latest: balanced memory acquisition and retention
+## Latest: stronger retention and the remaining fact-selection failure
+
+Continue the memory-only development focus. GPU preparation, broader integrated
+acceptance and scaling remain deferred.
+
+Starting from acquisition update 96, matched 48-update retention arms compare
+learning rates 0.003 and 0.001. Both select their final update by validation;
+0.003 wins with 99.4% validation accuracy and NLL 0.055799, versus 47.5% and
+1.056687. Both arms start with identical weights, optimizer moments, states and
+source positions, and consume identical data schedules.
+Each arm adds 768 answer targets, 34,944 task bytes and 6,144 language bytes.
+
+A further 48-update selective continuation carries the winning checkpoint's
+weights, optimizer, language state/cursor, RNG and document index. It cycles
+single-fact retention, older/newer competing facts and corrections, with full
+4 x 4 target/nuisance balance on the two-write tasks. It adds 768 answer targets
+(192 per mode), 24,576 task bytes and 6,144 language bytes. Validation selects
+update 48; the selection score falls from 1.154259 to 0.859912. All parameters
+remain trainable and learned controls stay enabled; capacity is 312,440 parameters.
+
+The final selected model scores 100% at +0/+8/+24 natural-text bytes,
+98.4% (126/128) at +64 and 76.6% (98/128) at +128. Training insertions stop at
+32 bytes. The base single-fact source/query delay is 8 bytes. Complete four-value
+sets pass in 30/32 cases at +64 and 14/32 at +128. At +64, values 0/2/3 score
+32/32 each; value 1 scores 30/32. The earlier persistent 1-to-0 collapse is gone.
+Natural-text NLL returns to 3.132340, versus 3.126049 for the acquired parent
+and 3.420890 after the selected retention-only continuation.
+
+Competing-fact selection is still unresolved. Older-fact recall is 25% at
+0/24/64 added bytes, with zero complete four-value sets. Both conflicting facts
+are correct in 0/192 matched query pairs at every gap. Changing only the query
+entity changes the prediction 0/192 times at gaps 0 and 24, and 1/192 at 64.
+Lower loss therefore reflects confidence changes, not successful fact selection.
+Changed-value corrections pass 192/192 controlled cases at +64. In full ordinary
+streams, later exact queries rise from 29.3% to 36.6% (82 targets), corrected
+exact queries from 32.8% to 42.2% (64), and long-delay later exact queries from
+23.8% to 28.6% (84). These remain distinct from controlled single-fact retention.
+
+All 15 targeted checks pass, including exact resume and rejection of the
+latest-value shortcut. Completed production resume preserves checkpoint bytes;
+a fresh selective phase can inherit weights, optimizer and both data cursors.
+All budgets and selections reconstruct from evidence, weights are finite, and
+parallel evaluation matches serial scores and traces exactly.
+
+Next memory target: trace the entity/attribute-key paths into writes and query
+reads, then train both query directions from the same history within one update.
+Use `artifacts/memory_selectivity/selective/best.pt` as the current joint
+language/retention parent; retain the two retention arms as controls. Preserve
+existing ablatable features and add no deliberately higher-order curriculum.
+
+[Protocol and reproduction](docs/memory_selectivity.md) |
+[Audited results](experiments/text_regions/results/memory_selectivity/summary.json).
+
+## Completed: balanced memory acquisition and retention
 
 Memory-only development focus; GPU preparation, broader integrated acceptance
 and scaling are deferred at the user's request.

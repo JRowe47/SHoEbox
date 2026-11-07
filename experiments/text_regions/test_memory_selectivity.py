@@ -121,6 +121,15 @@ class SelectivityChecks(unittest.TestCase):
             expected_row.pop(key); actual_row.pop(key)
         self.assertEqual(expected_row, actual_row)
         assert_tree_equal(self, torch.load(expected, weights_only=True), restored.state_dict())
+        # A completed selective phase can seed a fresh declared budget while
+        # carrying learned state and both source cursors, without replay.
+        continued = SelectivityRun(restored.state_dict(), raw, validation_cases=1)
+        self.assertEqual(continued.step, 0)
+        self.assertEqual(continued.next_document, restored.next_document)
+        assert_tree_equal(self, continued.model.state_dict(), restored.model.state_dict())
+        assert_tree_equal(self, continued.optimizer.state_dict(), restored.optimizer.state_dict())
+        assert_tree_equal(self, continued.language_state.to_dict(), restored.language_state.to_dict())
+        self.assertEqual(continued.streams.state_dict(), restored.streams.state_dict())
         altered = SelectivityRun(parent, raw, lr=.001, validation_cases=1)
         with self.assertRaises(ValueError):
             altered.restore(checkpoint)

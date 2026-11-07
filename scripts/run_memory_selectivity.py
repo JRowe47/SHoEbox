@@ -33,9 +33,10 @@ def write_json(path, value):
 class SelectivityRun:
     def __init__(self, parent, raw, *, lr=.003, steps=48, gaps=(0,4,8,16,32),
                  language_weight=.25, eval_every=16, validation_cases=4):
-        if (parent.get('kind') != 'balanced_acquisition' or min(steps, eval_every, validation_cases) < 1
+        if (parent.get('kind') not in ('balanced_acquisition','selective_recall')
+                or min(steps, eval_every, validation_cases) < 1
                 or lr <= 0 or language_weight < 0 or not gaps or min(gaps) < 0):
-            raise ValueError('Require an acquisition parent and valid positive budgets.')
+            raise ValueError('Require an acquisition/selective parent and valid positive budgets.')
         digest = hashlib.sha256(raw).hexdigest()
         if digest != parent['raw_sha256']:
             raise ValueError('Corpus differs from parent.')

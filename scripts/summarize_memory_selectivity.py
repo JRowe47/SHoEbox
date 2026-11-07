@@ -30,6 +30,28 @@ def evaluation(path, checkpoint):
     assert expected == set(result['measurements'])
     measurements = {name:summarize_values(row) if 'rows' in row else row
                     for name,row in result['measurements'].items()}
+    # Paired correctness can rise slightly from accidental answer preferences.
+    # Also expose whether changing only the query actually changes the output.
+    for gap in (0,24,64):
+        older = result['measurements'][f'older_{gap}']['rows']
+        newer = result['measurements'][f'newer_{gap}']['rows']
+        size = len(older[0]['answers'])
+        pairs = switches = both = 0
+        for base in range(0,len(older),size):
+            for a in range(size):
+                for b in range(size):
+                    if a == b:
+                        continue
+                    left,right = older[base+b],newer[base+a]
+                    assert left['document'] == right['document']
+                    pa,pb = left['predictions'][a],right['predictions'][b]
+                    switches += pa != pb
+                    both += pa == left['answers'][a] and pb == right['answers'][b]
+                    pairs += 1
+        metric = measurements[f'query_pairs_{gap}']
+        assert metric['pairs'] == pairs and metric['both_correct'] == both
+        metric['query_switches'] = switches
+        metric['query_switch_fraction'] = switches/pairs
     for gap in (0,24,64):
         items = []
         for row in result['measurements'][f'correction_{gap}']['rows']:

@@ -104,3 +104,68 @@ checkpoint/output arguments and runs the declared default cohorts in four
 independent CPU workers. The complete parent evaluation, including query rows
 and full-stream traces, agrees exactly with serial execution. Cohort identity
 checks guard the join. This changes evaluation scheduling only.
+
+## Completed results
+
+All three runs finish 48 updates and select update 48. The matched retention
+comparison chooses 0.003: validation NLL 0.055799 / accuracy 99.4%, versus
+1.056687 / 47.5% at 0.001. The selective continuation's mean validation NLL
+falls from 1.154259 to 0.859912, while older-fact accuracy stays at 25%.
+
+| Held-out measurement | Acquired parent | Retention 0.003 | Selective continuation |
+| --- | ---: | ---: | ---: |
+| Single fact, +0 bytes | 97.7% | 100.0% | 100.0% |
+| Single fact, +8 bytes | 28.1% | 100.0% | 100.0% |
+| Single fact, +24 bytes | 21.1% | 97.7% | 100.0% |
+| Single fact, +64 bytes | 8.6% | 90.6% | 98.4% |
+| Single fact, +128 bytes | 16.4% | 57.0% | 76.6% |
+| Older competing fact, +0 bytes | 25.0% | 25.0% | 25.0% |
+| Both conflicting queries correct, +0 bytes | 0/192 | 0/192 | 0/192 |
+| Changed-value correction, +64 bytes | 11.5% | 94.8% | 100.0% |
+| Natural-text NLL | 3.126 | 3.421 | 3.132 |
+
+Each single-fact row contains 128 answers. The final model passes 30/32 complete
+four-value sets at +64 and 14/32 at +128. At +64, values 0/2/3 each score 32/32;
+value 1 scores 30/32, with two 1-to-0 mistakes. The previous systematic collapse
+is resolved. These fresh test cohorts differ from the preceding phase's tests.
+
+The final older-fact score is 25% at every tested gap, with no complete sets.
+Matched query-pair correctness stays 0/192 at +0/+24/+64. Changing only the
+queried entity changes the prediction 0/192, 0/192 and 1/192 times, respectively.
+The next target is key-specific writing and reading. The NLL improvement does
+not establish successful selection between conflicting facts.
+
+| Full ordinary stream | Acquired parent | Retention 0.003 | Selective continuation |
+| --- | ---: | ---: | ---: |
+| Later exact queries (82 targets) | 29.3% | 35.4% | 36.6% |
+| Corrected exact queries (64 targets) | 32.8% | 40.6% | 42.2% |
+| Long-delay later exact queries (84 targets) | 23.8% | 29.8% | 28.6% |
+
+The ordinary and long-delay cohorts each use eight full documents. Corrected
+and later-exact cohorts overlap. Natural-text NLL uses 1,024 held-out bytes.
+Controlled changed-value correction excludes equal old/new values and uses
+192 targets. Neither controlled retention nor correction substitutes for
+selective recall in the full competing-write stream.
+
+The lower-rate control reaches 98.4% immediate recall but only 26.6% at +64 and
++128; its natural-text NLL is 3.341. Its complete results remain in the audit.
+Each retention arm uses 768 answer targets, 34,944 task bytes and 6,144 language
+bytes. Selective continuation uses 768 targets (192 per mode), 24,576 task bytes
+and 6,144 language bytes. Architecture and inference remain unchanged.
+
+All 15 targeted checks pass; exact resume, subsequent phase continuation and
+the latest-value-shortcut control are verified. Completed production resume
+preserves selected and final checkpoint bytes. Selection/budgets reconstruct,
+all checkpoint weights are finite, and serial/parallel evaluation agrees exactly.
+
+```bash
+python scripts/summarize_memory_selectivity.py
+python scripts/run_memory_selectivity.py \
+  --parent artifacts/memory_selectivity/selective/best.pt \
+  --out artifacts/memory_selectivity/next --steps 48
+```
+
+Starting another phase preserves weights, optimizer, language state and source
+positions; its declared mode/gap cycle begins anew. The next experiment should
+trace key influence at writes and reads, then supervise both query directions
+from the same history within one update. Existing controls remain ablatable.

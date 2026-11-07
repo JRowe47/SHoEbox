@@ -78,18 +78,25 @@ P and Q feed the shared byte readout. B has one state owner and publishes to bot
 
 ## Development status
 
-The [balanced memory experiments](docs/memory_acquisition.md) break the
-constant-answer acquisition failure: held-out immediate four-value recall
-reaches **97.7% versus 25.0%**. A separate retention continuation maintains
-**75.0% through 64 added natural-text bytes and 68.0% through 128**, after
-training with at most 32 added bytes. Its remaining consistent confusion is
-stored 1 versus answer 0. Both main lineages complete 96 optimizer updates
-with the same 1,536 answer targets; architecture and trainable capacity are
-unchanged. Later exact and correction queries improve on the ordinary task,
-while competing-write long-delay recall and semantic/context answers remain
-the next memory-learning targets. See the [audited results](experiments/text_regions/results/memory_acquisition/summary.json)
-and [handoff](STATUS.md). GPU preparation and broader acceptance/scaling work
-are deferred during this memory-focused phase.
+The [acquired-memory continuation](docs/memory_selectivity.md) reaches **100%
+held-out recall through 24 added natural-text bytes, 98.4% through 64, and
+76.6% through 128**, after training with at most 32 added bytes. At +64, 30/32
+complete four-value sets pass; the previous persistent 1-to-0 collapse is
+resolved. Natural-text NLL is 3.132 versus the acquired parent's 3.126. All
+312,440 parameters remain trainable, with existing fading/publication controls active.
+
+Two matched 48-update retention arms start from the fully acquired checkpoint;
+validation selects learning rate 0.003 over 0.001. A further 48-update run mixes
+single facts, older/newer competing facts and corrections. It improves retention
+and language loss, while **older-fact selection remains at 25%**. Changing only
+the query cannot retrieve both conflicting facts correctly in any of 192 paired
+tests at each tested gap. Key-specific storage and recall are the next target.
+
+All 15 targeted checks pass, exact continuation preserves optimizer and source
+positions, and parallel evaluation agrees exactly with serial results. See the
+[audited results](experiments/text_regions/results/memory_selectivity/summary.json)
+and [handoff](STATUS.md). GPU preparation and broader acceptance/scaling remain
+deferred during this memory-focused phase.
 
 The [connected recall continuation](docs/SHoEbox_Connected_Recall_Report.md)
 completes 16 matched shared-stream updates per arm. Connected source coverage
