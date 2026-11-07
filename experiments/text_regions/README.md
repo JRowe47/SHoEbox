@@ -2,6 +2,46 @@
 
 This is SHoEbox's event-major reference implementation of the [development specification](../../docs/SHoE_Text_Development_Specification.md). It reuses the baseline's SymbolLevel, RecurrentChild, minKron, lace controller, and split expert banks. No old experiment is copied into this directory.
 
+## Learnable recall workspace
+
+`--recall-slots N` enables N role-preserving recall ports before the regional
+expert composer. Each selects a publication or null. Slot-specific queries,
+null controls, overlap penalties and input projections learn from task loss.
+The previous composer output feeds the next request; recall usage feeds the
+publication policy. No replay buffer or task annotation enters the model.
+
+```bash
+# Compact continuation: distinct slots versus a parameter-matched pooled arm.
+python scripts/run_recall.py --parent /path/to/learned/last.pt \
+  --out artifacts/recall/study
+
+# Seven available recall slots over nine independent publication owners.
+python -m experiments.text_regions.task_memory_train --out artifacts/recall_seven \
+  --recall-slots 7 --owners 9 --write-mode competitive \
+  --memory-aware-write --bootstrap-empty --stream-preset retention \
+  --state-commit publication --payload-rank 4 --payload-credit
+```
+
+Zero slots retains the exact legacy reader. `--recall-layout pooled`,
+`--no-recall-feedback`, and `--no-recall-hard` expose later ablations. The pooled
+layout keeps the same parameters and selection work, but averages items before
+slot-specific input maps. Slots may reuse an owner when that helps; the learned
+coverage penalty discourages duplication. Seven is a configurable capacity,
+not a fixed requirement. Owners remain the storage cells; slots are current views.
+
+Live gradients train all recall controls. Existing version-owned delayed credit
+still reaches publication admission through the selected reads. Historical
+request/composer derivatives are not reconstructed across detached windows.
+Query audits automatically include pooled-layout and feedback-off interventions;
+full per-slot selections accompany the aggregate mean read weights.
+For hard selection, `mean_unique_owners` counts distinct selected owners; in
+the soft ablation it reports summed capped owner mass as a continuous proxy.
+
+The distinct-slot and feedback mechanisms are retained for larger training.
+Code comments mark their potential training-threshold dependence, and the
+controls make later removal ablations explicit. Small pilot results guide the
+next integration step rather than deciding whether to delete the feature.
+
 ## Selective producer-state commits
 
 The [state-commit protocol](../../docs/SHoEbox_State_Commit_Protocol.md) tests

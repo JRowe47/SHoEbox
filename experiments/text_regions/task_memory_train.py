@@ -62,6 +62,7 @@ def evaluate(model, data_config, seed, count=16, context=16, split='validation',
     owner_reads = torch.zeros_like(owner_writes)
     weighted_age_sum = query_age_sum = 0.
     weighted_age_count = query_age_count = 0
+    recall_selected = recall_unique = recall_events = 0
     groups, records, controls = {}, [], {}
     started = time.perf_counter()
     stale_publications = None
@@ -136,6 +137,9 @@ def evaluate(model, data_config, seed, count=16, context=16, split='validation',
                           effective_weighted_publication_age=float(weighted_ages[row]) if
                               control != 'blocked' and nonnull_mass[row] > 0 else None)
             record['old_read_mass'] = float((read_weights[row]*publication_ages[row].gt(context)).sum())
+            if model.cfg.recall_slots:
+                record['recall_weights'] = result['recall_weights'][row, 0].tolist()
+                record['recall_probabilities'] = result['recall_probabilities'][row, 0].tolist()
             query_old_read_sum += record['old_read_mass']
             if nonnull_mass[row] > 0:
                 query_age_sum += float(weighted_ages[row]); query_age_count += 1
@@ -148,6 +152,11 @@ def evaluate(model, data_config, seed, count=16, context=16, split='validation',
             records.append(record)
         executions += result['expert_executions']
         active = valid[:, position]
+        if model.cfg.recall_slots:
+            slot_weights = result['recall_weights'][:, 0, :, :-1][active]
+            recall_selected += float(slot_weights.sum())
+            recall_unique += float(slot_weights.sum(1).clamp(max=1).sum())
+            recall_events += int(active.sum())
         bootstrap = result.get('bootstrap_mask', torch.zeros_like(x[:, position:position+1], dtype=torch.bool))[:, 0]
         bootstrap_events += int((bootstrap & active).sum())
         learned_writes += int((result['write_actions'][:, 0] & ~bootstrap[:, None])[active].sum())
@@ -183,6 +192,16 @@ def evaluate(model, data_config, seed, count=16, context=16, split='validation',
                    state_bytes=state.storage_bytes(),
                    expert_executions=executions, external_bytes=int(valid.sum()),
                    executed_bytes=x.numel(), seconds=time.perf_counter()-started)
+    if model.cfg.recall_slots:
+        summary['recall'] = dict(slots=model.cfg.recall_slots, layout=model.cfg.recall_layout,
+            hard=model.cfg.recall_hard, feedback=model.cfg.recall_feedback,
+            mean_active_slots=recall_selected/max(recall_events, 1),
+            mean_unique_owners=recall_unique/max(recall_events, 1),
+            effective_active_slots=0. if control == 'blocked' else recall_selected/max(recall_events, 1),
+            coverage_strength=F.softplus(model.recall.coverage_logit).tolist(),
+            feedback_weight_norms={name: float(getattr(model.recall, name).weight.norm())
+                for name in ('query_feedback', 'null_feedback', 'usage_feedback')},
+            aggregate_read_weights='Mean selection mass per slot; full per-slot choices are in query records.')
     model.train(was_training)
     return summary, records
 
@@ -211,7 +230,9 @@ def validate_resume(saved, args, model, data_cfg):
             raise ValueError(f'Resume {name} mismatch.')
     for name, default in (('curriculum', 'none'), ('acquire_steps', 200),
                           ('bridge_steps', 200), ('truncate_every', 0),
-                          ('payload_rank', 0), ('payload_credit', False), ('state_commit', 'always')):
+                          ('payload_rank', 0), ('payload_credit', False), ('state_commit', 'always'),
+                          ('recall_slots', 0), ('recall_layout', 'distinct'),
+                          ('recall_feedback', True), ('recall_hard', True)):
         if saved['args'].get(name, default) != getattr(args, name, default):
             raise ValueError(f'Resume {name} mismatch.')
     if args.steps < saved['step']:
@@ -251,6 +272,8 @@ def initialize_weights(model, path):
     allowed = {'memory_policy_features.weight'} if model.cfg.memory_aware_write else set()
     if model.cfg.payload_rank:
         allowed.update(('payload_adapter.coefficients', 'payload_adapter.basis'))
+    if model.cfg.recall_slots:
+        allowed.update(name for name in model.state_dict() if name.startswith('recall.'))
     if set(missing)-allowed or unexpected:
         raise ValueError(f'Incompatible parent weights: missing={missing}, unexpected={unexpected}')
     return dict(path=str(path), sha256=hashlib.sha256(path.read_bytes()).hexdigest(),
@@ -287,6 +310,11 @@ def main():
     p.add_argument('--payload-rank', type=int, default=0)
     p.add_argument('--state-commit', choices=('always', 'publication'), default='always',
                    help='Advance all producer states or only owners committing a publication; candidate compute is unchanged.')
+    p.add_argument('--recall-slots', type=int, default=0,
+                   help='Bounded recall ports; zero uses the legacy pooled reader. Any positive count, including seven, is supported.')
+    p.add_argument('--recall-layout', choices=('distinct', 'pooled'), default='distinct')
+    p.add_argument('--recall-feedback', action=argparse.BooleanOptionalAction, default=True)
+    p.add_argument('--recall-hard', action=argparse.BooleanOptionalAction, default=True)
     p.add_argument('--payload-credit', action='store_true',
                    help='Apply version-owned delayed payload-adapter gradients after backward.')
     p.add_argument('--stream-preset', choices=('basic', 'retention'), default='basic')
@@ -329,7 +357,9 @@ def main():
     args.out.mkdir(parents=True, exist_ok=True)
     model = TaskMemoryModel(TaskMemoryConfig(width=args.width, owners=args.owners, write_mode=args.write_mode,
                                             memory_aware_write=args.memory_aware_write, bootstrap_empty=args.bootstrap_empty,
-                                            payload_rank=args.payload_rank, state_commit=args.state_commit))
+                                            payload_rank=args.payload_rank, state_commit=args.state_commit,
+                                            recall_slots=args.recall_slots, recall_layout=args.recall_layout,
+                                            recall_feedback=args.recall_feedback, recall_hard=args.recall_hard))
     initialization = initialize_weights(model, args.init_from) if args.init_from else None
     data_cfg = TaskStreamConfig() if args.stream_preset == 'basic' else TaskStreamConfig(
         entities='ABCD', queries_per_cycle=4, delays=(2,48), interference=True)

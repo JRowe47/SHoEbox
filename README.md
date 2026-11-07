@@ -78,6 +78,18 @@ P and Q feed the shared byte readout. B has one state owner and publishes to bot
 
 ## Development status
 
+The [learnable recall workspace](docs/SHoEbox_Recall_Report.md) adds configurable
+item-or-null slots, learned overlap controls, slot-specific composer input maps,
+and feedback from composition to retrieval and publication. Two-slot runs add
+15,444 parameters; seven slots over nine owners also complete a combined state-hold
+and payload-credit training check. A matched short continuation favors the pooled
+control on held-out loss. The role-preserving architecture is retained for broader
+training, with explicit ablations and comments marking potential training-threshold
+dependence. All 520 checks pass. [PDF report](docs/SHoEbox_Recall_Report.pdf) |
+[metrics](experiments/text_regions/results/task_recall/summary.json) |
+[usage](experiments/text_regions/README.md#learnable-recall-workspace) |
+[handoff](STATUS.md).
+
 The [selective state-commit pass](docs/SHoEbox_State_Commit_Report.md) adds optional
 holds for producer contextualizer and recurrent contents using the existing
 publication decision. All 512 checks pass. Eight matched 600-update arms show a

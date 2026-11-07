@@ -163,6 +163,9 @@ def query_trace(state, result, values, blocked=False):
                 weighted_publication_age=float(weighted_age[row]) if mass[row] > 0 else None,
                 write_actions=result['write_actions'][row, t].tolist(),
                 state_actions=result['state_actions'][row, t].tolist() if 'state_actions' in result else None))
+            if 'recall_weights' in result:
+                rows[row][-1]['recall_weights'] = result['recall_weights'][row, t].tolist()
+                rows[row][-1]['recall_probabilities'] = result['recall_probabilities'][row, t].tolist()
         actions = result['write_actions'][:, t]
         occurrence = torch.where(actions, clock[:, None], occurrence)
         valid = valid | actions
@@ -171,7 +174,7 @@ def query_trace(state, result, values, blocked=False):
 
 @torch.no_grad()
 def query_forks(model, values, state, donors=None, include_fresh=False, live_control='intact', age_threshold=None,
-                include_producer=False):
+                include_producer=False, include_recall=False):
     """Return query predictions and traces from exactly the same pre-query state."""
     if live_control not in ('intact', 'fresh', 'blocked'):
         raise ValueError('Live control must be intact, fresh, or blocked.')
@@ -183,6 +186,17 @@ def query_forks(model, values, state, donors=None, include_fresh=False, live_con
     for name, control, write_override in settings:
         result = model(values, state=state, control=control, write_override=write_override)
         outputs[name] = dict(result=result, trace=query_trace(state, result, values, control == 'blocked'))
+    if include_recall and model.cfg.recall_slots:
+        original_config = model.cfg
+        try:
+            for name, changes in (('recall_pooled', dict(recall_layout='pooled')),
+                                  ('recall_no_feedback', dict(recall_feedback=False))):
+                model.cfg = replace(original_config, **changes)
+                result = model(values, state=state, control=live_control)
+                outputs[name] = dict(result=result,
+                    trace=query_trace(state, result, values, live_control == 'blocked'))
+        finally:
+            model.cfg = original_config
     if donors is not None:
         shuffled = shuffle_publication_content(state, donors)
         for name, write_override in [('shuffle', None), ('hold_shuffle', 'hold')]:
@@ -219,7 +233,7 @@ def query_forks(model, values, state, donors=None, include_fresh=False, live_con
 
 @torch.no_grad()
 def audit(model, data_config, *, data_seed=123, split='test', count=16, include_fresh=False, live_control='intact',
-          age_threshold=16, include_producer=False):
+          age_threshold=16, include_producer=False, include_recall=None):
     """Audit fresh documents, with query event labels used for evaluation only."""
     if live_control not in ('intact', 'fresh', 'blocked'):
         raise ValueError('Live control must be intact, fresh, or blocked.')
@@ -227,6 +241,7 @@ def audit(model, data_config, *, data_seed=123, split='test', count=16, include_
         raise ValueError('At least two independent documents are needed for content shuffling.')
     if age_threshold is not None and age_threshold < 0:
         raise ValueError('Age threshold must be nonnegative.')
+    include_recall = bool(model.cfg.recall_slots) if include_recall is None else include_recall
     was_training = model.training
     model.eval()
     started = time.perf_counter()
@@ -268,7 +283,7 @@ def audit(model, data_config, *, data_seed=123, split='test', count=16, include_
                 donors.append(i if other is None else other)
                 donor_valid.append(other is not None)
             forks = query_forks(model, values, batch_state, donors, include_fresh, live_control, age_threshold,
-                                include_producer)
+                                include_producer, include_recall)
             query_executions += forks['intact']['result']['expert_executions']
             for i, (row, event) in enumerate(items):
                 q = documents[row].queries[event.query_index]
@@ -348,7 +363,11 @@ def audit(model, data_config, *, data_seed=123, split='test', count=16, include_
                 aged_shuffle='Only existing pre-query cells strictly older than age_threshold receive valid other-document content; metadata is preserved and normal query writes continue.',
                 hold_shuffle='Other-document payload/header with publications held throughout query.',
                 fresh='Current producer candidates replace read values; memory-aware admission can still consult stored publications.'),
-            scope='All forks preserve pre-query ingress and composer recurrence. Publication shuffles also preserve producer recurrence. Producer shuffles change only producer contents. Normal-write shuffle branches retain the trained read control. In publication state-commit mode, hold-versus-intact changes both publication and producer commits; comparisons within the hold branches share the same state hold. Fresh uses current candidates; blocked disables the read contribution.')
+            scope='All forks preserve pre-query ingress, composer recurrence and carried recall feedback. Publication shuffles also preserve producer recurrence. Producer shuffles change only producer contents. Normal-write shuffle branches retain the trained read control. In publication state-commit mode, hold-versus-intact changes both publication and producer commits; comparisons within the hold branches share the same state hold. Fresh uses current candidates; blocked disables the composer read contribution. Memory-aware admission and recall-usage feedback may still consult publications when reads are blocked.')
+        if include_recall and model.cfg.recall_slots:
+            summary['interventions'].update(
+                recall_pooled='Pool selected items before slot-specific input maps throughout the query; selection controls and parameter count are preserved.',
+                recall_no_feedback='Disable composer-to-request and usage-to-write feedback throughout the query; preserve initial state, publication content and learned slot parameters.')
         if include_producer:
             summary['interventions'].update(
                 producer_shuffle='Other-document committed producer contents replace recipient contents; publications and all clocks are preserved.',
@@ -416,6 +435,8 @@ def main():
     parser.add_argument('--threads', type=int, default=1)
     parser.add_argument('--fresh-control', action='store_true', help='Also read current producer candidates during each query.')
     parser.add_argument('--producer-state', action='store_true', help='Also shuffle committed producer contents and age-filtered producer contents.')
+    parser.add_argument('--recall-controls', action=argparse.BooleanOptionalAction, default=None,
+                        help='Query-time pooling and feedback ablations; enabled automatically for recall models.')
     parser.add_argument('--age-threshold', type=int, help='Old-cell shuffle threshold; defaults to checkpoint training context.')
     args = parser.parse_args()
     torch.set_num_threads(args.threads)
@@ -427,6 +448,7 @@ def main():
                              split=args.split, count=args.count, include_fresh=args.fresh_control,
                              live_control=training_control(saved['args']['arm']),
                              include_producer=args.producer_state,
+                             include_recall=args.recall_controls,
                              age_threshold=args.age_threshold if args.age_threshold is not None else saved['args'].get('context', 16))
     summary.update(checkpoint=str(args.checkpoint), selected_step=saved['step'])
     args.out.mkdir(parents=True, exist_ok=True)

@@ -19,6 +19,7 @@ from .state import NodeState
 from .runtime import RuntimeHAT, forward_scope, next_event
 from .task_payload import PayloadAdapter
 from .task_state_commit import commit_producer_state
+from .task_recall import RecallWorkspace
 
 
 @dataclass(frozen=True)
@@ -47,6 +48,10 @@ class TaskMemoryConfig:
     bootstrap_empty: bool = False
     payload_rank: int = 0
     state_commit: str = 'always'
+    recall_slots: int = 0
+    recall_layout: str = 'distinct'
+    recall_feedback: bool = True
+    recall_hard: bool = True
 
     def to_dict(self):
         return asdict(self)
@@ -57,8 +62,13 @@ class TaskMemoryConfig:
 
     def graph_config(self):
         values = self.to_dict()
-        for key in ('owners', 'policy_features', 'write_mode', 'memory_aware_write', 'bootstrap_empty', 'payload_rank', 'state_commit'):
+        for key in ('owners', 'policy_features', 'write_mode', 'memory_aware_write', 'bootstrap_empty', 'payload_rank', 'state_commit',
+                    'recall_slots', 'recall_layout', 'recall_feedback', 'recall_hard'):
             values.pop(key)
+        if not isinstance(self.recall_slots, int) or self.recall_slots < 0:
+            raise ValueError('Recall slots must be a nonnegative integer; zero selects the legacy reader.')
+        if self.recall_layout not in ('distinct', 'pooled'):
+            raise ValueError('Recall layout must be distinct or pooled.')
         if self.state_commit not in ('always', 'publication'):
             raise ValueError('State commit must be always or publication.')
         if not 0 <= self.payload_rank <= self.width:
@@ -80,6 +90,7 @@ class TaskMemoryState:
     publications: dict[str, Publication]
     events_seen: torch.Tensor
     epochs: torch.Tensor
+    recall_feedback: torch.Tensor | None = None
 
     def detach(self):
         return map_tensors(self, lambda x: x.detach())
@@ -97,7 +108,9 @@ class TaskMemoryState:
                        producer=self.producer.reset(rows.repeat_interleave(len(self.publications))),
                        composer=self.composer.reset(rows),
                        publications={k: p.reset(rows) for k, p in self.publications.items()},
-                       events_seen=self.events_seen*(~rows), epochs=self.epochs+rows.long())
+                       events_seen=self.events_seen*(~rows), epochs=self.epochs+rows.long(),
+                       recall_feedback=None if self.recall_feedback is None else
+                           torch.where(rows[:, None], 0, self.recall_feedback))
 
     def memory_tensor(self):
         return torch.stack([torch.cat((p.payload, p.header.memberships.flatten(1)), -1)
@@ -130,7 +143,7 @@ class TaskMemoryState:
             return NodeState(tuple(d['contextualizer']), tuple(d['blocks']), d['clock'])
         return cls(HATState(**data['ingress']), node(data['producer']), node(data['composer']),
                    {k: Publication.from_dict(v) for k, v in data['publications'].items()},
-                   data['events_seen'], data['epochs'])
+                   data['events_seen'], data['epochs'], data.get('recall_feedback'))
 
 
 class TaskMemoryModel(nn.Module):
@@ -177,6 +190,11 @@ class TaskMemoryModel(nn.Module):
             nn.init.zeros_(self.memory_policy_features.weight)
         if self.cfg.payload_rank:
             self.payload_adapter = PayloadAdapter(m, d, self.cfg.payload_rank)
+        if self.cfg.recall_slots:
+            # New controls do not perturb the common model initialization or
+            # caller RNG. Slots are configurable, not a fixed cognitive limit.
+            with torch.random.fork_rng(devices=[]):
+                self.recall = RecallWorkspace(d, s, c.address_dim, self.cfg.recall_slots, f)
 
     @property
     def memory_dim(self):
@@ -199,7 +217,8 @@ class TaskMemoryModel(nn.Module):
                                self.producer.initial_state(batch*c.owners, device, dtype),
                                self.composer.initial_state(batch, device, dtype), pubs,
                                torch.zeros(batch, dtype=torch.long, device=device),
-                               torch.zeros(batch, dtype=torch.long, device=device))
+                               torch.zeros(batch, dtype=torch.long, device=device),
+                               torch.zeros(batch, d, device=device, dtype=dtype) if c.recall_slots else None)
 
     @forward_scope
     def forward(self, inputs, state=None, reset=None, control='intact', write_override=None, capture=True):
@@ -226,6 +245,8 @@ class TaskMemoryModel(nn.Module):
         state_masks = []
         if c.payload_rank:
             records['payload_features'] = []
+        if c.recall_slots:
+            records.update(recall_weights=[], recall_probabilities=[])
         aux = self.write_policy.new_zeros(())
         hat_aux = aux
         active = torch.ones(b, dtype=torch.bool, device=inputs.device)
@@ -248,7 +269,7 @@ class TaskMemoryModel(nn.Module):
                 candidate_payload, payload_features = self.payload_adapter(raw_payload)
             candidate_header = producer['header'].memberships.reshape(b, m, 3*c.groups)
             candidates = torch.cat((candidate_payload, candidate_header), -1)
-            query = F.normalize(self.query(x)+self.query_semantic(candidate_header.mean(1)), dim=-1)
+            base_query = self.query(x)+self.query_semantic(candidate_header.mean(1))
             memory = before
             owned_valid = torch.stack([p.valid for p in state.publications.values()], 1)
             valid = owned_valid
@@ -262,17 +283,31 @@ class TaskMemoryModel(nn.Module):
                 valid = torch.ones_like(owned_valid)
                 versions = torch.full_like(versions, -1)
             keys = F.normalize(self.key(memory), dim=-1)
-            scores = 4*(query[:, None]*keys).sum(-1)
-            scores = scores.masked_fill(~valid, -1e4)
-            weights = torch.cat((scores, self.null_read(x)), -1).softmax(-1)
-            effective = weights[:, :m] if control != 'blocked' else weights[:, :m]*0
-            retrieved = (effective[:, :, None]*memory).sum(1)
-            composer = self.composer(self.ingress_value(x)+self.read_value(retrieved[:, :d]),
-                                     self.read_context(retrieved[:, d:]).reshape(b, 3, c.groups),
+            if c.recall_slots:
+                feedback = state.recall_feedback
+                if feedback is None:  # Compatible migration of a legacy runtime state.
+                    feedback = torch.zeros_like(x)
+                recall = self.recall.select(base_query, keys, memory, valid, self.null_read(x), feedback,
+                    hard=c.recall_hard, feedback_enabled=c.recall_feedback, blocked=control == 'blocked')
+                weights = recall['weights'].mean(1)  # Legacy telemetry: mean mass per slot.
+                retrieved = recall['contents']
+                read_payload, read_semantics = self.recall.compose(self.read_value(retrieved[..., :d]),
+                    self.read_context(retrieved[..., d:]), c.recall_layout)
+            else:
+                query = F.normalize(base_query, dim=-1)
+                scores = (4*(query[:, None]*keys).sum(-1)).masked_fill(~valid, -1e4)
+                weights = torch.cat((scores, self.null_read(x)), -1).softmax(-1)
+                effective = weights[:, :m] if control != 'blocked' else weights[:, :m]*0
+                retrieved = (effective[:, :, None]*memory).sum(1)
+                read_payload, read_semantics = self.read_value(retrieved[:, :d]), self.read_context(retrieved[:, d:])
+            composer = self.composer(self.ingress_value(x)+read_payload,
+                                     read_semantics.reshape(b, 3, c.groups),
                                      state.composer, active)
             logits.append(self.decoder(composer['latent']))
             # Admission features stay upstream of the payload-only adapter.
             feature_input = self.policy_features(raw_payload)
+            if c.recall_slots:
+                feature_input = feature_input + self.recall.write_feedback(recall['probabilities'], c.recall_feedback)
             if c.memory_aware_write:
                 old = before.detach()
                 observed = candidates.detach()
@@ -335,10 +370,13 @@ class TaskMemoryModel(nn.Module):
                               write_eligible=eligible)
                 if c.payload_rank:
                     values['payload_features'] = payload_features
+                if c.recall_slots:
+                    values.update(recall_weights=recall['weights'], recall_probabilities=recall['probabilities'])
                 for name, value in values.items():
                     records[name].append(value)
             state = TaskMemoryState(ingress['state'], producer_state, composer['state'], publications,
-                                    state.events_seen+1, state.epochs)
+                                    state.events_seen+1, state.epochs,
+                                    composer['latent'] if c.recall_slots else None)
             aux = aux+(producer['aux']+composer['aux'])/2
             hat_aux = hat_aux+(ingress['aux']+producer['hat_aux']+composer['hat_aux'])/3
         result = dict(logits=torch.stack(logits, 1), state=state, aux=aux/t, hat_aux=hat_aux/t,
