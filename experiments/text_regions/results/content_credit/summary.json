@@ -1,0 +1,73 @@
+{
+  "base_commit": "bd9b14db2b7fa1d410e7d8fb3189e7615f917f43",
+  "parent_checkpoint_sha256": "9c56112ad8eca71706f1451dd58a163e0e598103f561729f8918a0443a77778a",
+  "raw_sha256": "86c4e6aa9db7c042ec79f339dcb96d42b0075e16b8fc2e86bf0ca57e2dc565ed",
+  "repair": "Exact content gradients across execution chunks; one historical-credit receipt at optimizer-window entry",
+  "default_gradient_horizon": 384,
+  "execution_segment": 16,
+  "global_gradient_cap": 1.0,
+  "historical_credit": "Exact content gradients end at optimizer windows; older conditional gate/payload traces remain limited",
+  "derivative": {
+    "delay_bytes": 148,
+    "source_position": 32,
+    "query_position": 180,
+    "old_source_gradient_norm": 0.0,
+    "repaired_source_gradient_norm": 0.013164902495110228,
+    "maximum_gradient_difference": 0.0,
+    "maximum_logit_difference": 0.0
+  },
+  "regression": {
+    "passed": 35,
+    "seconds": 52.982,
+    "suites": [
+      "test_content_credit",
+      "test_state_credit",
+      "test_context_balance",
+      "test_runtime_fusion"
+    ]
+  },
+  "smoke": {
+    "updates": 1,
+    "language_bytes": 384,
+    "task_bytes": 384,
+    "answer_targets": 19,
+    "parameters": 312440,
+    "changed_parameter_tensors": 757,
+    "all_weights_finite": true,
+    "combined_gradient_norm_before_clip": 1.7939989566802979,
+    "fp64_norm_recovered": false,
+    "seconds": 217.3276604729981,
+    "peak_process_mib": 7239.41015625,
+    "before": {
+      "acquisition": {
+        "count": 32,
+        "accuracy": 0.25,
+        "nll": 1.621589370071888,
+        "predictions": {
+          "1": 32
+        }
+      },
+      "language": {
+        "nll": 3.2038440704345703,
+        "targets": 64,
+        "state_bytes": 9081
+      }
+    },
+    "after": {
+      "acquisition": {
+        "count": 32,
+        "accuracy": 0.25,
+        "nll": 1.6181644164025784,
+        "predictions": {
+          "1": 32
+        }
+      },
+      "language": {
+        "nll": 3.2487242221832275,
+        "targets": 64,
+        "state_bytes": 9081
+      }
+    },
+    "checkpoint_selection": "No validation selection; one-update smoke continuation"
+  }
+}

@@ -78,6 +78,14 @@ P and Q feed the shared byte readout. B has one state owner and publishes to bot
 
 ## Development status
 
+The [content-credit repair](docs/content_credit.md) preserves exact gradients
+across 16-byte execution chunks inside a configurable optimizer window (384 bytes
+by default). It moves historical-credit capture to window entry, avoiding both
+hidden detachments and double counting. The original 148-byte observation probe
+now matches full BPTT exactly; 35 relevant checks pass. Use `ContentCreditRun`
+for the next continuation. Exact content credit remains bounded by the optimizer
+window, with the existing conditional traces bridging older windows.
+
 The [producer-state credit pass](docs/SHoEbox_State_Credit_Report.md) carries
 conditional admission gradients through existing contextualizer and expert-block
 MinKron state across gradient boundaries. It adds no trainable parameters or

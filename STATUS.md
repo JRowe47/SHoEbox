@@ -1,6 +1,31 @@
 # SHoEbox handoff
 
-## Latest: signal and gradient headcheck
+## Latest: repair the historical content path
+
+`ContentCreditRun` separates 16-byte execution chunks from a default 384-byte
+optimizer/gradient window. Internal chunks carry the complete live graph.
+Historical eligibility is captured once at window entry: capture itself detaches
+state, and applying internal receipts would double-count exact autograd credit.
+Global norm cap 1.0, shared language/task updates and inference are unchanged.
+
+The original 148-byte source-to-answer derivative is restored from zero to
+0.013164902495110228, with zero difference from the full reference in both
+gradient and logits. All 35 relevant regression checks pass, including exact
+resume, row resets, older credit, all-parameter gradients and runtime fusion.
+
+The default 384-byte smoke update completes: 384 language bytes plus 384 task
+bytes, 19 answer targets, 757 changed parameter tensors and finite weights.
+It takes 217.3 CPU seconds and peaks at 7.07 GiB process memory. Immediate
+acquisition stays at 25% after this single update; its checkpoint is not
+validation selected. [Measurements](experiments/text_regions/results/content_credit/summary.json).
+
+Use the [connected continuation protocol](docs/content_credit.md) for subsequent
+training. Exact content credit ends at optimizer boundaries; existing older
+conditional traces retain their limited scope. The next target is ordinary
+shared-stream training that establishes reliable value-conditioned short recall,
+then longer-delay recall. Keep the broader architectural controls ablatable.
+
+## Completed: signal and gradient headcheck
 
 The November 7 audit of runtime `9f813f7` and the update-32 state-credit
 checkpoint found live forward modulation and nonzero answer-only gradients in
