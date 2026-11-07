@@ -24,8 +24,9 @@ candidate = x + (a * z) @ U
 ```
 
 Zero coefficients give an exact identity. Directions are deterministic DCT rows
-and do not consume the model's initialization RNG. Write-policy features use
-the original producer output; the adapter changes payload content only. All
+and do not consume the model's initialization RNG. The base write-feature
+projection uses the original producer output; memory-aware write statistics
+retain their existing detached behavior. The adapter transforms payload content. All
 existing producer, router, composer, and read parameters remain trainable.
 
 An owned publication keeps the `z` of its actual last commit. A hold preserves

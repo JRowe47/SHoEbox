@@ -1,0 +1,140 @@
+{
+  "out": "/workspace/scratch/3d3e0a18412c/SHoEbox/artifacts/payload_credit/41/gate_only",
+  "steps": 600,
+  "seed": 41,
+  "data_seed": 241,
+  "arm": "integrated",
+  "batch": 8,
+  "context": 64,
+  "width": 80,
+  "write_mode": "competitive",
+  "memory_aware_write": true,
+  "bootstrap_empty": true,
+  "payload_rank": 4,
+  "payload_credit": false,
+  "stream_preset": "retention",
+  "curriculum": "acquisition",
+  "acquire_steps": 200,
+  "bridge_steps": 200,
+  "truncate_every": 0,
+  "owners": 4,
+  "lr": 0.002,
+  "text_weight": 0.1,
+  "write_cost": 0.0,
+  "eval_every": 100,
+  "eval_count": 16,
+  "threads": 1,
+  "resume": null,
+  "init_from": null,
+  "final_eval": true,
+  "data_digest": "39c42a0942afa61382d6e07510c4e0032c31777fee85b9ae0eb3bcca10b66b7f",
+  "model_parameters": 549075,
+  "config": {
+    "width": 80,
+    "owners": 4,
+    "policy_features": 8,
+    "experts_per_block": 128,
+    "shared_per_block": 64,
+    "expert_hidden": 4,
+    "groups": 8,
+    "active_groups": 2,
+    "experts_per_group": 2,
+    "address_dim": 16,
+    "laces": 32,
+    "active_laces": 2,
+    "hat_levels": 1,
+    "hat_symbols": 32,
+    "hat_active_symbols": 2,
+    "kron_heads": 2,
+    "kron_key": 4,
+    "kron_value": 4,
+    "seed": 1,
+    "write_mode": "competitive",
+    "memory_aware_write": true,
+    "bootstrap_empty": true,
+    "payload_rank": 4
+  },
+  "data_config": {
+    "entities": "ABCD",
+    "attributes": [
+      "x"
+    ],
+    "values": "0123",
+    "cycles": 2,
+    "queries_per_cycle": 4,
+    "delays": [
+      2,
+      48
+    ],
+    "long_delay_multiplier": 3,
+    "semantic_fraction": 0.2,
+    "contextual_questions": true,
+    "relations": false,
+    "holdout_combinations": false,
+    "interference": true,
+    "acquisition_queries": false
+  },
+  "training_stages": {
+    "acquire": {
+      "entities": "ABCD",
+      "attributes": [
+        "x"
+      ],
+      "values": "0123",
+      "cycles": 2,
+      "queries_per_cycle": 4,
+      "delays": [
+        0,
+        2
+      ],
+      "long_delay_multiplier": 3,
+      "semantic_fraction": 0.2,
+      "contextual_questions": true,
+      "relations": false,
+      "holdout_combinations": false,
+      "interference": false,
+      "acquisition_queries": true
+    },
+    "bridge": {
+      "entities": "ABCD",
+      "attributes": [
+        "x"
+      ],
+      "values": "0123",
+      "cycles": 2,
+      "queries_per_cycle": 4,
+      "delays": [
+        2,
+        16
+      ],
+      "long_delay_multiplier": 3,
+      "semantic_fraction": 0.2,
+      "contextual_questions": true,
+      "relations": false,
+      "holdout_combinations": false,
+      "interference": true,
+      "acquisition_queries": false
+    },
+    "target": {
+      "entities": "ABCD",
+      "attributes": [
+        "x"
+      ],
+      "values": "0123",
+      "cycles": 2,
+      "queries_per_cycle": 4,
+      "delays": [
+        2,
+        48
+      ],
+      "long_delay_multiplier": 3,
+      "semantic_fraction": 0.2,
+      "contextual_questions": true,
+      "relations": false,
+      "holdout_combinations": false,
+      "interference": true,
+      "acquisition_queries": false
+    }
+  },
+  "initialization": null
+}

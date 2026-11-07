@@ -2,6 +2,30 @@
 
 This is SHoEbox's event-major reference implementation of the [development specification](../../docs/SHoE_Text_Development_Specification.md). It reuses the baseline's SymbolLevel, RecurrentChild, minKron, lace controller, and split expert banks. No old experiment is copied into this directory.
 
+## Delayed payload credit
+
+The [payload-credit protocol](../../docs/SHoEbox_Payload_Credit_Protocol.md)
+adds an optional identity-initialized payload adapter. Four coefficients per
+owner learn through the live graph; a version-owned trace can also credit them
+from later reads across detach boundaries. The trace stores four bounded
+scalars per owner, preserves holds, and discards replaced/reset responsibility.
+
+```bash
+# Paired gate-only, payload-credit, and trained-fresh arms; repeat to resume.
+python scripts/run_payload_credit.py --out artifacts/payload_credit --workers 3
+python scripts/summarize_payload_credit.py --root artifacts/payload_credit \
+  --out experiments/text_regions/results/task_payload_credit/summary.json
+
+# Enable the new mechanism directly in the ordinary task trainer.
+python -m experiments.text_regions.task_memory_train \
+  --out artifacts/payload_example --payload-rank 4 --payload-credit
+```
+
+Omit `--payload-credit` for the parameter-matched live-gradient adapter control.
+Rank defaults to zero, retaining the legacy model. The study includes selected
+and final evaluations plus whole-query shuffles at age thresholds 16 and 64.
+See [STATUS.md](../../STATUS.md) for the current result and handoff.
+
 ## Acquisition-to-retention curriculum
 
 The [acquisition protocol](../../docs/SHoEbox_Acquisition_Protocol.md) trains short
