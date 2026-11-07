@@ -51,6 +51,7 @@ class RegionLanguageModel(nn.Module):
         nn.init.normal_(self.readout.weight, std=.02)
         self.specs = {n.name: n for n in self.cfg.nodes}
         self.stages = self.cfg.stages()
+        self.connections.initialize_recall()
 
     def initial_state(self, batch, device=None):
         if batch < 1:
@@ -70,7 +71,9 @@ class RegionLanguageModel(nn.Module):
                           TensorPorts({name: empty(name) for name in names}),
                           torch.zeros(batch, dtype=torch.long, device=device),
                           torch.zeros(batch, dtype=torch.long, device=device),
-                          torch.zeros(batch, dtype=torch.long, device=device))
+                          torch.zeros(batch, dtype=torch.long, device=device),
+                          recall_feedback={name: torch.zeros(batch, c.width, device=device, dtype=dtype)
+                                           for name in self.connections.recall})
 
     def ingress_hat(self, view):
         owner = self.view_owners.get(view)
@@ -95,6 +98,11 @@ class RegionLanguageModel(nn.Module):
             raise ValueError('State batch/device mismatch.')
         if set(state.nodes) != set(self.nodes):
             raise ValueError('State topology mismatch.')
+        if set(state.recall_feedback) - set(self.connections.recall):
+            raise ValueError('Recall feedback topology mismatch.')
+        for value in state.recall_feedback.values():
+            if value.shape != (b, self.cfg.width) or value.device != first.values.device:
+                raise ValueError('Recall feedback batch/device mismatch.')
         mode = 'views' if controlled else 'text'
         if state.input_mode and state.input_mode != mode:
             raise ValueError('Start a fresh state when switching between text and controlled-view inputs.')
@@ -131,7 +139,10 @@ class RegionLanguageModel(nn.Module):
                 trace=False, reverse_independent=False, return_view_activity=False,
                 return_edge_activity=False, edge_bias=None, lace_bias=None,
                 return_round_activity=False, return_node_activity=(),
-                return_publication_activity=False, publication_overrides=None):
+                return_publication_activity=False, publication_overrides=None,
+                return_recall_activity=False, recall_control='intact'):
+        if recall_control not in ('intact', 'pooled', 'no_feedback', 'blocked'):
+            raise ValueError('Unknown regional recall control.')
         publication_overrides = publication_overrides or {}
         if set(publication_overrides)-set(self.cfg.selective_publication) or any(
                 value not in ('always', 'hold') for value in publication_overrides.values()):
@@ -162,6 +173,7 @@ class RegionLanguageModel(nn.Module):
         device = state.events_seen.device
         all_active = torch.ones(b, dtype=torch.bool, device=device)
         logits, records = [], []
+        recall_activity = {name: [] for name in self.connections.recall} if return_recall_activity else {}
         node_activity = {name: {'payload': [], 'valid': []} for name in return_node_activity}
         publication_activity = {name: {'candidate': [], 'logit': [], 'written': []}
                                 for name in self.cfg.selective_publication} if return_publication_activity else {}
@@ -175,6 +187,7 @@ class RegionLanguageModel(nn.Module):
         activations = ingress_activations = executed = 0
         for event_index in range(t):
             next_event()
+            event_recalls = {name: [] for name in recall_activity}
             event_publications = {name: {key: [] for key in activity}
                                   for name, activity in publication_activity.items()}
             event_activity = {name: {'payload': [], 'valid': []} for name in round_activity}
@@ -206,6 +219,7 @@ class RegionLanguageModel(nn.Module):
                 for stage in self.stages:
                     current, staged, node_states = state.ports.snapshot(), {}, dict(state.nodes)
                     requests = {}
+                    recall_feedback = dict(state.recall_feedback)
                     for name in reversed(stage) if reverse_independent else stage:
                         spec = self.specs[name]
                         active = node_masks[name][:, event_index] if name in node_masks else all_active
@@ -213,8 +227,12 @@ class RegionLanguageModel(nn.Module):
                         if spec.view is not None:
                             ingress = current['@'+spec.view if controlled else '@text']
                             ingress = replace(ingress, valid=ingress.valid & available[spec.view])
+                        recall_record = {} if name in recall_activity else None
                         payload, context, dependencies = self.connections.gather(
-                            spec, current, delayed, ingress, active, event_index, edge_masks, substitutions, edge_bias)
+                            spec, current, delayed, ingress, active, event_index, edge_masks, substitutions, edge_bias,
+                            state.recall_feedback.get(name), recall_control, recall_record)
+                        if recall_record is not None:
+                            event_recalls[name].append(recall_record)
                         if return_edge_activity:
                             for dependency in dependencies:
                                 if dependency.edge in edge_indices:
@@ -225,6 +243,9 @@ class RegionLanguageModel(nn.Module):
                         spec = self.specs[name]
                         result = self.nodes[name](payload, context, node_state, active, trace, lace_bias.get(name), prepared.get(name))
                         node_states[name] = result['state']
+                        if name in self.connections.recall:
+                            previous = state.recall_feedback.get(name, torch.zeros_like(result['latent']))
+                            recall_feedback[name] = torch.where(active[:, None], result['latent'], previous)
                         writing = active
                         if name in self.cfg.selective_publication:
                             logit = self.nodes[name].publication_logit(result['latent'])
@@ -256,12 +277,15 @@ class RegionLanguageModel(nn.Module):
                                             'version': publication.version.detach(), 'routing': result['trace'],
                                             'valid': publication.valid.detach(),
                                             'dependencies': tuple(d for d in dependencies if bool(d.consumed.any()))})
-                    state = replace(state, nodes=node_states, ports=state.ports.commit(staged))
+                    state = replace(state, nodes=node_states, ports=state.ports.commit(staged),
+                                    recall_feedback=recall_feedback)
                 state = replace(state, rounds_seen=state.rounds_seen+1)
                 for name, activity in event_activity.items():
                     publication = state.ports.latest[name]
                     activity['payload'].append(publication.payload)
                     activity['valid'].append(publication.valid)
+            for name, items in event_recalls.items():
+                recall_activity[name].append({key: torch.stack([r[key] for r in items], 1) for key in items[0]})
             for name, activity in event_activity.items():
                 for key, values in activity.items():
                     round_activity[name][key].append(torch.stack(values, 1))
@@ -298,11 +322,15 @@ class RegionLanguageModel(nn.Module):
                          for name, values in node_activity.items()}
         publication_activity = {name: {key: torch.stack(parts, 1) for key, parts in values.items()}
                                 for name, values in publication_activity.items()}
+        recall_activity = {name: {key: torch.stack([r[key] for r in items], 1)
+                                  for key in items[0]} for name, items in recall_activity.items()}
         return {'logits': logits, 'loss': loss, 'ce': ce, 'aux': aux, 'hat_aux': hat_aux,
                 'state': state, 'trace': records, 'expert_executions': executed,
                 'view_activity': view_activity, 'edge_activity': usage, 'edge_names': edge_names,
                 'round_activity': round_activity, 'node_activity': node_activity,
                 'publication_activity': publication_activity,
+                'recall_activity': recall_activity,
+                'recall_edges': {n: tuple(e.key for e in self.connections.incoming[n]) for n in recall_activity},
                 'external_events': b*t, 'source_occurrences': ingress_activations, 'internal_rounds': b*t*k_total}
 
     def parameter_summary(self):

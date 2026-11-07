@@ -68,6 +68,11 @@ class GraphConfig:
     evidence_gated_ports: bool = False
     selective_publication: tuple[str, ...] = ()
     independent_sources: tuple[str, ...] = ()
+    recall_slots: int = 0
+    recall_nodes: tuple[str, ...] = ()  # Empty selects all nodes with incoming edges.
+    recall_layout: str = 'distinct'
+    recall_feedback: bool = True
+    recall_hard: bool = True
     context: int = 128
     auxiliary_loss_weight: float = .01
     hat_balance_weight: float = .001
@@ -118,6 +123,18 @@ class GraphConfig:
             if len(matches) != 1 or matches[0].view is None or sum(
                     n.view == matches[0].view for n in self.nodes) != 1:
                 raise ValueError('Independent sources require a known node with an exclusive view.')
+        if type(self.recall_slots) is not int or self.recall_slots < 0:
+            raise ValueError('Recall slots must be a nonnegative integer.')
+        if self.recall_layout not in ('distinct', 'pooled'):
+            raise ValueError('Recall layout must be distinct or pooled.')
+        if type(self.recall_feedback) is not bool or type(self.recall_hard) is not bool:
+            raise ValueError('Recall feedback and hard selection must be boolean.')
+        if len(set(self.recall_nodes)) != len(self.recall_nodes) or any(
+                n not in names or not any(e.destination == n for e in self.edges)
+                for n in self.recall_nodes):
+            raise ValueError('Recall nodes must be distinct known nodes with incoming edges.')
+        if self.recall_nodes and not self.recall_slots:
+            raise ValueError('Recall nodes require positive slot capacity.')
         if self.readout_mode not in ('mixed', 'concat'):
             raise ValueError('Readout mode must be mixed or concat.')
         if len(set(e.key for e in self.edges)) != len(self.edges):
@@ -159,6 +176,7 @@ class GraphConfig:
         data['readout'] = tuple(data['readout'])
         data['selective_publication'] = tuple(data.get('selective_publication', ()))
         data['independent_sources'] = tuple(data.get('independent_sources', ()))
+        data['recall_nodes'] = tuple(data.get('recall_nodes', ()))
         return cls(**data)
 
     @classmethod

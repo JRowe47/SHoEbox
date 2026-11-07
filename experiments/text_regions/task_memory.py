@@ -19,7 +19,7 @@ from .state import NodeState
 from .runtime import RuntimeHAT, forward_scope, next_event
 from .task_payload import PayloadAdapter
 from .task_state_commit import commit_producer_state
-from .task_recall import RecallWorkspace
+from .recall import RecallWorkspace
 
 
 @dataclass(frozen=True)

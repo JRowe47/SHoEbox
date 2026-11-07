@@ -1070,3 +1070,59 @@ artifacts. Each audit also serializes a live generation session at byte 41 and
 checks exact continuation through byte 128, including retained owner state.
 Run the memory-heavy regression suite separately from parallel training and
 evaluation. Optional report dependencies are listed in `requirements-reports.txt`.
+
+## Regional recall and mixed language/memory training
+
+`RecallWorkspace` now serves both the task-memory model and ordinary graph
+connections. Enable `GraphConfig(recall_slots=N)` or the ordinary trainer's
+`--recall-slots N`; zero preserves the legacy graph. `recall_nodes` (CLI
+`--recall-nodes P Q`) restricts the interface to chosen receivers; empty means
+all nodes with incoming edges. Each receiver has its own slot queries, null
+preferences, overlap controls, role maps and output-to-request feedback.
+
+Forward edges read completed current stages. Lateral and descending edges read
+the round-start snapshot when regional feedback is enabled. External byte
+inputs bypass the recall slots. Masked edges cannot affect keys or values, and
+substitutions replace both payload and semantic context. The request inspects
+all available candidate ports; the interface selects content without reducing
+candidate-scoring work or the number of executed experts.
+
+Use `return_recall_activity=True` for `[batch, time, round, slot, input+null]`
+weights/probabilities, validity, source versions, occurrences and round indices.
+`recall_edges` gives the input axis. Dependencies record examined inputs because
+candidate content also affects selection; slot weights identify actual reads.
+`recall_control='pooled'`, `'no_feedback'` or `'blocked'` exposes interventions.
+The graph carries one previous output per enabled receiver, with functional row
+resets, inactive-row holds and checkpoint serialization.
+
+```bash
+python -m experiments.text_regions.train --tiny --rounds 2 \
+  --recall-slots 7 --steps 32 --context 16 --batch 4 --threads 1 \
+  --data data/tiny_shakespeare.txt --out artifacts/regional_recall/graph
+python scripts/audit_regional_recall.py
+```
+
+The mixed trainer uses the existing owned-memory model. Odd updates consume
+ordered natural text; even updates consume memory documents with corrections
+and interference. The same weights, recall slots, producer-state holds and
+delayed gate/payload credit serve both sources. Each source owns separate
+runtime state, eligibility traces and cursors; source labels never enter the
+model. Validation selection averages natural-byte and answer-byte NLL equally.
+Reports retain the two metrics separately and include selected/final results.
+
+```bash
+python scripts/run_regional_recall.py --parent /path/to/recall/distinct/last.pt \
+  --data data/tiny_shakespeare.txt --out artifacts/regional_recall
+# One arm, exact stop/resume (repeat all configuration arguments):
+python -m experiments.text_regions.mixed_recall_train --data data/tiny_shakespeare.txt \
+  --out artifacts/mixed --init-from /path/to/parent.pt --steps 320 --stop-after 80
+python -m experiments.text_regions.mixed_recall_train --data data/tiny_shakespeare.txt \
+  --out artifacts/mixed --resume artifacts/mixed/last.pt --steps 320 --final-eval
+```
+
+Resume verifies the corpus hash, full configuration, schedule and stream
+fingerprints. `--evaluate-only --resume .../last.pt` rebuilds missing selected and
+final evaluations without training. The ordinary graph integration and mixed
+owned-memory training are separate configurations sharing the recall module;
+the graph's legacy publication gates have not acquired the task model's delayed
+credit mechanism.

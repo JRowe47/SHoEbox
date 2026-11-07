@@ -1,0 +1,2909 @@
+{
+  "parent_sha256": "1b792992845c710b29d0e462ec286673d73347b56e6ee8e72f33062e971c9392",
+  "arms": {
+    "distinct": {
+      "protocol": {
+        "protocol": {
+          "steps": 320,
+          "context": 64,
+          "batch": 8,
+          "lr": 0.001,
+          "syntax_weight": 0.1,
+          "seed": 71,
+          "data_seed": 271,
+          "documents": 4096,
+          "eval_every": 80,
+          "eval_count": 8,
+          "eval_chunks": 4,
+          "threads": 1,
+          "truncate_every": 0
+        },
+        "config": {
+          "width": 80,
+          "owners": 4,
+          "policy_features": 8,
+          "experts_per_block": 128,
+          "shared_per_block": 64,
+          "expert_hidden": 4,
+          "groups": 8,
+          "active_groups": 2,
+          "experts_per_group": 2,
+          "address_dim": 16,
+          "laces": 32,
+          "active_laces": 2,
+          "hat_levels": 1,
+          "hat_symbols": 32,
+          "hat_active_symbols": 2,
+          "kron_heads": 2,
+          "kron_key": 4,
+          "kron_value": 4,
+          "seed": 1,
+          "write_mode": "competitive",
+          "memory_aware_write": true,
+          "bootstrap_empty": true,
+          "payload_rank": 4,
+          "state_commit": "publication",
+          "recall_slots": 2,
+          "recall_layout": "distinct",
+          "recall_feedback": true,
+          "recall_hard": true
+        },
+        "data_config": {
+          "entities": "ABCD",
+          "attributes": [
+            "x"
+          ],
+          "values": "0123",
+          "cycles": 2,
+          "queries_per_cycle": 4,
+          "delays": [
+            2,
+            48
+          ],
+          "long_delay_multiplier": 3,
+          "semantic_fraction": 0.2,
+          "contextual_questions": true,
+          "relations": false,
+          "holdout_combinations": false,
+          "interference": true,
+          "acquisition_queries": false
+        },
+        "raw_sha256": "86c4e6aa9db7c042ec79f339dcb96d42b0075e16b8fc2e86bf0ca57e2dc565ed",
+        "data_bytes": 1115394,
+        "parameters": 564519,
+        "initialization": {
+          "path": "artifacts/regional_recall/parent.pt",
+          "sha256": "1b792992845c710b29d0e462ec286673d73347b56e6ee8e72f33062e971c9392",
+          "parent_step": 160,
+          "new_parameters": [],
+          "optimizer": "fresh AdamW",
+          "runtime_state": "fresh independent streams"
+        },
+        "schedule": "odd language, even memory; constant learning rate",
+        "selection": "mean of validation natural-byte NLL and memory-answer NLL",
+        "source_states": "independent runtime and credit per stream; shared trainable weights"
+      },
+      "initial": {
+        "language": {
+          "nll": 10.686002492904663,
+          "targets": 2048,
+          "mean_active_slots": 0.64208984375,
+          "mean_unique_owners": 0.6103515625,
+          "state_bytes": 42016
+        },
+        "memory": {
+          "split": "validation",
+          "control": "intact",
+          "read_source": "publication",
+          "answers": 80,
+          "accuracy": 0.475,
+          "answer_nll": 0.9423089116895653,
+          "ordinary_nll": 0.6565042873791064,
+          "groups": {
+            "exact": {
+              "count": 58,
+              "accuracy": 0.3275862068965517,
+              "nll": 1.225884363504833
+            },
+            "initial": {
+              "count": 33,
+              "accuracy": 0.6363636363636364,
+              "nll": 0.6365574245742072
+            },
+            "within_chunk": {
+              "count": 74,
+              "accuracy": 0.4864864864864865,
+              "nll": 0.9181612705952904
+            },
+            "corrected": {
+              "count": 47,
+              "accuracy": 0.3617021276595745,
+              "nll": 1.156985487749285
+            },
+            "semantic": {
+              "count": 6,
+              "accuracy": 0.5,
+              "nll": 0.7130474547545115
+            },
+            "context": {
+              "count": 16,
+              "accuracy": 1.0,
+              "nll": 0.00032094520986447606
+            },
+            "beyond_chunk": {
+              "count": 6,
+              "accuracy": 0.3333333333333333,
+              "nll": 1.2401298185189564
+            }
+          },
+          "interventions": {},
+          "bootstrap_events": 32,
+          "learned_writes": 1326,
+          "learned_write_rate": 0.24943566591422123,
+          "old_read_mass": 0.0,
+          "query_old_read_mass": 0.0,
+          "effective_old_read_mass": 0.0,
+          "effective_query_old_read_mass": 0.0,
+          "write_rate": 0.24944893460690667,
+          "read_mass": 0.4055841293166789,
+          "effective_read_mass": 0.4055841293166789,
+          "owners": {
+            "M0": {
+              "write_fraction": 0.112417340191036,
+              "valid_fraction": 0.994121969140338,
+              "read_mass": 0.10433504775900074
+            },
+            "M1": {
+              "write_fraction": 0.38060249816311537,
+              "valid_fraction": 0.988243938280676,
+              "read_mass": 0.14988978692138133
+            },
+            "M2": {
+              "write_fraction": 0.45113886847905954,
+              "valid_fraction": 0.9823659074210139,
+              "read_mass": 0.13115356355620866
+            },
+            "M3": {
+              "write_fraction": 0.05363703159441587,
+              "valid_fraction": 0.9764878765613519,
+              "read_mass": 0.02020573108008817
+            }
+          },
+          "mean_weighted_publication_age": 4.2864238410596025,
+          "query_mean_weighted_publication_age": 1.8333333333333333,
+          "publication_age_definition": "Fresh candidates have age 0 and version -1. Pre-event byte clock minus committed occurrence; valid nonnull read weights normalized per event. Valid fraction is pre-read occupancy.",
+          "state_bytes": 42016,
+          "expert_executions": 97440,
+          "external_bytes": 1361,
+          "executed_bytes": 1624,
+          "seconds": 1.9038748149996536,
+          "recall": {
+            "slots": 2,
+            "layout": "distinct",
+            "hard": true,
+            "feedback": true,
+            "mean_active_slots": 0.8111682586333578,
+            "mean_unique_owners": 0.6590742101396032,
+            "effective_active_slots": 0.8111682586333578,
+            "coverage_strength": [
+              0.9994515180587769,
+              1.0117274522781372
+            ],
+            "feedback_weight_norms": {
+              "query_feedback": 0.40213871002197266,
+              "null_feedback": 0.1336589753627777,
+              "usage_feedback": 0.03285982087254524
+            },
+            "aggregate_read_weights": "Mean selection mass per slot; full per-slot choices are in query records."
+          }
+        },
+        "score": 5.814155702297114
+      },
+      "evaluation": {
+        "best": {
+          "step": 320,
+          "language": {
+            "nll": 2.5219572484493256,
+            "targets": 4096,
+            "mean_active_slots": 1.67822265625,
+            "mean_unique_owners": 1.413818359375,
+            "state_bytes": 42016
+          },
+          "memory": {
+            "test": {
+              "split": "test",
+              "control": "intact",
+              "read_source": "publication",
+              "answers": 160,
+              "accuracy": 0.51875,
+              "answer_nll": 0.8393422725167057,
+              "ordinary_nll": 0.6382626262080727,
+              "groups": {
+                "exact": {
+                  "count": 101,
+                  "accuracy": 0.36633663366336633,
+                  "nll": 1.1421761582006176
+                },
+                "initial": {
+                  "count": 79,
+                  "accuracy": 0.620253164556962,
+                  "nll": 0.6768936418230636
+                },
+                "within_chunk": {
+                  "count": 141,
+                  "accuracy": 0.5531914893617021,
+                  "nll": 0.7915928007148604
+                },
+                "corrected": {
+                  "count": 81,
+                  "accuracy": 0.41975308641975306,
+                  "nll": 0.9977798259092702
+                },
+                "semantic": {
+                  "count": 27,
+                  "accuracy": 0.5185185185185185,
+                  "nll": 0.6984833037411725
+                },
+                "beyond_chunk": {
+                  "count": 19,
+                  "accuracy": 0.2631578947368421,
+                  "nll": 1.1936936158882945
+                },
+                "context": {
+                  "count": 32,
+                  "accuracy": 1.0,
+                  "nll": 0.0023725757312149653
+                }
+              },
+              "interventions": {},
+              "bootstrap_events": 64,
+              "learned_writes": 2594,
+              "learned_write_rate": 0.24990366088631985,
+              "old_read_mass": 0.004701015419330576,
+              "query_old_read_mass": 0.015625,
+              "effective_old_read_mass": 0.004701015419330576,
+              "effective_query_old_read_mass": 0.015625,
+              "write_rate": 0.24990597969161338,
+              "read_mass": 0.5246333207972922,
+              "effective_read_mass": 0.5246333207972922,
+              "owners": {
+                "M0": {
+                  "write_fraction": 0.2230161714930425,
+                  "valid_fraction": 0.9939827002632569,
+                  "read_mass": 0.13783377209477246
+                },
+                "M1": {
+                  "write_fraction": 0.13200451297480256,
+                  "valid_fraction": 0.9879654005265137,
+                  "read_mass": 0.10549078600977811
+                },
+                "M2": {
+                  "write_fraction": 0.5374200827378713,
+                  "valid_fraction": 0.9819481007897706,
+                  "read_mass": 0.20157954118089508
+                },
+                "M3": {
+                  "write_fraction": 0.10718315156073711,
+                  "valid_fraction": 0.9759308010530274,
+                  "read_mass": 0.07972922151184655
+                }
+              },
+              "mean_weighted_publication_age": 5.318321078431373,
+              "query_mean_weighted_publication_age": 8.839622641509434,
+              "publication_age_definition": "Fresh candidates have age 0 and version -1. Pre-event byte clock minus committed occurrence; valid nonnull read weights normalized per event. Valid fraction is pre-read occupancy.",
+              "state_bytes": 84032,
+              "expert_executions": 199680,
+              "external_bytes": 2659,
+              "executed_bytes": 3328,
+              "seconds": 2.893302488999325,
+              "recall": {
+                "slots": 2,
+                "layout": "distinct",
+                "hard": true,
+                "feedback": true,
+                "mean_active_slots": 1.0492666415945844,
+                "mean_unique_owners": 0.9210229409552463,
+                "effective_active_slots": 1.0492666415945844,
+                "coverage_strength": [
+                  0.9983550310134888,
+                  1.034223198890686
+                ],
+                "feedback_weight_norms": {
+                  "query_feedback": 1.069831132888794,
+                  "null_feedback": 0.33592984080314636,
+                  "usage_feedback": 0.16747018694877625
+                },
+                "aggregate_read_weights": "Mean selection mass per slot; full per-slot choices are in query records."
+              }
+            },
+            "long_delay": {
+              "split": "long_delay",
+              "control": "intact",
+              "read_source": "publication",
+              "answers": 160,
+              "accuracy": 0.525,
+              "answer_nll": 0.8785695314231816,
+              "ordinary_nll": 0.652011810241004,
+              "groups": {
+                "exact": {
+                  "count": 110,
+                  "accuracy": 0.37272727272727274,
+                  "nll": 1.1612331952264703
+                },
+                "initial": {
+                  "count": 64,
+                  "accuracy": 0.65625,
+                  "nll": 0.6075736878044609
+                },
+                "within_chunk": {
+                  "count": 95,
+                  "accuracy": 0.6736842105263158,
+                  "nll": 0.6065506796792186
+                },
+                "beyond_chunk": {
+                  "count": 65,
+                  "accuracy": 0.3076923076923077,
+                  "nll": 1.2761355455105121
+                },
+                "corrected": {
+                  "count": 96,
+                  "accuracy": 0.4375,
+                  "nll": 1.0592334271689954
+                },
+                "semantic": {
+                  "count": 18,
+                  "accuracy": 0.6111111111111112,
+                  "nll": 0.6962789098421732
+                },
+                "context": {
+                  "count": 32,
+                  "accuracy": 1.0,
+                  "nll": 0.009451661738694384
+                }
+              },
+              "interventions": {},
+              "bootstrap_events": 64,
+              "learned_writes": 8710,
+              "learned_write_rate": 0.24997130065434509,
+              "old_read_mass": 0.038461538461538464,
+              "query_old_read_mass": 0.0625,
+              "effective_old_read_mass": 0.038461538461538464,
+              "effective_query_old_read_mass": 0.0625,
+              "write_rate": 0.24997150997150996,
+              "read_mass": 0.6212535612535612,
+              "effective_read_mass": 0.6212535612535612,
+              "owners": {
+                "M0": {
+                  "write_fraction": 0.15133903133903134,
+                  "valid_fraction": 0.9981766381766382,
+                  "read_mass": 0.1615954415954416
+                },
+                "M1": {
+                  "write_fraction": 0.21515669515669517,
+                  "valid_fraction": 0.9963532763532763,
+                  "read_mass": 0.14763532763532763
+                },
+                "M2": {
+                  "write_fraction": 0.5789173789173789,
+                  "valid_fraction": 0.9945299145299146,
+                  "read_mass": 0.22632478632478634
+                },
+                "M3": {
+                  "write_fraction": 0.05447293447293447,
+                  "valid_fraction": 0.9927065527065527,
+                  "read_mass": 0.0856980056980057
+                }
+              },
+              "mean_weighted_publication_age": 11.254631083202511,
+              "query_mean_weighted_publication_age": 12.135220125786164,
+              "publication_age_definition": "Fresh candidates have age 0 and version -1. Pre-event byte clock minus committed occurrence; valid nonnull read weights normalized per event. Valid fraction is pre-read occupancy.",
+              "state_bytes": 84032,
+              "expert_executions": 578880,
+              "external_bytes": 8775,
+              "executed_bytes": 9648,
+              "seconds": 8.786971515000914,
+              "recall": {
+                "slots": 2,
+                "layout": "distinct",
+                "hard": true,
+                "feedback": true,
+                "mean_active_slots": 1.2425071225071225,
+                "mean_unique_owners": 1.1441595441595442,
+                "effective_active_slots": 1.2425071225071225,
+                "coverage_strength": [
+                  0.9983550310134888,
+                  1.034223198890686
+                ],
+                "feedback_weight_norms": {
+                  "query_feedback": 1.069831132888794,
+                  "null_feedback": 0.33592984080314636,
+                  "usage_feedback": 0.16747018694877625
+                },
+                "aggregate_read_weights": "Mean selection mass per slot; full per-slot choices are in query records."
+              }
+            }
+          },
+          "interventions": {
+            "pooled": {
+              "language_nll": 2.5270649790763855,
+              "answer_nll": 0.8387565060881116,
+              "language_delta": 0.0051077306270599365,
+              "answer_delta": -0.0005857664285940922
+            },
+            "no_feedback": {
+              "language_nll": 2.6566174030303955,
+              "answer_nll": 0.8390346790659805,
+              "language_delta": 0.13466015458106995,
+              "answer_delta": -0.0003075934507251743
+            },
+            "blocked": {
+              "language_nll": 2.7782228887081146,
+              "answer_nll": 1.1032424376213386,
+              "language_delta": 0.25626564025878906,
+              "answer_delta": 0.2639001651046329
+            }
+          },
+          "totals": {
+            "language": {
+              "updates": 160,
+              "bytes": 81920,
+              "experts": 4915200,
+              "answers": 0,
+              "delayed_gradient_norm_sum": 13.659741808427498,
+              "payload_gradient_norm_sum": 0.13086571289750282
+            },
+            "memory": {
+              "updates": 160,
+              "bytes": 81920,
+              "experts": 4915200,
+              "answers": 4973,
+              "delayed_gradient_norm_sum": 7.947767104400555,
+              "payload_gradient_norm_sum": 0.06407378963922383
+            }
+          }
+        },
+        "last": {
+          "step": 320,
+          "language": {
+            "nll": 2.5219572484493256,
+            "targets": 4096,
+            "mean_active_slots": 1.67822265625,
+            "mean_unique_owners": 1.413818359375,
+            "state_bytes": 42016
+          },
+          "memory": {
+            "test": {
+              "split": "test",
+              "control": "intact",
+              "read_source": "publication",
+              "answers": 160,
+              "accuracy": 0.51875,
+              "answer_nll": 0.8393422725167057,
+              "ordinary_nll": 0.6382626262080727,
+              "groups": {
+                "exact": {
+                  "count": 101,
+                  "accuracy": 0.36633663366336633,
+                  "nll": 1.1421761582006176
+                },
+                "initial": {
+                  "count": 79,
+                  "accuracy": 0.620253164556962,
+                  "nll": 0.6768936418230636
+                },
+                "within_chunk": {
+                  "count": 141,
+                  "accuracy": 0.5531914893617021,
+                  "nll": 0.7915928007148604
+                },
+                "corrected": {
+                  "count": 81,
+                  "accuracy": 0.41975308641975306,
+                  "nll": 0.9977798259092702
+                },
+                "semantic": {
+                  "count": 27,
+                  "accuracy": 0.5185185185185185,
+                  "nll": 0.6984833037411725
+                },
+                "beyond_chunk": {
+                  "count": 19,
+                  "accuracy": 0.2631578947368421,
+                  "nll": 1.1936936158882945
+                },
+                "context": {
+                  "count": 32,
+                  "accuracy": 1.0,
+                  "nll": 0.0023725757312149653
+                }
+              },
+              "interventions": {},
+              "bootstrap_events": 64,
+              "learned_writes": 2594,
+              "learned_write_rate": 0.24990366088631985,
+              "old_read_mass": 0.004701015419330576,
+              "query_old_read_mass": 0.015625,
+              "effective_old_read_mass": 0.004701015419330576,
+              "effective_query_old_read_mass": 0.015625,
+              "write_rate": 0.24990597969161338,
+              "read_mass": 0.5246333207972922,
+              "effective_read_mass": 0.5246333207972922,
+              "owners": {
+                "M0": {
+                  "write_fraction": 0.2230161714930425,
+                  "valid_fraction": 0.9939827002632569,
+                  "read_mass": 0.13783377209477246
+                },
+                "M1": {
+                  "write_fraction": 0.13200451297480256,
+                  "valid_fraction": 0.9879654005265137,
+                  "read_mass": 0.10549078600977811
+                },
+                "M2": {
+                  "write_fraction": 0.5374200827378713,
+                  "valid_fraction": 0.9819481007897706,
+                  "read_mass": 0.20157954118089508
+                },
+                "M3": {
+                  "write_fraction": 0.10718315156073711,
+                  "valid_fraction": 0.9759308010530274,
+                  "read_mass": 0.07972922151184655
+                }
+              },
+              "mean_weighted_publication_age": 5.318321078431373,
+              "query_mean_weighted_publication_age": 8.839622641509434,
+              "publication_age_definition": "Fresh candidates have age 0 and version -1. Pre-event byte clock minus committed occurrence; valid nonnull read weights normalized per event. Valid fraction is pre-read occupancy.",
+              "state_bytes": 84032,
+              "expert_executions": 199680,
+              "external_bytes": 2659,
+              "executed_bytes": 3328,
+              "seconds": 2.9800009569989925,
+              "recall": {
+                "slots": 2,
+                "layout": "distinct",
+                "hard": true,
+                "feedback": true,
+                "mean_active_slots": 1.0492666415945844,
+                "mean_unique_owners": 0.9210229409552463,
+                "effective_active_slots": 1.0492666415945844,
+                "coverage_strength": [
+                  0.9983550310134888,
+                  1.034223198890686
+                ],
+                "feedback_weight_norms": {
+                  "query_feedback": 1.069831132888794,
+                  "null_feedback": 0.33592984080314636,
+                  "usage_feedback": 0.16747018694877625
+                },
+                "aggregate_read_weights": "Mean selection mass per slot; full per-slot choices are in query records."
+              }
+            },
+            "long_delay": {
+              "split": "long_delay",
+              "control": "intact",
+              "read_source": "publication",
+              "answers": 160,
+              "accuracy": 0.525,
+              "answer_nll": 0.8785695314231816,
+              "ordinary_nll": 0.652011810241004,
+              "groups": {
+                "exact": {
+                  "count": 110,
+                  "accuracy": 0.37272727272727274,
+                  "nll": 1.1612331952264703
+                },
+                "initial": {
+                  "count": 64,
+                  "accuracy": 0.65625,
+                  "nll": 0.6075736878044609
+                },
+                "within_chunk": {
+                  "count": 95,
+                  "accuracy": 0.6736842105263158,
+                  "nll": 0.6065506796792186
+                },
+                "beyond_chunk": {
+                  "count": 65,
+                  "accuracy": 0.3076923076923077,
+                  "nll": 1.2761355455105121
+                },
+                "corrected": {
+                  "count": 96,
+                  "accuracy": 0.4375,
+                  "nll": 1.0592334271689954
+                },
+                "semantic": {
+                  "count": 18,
+                  "accuracy": 0.6111111111111112,
+                  "nll": 0.6962789098421732
+                },
+                "context": {
+                  "count": 32,
+                  "accuracy": 1.0,
+                  "nll": 0.009451661738694384
+                }
+              },
+              "interventions": {},
+              "bootstrap_events": 64,
+              "learned_writes": 8710,
+              "learned_write_rate": 0.24997130065434509,
+              "old_read_mass": 0.038461538461538464,
+              "query_old_read_mass": 0.0625,
+              "effective_old_read_mass": 0.038461538461538464,
+              "effective_query_old_read_mass": 0.0625,
+              "write_rate": 0.24997150997150996,
+              "read_mass": 0.6212535612535612,
+              "effective_read_mass": 0.6212535612535612,
+              "owners": {
+                "M0": {
+                  "write_fraction": 0.15133903133903134,
+                  "valid_fraction": 0.9981766381766382,
+                  "read_mass": 0.1615954415954416
+                },
+                "M1": {
+                  "write_fraction": 0.21515669515669517,
+                  "valid_fraction": 0.9963532763532763,
+                  "read_mass": 0.14763532763532763
+                },
+                "M2": {
+                  "write_fraction": 0.5789173789173789,
+                  "valid_fraction": 0.9945299145299146,
+                  "read_mass": 0.22632478632478634
+                },
+                "M3": {
+                  "write_fraction": 0.05447293447293447,
+                  "valid_fraction": 0.9927065527065527,
+                  "read_mass": 0.0856980056980057
+                }
+              },
+              "mean_weighted_publication_age": 11.254631083202511,
+              "query_mean_weighted_publication_age": 12.135220125786164,
+              "publication_age_definition": "Fresh candidates have age 0 and version -1. Pre-event byte clock minus committed occurrence; valid nonnull read weights normalized per event. Valid fraction is pre-read occupancy.",
+              "state_bytes": 84032,
+              "expert_executions": 578880,
+              "external_bytes": 8775,
+              "executed_bytes": 9648,
+              "seconds": 8.6202677830006,
+              "recall": {
+                "slots": 2,
+                "layout": "distinct",
+                "hard": true,
+                "feedback": true,
+                "mean_active_slots": 1.2425071225071225,
+                "mean_unique_owners": 1.1441595441595442,
+                "effective_active_slots": 1.2425071225071225,
+                "coverage_strength": [
+                  0.9983550310134888,
+                  1.034223198890686
+                ],
+                "feedback_weight_norms": {
+                  "query_feedback": 1.069831132888794,
+                  "null_feedback": 0.33592984080314636,
+                  "usage_feedback": 0.16747018694877625
+                },
+                "aggregate_read_weights": "Mean selection mass per slot; full per-slot choices are in query records."
+              }
+            }
+          },
+          "interventions": {
+            "pooled": {
+              "language_nll": 2.5270649790763855,
+              "answer_nll": 0.8387565060881116,
+              "language_delta": 0.0051077306270599365,
+              "answer_delta": -0.0005857664285940922
+            },
+            "no_feedback": {
+              "language_nll": 2.6566174030303955,
+              "answer_nll": 0.8390346790659805,
+              "language_delta": 0.13466015458106995,
+              "answer_delta": -0.0003075934507251743
+            },
+            "blocked": {
+              "language_nll": 2.7782228887081146,
+              "answer_nll": 1.1032424376213386,
+              "language_delta": 0.25626564025878906,
+              "answer_delta": 0.2639001651046329
+            }
+          },
+          "totals": {
+            "language": {
+              "updates": 160,
+              "bytes": 81920,
+              "experts": 4915200,
+              "answers": 0,
+              "delayed_gradient_norm_sum": 13.659741808427498,
+              "payload_gradient_norm_sum": 0.13086571289750282
+            },
+            "memory": {
+              "updates": 160,
+              "bytes": 81920,
+              "experts": 4915200,
+              "answers": 4973,
+              "delayed_gradient_norm_sum": 7.947767104400555,
+              "payload_gradient_norm_sum": 0.06407378963922383
+            }
+          }
+        }
+      },
+      "history": [
+        {
+          "step": 80,
+          "source": "memory",
+          "primary_nll": 0.848980188369751,
+          "gradient_norm": 1.409051537513733,
+          "totals": {
+            "language": {
+              "updates": 40,
+              "bytes": 20480,
+              "experts": 1228800,
+              "answers": 0,
+              "delayed_gradient_norm_sum": 9.107837165240198,
+              "payload_gradient_norm_sum": 0.07540823414456099
+            },
+            "memory": {
+              "updates": 40,
+              "bytes": 20480,
+              "experts": 1228800,
+              "answers": 1245,
+              "delayed_gradient_norm_sum": 0.8744022577593569,
+              "payload_gradient_norm_sum": 0.015935317473122268
+            }
+          },
+          "validation": {
+            "language": {
+              "nll": 3.1487886905670166,
+              "targets": 2048,
+              "mean_active_slots": 1.9873046875,
+              "mean_unique_owners": 1.8603515625,
+              "state_bytes": 42016
+            },
+            "memory": {
+              "split": "validation",
+              "control": "intact",
+              "read_source": "publication",
+              "answers": 80,
+              "accuracy": 0.475,
+              "answer_nll": 0.8920341165303398,
+              "ordinary_nll": 0.7146494311781875,
+              "groups": {
+                "exact": {
+                  "count": 58,
+                  "accuracy": 0.3275862068965517,
+                  "nll": 1.1573883951079613
+                },
+                "initial": {
+                  "count": 33,
+                  "accuracy": 0.696969696969697,
+                  "nll": 0.5778213540369038
+                },
+                "within_chunk": {
+                  "count": 74,
+                  "accuracy": 0.4864864864864865,
+                  "nll": 0.8550373446231714
+                },
+                "corrected": {
+                  "count": 47,
+                  "accuracy": 0.3191489361702128,
+                  "nll": 1.1126515880682843
+                },
+                "semantic": {
+                  "count": 6,
+                  "accuracy": 0.5,
+                  "nll": 0.7034819722175598
+                },
+                "context": {
+                  "count": 16,
+                  "accuracy": 1.0,
+                  "nll": 0.0008319108037539991
+                },
+                "beyond_chunk": {
+                  "count": 6,
+                  "accuracy": 0.3333333333333333,
+                  "nll": 1.34832763671875
+                }
+              },
+              "interventions": {},
+              "bootstrap_events": 32,
+              "learned_writes": 1329,
+              "learned_write_rate": 0.25,
+              "old_read_mass": 0.0003673769287288758,
+              "query_old_read_mass": 0.0,
+              "effective_old_read_mass": 0.0003673769287288758,
+              "effective_query_old_read_mass": 0.0,
+              "write_rate": 0.25,
+              "read_mass": 0.6296840558412932,
+              "effective_read_mass": 0.6296840558412932,
+              "owners": {
+                "M0": {
+                  "write_fraction": 0.26965466568699487,
+                  "valid_fraction": 0.994121969140338,
+                  "read_mass": 0.18772961058045554
+                },
+                "M1": {
+                  "write_fraction": 0.37545922116091107,
+                  "valid_fraction": 0.988243938280676,
+                  "read_mass": 0.1730345334313005
+                },
+                "M2": {
+                  "write_fraction": 0.2909625275532697,
+                  "valid_fraction": 0.9823659074210139,
+                  "read_mass": 0.17523879500367376
+                },
+                "M3": {
+                  "write_fraction": 0.0639235855988244,
+                  "valid_fraction": 0.9764878765613519,
+                  "read_mass": 0.09368111682586333
+                }
+              },
+              "mean_weighted_publication_age": 3.933075221238938,
+              "query_mean_weighted_publication_age": 3.08974358974359,
+              "publication_age_definition": "Fresh candidates have age 0 and version -1. Pre-event byte clock minus committed occurrence; valid nonnull read weights normalized per event. Valid fraction is pre-read occupancy.",
+              "state_bytes": 42016,
+              "expert_executions": 97440,
+              "external_bytes": 1361,
+              "executed_bytes": 1624,
+              "seconds": 2.192934516000605,
+              "recall": {
+                "slots": 2,
+                "layout": "distinct",
+                "hard": true,
+                "feedback": true,
+                "mean_active_slots": 1.2593681116825863,
+                "mean_unique_owners": 1.0822924320352683,
+                "effective_active_slots": 1.2593681116825863,
+                "coverage_strength": [
+                  0.9991773366928101,
+                  1.0222275257110596
+                ],
+                "feedback_weight_norms": {
+                  "query_feedback": 0.584054708480835,
+                  "null_feedback": 0.2577047646045685,
+                  "usage_feedback": 0.05987535044550896
+                },
+                "aggregate_read_weights": "Mean selection mass per slot; full per-slot choices are in query records."
+              }
+            },
+            "score": 2.020411403548678
+          },
+          "invocation_seconds": 178.98714629799906
+        },
+        {
+          "step": 160,
+          "source": "memory",
+          "primary_nll": 0.8375749588012695,
+          "gradient_norm": 1.5755826234817505,
+          "totals": {
+            "language": {
+              "updates": 80,
+              "bytes": 40960,
+              "experts": 2457600,
+              "answers": 0,
+              "delayed_gradient_norm_sum": 10.580730865709484,
+              "payload_gradient_norm_sum": 0.0956559740297962
+            },
+            "memory": {
+              "updates": 80,
+              "bytes": 40960,
+              "experts": 2457600,
+              "answers": 2495,
+              "delayed_gradient_norm_sum": 3.632486415357562,
+              "payload_gradient_norm_sum": 0.03687228540547949
+            }
+          },
+          "validation": {
+            "language": {
+              "nll": 2.8280394673347473,
+              "targets": 2048,
+              "mean_active_slots": 1.90234375,
+              "mean_unique_owners": 1.75390625,
+              "state_bytes": 42016
+            },
+            "memory": {
+              "split": "validation",
+              "control": "intact",
+              "read_source": "publication",
+              "answers": 80,
+              "accuracy": 0.5625,
+              "answer_nll": 0.8771076321695546,
+              "ordinary_nll": 0.683133192351682,
+              "groups": {
+                "exact": {
+                  "count": 58,
+                  "accuracy": 0.4482758620689655,
+                  "nll": 1.1331303200748717
+                },
+                "initial": {
+                  "count": 33,
+                  "accuracy": 0.7878787878787878,
+                  "nll": 0.572975744911122
+                },
+                "within_chunk": {
+                  "count": 74,
+                  "accuracy": 0.6081081081081081,
+                  "nll": 0.8324465075155958
+                },
+                "corrected": {
+                  "count": 47,
+                  "accuracy": 0.40425531914893614,
+                  "nll": 1.0906470423722838
+                },
+                "semantic": {
+                  "count": 6,
+                  "accuracy": 0.5,
+                  "nll": 0.7398628443479538
+                },
+                "context": {
+                  "count": 16,
+                  "accuracy": 1.0,
+                  "nll": 0.0004921839458802424
+                },
+                "beyond_chunk": {
+                  "count": 6,
+                  "accuracy": 0.0,
+                  "nll": 1.4279281695683796
+                }
+              },
+              "interventions": {},
+              "bootstrap_events": 32,
+              "learned_writes": 1329,
+              "learned_write_rate": 0.25,
+              "old_read_mass": 0.0,
+              "query_old_read_mass": 0.0,
+              "effective_old_read_mass": 0.0,
+              "effective_query_old_read_mass": 0.0,
+              "write_rate": 0.25,
+              "read_mass": 0.5716385011021308,
+              "effective_read_mass": 0.5716385011021308,
+              "owners": {
+                "M0": {
+                  "write_fraction": 0.22997795738427626,
+                  "valid_fraction": 0.994121969140338,
+                  "read_mass": 0.17119764878765614
+                },
+                "M1": {
+                  "write_fraction": 0.28655400440852313,
+                  "valid_fraction": 0.988243938280676,
+                  "read_mass": 0.1109478324761205
+                },
+                "M2": {
+                  "write_fraction": 0.18589272593681117,
+                  "valid_fraction": 0.9823659074210139,
+                  "read_mass": 0.1399706098457017
+                },
+                "M3": {
+                  "write_fraction": 0.2975753122703894,
+                  "valid_fraction": 0.9764878765613519,
+                  "read_mass": 0.14952240999265246
+                }
+              },
+              "mean_weighted_publication_age": 3.681395348837209,
+              "query_mean_weighted_publication_age": 3.826923076923077,
+              "publication_age_definition": "Fresh candidates have age 0 and version -1. Pre-event byte clock minus committed occurrence; valid nonnull read weights normalized per event. Valid fraction is pre-read occupancy.",
+              "state_bytes": 42016,
+              "expert_executions": 97440,
+              "external_bytes": 1361,
+              "executed_bytes": 1624,
+              "seconds": 2.5280589729991334,
+              "recall": {
+                "slots": 2,
+                "layout": "distinct",
+                "hard": true,
+                "feedback": true,
+                "mean_active_slots": 1.1432770022042615,
+                "mean_unique_owners": 1.0337986774430565,
+                "effective_active_slots": 1.1432770022042615,
+                "coverage_strength": [
+                  0.9989031553268433,
+                  1.0337927341461182
+                ],
+                "feedback_weight_norms": {
+                  "query_feedback": 0.716216504573822,
+                  "null_feedback": 0.24555543065071106,
+                  "usage_feedback": 0.10397422313690186
+                },
+                "aggregate_read_weights": "Mean selection mass per slot; full per-slot choices are in query records."
+              }
+            },
+            "score": 1.852573549752151
+          },
+          "invocation_seconds": 350.8742164689993
+        },
+        {
+          "step": 240,
+          "source": "memory",
+          "primary_nll": 0.8284675478935242,
+          "gradient_norm": 1.7510623931884766,
+          "totals": {
+            "language": {
+              "updates": 120,
+              "bytes": 61440,
+              "experts": 3686400,
+              "answers": 0,
+              "delayed_gradient_norm_sum": 11.752421448240057,
+              "payload_gradient_norm_sum": 0.11310152334044687
+            },
+            "memory": {
+              "updates": 120,
+              "bytes": 61440,
+              "experts": 3686400,
+              "answers": 3731,
+              "delayed_gradient_norm_sum": 4.477488397533307,
+              "payload_gradient_norm_sum": 0.05261391641761293
+            }
+          },
+          "validation": {
+            "language": {
+              "nll": 2.601597547531128,
+              "targets": 2048,
+              "mean_active_slots": 1.7255859375,
+              "mean_unique_owners": 1.56640625,
+              "state_bytes": 54240
+            },
+            "memory": {
+              "split": "validation",
+              "control": "intact",
+              "read_source": "publication",
+              "answers": 80,
+              "accuracy": 0.4875,
+              "answer_nll": 0.9006682377419566,
+              "ordinary_nll": 0.6643864258777458,
+              "groups": {
+                "exact": {
+                  "count": 58,
+                  "accuracy": 0.3448275862068966,
+                  "nll": 1.1605104937956765
+                },
+                "initial": {
+                  "count": 33,
+                  "accuracy": 0.696969696969697,
+                  "nll": 0.5735304999913999
+                },
+                "within_chunk": {
+                  "count": 74,
+                  "accuracy": 0.5,
+                  "nll": 0.8612235845060707
+                },
+                "corrected": {
+                  "count": 47,
+                  "accuracy": 0.3404255319148936,
+                  "nll": 1.130360691907241
+                },
+                "semantic": {
+                  "count": 6,
+                  "accuracy": 0.5,
+                  "nll": 0.7852734824021658
+                },
+                "context": {
+                  "count": 16,
+                  "accuracy": 1.0,
+                  "nll": 0.0020130927996433456
+                },
+                "beyond_chunk": {
+                  "count": 6,
+                  "accuracy": 0.3333333333333333,
+                  "nll": 1.3871522943178813
+                }
+              },
+              "interventions": {},
+              "bootstrap_events": 32,
+              "learned_writes": 1328,
+              "learned_write_rate": 0.24981188863807374,
+              "old_read_mass": 0.0018368846436443791,
+              "query_old_read_mass": 0.0125,
+              "effective_old_read_mass": 0.0018368846436443791,
+              "effective_query_old_read_mass": 0.0125,
+              "write_rate": 0.24981631153563555,
+              "read_mass": 0.5242468772961058,
+              "effective_read_mass": 0.5242468772961058,
+              "owners": {
+                "M0": {
+                  "write_fraction": 0.12343864805290228,
+                  "valid_fraction": 0.994121969140338,
+                  "read_mass": 0.10396767083027186
+                },
+                "M1": {
+                  "write_fraction": 0.14254224834680382,
+                  "valid_fraction": 0.988243938280676,
+                  "read_mass": 0.106539309331374
+                },
+                "M2": {
+                  "write_fraction": 0.2233651726671565,
+                  "valid_fraction": 0.9823659074210139,
+                  "read_mass": 0.13335782512858194
+                },
+                "M3": {
+                  "write_fraction": 0.5099191770756797,
+                  "valid_fraction": 0.9764878765613519,
+                  "read_mass": 0.18038207200587802
+                }
+              },
+              "mean_weighted_publication_age": 4.110970996216897,
+              "query_mean_weighted_publication_age": 5.891025641025641,
+              "publication_age_definition": "Fresh candidates have age 0 and version -1. Pre-event byte clock minus committed occurrence; valid nonnull read weights normalized per event. Valid fraction is pre-read occupancy.",
+              "state_bytes": 42016,
+              "expert_executions": 97440,
+              "external_bytes": 1361,
+              "executed_bytes": 1624,
+              "seconds": 2.4188226830010535,
+              "recall": {
+                "slots": 2,
+                "layout": "distinct",
+                "hard": true,
+                "feedback": true,
+                "mean_active_slots": 1.0484937545922115,
+                "mean_unique_owners": 0.8677443056576047,
+                "effective_active_slots": 1.0484937545922115,
+                "coverage_strength": [
+                  0.998629093170166,
+                  1.0402326583862305
+                ],
+                "feedback_weight_norms": {
+                  "query_feedback": 0.8916892409324646,
+                  "null_feedback": 0.2626664340496063,
+                  "usage_feedback": 0.14580675959587097
+                },
+                "aggregate_read_weights": "Mean selection mass per slot; full per-slot choices are in query records."
+              }
+            },
+            "score": 1.7511328926365421
+          },
+          "invocation_seconds": 520.8439827319999
+        },
+        {
+          "step": 320,
+          "source": "memory",
+          "primary_nll": 0.9775820970535278,
+          "gradient_norm": 1.3857982158660889,
+          "totals": {
+            "language": {
+              "updates": 160,
+              "bytes": 81920,
+              "experts": 4915200,
+              "answers": 0,
+              "delayed_gradient_norm_sum": 13.659741808427498,
+              "payload_gradient_norm_sum": 0.13086571289750282
+            },
+            "memory": {
+              "updates": 160,
+              "bytes": 81920,
+              "experts": 4915200,
+              "answers": 4973,
+              "delayed_gradient_norm_sum": 7.947767104400555,
+              "payload_gradient_norm_sum": 0.06407378963922383
+            }
+          },
+          "validation": {
+            "language": {
+              "nll": 2.5185357332229614,
+              "targets": 2048,
+              "mean_active_slots": 1.67236328125,
+              "mean_unique_owners": 1.43359375,
+              "state_bytes": 42016
+            },
+            "memory": {
+              "split": "validation",
+              "control": "intact",
+              "read_source": "publication",
+              "answers": 80,
+              "accuracy": 0.4375,
+              "answer_nll": 0.8869832135084834,
+              "ordinary_nll": 0.6247398611246582,
+              "groups": {
+                "exact": {
+                  "count": 58,
+                  "accuracy": 0.3275862068965517,
+                  "nll": 1.1500698295100753
+                },
+                "initial": {
+                  "count": 33,
+                  "accuracy": 0.6666666666666666,
+                  "nll": 0.6002731198896072
+                },
+                "within_chunk": {
+                  "count": 74,
+                  "accuracy": 0.44594594594594594,
+                  "nll": 0.8525020584161827
+                },
+                "corrected": {
+                  "count": 47,
+                  "accuracy": 0.2765957446808511,
+                  "nll": 1.0882903005174818
+                },
+                "semantic": {
+                  "count": 6,
+                  "accuracy": 0.0,
+                  "nll": 0.7063156465689341
+                },
+                "context": {
+                  "count": 16,
+                  "accuracy": 1.0,
+                  "nll": 0.0010445681050441635
+                },
+                "beyond_chunk": {
+                  "count": 6,
+                  "accuracy": 0.3333333333333333,
+                  "nll": 1.312250792980194
+                }
+              },
+              "interventions": {},
+              "bootstrap_events": 32,
+              "learned_writes": 1328,
+              "learned_write_rate": 0.24981188863807374,
+              "old_read_mass": 0.005143277002204262,
+              "query_old_read_mass": 0.05625,
+              "effective_old_read_mass": 0.005143277002204262,
+              "effective_query_old_read_mass": 0.05625,
+              "write_rate": 0.24981631153563555,
+              "read_mass": 0.5389419544452608,
+              "effective_read_mass": 0.5389419544452608,
+              "owners": {
+                "M0": {
+                  "write_fraction": 0.221895664952241,
+                  "valid_fraction": 0.994121969140338,
+                  "read_mass": 0.1318883174136664
+                },
+                "M1": {
+                  "write_fraction": 0.14327700220426157,
+                  "valid_fraction": 0.988243938280676,
+                  "read_mass": 0.12123438648052902
+                },
+                "M2": {
+                  "write_fraction": 0.5312270389419544,
+                  "valid_fraction": 0.9823659074210139,
+                  "read_mass": 0.20168993387215284
+                },
+                "M3": {
+                  "write_fraction": 0.10286554004408523,
+                  "valid_fraction": 0.9764878765613519,
+                  "read_mass": 0.08412931667891256
+                }
+              },
+              "mean_weighted_publication_age": 5.1377906976744185,
+              "query_mean_weighted_publication_age": 12.66025641025641,
+              "publication_age_definition": "Fresh candidates have age 0 and version -1. Pre-event byte clock minus committed occurrence; valid nonnull read weights normalized per event. Valid fraction is pre-read occupancy.",
+              "state_bytes": 42016,
+              "expert_executions": 97440,
+              "external_bytes": 1361,
+              "executed_bytes": 1624,
+              "seconds": 2.5276978310012055,
+              "recall": {
+                "slots": 2,
+                "layout": "distinct",
+                "hard": true,
+                "feedback": true,
+                "mean_active_slots": 1.0778839088905217,
+                "mean_unique_owners": 0.9639970609845702,
+                "effective_active_slots": 1.0778839088905217,
+                "coverage_strength": [
+                  0.9983550310134888,
+                  1.034223198890686
+                ],
+                "feedback_weight_norms": {
+                  "query_feedback": 1.069831132888794,
+                  "null_feedback": 0.33592984080314636,
+                  "usage_feedback": 0.16747018694877625
+                },
+                "aggregate_read_weights": "Mean selection mass per slot; full per-slot choices are in query records."
+              }
+            },
+            "score": 1.7027594733657225
+          },
+          "invocation_seconds": 698.0598953519984
+        }
+      ]
+    },
+    "pooled": {
+      "protocol": {
+        "protocol": {
+          "steps": 320,
+          "context": 64,
+          "batch": 8,
+          "lr": 0.001,
+          "syntax_weight": 0.1,
+          "seed": 71,
+          "data_seed": 271,
+          "documents": 4096,
+          "eval_every": 80,
+          "eval_count": 8,
+          "eval_chunks": 4,
+          "threads": 1,
+          "truncate_every": 0
+        },
+        "config": {
+          "width": 80,
+          "owners": 4,
+          "policy_features": 8,
+          "experts_per_block": 128,
+          "shared_per_block": 64,
+          "expert_hidden": 4,
+          "groups": 8,
+          "active_groups": 2,
+          "experts_per_group": 2,
+          "address_dim": 16,
+          "laces": 32,
+          "active_laces": 2,
+          "hat_levels": 1,
+          "hat_symbols": 32,
+          "hat_active_symbols": 2,
+          "kron_heads": 2,
+          "kron_key": 4,
+          "kron_value": 4,
+          "seed": 1,
+          "write_mode": "competitive",
+          "memory_aware_write": true,
+          "bootstrap_empty": true,
+          "payload_rank": 4,
+          "state_commit": "publication",
+          "recall_slots": 2,
+          "recall_layout": "pooled",
+          "recall_feedback": true,
+          "recall_hard": true
+        },
+        "data_config": {
+          "entities": "ABCD",
+          "attributes": [
+            "x"
+          ],
+          "values": "0123",
+          "cycles": 2,
+          "queries_per_cycle": 4,
+          "delays": [
+            2,
+            48
+          ],
+          "long_delay_multiplier": 3,
+          "semantic_fraction": 0.2,
+          "contextual_questions": true,
+          "relations": false,
+          "holdout_combinations": false,
+          "interference": true,
+          "acquisition_queries": false
+        },
+        "raw_sha256": "86c4e6aa9db7c042ec79f339dcb96d42b0075e16b8fc2e86bf0ca57e2dc565ed",
+        "data_bytes": 1115394,
+        "parameters": 564519,
+        "initialization": {
+          "path": "artifacts/regional_recall/parent.pt",
+          "sha256": "1b792992845c710b29d0e462ec286673d73347b56e6ee8e72f33062e971c9392",
+          "parent_step": 160,
+          "new_parameters": [],
+          "optimizer": "fresh AdamW",
+          "runtime_state": "fresh independent streams"
+        },
+        "schedule": "odd language, even memory; constant learning rate",
+        "selection": "mean of validation natural-byte NLL and memory-answer NLL",
+        "source_states": "independent runtime and credit per stream; shared trainable weights"
+      },
+      "initial": {
+        "language": {
+          "nll": 10.697431325912476,
+          "targets": 2048,
+          "mean_active_slots": 0.64013671875,
+          "mean_unique_owners": 0.609375,
+          "state_bytes": 42016
+        },
+        "memory": {
+          "split": "validation",
+          "control": "intact",
+          "read_source": "publication",
+          "answers": 80,
+          "accuracy": 0.475,
+          "answer_nll": 0.9468519139018099,
+          "ordinary_nll": 0.6474212952299653,
+          "groups": {
+            "exact": {
+              "count": 58,
+              "accuracy": 0.3275862068965517,
+              "nll": 1.2322069759930259
+            },
+            "initial": {
+              "count": 33,
+              "accuracy": 0.6363636363636364,
+              "nll": 0.6395344676129753
+            },
+            "within_chunk": {
+              "count": 74,
+              "accuracy": 0.4864864864864865,
+              "nll": 0.9230194594115223
+            },
+            "corrected": {
+              "count": 47,
+              "accuracy": 0.3617021276595745,
+              "nll": 1.1626279932109918
+            },
+            "semantic": {
+              "count": 6,
+              "accuracy": 0.5,
+              "nll": 0.7125016947587332
+            },
+            "context": {
+              "count": 16,
+              "accuracy": 1.0,
+              "nll": 0.00032114599980559433
+            },
+            "beyond_chunk": {
+              "count": 6,
+              "accuracy": 0.3333333333333333,
+              "nll": 1.2407855192820232
+            }
+          },
+          "interventions": {},
+          "bootstrap_events": 32,
+          "learned_writes": 1326,
+          "learned_write_rate": 0.24943566591422123,
+          "old_read_mass": 0.0,
+          "query_old_read_mass": 0.0,
+          "effective_old_read_mass": 0.0,
+          "effective_query_old_read_mass": 0.0,
+          "write_rate": 0.24944893460690667,
+          "read_mass": 0.4055841293166789,
+          "effective_read_mass": 0.4055841293166789,
+          "owners": {
+            "M0": {
+              "write_fraction": 0.112417340191036,
+              "valid_fraction": 0.994121969140338,
+              "read_mass": 0.10433504775900074
+            },
+            "M1": {
+              "write_fraction": 0.38060249816311537,
+              "valid_fraction": 0.988243938280676,
+              "read_mass": 0.14988978692138133
+            },
+            "M2": {
+              "write_fraction": 0.45113886847905954,
+              "valid_fraction": 0.9823659074210139,
+              "read_mass": 0.1307861866274798
+            },
+            "M3": {
+              "write_fraction": 0.05363703159441587,
+              "valid_fraction": 0.9764878765613519,
+              "read_mass": 0.020573108008817047
+            }
+          },
+          "mean_weighted_publication_age": 4.300496688741722,
+          "query_mean_weighted_publication_age": 1.8333333333333333,
+          "publication_age_definition": "Fresh candidates have age 0 and version -1. Pre-event byte clock minus committed occurrence; valid nonnull read weights normalized per event. Valid fraction is pre-read occupancy.",
+          "state_bytes": 42016,
+          "expert_executions": 97440,
+          "external_bytes": 1361,
+          "executed_bytes": 1624,
+          "seconds": 2.924745778000215,
+          "recall": {
+            "slots": 2,
+            "layout": "pooled",
+            "hard": true,
+            "feedback": true,
+            "mean_active_slots": 0.8111682586333578,
+            "mean_unique_owners": 0.659808963997061,
+            "effective_active_slots": 0.8111682586333578,
+            "coverage_strength": [
+              0.9994515180587769,
+              1.0117274522781372
+            ],
+            "feedback_weight_norms": {
+              "query_feedback": 0.40213871002197266,
+              "null_feedback": 0.1336589753627777,
+              "usage_feedback": 0.03285982087254524
+            },
+            "aggregate_read_weights": "Mean selection mass per slot; full per-slot choices are in query records."
+          }
+        },
+        "score": 5.822141619907143
+      },
+      "evaluation": {
+        "best": {
+          "step": 320,
+          "language": {
+            "nll": 2.570254474878311,
+            "targets": 4096,
+            "mean_active_slots": 1.6240234375,
+            "mean_unique_owners": 1.37646484375,
+            "state_bytes": 42016
+          },
+          "memory": {
+            "test": {
+              "split": "test",
+              "control": "intact",
+              "read_source": "publication",
+              "answers": 160,
+              "accuracy": 0.5375,
+              "answer_nll": 0.8474854665546673,
+              "ordinary_nll": 0.6223567884226535,
+              "groups": {
+                "exact": {
+                  "count": 101,
+                  "accuracy": 0.38613861386138615,
+                  "nll": 1.1571308829093185
+                },
+                "initial": {
+                  "count": 79,
+                  "accuracy": 0.6582278481012658,
+                  "nll": 0.6917404663112899
+                },
+                "within_chunk": {
+                  "count": 141,
+                  "accuracy": 0.5602836879432624,
+                  "nll": 0.8021643659238902
+                },
+                "corrected": {
+                  "count": 81,
+                  "accuracy": 0.41975308641975306,
+                  "nll": 0.9993849112364797
+                },
+                "semantic": {
+                  "count": 27,
+                  "accuracy": 0.5555555555555556,
+                  "nll": 0.6921281527589869
+                },
+                "beyond_chunk": {
+                  "count": 19,
+                  "accuracy": 0.3684210526315789,
+                  "nll": 1.1838157396567495
+                },
+                "context": {
+                  "count": 32,
+                  "accuracy": 1.0,
+                  "nll": 0.0012498547004042848
+                }
+              },
+              "interventions": {},
+              "bootstrap_events": 64,
+              "learned_writes": 2595,
+              "learned_write_rate": 0.25,
+              "old_read_mass": 0.0028206092515983454,
+              "query_old_read_mass": 0.0,
+              "effective_old_read_mass": 0.0028206092515983454,
+              "effective_query_old_read_mass": 0.0,
+              "write_rate": 0.25,
+              "read_mass": 0.4360661902971042,
+              "effective_read_mass": 0.4360661902971042,
+              "owners": {
+                "M0": {
+                  "write_fraction": 0.4242196314403911,
+                  "valid_fraction": 0.9939827002632569,
+                  "read_mass": 0.13689356901090635
+                },
+                "M1": {
+                  "write_fraction": 0.16848439262880782,
+                  "valid_fraction": 0.9879654005265137,
+                  "read_mass": 0.08649868371568259
+                },
+                "M2": {
+                  "write_fraction": 0.32305377961639714,
+                  "valid_fraction": 0.9819481007897706,
+                  "read_mass": 0.13858593456186535
+                },
+                "M3": {
+                  "write_fraction": 0.08424219631440391,
+                  "valid_fraction": 0.9759308010530274,
+                  "read_mass": 0.07408800300864987
+                }
+              },
+              "mean_weighted_publication_age": 4.177517032551098,
+              "query_mean_weighted_publication_age": 2.7246835443037973,
+              "publication_age_definition": "Fresh candidates have age 0 and version -1. Pre-event byte clock minus committed occurrence; valid nonnull read weights normalized per event. Valid fraction is pre-read occupancy.",
+              "state_bytes": 108480,
+              "expert_executions": 199680,
+              "external_bytes": 2659,
+              "executed_bytes": 3328,
+              "seconds": 2.8614417829994636,
+              "recall": {
+                "slots": 2,
+                "layout": "pooled",
+                "hard": true,
+                "feedback": true,
+                "mean_active_slots": 0.8721323805942084,
+                "mean_unique_owners": 0.7382474614516735,
+                "effective_active_slots": 0.8721323805942084,
+                "coverage_strength": [
+                  0.9983550310134888,
+                  1.0230276584625244
+                ],
+                "feedback_weight_norms": {
+                  "query_feedback": 1.0548808574676514,
+                  "null_feedback": 0.24056261777877808,
+                  "usage_feedback": 0.12080711871385574
+                },
+                "aggregate_read_weights": "Mean selection mass per slot; full per-slot choices are in query records."
+              }
+            },
+            "long_delay": {
+              "split": "long_delay",
+              "control": "intact",
+              "read_source": "publication",
+              "answers": 160,
+              "accuracy": 0.48125,
+              "answer_nll": 0.8914739237193089,
+              "ordinary_nll": 0.623442565165388,
+              "groups": {
+                "exact": {
+                  "count": 110,
+                  "accuracy": 0.35454545454545455,
+                  "nll": 1.179209077315913
+                },
+                "initial": {
+                  "count": 64,
+                  "accuracy": 0.65625,
+                  "nll": 0.5996090162872747
+                },
+                "within_chunk": {
+                  "count": 95,
+                  "accuracy": 0.6526315789473685,
+                  "nll": 0.6269858098387837
+                },
+                "beyond_chunk": {
+                  "count": 65,
+                  "accuracy": 0.23076923076923078,
+                  "nll": 1.2780334747754611
+                },
+                "corrected": {
+                  "count": 96,
+                  "accuracy": 0.3645833333333333,
+                  "nll": 1.0860505286739983
+                },
+                "semantic": {
+                  "count": 18,
+                  "accuracy": 0.3333333333333333,
+                  "nll": 0.7158606184853448
+                },
+                "context": {
+                  "count": 32,
+                  "accuracy": 1.0,
+                  "nll": 0.0011668174250871743
+                }
+              },
+              "interventions": {},
+              "bootstrap_events": 64,
+              "learned_writes": 8711,
+              "learned_write_rate": 0.25,
+              "old_read_mass": 0.003361823361823362,
+              "query_old_read_mass": 0.0,
+              "effective_old_read_mass": 0.003361823361823362,
+              "effective_query_old_read_mass": 0.0,
+              "write_rate": 0.25,
+              "read_mass": 0.48763532763532763,
+              "effective_read_mass": 0.48763532763532763,
+              "owners": {
+                "M0": {
+                  "write_fraction": 0.4274643874643875,
+                  "valid_fraction": 0.9981766381766382,
+                  "read_mass": 0.1413105413105413
+                },
+                "M1": {
+                  "write_fraction": 0.1699145299145299,
+                  "valid_fraction": 0.9963532763532763,
+                  "read_mass": 0.11145299145299145
+                },
+                "M2": {
+                  "write_fraction": 0.3315099715099715,
+                  "valid_fraction": 0.9945299145299146,
+                  "read_mass": 0.16245014245014244
+                },
+                "M3": {
+                  "write_fraction": 0.07111111111111111,
+                  "valid_fraction": 0.9927065527065527,
+                  "read_mass": 0.07242165242165242
+                }
+              },
+              "mean_weighted_publication_age": 4.58335054740756,
+              "query_mean_weighted_publication_age": 2.8164556962025316,
+              "publication_age_definition": "Fresh candidates have age 0 and version -1. Pre-event byte clock minus committed occurrence; valid nonnull read weights normalized per event. Valid fraction is pre-read occupancy.",
+              "state_bytes": 108480,
+              "expert_executions": 578880,
+              "external_bytes": 8775,
+              "executed_bytes": 9648,
+              "seconds": 8.117967354000939,
+              "recall": {
+                "slots": 2,
+                "layout": "pooled",
+                "hard": true,
+                "feedback": true,
+                "mean_active_slots": 0.9752706552706553,
+                "mean_unique_owners": 0.8495726495726496,
+                "effective_active_slots": 0.9752706552706553,
+                "coverage_strength": [
+                  0.9983550310134888,
+                  1.0230276584625244
+                ],
+                "feedback_weight_norms": {
+                  "query_feedback": 1.0548808574676514,
+                  "null_feedback": 0.24056261777877808,
+                  "usage_feedback": 0.12080711871385574
+                },
+                "aggregate_read_weights": "Mean selection mass per slot; full per-slot choices are in query records."
+              }
+            }
+          },
+          "interventions": {
+            "pooled": {
+              "language_nll": 2.570254474878311,
+              "answer_nll": 0.8474854665546673,
+              "language_delta": 0.0,
+              "answer_delta": 0.0
+            },
+            "no_feedback": {
+              "language_nll": 2.7115710079669952,
+              "answer_nll": 0.8455883385611742,
+              "language_delta": 0.14131653308868408,
+              "answer_delta": -0.001897127993493064
+            },
+            "blocked": {
+              "language_nll": 2.775410920381546,
+              "answer_nll": 1.1133798899381417,
+              "language_delta": 0.20515644550323486,
+              "answer_delta": 0.26589442338347447
+            }
+          },
+          "totals": {
+            "language": {
+              "updates": 160,
+              "bytes": 81920,
+              "experts": 4915200,
+              "answers": 0,
+              "delayed_gradient_norm_sum": 12.947990198852494,
+              "payload_gradient_norm_sum": 0.1249613195686834
+            },
+            "memory": {
+              "updates": 160,
+              "bytes": 81920,
+              "experts": 4915200,
+              "answers": 4973,
+              "delayed_gradient_norm_sum": 1.7493597422871972,
+              "payload_gradient_norm_sum": 0.020492329315857205
+            }
+          }
+        },
+        "last": {
+          "step": 320,
+          "language": {
+            "nll": 2.570254474878311,
+            "targets": 4096,
+            "mean_active_slots": 1.6240234375,
+            "mean_unique_owners": 1.37646484375,
+            "state_bytes": 42016
+          },
+          "memory": {
+            "test": {
+              "split": "test",
+              "control": "intact",
+              "read_source": "publication",
+              "answers": 160,
+              "accuracy": 0.5375,
+              "answer_nll": 0.8474854665546673,
+              "ordinary_nll": 0.6223567884226535,
+              "groups": {
+                "exact": {
+                  "count": 101,
+                  "accuracy": 0.38613861386138615,
+                  "nll": 1.1571308829093185
+                },
+                "initial": {
+                  "count": 79,
+                  "accuracy": 0.6582278481012658,
+                  "nll": 0.6917404663112899
+                },
+                "within_chunk": {
+                  "count": 141,
+                  "accuracy": 0.5602836879432624,
+                  "nll": 0.8021643659238902
+                },
+                "corrected": {
+                  "count": 81,
+                  "accuracy": 0.41975308641975306,
+                  "nll": 0.9993849112364797
+                },
+                "semantic": {
+                  "count": 27,
+                  "accuracy": 0.5555555555555556,
+                  "nll": 0.6921281527589869
+                },
+                "beyond_chunk": {
+                  "count": 19,
+                  "accuracy": 0.3684210526315789,
+                  "nll": 1.1838157396567495
+                },
+                "context": {
+                  "count": 32,
+                  "accuracy": 1.0,
+                  "nll": 0.0012498547004042848
+                }
+              },
+              "interventions": {},
+              "bootstrap_events": 64,
+              "learned_writes": 2595,
+              "learned_write_rate": 0.25,
+              "old_read_mass": 0.0028206092515983454,
+              "query_old_read_mass": 0.0,
+              "effective_old_read_mass": 0.0028206092515983454,
+              "effective_query_old_read_mass": 0.0,
+              "write_rate": 0.25,
+              "read_mass": 0.4360661902971042,
+              "effective_read_mass": 0.4360661902971042,
+              "owners": {
+                "M0": {
+                  "write_fraction": 0.4242196314403911,
+                  "valid_fraction": 0.9939827002632569,
+                  "read_mass": 0.13689356901090635
+                },
+                "M1": {
+                  "write_fraction": 0.16848439262880782,
+                  "valid_fraction": 0.9879654005265137,
+                  "read_mass": 0.08649868371568259
+                },
+                "M2": {
+                  "write_fraction": 0.32305377961639714,
+                  "valid_fraction": 0.9819481007897706,
+                  "read_mass": 0.13858593456186535
+                },
+                "M3": {
+                  "write_fraction": 0.08424219631440391,
+                  "valid_fraction": 0.9759308010530274,
+                  "read_mass": 0.07408800300864987
+                }
+              },
+              "mean_weighted_publication_age": 4.177517032551098,
+              "query_mean_weighted_publication_age": 2.7246835443037973,
+              "publication_age_definition": "Fresh candidates have age 0 and version -1. Pre-event byte clock minus committed occurrence; valid nonnull read weights normalized per event. Valid fraction is pre-read occupancy.",
+              "state_bytes": 108480,
+              "expert_executions": 199680,
+              "external_bytes": 2659,
+              "executed_bytes": 3328,
+              "seconds": 2.8715512689996103,
+              "recall": {
+                "slots": 2,
+                "layout": "pooled",
+                "hard": true,
+                "feedback": true,
+                "mean_active_slots": 0.8721323805942084,
+                "mean_unique_owners": 0.7382474614516735,
+                "effective_active_slots": 0.8721323805942084,
+                "coverage_strength": [
+                  0.9983550310134888,
+                  1.0230276584625244
+                ],
+                "feedback_weight_norms": {
+                  "query_feedback": 1.0548808574676514,
+                  "null_feedback": 0.24056261777877808,
+                  "usage_feedback": 0.12080711871385574
+                },
+                "aggregate_read_weights": "Mean selection mass per slot; full per-slot choices are in query records."
+              }
+            },
+            "long_delay": {
+              "split": "long_delay",
+              "control": "intact",
+              "read_source": "publication",
+              "answers": 160,
+              "accuracy": 0.48125,
+              "answer_nll": 0.8914739237193089,
+              "ordinary_nll": 0.623442565165388,
+              "groups": {
+                "exact": {
+                  "count": 110,
+                  "accuracy": 0.35454545454545455,
+                  "nll": 1.179209077315913
+                },
+                "initial": {
+                  "count": 64,
+                  "accuracy": 0.65625,
+                  "nll": 0.5996090162872747
+                },
+                "within_chunk": {
+                  "count": 95,
+                  "accuracy": 0.6526315789473685,
+                  "nll": 0.6269858098387837
+                },
+                "beyond_chunk": {
+                  "count": 65,
+                  "accuracy": 0.23076923076923078,
+                  "nll": 1.2780334747754611
+                },
+                "corrected": {
+                  "count": 96,
+                  "accuracy": 0.3645833333333333,
+                  "nll": 1.0860505286739983
+                },
+                "semantic": {
+                  "count": 18,
+                  "accuracy": 0.3333333333333333,
+                  "nll": 0.7158606184853448
+                },
+                "context": {
+                  "count": 32,
+                  "accuracy": 1.0,
+                  "nll": 0.0011668174250871743
+                }
+              },
+              "interventions": {},
+              "bootstrap_events": 64,
+              "learned_writes": 8711,
+              "learned_write_rate": 0.25,
+              "old_read_mass": 0.003361823361823362,
+              "query_old_read_mass": 0.0,
+              "effective_old_read_mass": 0.003361823361823362,
+              "effective_query_old_read_mass": 0.0,
+              "write_rate": 0.25,
+              "read_mass": 0.48763532763532763,
+              "effective_read_mass": 0.48763532763532763,
+              "owners": {
+                "M0": {
+                  "write_fraction": 0.4274643874643875,
+                  "valid_fraction": 0.9981766381766382,
+                  "read_mass": 0.1413105413105413
+                },
+                "M1": {
+                  "write_fraction": 0.1699145299145299,
+                  "valid_fraction": 0.9963532763532763,
+                  "read_mass": 0.11145299145299145
+                },
+                "M2": {
+                  "write_fraction": 0.3315099715099715,
+                  "valid_fraction": 0.9945299145299146,
+                  "read_mass": 0.16245014245014244
+                },
+                "M3": {
+                  "write_fraction": 0.07111111111111111,
+                  "valid_fraction": 0.9927065527065527,
+                  "read_mass": 0.07242165242165242
+                }
+              },
+              "mean_weighted_publication_age": 4.58335054740756,
+              "query_mean_weighted_publication_age": 2.8164556962025316,
+              "publication_age_definition": "Fresh candidates have age 0 and version -1. Pre-event byte clock minus committed occurrence; valid nonnull read weights normalized per event. Valid fraction is pre-read occupancy.",
+              "state_bytes": 108480,
+              "expert_executions": 578880,
+              "external_bytes": 8775,
+              "executed_bytes": 9648,
+              "seconds": 8.173715819999416,
+              "recall": {
+                "slots": 2,
+                "layout": "pooled",
+                "hard": true,
+                "feedback": true,
+                "mean_active_slots": 0.9752706552706553,
+                "mean_unique_owners": 0.8495726495726496,
+                "effective_active_slots": 0.9752706552706553,
+                "coverage_strength": [
+                  0.9983550310134888,
+                  1.0230276584625244
+                ],
+                "feedback_weight_norms": {
+                  "query_feedback": 1.0548808574676514,
+                  "null_feedback": 0.24056261777877808,
+                  "usage_feedback": 0.12080711871385574
+                },
+                "aggregate_read_weights": "Mean selection mass per slot; full per-slot choices are in query records."
+              }
+            }
+          },
+          "interventions": {
+            "pooled": {
+              "language_nll": 2.570254474878311,
+              "answer_nll": 0.8474854665546673,
+              "language_delta": 0.0,
+              "answer_delta": 0.0
+            },
+            "no_feedback": {
+              "language_nll": 2.7115710079669952,
+              "answer_nll": 0.8455883385611742,
+              "language_delta": 0.14131653308868408,
+              "answer_delta": -0.001897127993493064
+            },
+            "blocked": {
+              "language_nll": 2.775410920381546,
+              "answer_nll": 1.1133798899381417,
+              "language_delta": 0.20515644550323486,
+              "answer_delta": 0.26589442338347447
+            }
+          },
+          "totals": {
+            "language": {
+              "updates": 160,
+              "bytes": 81920,
+              "experts": 4915200,
+              "answers": 0,
+              "delayed_gradient_norm_sum": 12.947990198852494,
+              "payload_gradient_norm_sum": 0.1249613195686834
+            },
+            "memory": {
+              "updates": 160,
+              "bytes": 81920,
+              "experts": 4915200,
+              "answers": 4973,
+              "delayed_gradient_norm_sum": 1.7493597422871972,
+              "payload_gradient_norm_sum": 0.020492329315857205
+            }
+          }
+        }
+      },
+      "history": [
+        {
+          "step": 80,
+          "source": "memory",
+          "primary_nll": 0.8472339510917664,
+          "gradient_norm": 1.3426512479782104,
+          "totals": {
+            "language": {
+              "updates": 40,
+              "bytes": 20480,
+              "experts": 1228800,
+              "answers": 0,
+              "delayed_gradient_norm_sum": 10.635727794840932,
+              "payload_gradient_norm_sum": 0.07058235400472768
+            },
+            "memory": {
+              "updates": 40,
+              "bytes": 20480,
+              "experts": 1228800,
+              "answers": 1245,
+              "delayed_gradient_norm_sum": 0.8905422643292695,
+              "payload_gradient_norm_sum": 0.009201224100252148
+            }
+          },
+          "validation": {
+            "language": {
+              "nll": 3.1570716500282288,
+              "targets": 2048,
+              "mean_active_slots": 1.91162109375,
+              "mean_unique_owners": 1.73046875,
+              "state_bytes": 42016
+            },
+            "memory": {
+              "split": "validation",
+              "control": "intact",
+              "read_source": "publication",
+              "answers": 80,
+              "accuracy": 0.475,
+              "answer_nll": 0.8907072091115878,
+              "ordinary_nll": 0.654767908718996,
+              "groups": {
+                "exact": {
+                  "count": 58,
+                  "accuracy": 0.3275862068965517,
+                  "nll": 1.1560430443396086
+                },
+                "initial": {
+                  "count": 33,
+                  "accuracy": 0.6666666666666666,
+                  "nll": 0.6076667184888995
+                },
+                "within_chunk": {
+                  "count": 74,
+                  "accuracy": 0.4864864864864865,
+                  "nll": 0.8522126539347802
+                },
+                "corrected": {
+                  "count": 47,
+                  "accuracy": 0.3404255319148936,
+                  "nll": 1.0894377663573052
+                },
+                "semantic": {
+                  "count": 6,
+                  "accuracy": 0.5,
+                  "nll": 0.6990159451961517
+                },
+                "context": {
+                  "count": 16,
+                  "accuracy": 1.0,
+                  "nll": 0.0007490303783015406
+                },
+                "beyond_chunk": {
+                  "count": 6,
+                  "accuracy": 0.3333333333333333,
+                  "nll": 1.3654733896255493
+                }
+              },
+              "interventions": {},
+              "bootstrap_events": 32,
+              "learned_writes": 1323,
+              "learned_write_rate": 0.24887133182844243,
+              "old_read_mass": 0.0007347538574577516,
+              "query_old_read_mass": 0.0,
+              "effective_old_read_mass": 0.0007347538574577516,
+              "effective_query_old_read_mass": 0.0,
+              "write_rate": 0.24889786921381338,
+              "read_mass": 0.3471711976487877,
+              "effective_read_mass": 0.3471711976487877,
+              "owners": {
+                "M0": {
+                  "write_fraction": 0.2571638501102131,
+                  "valid_fraction": 0.994121969140338,
+                  "read_mass": 0.06502571638501102
+                },
+                "M1": {
+                  "write_fraction": 0.14842027920646583,
+                  "valid_fraction": 0.988243938280676,
+                  "read_mass": 0.0804555473916238
+                },
+                "M2": {
+                  "write_fraction": 0.4842027920646583,
+                  "valid_fraction": 0.9823659074210139,
+                  "read_mass": 0.15062454077883908
+                },
+                "M3": {
+                  "write_fraction": 0.10580455547391623,
+                  "valid_fraction": 0.9764878765613519,
+                  "read_mass": 0.05106539309331374
+                }
+              },
+              "mean_weighted_publication_age": 5.306179775280899,
+              "query_mean_weighted_publication_age": 5.3441558441558445,
+              "publication_age_definition": "Fresh candidates have age 0 and version -1. Pre-event byte clock minus committed occurrence; valid nonnull read weights normalized per event. Valid fraction is pre-read occupancy.",
+              "state_bytes": 42016,
+              "expert_executions": 97440,
+              "external_bytes": 1361,
+              "executed_bytes": 1624,
+              "seconds": 2.350555349001297,
+              "recall": {
+                "slots": 2,
+                "layout": "pooled",
+                "hard": true,
+                "feedback": true,
+                "mean_active_slots": 0.6943423952975754,
+                "mean_unique_owners": 0.5995591476855253,
+                "effective_active_slots": 0.6943423952975754,
+                "coverage_strength": [
+                  0.9991773366928101,
+                  1.0241203308105469
+                ],
+                "feedback_weight_norms": {
+                  "query_feedback": 0.5790150761604309,
+                  "null_feedback": 0.2141454517841339,
+                  "usage_feedback": 0.05787963047623634
+                },
+                "aggregate_read_weights": "Mean selection mass per slot; full per-slot choices are in query records."
+              }
+            },
+            "score": 2.023889429569908
+          },
+          "invocation_seconds": 179.63788426000065
+        },
+        {
+          "step": 160,
+          "source": "memory",
+          "primary_nll": 0.7963723540306091,
+          "gradient_norm": 1.3713653087615967,
+          "totals": {
+            "language": {
+              "updates": 80,
+              "bytes": 40960,
+              "experts": 2457600,
+              "answers": 0,
+              "delayed_gradient_norm_sum": 12.144129612715915,
+              "payload_gradient_norm_sum": 0.09433782538690139
+            },
+            "memory": {
+              "updates": 80,
+              "bytes": 40960,
+              "experts": 2457600,
+              "answers": 2495,
+              "delayed_gradient_norm_sum": 1.0847179953416344,
+              "payload_gradient_norm_sum": 0.012825613534005242
+            }
+          },
+          "validation": {
+            "language": {
+              "nll": 2.9033543467521667,
+              "targets": 2048,
+              "mean_active_slots": 1.92822265625,
+              "mean_unique_owners": 1.76953125,
+              "state_bytes": 42016
+            },
+            "memory": {
+              "split": "validation",
+              "control": "intact",
+              "read_source": "publication",
+              "answers": 80,
+              "accuracy": 0.55,
+              "answer_nll": 0.8748769352800991,
+              "ordinary_nll": 0.6615485216106425,
+              "groups": {
+                "exact": {
+                  "count": 58,
+                  "accuracy": 0.43103448275862066,
+                  "nll": 1.131140907054189
+                },
+                "initial": {
+                  "count": 33,
+                  "accuracy": 0.7878787878787878,
+                  "nll": 0.5608195799672323
+                },
+                "within_chunk": {
+                  "count": 74,
+                  "accuracy": 0.5945945945945946,
+                  "nll": 0.8274551382974833
+                },
+                "corrected": {
+                  "count": 47,
+                  "accuracy": 0.3829787234042553,
+                  "nll": 1.0953852911380695
+                },
+                "semantic": {
+                  "count": 6,
+                  "accuracy": 0.5,
+                  "nll": 0.7291133950153986
+                },
+                "context": {
+                  "count": 16,
+                  "accuracy": 1.0,
+                  "nll": 0.0005813651982862211
+                },
+                "beyond_chunk": {
+                  "count": 6,
+                  "accuracy": 0.0,
+                  "nll": 1.4597457647323608
+                }
+              },
+              "interventions": {},
+              "bootstrap_events": 32,
+              "learned_writes": 1310,
+              "learned_write_rate": 0.24642588412340105,
+              "old_read_mass": 0.002571638501102131,
+              "query_old_read_mass": 0.0,
+              "effective_old_read_mass": 0.002571638501102131,
+              "effective_query_old_read_mass": 0.0,
+              "write_rate": 0.24650991917707568,
+              "read_mass": 0.4066862601028655,
+              "effective_read_mass": 0.4066862601028655,
+              "owners": {
+                "M0": {
+                  "write_fraction": 0.47979426891991184,
+                  "valid_fraction": 0.994121969140338,
+                  "read_mass": 0.13703159441587068
+                },
+                "M1": {
+                  "write_fraction": 0.22116091109478325,
+                  "valid_fraction": 0.988243938280676,
+                  "read_mass": 0.08596620132255695
+                },
+                "M2": {
+                  "write_fraction": 0.18589272593681117,
+                  "valid_fraction": 0.9823659074210139,
+                  "read_mass": 0.10506980161645849
+                },
+                "M3": {
+                  "write_fraction": 0.09919177075679647,
+                  "valid_fraction": 0.9764878765613519,
+                  "read_mass": 0.07861866274797942
+                }
+              },
+              "mean_weighted_publication_age": 5.461049284578697,
+              "query_mean_weighted_publication_age": 3.7051282051282053,
+              "publication_age_definition": "Fresh candidates have age 0 and version -1. Pre-event byte clock minus committed occurrence; valid nonnull read weights normalized per event. Valid fraction is pre-read occupancy.",
+              "state_bytes": 54240,
+              "expert_executions": 97440,
+              "external_bytes": 1361,
+              "executed_bytes": 1624,
+              "seconds": 2.422378471999764,
+              "recall": {
+                "slots": 2,
+                "layout": "pooled",
+                "hard": true,
+                "feedback": true,
+                "mean_active_slots": 0.813372520205731,
+                "mean_unique_owners": 0.7274063188831741,
+                "effective_active_slots": 0.813372520205731,
+                "coverage_strength": [
+                  0.9989031553268433,
+                  1.0262322425842285
+                ],
+                "feedback_weight_norms": {
+                  "query_feedback": 0.7113226056098938,
+                  "null_feedback": 0.2174704223871231,
+                  "usage_feedback": 0.0957130491733551
+                },
+                "aggregate_read_weights": "Mean selection mass per slot; full per-slot choices are in query records."
+              }
+            },
+            "score": 1.889115641016133
+          },
+          "invocation_seconds": 354.486420913001
+        },
+        {
+          "step": 240,
+          "source": "memory",
+          "primary_nll": 0.822628378868103,
+          "gradient_norm": 1.7390273809432983,
+          "totals": {
+            "language": {
+              "updates": 120,
+              "bytes": 61440,
+              "experts": 3686400,
+              "answers": 0,
+              "delayed_gradient_norm_sum": 12.555046043242328,
+              "payload_gradient_norm_sum": 0.11246390416636132
+            },
+            "memory": {
+              "updates": 120,
+              "bytes": 61440,
+              "experts": 3686400,
+              "answers": 3731,
+              "delayed_gradient_norm_sum": 1.646348012087401,
+              "payload_gradient_norm_sum": 0.01744936994418822
+            }
+          },
+          "validation": {
+            "language": {
+              "nll": 2.6382964849472046,
+              "targets": 2048,
+              "mean_active_slots": 1.83935546875,
+              "mean_unique_owners": 1.6513671875,
+              "state_bytes": 42016
+            },
+            "memory": {
+              "split": "validation",
+              "control": "intact",
+              "read_source": "publication",
+              "answers": 80,
+              "accuracy": 0.4875,
+              "answer_nll": 0.9855509169545712,
+              "ordinary_nll": 0.709174455357572,
+              "groups": {
+                "exact": {
+                  "count": 58,
+                  "accuracy": 0.3448275862068966,
+                  "nll": 1.2796461924926603
+                },
+                "initial": {
+                  "count": 33,
+                  "accuracy": 0.6363636363636364,
+                  "nll": 0.691732977241896
+                },
+                "within_chunk": {
+                  "count": 74,
+                  "accuracy": 0.4864864864864865,
+                  "nll": 0.9539744991060788
+                },
+                "corrected": {
+                  "count": 47,
+                  "accuracy": 0.3829787234042553,
+                  "nll": 1.191848619306024
+                },
+                "semantic": {
+                  "count": 6,
+                  "accuracy": 0.5,
+                  "nll": 0.7692688157161077
+                },
+                "context": {
+                  "count": 16,
+                  "accuracy": 1.0,
+                  "nll": 0.0005613310934222682
+                },
+                "beyond_chunk": {
+                  "count": 6,
+                  "accuracy": 0.5,
+                  "nll": 1.3749934037526448
+                }
+              },
+              "interventions": {},
+              "bootstrap_events": 32,
+              "learned_writes": 1325,
+              "learned_write_rate": 0.24924755455229497,
+              "old_read_mass": 0.0,
+              "query_old_read_mass": 0.0,
+              "effective_old_read_mass": 0.0,
+              "effective_query_old_read_mass": 0.0,
+              "write_rate": 0.24926524614254225,
+              "read_mass": 0.39897134459955913,
+              "effective_read_mass": 0.39897134459955913,
+              "owners": {
+                "M0": {
+                  "write_fraction": 0.3982365907421014,
+                  "valid_fraction": 0.994121969140338,
+                  "read_mass": 0.12821454812637767
+                },
+                "M1": {
+                  "write_fraction": 0.18221895664952242,
+                  "valid_fraction": 0.988243938280676,
+                  "read_mass": 0.09845701689933872
+                },
+                "M2": {
+                  "write_fraction": 0.26818515797207937,
+                  "valid_fraction": 0.9823659074210139,
+                  "read_mass": 0.10066127847171198
+                },
+                "M3": {
+                  "write_fraction": 0.14842027920646583,
+                  "valid_fraction": 0.9764878765613519,
+                  "read_mass": 0.07163850110213078
+                }
+              },
+              "mean_weighted_publication_age": 4.234059097978227,
+              "query_mean_weighted_publication_age": 2.6103896103896105,
+              "publication_age_definition": "Fresh candidates have age 0 and version -1. Pre-event byte clock minus committed occurrence; valid nonnull read weights normalized per event. Valid fraction is pre-read occupancy.",
+              "state_bytes": 42016,
+              "expert_executions": 97440,
+              "external_bytes": 1361,
+              "executed_bytes": 1624,
+              "seconds": 2.38057451900022,
+              "recall": {
+                "slots": 2,
+                "layout": "pooled",
+                "hard": true,
+                "feedback": true,
+                "mean_active_slots": 0.7979426891991183,
+                "mean_unique_owners": 0.7090374724467303,
+                "effective_active_slots": 0.7979426891991183,
+                "coverage_strength": [
+                  0.998629093170166,
+                  1.0218632221221924
+                ],
+                "feedback_weight_norms": {
+                  "query_feedback": 0.9227628707885742,
+                  "null_feedback": 0.2116193026304245,
+                  "usage_feedback": 0.11594047397375107
+                },
+                "aggregate_read_weights": "Mean selection mass per slot; full per-slot choices are in query records."
+              }
+            },
+            "score": 1.811923700950888
+          },
+          "invocation_seconds": 527.9644624200009
+        },
+        {
+          "step": 320,
+          "source": "memory",
+          "primary_nll": 0.9805361032485962,
+          "gradient_norm": 1.519183874130249,
+          "totals": {
+            "language": {
+              "updates": 160,
+              "bytes": 81920,
+              "experts": 4915200,
+              "answers": 0,
+              "delayed_gradient_norm_sum": 12.947990198852494,
+              "payload_gradient_norm_sum": 0.1249613195686834
+            },
+            "memory": {
+              "updates": 160,
+              "bytes": 81920,
+              "experts": 4915200,
+              "answers": 4973,
+              "delayed_gradient_norm_sum": 1.7493597422871972,
+              "payload_gradient_norm_sum": 0.020492329315857205
+            }
+          },
+          "validation": {
+            "language": {
+              "nll": 2.564236104488373,
+              "targets": 2048,
+              "mean_active_slots": 1.634765625,
+              "mean_unique_owners": 1.388671875,
+              "state_bytes": 42016
+            },
+            "memory": {
+              "split": "validation",
+              "control": "intact",
+              "read_source": "publication",
+              "answers": 80,
+              "accuracy": 0.475,
+              "answer_nll": 0.886466366295781,
+              "ordinary_nll": 0.6215716958250715,
+              "groups": {
+                "exact": {
+                  "count": 58,
+                  "accuracy": 0.3275862068965517,
+                  "nll": 1.1500685891971505
+                },
+                "initial": {
+                  "count": 33,
+                  "accuracy": 0.6666666666666666,
+                  "nll": 0.598590736923308
+                },
+                "within_chunk": {
+                  "count": 74,
+                  "accuracy": 0.4864864864864865,
+                  "nll": 0.8508753811397706
+                },
+                "corrected": {
+                  "count": 47,
+                  "accuracy": 0.3404255319148936,
+                  "nll": 1.0885918081956023
+                },
+                "semantic": {
+                  "count": 6,
+                  "accuracy": 0.5,
+                  "nll": 0.7007991174856821
+                },
+                "context": {
+                  "count": 16,
+                  "accuracy": 1.0,
+                  "nll": 0.0005335265821031498
+                },
+                "beyond_chunk": {
+                  "count": 6,
+                  "accuracy": 0.3333333333333333,
+                  "nll": 1.3254218498865764
+                }
+              },
+              "interventions": {},
+              "bootstrap_events": 32,
+              "learned_writes": 1329,
+              "learned_write_rate": 0.25,
+              "old_read_mass": 0.0,
+              "query_old_read_mass": 0.0,
+              "effective_old_read_mass": 0.0,
+              "effective_query_old_read_mass": 0.0,
+              "write_rate": 0.25,
+              "read_mass": 0.4301983835415136,
+              "effective_read_mass": 0.4301983835415136,
+              "owners": {
+                "M0": {
+                  "write_fraction": 0.4136664217487142,
+                  "valid_fraction": 0.994121969140338,
+                  "read_mass": 0.12490815576781777
+                },
+                "M1": {
+                  "write_fraction": 0.16752387950036737,
+                  "valid_fraction": 0.988243938280676,
+                  "read_mass": 0.09110947832476121
+                },
+                "M2": {
+                  "write_fraction": 0.3203526818515797,
+                  "valid_fraction": 0.9823659074210139,
+                  "read_mass": 0.14548126377663484
+                },
+                "M3": {
+                  "write_fraction": 0.09845701689933872,
+                  "valid_fraction": 0.9764878765613519,
+                  "read_mass": 0.06869948567229978
+                }
+              },
+              "mean_weighted_publication_age": 3.286697247706422,
+              "query_mean_weighted_publication_age": 3.4871794871794872,
+              "publication_age_definition": "Fresh candidates have age 0 and version -1. Pre-event byte clock minus committed occurrence; valid nonnull read weights normalized per event. Valid fraction is pre-read occupancy.",
+              "state_bytes": 42016,
+              "expert_executions": 97440,
+              "external_bytes": 1361,
+              "executed_bytes": 1624,
+              "seconds": 2.592942156999925,
+              "recall": {
+                "slots": 2,
+                "layout": "pooled",
+                "hard": true,
+                "feedback": true,
+                "mean_active_slots": 0.8603967670830271,
+                "mean_unique_owners": 0.742836149889787,
+                "effective_active_slots": 0.8603967670830271,
+                "coverage_strength": [
+                  0.9983550310134888,
+                  1.0230276584625244
+                ],
+                "feedback_weight_norms": {
+                  "query_feedback": 1.0548808574676514,
+                  "null_feedback": 0.24056261777877808,
+                  "usage_feedback": 0.12080711871385574
+                },
+                "aggregate_read_weights": "Mean selection mass per slot; full per-slot choices are in query records."
+              }
+            },
+            "score": 1.7253512353920768
+          },
+          "invocation_seconds": 706.3805773839995
+        }
+      ]
+    }
+  },
+  "graph": {
+    "protocol": {
+      "baseline_revision": "b4bb7cfea18c3833819f6ed08973fd014f15f107",
+      "steps": 32,
+      "lr": 0.002,
+      "batch": 4,
+      "context": 16,
+      "seed": 20261104,
+      "data_sha256": "86c4e6aa9db7c042ec79f339dcb96d42b0075e16b8fc2e86bf0ca57e2dc565ed",
+      "data_bytes": 1115394,
+      "train_bytes": 1003854,
+      "validation_bytes": 55770,
+      "untouched_test_bytes": 55770,
+      "data_kind": "file",
+      "optimizer": "AdamW (.9,.95), matrix decay .01; inherited exclusions; clip 1",
+      "schedule": "inherited warmup then linear taper over final 20%; horizon retained on resume",
+      "state_policy": "ordered rows, explicit episode boundaries, detach every segment",
+      "torch": "2.15.0+cpu",
+      "python": "3.12.14",
+      "threads": 1,
+      "config": {
+        "nodes": [
+          {
+            "name": "A",
+            "region": "R0",
+            "view": "A"
+          },
+          {
+            "name": "B",
+            "region": "R0",
+            "view": "B"
+          },
+          {
+            "name": "C",
+            "region": "R0",
+            "view": "C"
+          },
+          {
+            "name": "U",
+            "region": "R1",
+            "view": null
+          },
+          {
+            "name": "P",
+            "region": "R1",
+            "view": null
+          },
+          {
+            "name": "V",
+            "region": "R2",
+            "view": null
+          },
+          {
+            "name": "Q",
+            "region": "R2",
+            "view": null
+          }
+        ],
+        "edges": [
+          {
+            "source": "A",
+            "destination": "U",
+            "kind": "forward"
+          },
+          {
+            "source": "B",
+            "destination": "U",
+            "kind": "forward"
+          },
+          {
+            "source": "B",
+            "destination": "V",
+            "kind": "forward"
+          },
+          {
+            "source": "C",
+            "destination": "V",
+            "kind": "forward"
+          },
+          {
+            "source": "A",
+            "destination": "P",
+            "kind": "forward"
+          },
+          {
+            "source": "U",
+            "destination": "P",
+            "kind": "forward"
+          },
+          {
+            "source": "V",
+            "destination": "Q",
+            "kind": "forward"
+          },
+          {
+            "source": "C",
+            "destination": "Q",
+            "kind": "forward"
+          },
+          {
+            "source": "P",
+            "destination": "Q",
+            "kind": "lateral"
+          },
+          {
+            "source": "Q",
+            "destination": "P",
+            "kind": "lateral"
+          },
+          {
+            "source": "P",
+            "destination": "U",
+            "kind": "descending"
+          },
+          {
+            "source": "P",
+            "destination": "A",
+            "kind": "descending"
+          },
+          {
+            "source": "P",
+            "destination": "B",
+            "kind": "descending"
+          },
+          {
+            "source": "Q",
+            "destination": "V",
+            "kind": "descending"
+          },
+          {
+            "source": "Q",
+            "destination": "B",
+            "kind": "descending"
+          },
+          {
+            "source": "Q",
+            "destination": "C",
+            "kind": "descending"
+          }
+        ],
+        "readout": [
+          "P",
+          "Q"
+        ],
+        "readout_mode": "mixed",
+        "width": 32,
+        "experts_per_block": 32,
+        "shared_per_block": 16,
+        "expert_hidden": 4,
+        "groups": 4,
+        "active_groups": 2,
+        "experts_per_group": 2,
+        "address_dim": 8,
+        "laces": 16,
+        "active_laces": 2,
+        "hat_levels": 2,
+        "hat_symbols": 16,
+        "hat_active_symbols": 2,
+        "kron_heads": 2,
+        "kron_key": 4,
+        "kron_value": 4,
+        "rounds": 2,
+        "recurrent_feedback": true,
+        "feedback_gate_init": 0.05,
+        "zero_safe_norm": true,
+        "evidence_gated_ports": false,
+        "selective_publication": [],
+        "independent_sources": [],
+        "recall_slots": 7,
+        "recall_nodes": [],
+        "recall_layout": "distinct",
+        "recall_feedback": true,
+        "recall_hard": true,
+        "context": 16,
+        "auxiliary_loss_weight": 0.01,
+        "hat_balance_weight": 0.001,
+        "seed": 20261104
+      },
+      "parameters": {
+        "total_unique_parameters": 311711,
+        "physical_experts": 384,
+        "expert_matrix_parameters": 98304,
+        "logical_experts_per_node": 96,
+        "expert_calls_per_round_per_external_event": 84,
+        "nodes": 7,
+        "regions": 3,
+        "byte_vocabulary": 256
+      }
+    },
+    "history": [
+      {
+        "step": 16,
+        "external_bytes_seen_total": 1024,
+        "training_nats_per_byte_recent": 5.463280498981476,
+        "validation_nats_per_byte": 5.17449426651001,
+        "validation_bits_per_byte": 7.465217217402365,
+        "training_seconds_this_invocation": 63.92743658000654,
+        "gradient_norm": 6.287813186645508,
+        "lr": 0.002,
+        "state_bytes": 36164,
+        "optimizer_state_bytes": 2496692,
+        "peak_rss_mib": 613.4296875
+      },
+      {
+        "step": 32,
+        "external_bytes_seen_total": 2048,
+        "training_nats_per_byte_recent": 4.68098708987236,
+        "validation_nats_per_byte": 4.324357032775879,
+        "validation_bits_per_byte": 6.238728446219073,
+        "training_seconds_this_invocation": 122.3036045270037,
+        "gradient_norm": 1.9868805408477783,
+        "lr": 0.00040000000000000034,
+        "state_bytes": 36164,
+        "optimizer_state_bytes": 2496692,
+        "peak_rss_mib": 613.4296875
+      }
+    ],
+    "audit": {
+      "parameters": {
+        "total_unique_parameters": 311711,
+        "physical_experts": 384,
+        "expert_matrix_parameters": 98304,
+        "logical_experts_per_node": 96,
+        "expert_calls_per_round_per_external_event": 84,
+        "nodes": 7,
+        "regions": 3,
+        "byte_vocabulary": 256
+      },
+      "split": "heldout test",
+      "evaluated_targets": 128,
+      "nll": 4.222792625427246,
+      "controls": {
+        "pooled": 4.221645355224609,
+        "no_feedback": 4.224335670471191,
+        "blocked": 4.487082004547119
+      },
+      "nodes": {
+        "A": {
+          "mean_active_slots": 1.56640625,
+          "mean_unique_ports": 0.64453125,
+          "edges": [
+            "P__A__descending"
+          ],
+          "query_feedback_norm": 0.17378440499305725,
+          "null_feedback_norm": 0.17456820607185364,
+          "role_map_deviation": 0.6953056454658508
+        },
+        "B": {
+          "mean_active_slots": 4.6953125,
+          "mean_unique_ports": 1.9375,
+          "edges": [
+            "P__B__descending",
+            "Q__B__descending"
+          ],
+          "query_feedback_norm": 0.17067593336105347,
+          "null_feedback_norm": 0.12922774255275726,
+          "role_map_deviation": 0.775791347026825
+        },
+        "C": {
+          "mean_active_slots": 2.51171875,
+          "mean_unique_ports": 0.953125,
+          "edges": [
+            "Q__C__descending"
+          ],
+          "query_feedback_norm": 0.18440592288970947,
+          "null_feedback_norm": 0.2065354734659195,
+          "role_map_deviation": 0.708001434803009
+        },
+        "U": {
+          "mean_active_slots": 6.66015625,
+          "mean_unique_ports": 2.453125,
+          "edges": [
+            "A__U__forward",
+            "B__U__forward",
+            "P__U__descending"
+          ],
+          "query_feedback_norm": 0.17648251354694366,
+          "null_feedback_norm": 0.17298395931720734,
+          "role_map_deviation": 0.7348620295524597
+        },
+        "P": {
+          "mean_active_slots": 6.40234375,
+          "mean_unique_ports": 2.7265625,
+          "edges": [
+            "A__P__forward",
+            "U__P__forward",
+            "Q__P__lateral"
+          ],
+          "query_feedback_norm": 0.20371052622795105,
+          "null_feedback_norm": 0.15268754959106445,
+          "role_map_deviation": 0.7511836886405945
+        },
+        "V": {
+          "mean_active_slots": 5.0859375,
+          "mean_unique_ports": 2.05859375,
+          "edges": [
+            "B__V__forward",
+            "C__V__forward",
+            "Q__V__descending"
+          ],
+          "query_feedback_norm": 0.17025330662727356,
+          "null_feedback_norm": 0.13909991085529327,
+          "role_map_deviation": 0.762675940990448
+        },
+        "Q": {
+          "mean_active_slots": 4.79296875,
+          "mean_unique_ports": 1.61328125,
+          "edges": [
+            "V__Q__forward",
+            "C__Q__forward",
+            "P__Q__lateral"
+          ],
+          "query_feedback_norm": 0.19090744853019714,
+          "null_feedback_norm": 0.13268651068210602,
+          "role_map_deviation": 0.7054598331451416
+        }
+      },
+      "exact_chunk_resume": true,
+      "max_logit_drift": 0.0,
+      "feedback_bytes_per_stream": 896
+    }
+  }
+}

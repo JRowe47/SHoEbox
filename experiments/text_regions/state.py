@@ -1,5 +1,5 @@
 """All carried values live here, separately from the trainable modules."""
-from dataclasses import dataclass, replace
+from dataclasses import dataclass, field, replace
 import torch
 from ..hat_minkron.hat import HATState
 from .ports import TensorPorts, Publication, map_tensors, tensor_list, plain_dict, choose_rows
@@ -24,6 +24,7 @@ class GraphState:
     rounds_seen: torch.Tensor
     epochs: torch.Tensor
     input_mode: str = ''
+    recall_feedback: dict[str, torch.Tensor] = field(default_factory=dict)
 
     def detach(self):
         return map_tensors(self, lambda x: x.detach())
@@ -40,7 +41,9 @@ class GraphState:
         return replace(self, ingress={k: h.reset(rows) for k, h in self.ingress.items()},
                        nodes={k: n.reset(rows) for k, n in self.nodes.items()},
                        ports=self.ports.reset(rows), events_seen=self.events_seen*(~rows),
-                       rounds_seen=self.rounds_seen*(~rows), epochs=self.epochs+rows.long())
+                       rounds_seen=self.rounds_seen*(~rows), epochs=self.epochs+rows.long(),
+                       recall_feedback={k: choose_rows(rows, torch.zeros_like(v), v)
+                                        for k, v in self.recall_feedback.items()})
 
     def tensors(self):
         return tensor_list(self)
@@ -65,4 +68,4 @@ class GraphState:
                           for k, n in data['nodes'].items()},
                    ports=TensorPorts({k: Publication.from_dict(p) for k, p in data['ports']['latest'].items()}),
                    events_seen=data['events_seen'], rounds_seen=data['rounds_seen'], epochs=data['epochs'],
-                   input_mode=data['input_mode'])
+                   input_mode=data['input_mode'], recall_feedback=data.get('recall_feedback', {}))

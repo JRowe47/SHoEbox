@@ -92,6 +92,11 @@ def main():
     p.add_argument('--lr', type=float, default=.002)
     p.add_argument('--seed', type=int, default=20261104)
     p.add_argument('--eval-every', type=int, default=10)
+    p.add_argument('--recall-slots', type=int, default=0)
+    p.add_argument('--recall-nodes', nargs='*', default=[])
+    p.add_argument('--recall-layout', choices=('distinct', 'pooled'), default='distinct')
+    p.add_argument('--recall-feedback', action=argparse.BooleanOptionalAction, default=True)
+    p.add_argument('--recall-hard', action=argparse.BooleanOptionalAction, default=True)
     p.add_argument('--tiny', action='store_true', help='Reduced-capacity engineering fixture only.')
     p.add_argument('--resume', type=Path)
     args = p.parse_args()
@@ -122,11 +127,19 @@ def main():
                 raise ValueError(f'Resume must preserve {key} from the saved protocol.')
         if model.cfg.rounds != args.rounds:
             raise ValueError('Resume must preserve the round count.')
+        for key in ('recall_slots', 'recall_layout', 'recall_feedback', 'recall_hard'):
+            if getattr(model.cfg, key) != getattr(args, key):
+                raise ValueError(f'Resume must preserve {key}.')
+        if model.cfg.recall_nodes != tuple(args.recall_nodes):
+            raise ValueError('Resume must preserve recall nodes.')
         protocol, start = saved['protocol'], saved['step']
     else:
         factory = GraphConfig.tiny if args.tiny else GraphConfig
         model = RegionLanguageModel(factory(context=args.context, rounds=args.rounds,
-                                             recurrent_feedback=args.rounds > 1, seed=args.seed))
+                                             recurrent_feedback=args.rounds > 1, seed=args.seed,
+                                             recall_slots=args.recall_slots, recall_nodes=tuple(args.recall_nodes),
+                                             recall_layout=args.recall_layout, recall_feedback=args.recall_feedback,
+                                             recall_hard=args.recall_hard))
         optimizer = optimizer_for(model, args.lr)
     args.out.mkdir(parents=True, exist_ok=True)
     (args.out/'protocol.json').write_text(json.dumps({**protocol, 'config': model.cfg.to_dict(),

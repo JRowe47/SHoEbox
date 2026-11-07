@@ -1,70 +1,69 @@
 # SHoEbox handoff
 
-## Completed architecture: learnable recall workspace
+## Completed: regional recall and mixed learning
 
-- Base `1cd759a`; adds `RecallWorkspace` in `task_recall.py`.
-- Configurable item-or-null slots, learned overlap penalties, role-specific
-  composer input maps, composer-to-request feedback and usage-to-write feedback.
-- The new continuation preset enables two distinct slots. Zero slots preserves
-  the legacy reader, common initialization and caller RNG. Seven slots are supported.
-- All new controls receive live task gradients. Existing conditional delayed
-  credit reaches publication admission through the reads. Historical request and
-  recurrent-feedback derivatives are not reconstructed across detached windows.
-- Query audits include pooled-layout and feedback-off interventions, with complete
-  per-slot selections alongside aggregate mean read mass.
-- All 520 checks across five suites passed, including eight new recall checks.
-  The live-output example also passed.
+Base `37a94dc`. `RecallWorkspace` now lives in `recall.py`, with a compatibility
+import in `task_recall.py`. Ordinary graph receivers can use independent recall
+slots over their configured incoming ports. Original forward/delayed timing,
+masks, substitutions and state ownership are preserved. New output feedback
+advances independently of held public outputs. Zero slots preserves legacy
+weights, initialization and behavior.
 
-## Completed training checks
+## Completed evidence
 
-- Two matched 160-update continuations from the same 600-update parent, with all
-  weights trainable and fresh optimizer/runtime state. Each has 564,519 parameters,
-  81,920 training bytes and 4,915,200 expert executions. Initialization seed 59,
-  data seed 259; selected checkpoint at continuation step 120 for both.
-- Distinct versus pooled exact-answer NLL: selected test 1.1609 vs 1.1382;
-  final test 1.2560 vs 1.1374; selected long-delay 1.1579 vs 1.1301;
-  final long-delay 1.2159 vs 1.1206. The pooled arm wins this short continuation.
-- Distinct slot input maps specialize (deviation from their mean reaches 0.591);
-  pooled maps remain identical. Feedback learns and affects answers, with mixed
-  intervention effects. All eight checkpoint/split audits reproduce live answers;
-  maximum logit drift 4.7684e-6, zero argmax changes.
-- Seven-slot/nine-owner integration: 600,354 parameters, 32 fresh updates,
-  4,096 bytes, 491,520 expert executions. Producer-state holds and delayed payload
-  credit are enabled together. Final validation averages 5.73 active slots and
-  4.13 distinct selected owners; all three feedback projections learn.
-- [Report](docs/SHoEbox_Recall_Report.md), [PDF](docs/SHoEbox_Recall_Report.pdf),
-  [metrics](experiments/text_regions/results/task_recall/summary.json).
-- Source, common parent, selected/final and seven-slot stage checkpoints,
-  optimizer/runtime state, raw traces, audits, validation logs and hashes are in
-  `SHoEbox_Recall_Artifacts.zip`.
+- All 530 checks across five suites pass; the live-output example also passes.
+  Ten new checks cover regional behavior and mixed-stream continuation.
+- Seven-slot ordinary graph: seven nodes, two rounds, 311,711 parameters,
+  32 updates, 2,048 bytes, 344,064 expert executions. Validation NLL falls from
+  5.5321 to 4.3244. Separate 128-byte test: intact 4.2228, blocked reads 4.4871.
+  All seven receivers learn role maps and feedback. Exact stream continuation
+  reproduces logits and state. Added feedback state: 896 bytes per stream.
+- Paired mixed continuations from the preceding distinct recall arm's final
+  checkpoint: 320 updates each, 564,519 parameters, 81,920 natural-text bytes
+  and 81,920 memory bytes, 9,830,400 expert executions. All weights train.
+- Both sources use state holding and delayed payload credit, with independent
+  runtime state, eligibility and cursors. Both produce delayed gate/payload
+  gradients. Resume verifies corpus, config, schedule and stream fingerprints.
+- Both arms select update 320. Distinct/pooled test natural-byte NLL:
+  2.5220/2.5703; exact-answer NLL: 1.1422/1.1571; long-delay: 1.1612/1.1792.
+- Distinct full-rollout interventions: pooling roles changes language/all-answer
+  NLL by +0.0051/-0.0006; disabling feedback by +0.1347/-0.0003; blocking reads
+  by +0.2563/+0.2639. These cover full rollouts, including later writes/state.
+- The ordinary graph and owned-memory training are separate configurations
+  sharing the recall module. Ordinary graph write gates still use their prior
+  training path; they have not acquired the task model's delayed credit.
 
-## Development direction and next target
+[Report](docs/SHoEbox_Regional_Recall_Report.md) |
+[PDF](docs/SHoEbox_Regional_Recall_Report.pdf) |
+[metrics](experiments/text_regions/results/regional_recall/summary.json).
+The artifact archive includes source, exact corpus, common parent, selected/final
+mixed checkpoints, graph checkpoint, optimizer/runtime/credit state, raw traces,
+checks and hashes. The suite runner returned zero; its redirected stdout snapshot
+is partial, and the final source's 530 tests were independently enumerated.
 
-Retain well-motivated mechanisms with trainable controls and explicit ablations.
-Small probe losses are not feature-removal gates. Code comments mark distinct
-roles and feedback as potentially training-threshold-dependent features. At fixed
-selected content, distinct role maps can preserve an ordering that early pooling
-erases; this capability is verified directly.
+## Next development target
 
-Next, reuse the workspace for ordinary region-to-region recall and train longer
-on mixed language and memory tasks. Carry state holding, payload credit, role
-separation and feedback forward as independently controllable mechanisms. Use
-broader ablations after specialization to decide which mechanisms earn their cost.
-No replay store is added; recall slots are current views of owned publications.
+Bring the task-trained publication and delayed-credit interface into the ordinary
+regional graph, then increase mixed-data exposure through the unified path. Keep
+state holds, payload credit, distinct roles and feedback independently controllable.
+The new mixed run supports useful recall and language feedback; it does not isolate
+older-publication retention. Use the existing query-fork audits for that question.
+
+Retain well-motivated mechanisms with trainable controls. Small probe outcomes
+are not feature-removal gates. Comments mark role specialization and feedback as
+potentially training-threshold-dependent features for later ablation. No replay
+store is added; slots are current views of existing owned publications.
 
 ## Reproduction
 
 ```bash
-python scripts/run_recall.py --parent /path/to/parent.pt --out artifacts/recall/study
-python scripts/summarize_recall.py --root artifacts/recall \
-  --out experiments/text_regions/results/task_recall/summary.json
+python scripts/run_regional_recall.py --parent /path/to/parent.pt \
+  --data data/tiny_shakespeare.txt --out artifacts/regional_recall
+python scripts/audit_regional_recall.py
+python scripts/summarize_regional_recall.py
 python scripts/check_all.py
 ```
 
-The paired runner resumes existing checkpoints. Use the archived seven-slot
-invocation for its separate integration check. `--recall-layout pooled`,
-`--no-recall-feedback`, and `--no-recall-hard` expose later ablations.
-
-Prior passes: [state commits](docs/SHoEbox_State_Commit_Report.md) (`483eb11`
-implementation, `1cd759a` results) and [payload credit](docs/SHoEbox_Payload_Credit_Report.md)
-(`a7a14ab` implementation, `150c8a0` results).
+The paired runner resumes existing checkpoints. Graph training is a separate
+32-update invocation documented in the experiment README. Pauses between
+scheduled evaluations preserve the checkpoint-selection schedule.

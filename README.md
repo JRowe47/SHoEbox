@@ -78,6 +78,23 @@ P and Q feed the shared byte readout. B has one state owner and publishes to bot
 
 ## Development status
 
+The [regional recall and mixed-learning pass](docs/SHoEbox_Regional_Recall_Report.md)
+reuses the recall workspace at ordinary graph input ports, preserving forward and
+delayed edge timing with receiver-specific feedback. A seven-node, seven-slot
+integration completes training and exact state continuation. The mixed trainer
+uses shared weights with independent language/memory state and delayed-credit
+traces; both sources retain publication-gated producer state and payload credit.
+
+Two matched 320-update continuations process 163,840 bytes each. Distinct slots
+reach held-out natural-byte NLL **2.522 versus 2.570** for pooled slots;
+exact-answer NLL is **1.142 versus 1.157**, and long-delay NLL is **1.161 versus
+1.179**. Disabling feedback raises the distinct arm's language NLL by 0.135;
+blocking reads raises language/all-answer NLL by 0.256/0.264. All **530 checks
+pass**. [PDF](docs/SHoEbox_Regional_Recall_Report.pdf) |
+[metrics](experiments/text_regions/results/regional_recall/summary.json) |
+[usage](experiments/text_regions/README.md#regional-recall-and-mixed-languagememory-training) |
+[handoff](STATUS.md).
+
 The [learnable recall workspace](docs/SHoEbox_Recall_Report.md) adds configurable
 item-or-null slots, learned overlap controls, slot-specific composer input maps,
 and feedback from composition to retrieval and publication. Two-slot runs add

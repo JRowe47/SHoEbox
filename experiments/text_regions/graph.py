@@ -4,6 +4,7 @@ import math
 import torch
 from torch import nn
 from .runtime import cached
+from .regional_recall import RegionalRecall
 
 
 @dataclass(frozen=True)
@@ -45,7 +46,21 @@ class GraphConnections(nn.Module):
             nn.init.normal_(layer.weight, std=.02)
         self.incoming = {n.name: tuple(e for e in cfg.edges if e.destination == n.name) for n in cfg.nodes}
 
-    def gather(self, spec, current, delayed, ingress, active, event_index, edge_masks, substitutions, edge_bias=None):
+    def initialize_recall(self):
+        # Called after the legacy model finishes initialization. New ports do not
+        # perturb common weights or the caller RNG, and default-off adds nothing.
+        self.recall = nn.ModuleDict()
+        if self.cfg.recall_slots:
+            with torch.random.fork_rng(devices=[]):
+                torch.manual_seed(self.cfg.seed + 9157)
+                names = self.cfg.recall_nodes or tuple(n for n, edges in self.incoming.items() if edges)
+                self.recall.update({name: RegionalRecall(self.cfg) for name in names})
+
+    def gather(self, spec, current, delayed, ingress, active, event_index, edge_masks, substitutions,
+               edge_bias=None, recall_feedback=None, recall_control='intact', recall_capture=None):
+        if spec.name in getattr(self, 'recall', {}):
+            return self.gather_recall(spec, current, delayed, ingress, active, event_index,
+                edge_masks, substitutions, edge_bias, recall_feedback, recall_control, recall_capture)
         template = current[spec.name].payload
         values = torch.zeros_like(template)
         context = template.new_zeros(template.shape[0], 3, self.cfg.groups)
@@ -83,3 +98,51 @@ class GraphConnections(nn.Module):
                                         substituted=torch.full_like(used, intervention == 'substitution')))
         scale = count.clamp_min(1).sqrt()
         return values/scale[:, None], context/scale[:, None, None], tuple(dependencies)
+
+    def gather_recall(self, spec, current, delayed, ingress, active, event_index,
+                      edge_masks, substitutions, edge_bias, feedback, control, capture):
+        template = current[spec.name].payload
+        incoming = torch.zeros_like(template)
+        dependencies, values, contexts, masks = [], [], [], []
+        if ingress is not None:
+            used = ingress.valid & active
+            layer = self.ingress[spec.name]
+            incoming = cached(layer, ingress.payload, lambda: layer(ingress.payload)) * used[:, None]
+            dependencies.append(ingress.dependency(f'{ingress.source}__{spec.name}', used))
+        edges = self.incoming[spec.name]
+        for edge in edges:
+            available = edge.kind == 'forward' or delayed is not None
+            publication = (current if edge.kind == 'forward' or delayed is None else delayed)[edge.source]
+            used = publication.valid & active & available
+            if edge.key in edge_masks:
+                used = used & edge_masks[edge.key][:, event_index]
+            payload, memberships = publication.payload, publication.header.memberships
+            intervention = 'none'
+            if edge.key in substitutions:
+                sub = substitutions[edge.key]
+                payload, memberships = sub.payload[:, event_index], sub.memberships[:, event_index]
+                intervention = 'substitution'
+            projection = self.edges[edge.key]
+            bias = (edge_bias or {}).get(edge.key, 0.)
+            value, context = cached(projection, (payload, memberships, bias),
+                                    lambda: projection(payload, memberships, bias))
+            values.append(value); contexts.append(context); masks.append(used)
+            # The query inspects candidate content even when its slot is not
+            # selected. Dependencies therefore record examined valid inputs;
+            # capture records the actual content selections separately.
+            dependencies.append(replace(publication.dependency(edge.key, used),
+                intervention=intervention, substituted=torch.full_like(used, intervention == 'substitution')))
+        if feedback is None:
+            feedback = torch.zeros_like(template)
+        payload, context, recall = self.recall[spec.name](torch.stack(values, 1),
+            torch.stack(contexts, 1), torch.stack(masks, 1), incoming, feedback,
+            layout=self.cfg.recall_layout, hard=self.cfg.recall_hard,
+            feedback_enabled=self.cfg.recall_feedback, control=control)
+        if capture is not None:
+            edge_deps = dependencies[-len(edges):]
+            capture.update(weights=recall['weights'], probabilities=recall['probabilities'],
+                valid=torch.stack(masks, 1),
+                versions=torch.stack([d.version for d in edge_deps], 1),
+                occurrences=torch.stack([d.occurrence for d in edge_deps], 1),
+                round_indices=torch.stack([d.round_index for d in edge_deps], 1))
+        return payload, context, tuple(dependencies)
