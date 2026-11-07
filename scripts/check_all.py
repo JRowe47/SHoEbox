@@ -40,11 +40,14 @@ def main():
                'test_joint_retained', 'test_multifact', 'test_joint_text', 'test_gradient_balance', 'test_runtime',
                'test_runtime_fusion', 'test_task_stream', 'test_task_credit', 'test_task_integration', 'test_task_retention', 'test_task_competitive_credit',
                'test_task_retention_integration', 'test_task_query_audit',
-               'test_task_initialization', 'test_task_resume_destination', 'test_task_curriculum']
-    result = subprocess.run([sys.executable, '-m', 'unittest', '-v',
-                             *['experiments.text_regions.' + name for name in modules]], cwd=ROOT)
-    if result.returncode:
-        failed.append('text_regions')
+               'test_task_initialization', 'test_task_resume_destination', 'test_task_curriculum', 'test_task_payload']
+    # Reclaim tensor/JIT caches between modules. A combined regional process
+    # otherwise retains gigabytes while running the expanding experiment suite.
+    for name in modules:
+        result = subprocess.run([sys.executable, '-m', 'unittest', '-v',
+                                 'experiments.text_regions.' + name], cwd=ROOT)
+        if result.returncode:
+            failed.append('text_regions.' + name)
     if failed:
         print('Failed suites: ' + ', '.join(failed), file=sys.stderr)
         return 1

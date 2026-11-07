@@ -12,7 +12,7 @@ from torch.nn import functional as F
 
 from .task_stream import TaskStreamConfig, TaskByteStreams, make_documents
 from .task_memory import TaskMemoryConfig, TaskMemoryModel, TaskMemoryState
-from .task_credit import WriteEligibility, CompetitiveWriteEligibility
+from .task_payload import make_eligibility
 from .task_curriculum import stage_for_step, stage_config, window_forward, SourceCoverage
 
 
@@ -210,7 +210,8 @@ def validate_resume(saved, args, model, data_cfg):
         if saved['args'].get(name, default) != getattr(args, name, default):
             raise ValueError(f'Resume {name} mismatch.')
     for name, default in (('curriculum', 'none'), ('acquire_steps', 200),
-                          ('bridge_steps', 200), ('truncate_every', 0)):
+                          ('bridge_steps', 200), ('truncate_every', 0),
+                          ('payload_rank', 0), ('payload_credit', False)):
         if saved['args'].get(name, default) != getattr(args, name, default):
             raise ValueError(f'Resume {name} mismatch.')
     if args.steps < saved['step']:
@@ -245,9 +246,11 @@ def initialize_weights(model, path):
     """Start a new independent study from compatible learned weights only."""
     path = Path(path)
     saved = torch.load(path, map_location='cpu', weights_only=False)
-    # Only the optional zero-initialized conditioning projection may be new.
+    # Optional identity/zero initialized additions may be new.
     missing, unexpected = model.load_state_dict(saved['weights'], strict=False)
     allowed = {'memory_policy_features.weight'} if model.cfg.memory_aware_write else set()
+    if model.cfg.payload_rank:
+        allowed.update(('payload_adapter.coefficients', 'payload_adapter.basis'))
     if set(missing)-allowed or unexpected:
         raise ValueError(f'Incompatible parent weights: missing={missing}, unexpected={unexpected}')
     return dict(path=str(path), sha256=hashlib.sha256(path.read_bytes()).hexdigest(),
@@ -281,6 +284,9 @@ def main():
     p.add_argument('--write-mode', choices=('independent', 'competitive'), default='independent')
     p.add_argument('--memory-aware-write', action='store_true')
     p.add_argument('--bootstrap-empty', action='store_true')
+    p.add_argument('--payload-rank', type=int, default=0)
+    p.add_argument('--payload-credit', action='store_true',
+                   help='Apply version-owned delayed payload-adapter gradients after backward.')
     p.add_argument('--stream-preset', choices=('basic', 'retention'), default='basic')
     p.add_argument('--curriculum', choices=('none', 'acquisition'), default='none')
     p.add_argument('--acquire-steps', type=int, default=200)
@@ -307,6 +313,8 @@ def main():
         p.error('The acquisition curriculum requires the retention target stream.')
     if args.resume and args.init_from:
         p.error('--resume and --init-from are mutually exclusive.')
+    if not 0 <= args.payload_rank <= args.width or (args.payload_credit and not args.payload_rank):
+        p.error('Payload rank must fit width; delayed payload credit requires a positive rank.')
     try:
         validate_resume_destination(args.out, args.resume)
     except ValueError as error:
@@ -318,7 +326,8 @@ def main():
     torch.set_num_threads(args.threads); torch.manual_seed(args.seed)
     args.out.mkdir(parents=True, exist_ok=True)
     model = TaskMemoryModel(TaskMemoryConfig(width=args.width, owners=args.owners, write_mode=args.write_mode,
-                                            memory_aware_write=args.memory_aware_write, bootstrap_empty=args.bootstrap_empty))
+                                            memory_aware_write=args.memory_aware_write, bootstrap_empty=args.bootstrap_empty,
+                                            payload_rank=args.payload_rank))
     initialization = initialize_weights(model, args.init_from) if args.init_from else None
     data_cfg = TaskStreamConfig() if args.stream_preset == 'basic' else TaskStreamConfig(
         entities='ABCD', queries_per_cycle=4, delays=(2,48), interference=True)
@@ -331,16 +340,16 @@ def main():
     coverage = SourceCoverage(documents)
     optimizer = torch.optim.AdamW(model.parameters(), lr=args.lr, betas=(.9, .95), weight_decay=.01)
     state = model.initial_state(args.batch)
-    credit_type = CompetitiveWriteEligibility if args.write_mode == 'competitive' else WriteEligibility
-    credit = credit_type.zeros(args.batch, model.owner_names,
-                                    model.memory_dim, model.cfg.policy_features)
+    credit = make_eligibility(model, args.batch)
     start = 0; best = float('inf')
     external = experts = 0; delayed_norm = prior_seconds = 0.
+    payload_norm = payload_update = 0.
+    payload_credit_steps = 0
     stage_totals = {}
     if args.resume:
         validate_resume(saved, args, model, data_cfg)
         model.load_state_dict(saved['weights']); optimizer.load_state_dict(saved['optimizer'])
-        state = TaskMemoryState.from_dict(saved['state']); credit = credit_type.from_dict(saved['credit'])
+        state = TaskMemoryState.from_dict(saved['state']); credit = make_eligibility(model, args.batch, saved['credit'])
         streams.load_state_dict(saved['stream']); torch.set_rng_state(saved['rng'])
         start, best = saved['step'], saved['best']
         initialization = saved.get('initialization', initialization)
@@ -349,6 +358,9 @@ def main():
         experts = totals.get('expert_executions', external*(args.owners+1)*3*
                              model.cfg.active_groups*model.cfg.experts_per_group)
         delayed_norm = totals.get('delayed_gradient_norm_sum', 0.)
+        payload_norm = totals.get('payload_gradient_norm_sum', 0.)
+        payload_update = totals.get('payload_update_norm_sum', 0.)
+        payload_credit_steps = totals.get('payload_credit_steps', 0)
         prior_seconds = totals.get('elapsed_seconds', 0.)
         stage_totals = totals.get('stages', {})
         if not (args.out/'best.pt').exists():
@@ -383,8 +395,7 @@ def main():
             coverage = SourceCoverage(documents)
             # New independent documents; learned weights and AdamW continue.
             state = model.initial_state(args.batch)
-            credit = credit_type.zeros(args.batch, model.owner_names,
-                                       model.memory_dim, model.cfg.policy_features)
+            credit = make_eligibility(model, args.batch)
         chunk = streams.next_chunk(args.context)
         optimizer.zero_grad(set_to_none=True)
         result, credit, boundaries = window_forward(model, chunk, state, credit,
@@ -393,8 +404,16 @@ def main():
         loss.backward()
         if args.arm == 'integrated':
             delayed_norm += sum(boundary.apply(model.write_policy) for boundary in boundaries)
+        if args.payload_rank:
+            current_payload_norm = sum(boundary.apply_payload(model.payload_adapter, args.payload_credit)
+                                       for boundary in boundaries)
+            payload_norm += current_payload_norm
+            payload_credit_steps += int(current_payload_norm > 0)
+            previous_payload = model.payload_adapter.coefficients.detach().clone()
         torch.nn.utils.clip_grad_norm_(model.parameters(), 1.)
         optimizer.step()
+        if args.payload_rank:
+            payload_update += float((model.payload_adapter.coefficients.detach() - previous_payload).norm())
         state = result['state'].detach()
         external += result['external_events']; experts += result['expert_executions']
         counts = coverage.count(chunk, args.truncate_every)
@@ -414,12 +433,16 @@ def main():
             elapsed = prior_seconds+time.perf_counter()-started
             totals = dict(external_bytes=external, expert_executions=experts,
                           elapsed_seconds=elapsed, delayed_gradient_norm_sum=delayed_norm,
+                          payload_gradient_norm_sum=payload_norm, payload_update_norm_sum=payload_update,
+                          payload_credit_steps=payload_credit_steps,
                           stages=stage_totals)
             record = dict(step=step, loss=float(loss.detach()), train_answer_nll=float(answer.detach()),
                           train_text_nll=float(text.detach()), validation=evaluation,
                           training_external_bytes=external, training_expert_executions=experts,
                           elapsed_seconds=elapsed, run_seconds=time.perf_counter()-started,
                           delayed_gradient_norm_sum=delayed_norm,
+                          payload_gradient_norm_sum=payload_norm, payload_update_norm_sum=payload_update,
+                          payload_credit_steps=payload_credit_steps,
                           training_stage=training_stage, stage_validation=stage_evaluation,
                           stage_totals=stage_totals,
                           trace_bytes=credit.storage_bytes())

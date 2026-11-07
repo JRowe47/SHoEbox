@@ -17,6 +17,7 @@ from .node import RecurrentNode
 from .ports import Publication, SemanticHeader, publish, map_tensors, plain_dict, tensor_list
 from .state import NodeState
 from .runtime import RuntimeHAT, forward_scope, next_event
+from .task_payload import PayloadAdapter
 
 
 @dataclass(frozen=True)
@@ -43,6 +44,7 @@ class TaskMemoryConfig:
     write_mode: str = 'independent'
     memory_aware_write: bool = False
     bootstrap_empty: bool = False
+    payload_rank: int = 0
 
     def to_dict(self):
         return asdict(self)
@@ -53,8 +55,10 @@ class TaskMemoryConfig:
 
     def graph_config(self):
         values = self.to_dict()
-        for key in ('owners', 'policy_features', 'write_mode', 'memory_aware_write', 'bootstrap_empty'):
+        for key in ('owners', 'policy_features', 'write_mode', 'memory_aware_write', 'bootstrap_empty', 'payload_rank'):
             values.pop(key)
+        if not 0 <= self.payload_rank <= self.width:
+            raise ValueError('Payload rank must be between zero and payload width.')
         if self.owners < 1 or self.policy_features < 1:
             raise ValueError('Positive owner and policy feature counts required.')
         if self.write_mode not in ('independent', 'competitive'):
@@ -167,6 +171,8 @@ class TaskMemoryModel(nn.Module):
             with torch.random.fork_rng(devices=[]):
                 self.memory_policy_features = nn.Linear(d+s+4, f, bias=False)
             nn.init.zeros_(self.memory_policy_features.weight)
+        if self.cfg.payload_rank:
+            self.payload_adapter = PayloadAdapter(m, d, self.cfg.payload_rank)
 
     @property
     def memory_dim(self):
@@ -213,6 +219,8 @@ class TaskMemoryModel(nn.Module):
             'write_probs', 'write_actions', 'write_features',
             'memory_before', 'memory_candidates', 'memory_versions', 'memory_valid', 'write_eligible')}
         bootstrap_masks = []
+        if c.payload_rank:
+            records['payload_features'] = []
         aux = self.write_policy.new_zeros(())
         hat_aux = aux
         active = torch.ones(b, dtype=torch.bool, device=inputs.device)
@@ -229,7 +237,10 @@ class TaskMemoryModel(nn.Module):
             memberships = x.new_zeros(b*m, 3, c.groups)
             producer = self.producer((x[:, None]+self.owner_embedding[None]).reshape(b*m, d),
                                      memberships, state.producer, producer_active)
-            candidate_payload = producer['latent'].reshape(b, m, d)
+            raw_payload = producer['latent'].reshape(b, m, d)
+            candidate_payload = raw_payload
+            if c.payload_rank:
+                candidate_payload, payload_features = self.payload_adapter(raw_payload)
             candidate_header = producer['header'].memberships.reshape(b, m, 3*c.groups)
             candidates = torch.cat((candidate_payload, candidate_header), -1)
             query = F.normalize(self.query(x)+self.query_semantic(candidate_header.mean(1)), dim=-1)
@@ -255,7 +266,8 @@ class TaskMemoryModel(nn.Module):
                                      self.read_context(retrieved[:, d:]).reshape(b, 3, c.groups),
                                      state.composer, active)
             logits.append(self.decoder(composer['latent']))
-            feature_input = self.policy_features(candidate_payload)
+            # Admission features stay upstream of the payload-only adapter.
+            feature_input = self.policy_features(raw_payload)
             if c.memory_aware_write:
                 old = before.detach()
                 observed = candidates.detach()
@@ -309,6 +321,8 @@ class TaskMemoryModel(nn.Module):
                               memory_versions=torch.stack([p.version for p in publications.values()], 1),
                               memory_valid=torch.stack([p.valid for p in publications.values()], 1),
                               write_eligible=eligible)
+                if c.payload_rank:
+                    values['payload_features'] = payload_features
                 for name, value in values.items():
                     records[name].append(value)
             state = TaskMemoryState(ingress['state'], producer['state'], composer['state'], publications,
