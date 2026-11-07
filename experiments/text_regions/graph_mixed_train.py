@@ -59,8 +59,10 @@ def evaluate_language(model, raw, batch=4, context=32, chunks=4, control='intact
 
 
 @torch.no_grad()
-def evaluate_memory(model, config, seed, count=4, context=32, split='validation', control='intact'):
-    documents = make_documents(config, split=split, seed=seed, count=count)
+def evaluate_memory(model, config, seed, count=4, context=32, split='validation', control='intact',
+                    *, documents=None):
+    if documents is None:
+        documents = make_documents(config, split=split, seed=seed, count=count)
     x, y, answer, valid, queries = packed_documents(documents)
     owners = model.cfg.task_publication
     writes = torch.zeros(len(owners), dtype=torch.float64)

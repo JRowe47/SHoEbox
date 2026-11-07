@@ -1,86 +1,79 @@
 # SHoEbox handoff
 
-## Completed: unified regional publication and learning
+## Completed: paired learning through broader context
 
-Base: `6e23e7a83b6bfee06c248c53b94a2e2696a0ce40`.
-The ordinary regional graph now supports task-trained publication admission,
-producer-state holds, low-rank payload adaptation, and conditional delayed credit.
-A/B/C/U/V use candidate content, stored content and preceding-round downstream
-read demand. P/Q retain always-published readout outputs. Defaults remain compatible.
+Continues published checkpoint `7f3ce944547d800e133e999046a77d4e029a1851`.
+`ContextBalancedRun` trains one language window and one memory window at identical
+weights before one AdamW step. Each source retains separate runtime state,
+demand, delayed credit and cursor. The optional `group_clip` control bounds each
+source's core/readout/recall/publication gradients before addition; `sum` directly
+adds them. Both receive the common final global clip. All controls remain ablatable.
 
-`GraphMixedRun` shares the prior mixed trainer's scheduling and checkpoint code.
-Natural text and task documents use one graph and shared trainable weights, with
-separate runtime state, demand, credit and cursors. Credit validates owner order,
-publication version and document epoch. No replay buffer was introduced.
+The procedural stream now supports natural-text distractors alongside updates to
+competing facts. Corpus partitions stay separate. Answers and provenance remain
+outside model inputs. The existing generator is byte-identical without a corpus.
+The inference architecture and 312,440 parameters are unchanged.
 
 ## Completed evidence
 
-- Five-suite regression run: 543 passing checks. Three clipping checks and one
-  evaluation-cache check bring the unique count to 547; all 19 affected mixed/graph
-  checks passed after the clipping update. Exact resume includes optimizer, both
-  cursors, demand and eligibility. Legacy behavior is compared exactly.
-- Both arms finished and selected update 160. Seven nodes, seven recall slots,
-  two rounds, 312,440 parameters: 729 more than the common graph parent.
-- Each retained training trajectory: 10,240 natural bytes + 10,240 task bytes,
-  624 answer targets, 3,440,640 expert executions. Batch 4, byte window 32,
-  gradient segment 16, constant AdamW LR 0.002, seed 83, data seed 283.
-- Both arms start from the preceding regional graph weights with fresh optimizer
-  and runtime state. All weights train; only delayed gate/payload gradient
-  application differs. Both delayed-gradient types are nonzero on both sources.
+Both arms finish 128 paired updates: 16,384 language bytes, 16,384 task-stream
+bytes (including embedded natural text), 727 answer targets and 5,505,024 expert
+executions per arm. Every weight trains. The parent's language cursor continues;
+optimizer/runtime states start fresh. The fixed validation rule selects clipping
+update 96 and sum update 128.
 
-| Held-out metric | Delayed credit | No delayed credit |
-|---|---:|---:|
-| Natural-byte NLL, 1,024 targets | 3.433866 | 3.568910 |
-| All-answer NLL, 80 targets | 2.108435 | 2.556905 |
-| Exact-answer NLL, 54 targets | 1.864421 | 2.229105 |
-| Exact-answer accuracy | 40.74% | 38.89% |
-| Long-delay exact NLL, 58 targets | 1.945042 | 2.237804 |
-| Long-delay exact accuracy | 10.34% | 10.34% |
+| Held-out measure | Starting model | Group clipping | Direct sum |
+|---|---:|---:|---:|
+| Natural-byte NLL | 3.367160 | 3.092152 | 3.081378 |
+| Answer NLL | 2.057892 | 1.928172 | 1.856024 |
+| Exact NLL beyond 96 bytes | 1.949739 | 1.680759 | 1.632492 |
+| Exact accuracy beyond 96 bytes | 23.47% | 22.45% | 23.47% |
 
-Blocking regional reads increases credit-arm language/answer NLL by
-+0.3813/+1.0858. Other whole-rollout controls have small effects in this pilot.
-Selected valid publications average 0.18 bytes old; none at answer queries are
-older than the 16-byte gradient segment. The result demonstrates the integrated
-training path and useful reads, not long-held publication recall.
+The shared held-out protocol uses 2,048 language targets, 288 ordinary answer
+targets and 98 exact targets beyond 96 bytes in the long-delay split. Direct sum
+wins this matched comparison. Clipping stays optional for later scale/ablation.
+Language and answer loss improve, but exact recall stays near the four-value
+baseline. Selected producer reads older than a 16-byte segment remain absent.
+Blocking regional reads worsens answer NLL by 2.2562 for clipping and 0.3714 for
+sum. Other whole-rollout publication/demand/state controls have small effects.
 
-The no-credit arm encountered one finite-gradient FP32 norm overflow after
-update 120. Clipping now falls back to an FP64 norm only when needed, preserving
-ordinary arithmetic exactly and rejecting nonfinite entries. The control resumed
-from 120 and completed normally. Counts exclude discarded work from that attempt.
+## Verification and recovery
 
-Evaluation now checkpoints individual measurements and reuses results for
-identical weights/configuration/data. The new cache behavior has a dedicated
-resume/invalidation check. It was added while the final pilot evaluations ran.
+558 unique checks pass: all 547 preceding checks and the complete 11-test new
+suite. The driver ended during new-suite reporting without its completion marker;
+the whole new suite was rerun separately and passed. The live-output example also
+passed. Initial gradients and validation agree exactly between arms.
 
-[Report](docs/SHoEbox_Graph_Publication_Report.md) |
-[PDF](docs/SHoEbox_Graph_Publication_Report.pdf) |
-[architecture](docs/graph_publication.md) |
-[metrics](experiments/text_regions/results/graph_publication/summary.json).
-Artifacts are in `artifacts/graph_publication`; the export includes source, corpus,
-common parent, selected/final checkpoints, optimizer/runtime/credit state,
-query traces, complete check output, recovery record and hashes.
+Training resumed from completed pairs 119/121 after the execution session was
+interrupted. Optimizer, both source states/cursors, demand, credit and RNG restore
+exactly. The validation schedule stayed fixed. Exposure counts exclude discarded
+partial work. Final evaluation caches each completed measurement and distinguishes
+selected weights from final weights. The archive preserves the recovery record.
 
 ## Next development target
 
-Increase mixed-language and long-delay task exposure through the unified graph.
-Develop useful retention through distractors while monitoring language quality,
-answer quality and task-gradient balance separately. Reuse the existing gradient
-balance machinery if needed; avoid adding another separate memory model.
+Develop useful long-delay retention through the existing regional graph. Prioritize
+exact-answer accuracy and causal sensitivity to retained fact content. Publication
+age is a diagnostic, not a learning target: recent publications can carry older
+recurrent information. Investigate credit across producer-state transitions and
+longer task exposure while maintaining language learning. Keep publication,
+state-hold, demand, payload-credit, recall-role and gradient controls independently
+ablatable; their intended coordination remains potentially threshold-dependent.
 
-Keep demand feedback, state holding, payload credit and recall-role controls
-independently ablatable. The pilot's small effects are not removal gates. Code
-comments mark the intended coordination as potentially threshold-dependent.
+[Report](docs/SHoEbox_Context_Balance_Report.md) |
+[PDF](docs/SHoEbox_Context_Balance_Report.pdf) |
+[protocol](docs/context_balance.md) |
+[metrics](experiments/text_regions/results/context_balance/summary.json).
 
-## Reproduction
+## Reproduce
 
 ```bash
-python scripts/run_graph_publication.py --parent /path/to/parent.pt \
-  --data data/tiny_shakespeare.txt --out artifacts/graph_publication --parallel
+python scripts/run_context_balance.py --parent artifacts/context_balance/parent.pt --parallel
 python scripts/check_all.py
-python scripts/summarize_graph_publication.py
-python scripts/report_graph_publication.py
+python scripts/summarize_context_balance.py
+python scripts/report_context_balance.py
 ```
 
-The paired runner resumes existing checkpoints and skips completed arms.
-Unscheduled pauses preserve the selection schedule. Final evaluation also resumes
-individual completed controls using its weight/configuration/data fingerprint.
+The download includes source, corpus, parent, selected/final checkpoints, full
+optimizer/runtime/credit state, histories, query traces, test logs and hashes.
+To rerun training from the parent, select a new output directory with `--out`.

@@ -120,7 +120,7 @@ def _heldout(entity_index, attribute_index):
     return (entity_index + attribute_index) % 2 == 1
 
 
-def make_document(config=None, *, split='train', seed=0, index=0):
+def make_document(config=None, *, split='train', seed=0, index=0, distractor_bytes=None):
     """Render one independent stream, with corrections inside its carried state.
 
     ``combinations`` tests entity/attribute query pairs withheld from training
@@ -135,7 +135,10 @@ def make_document(config=None, *, split='train', seed=0, index=0):
     cfg.validate()
     if split not in _SPLITS or index < 0:
         raise ValueError('Unknown split or negative stream index.')
+    if distractor_bytes is not None and (not isinstance(distractor_bytes, bytes) or not distractor_bytes):
+        raise ValueError('Natural distractors require nonempty bytes.')
     rng = random.Random(f'{_SPLITS[split]}:{seed}:{index}')
+    context_rng = random.Random(f'context:{_SPLITS[split]}:{seed}:{index}')
     data, targets, queries, events = bytearray(), [], [], []
     facts, prior, versions, source, write_serial = {}, {}, {}, {}, {}
     writes = 0
@@ -167,6 +170,16 @@ def make_document(config=None, *, split='train', seed=0, index=0):
         # using already observed bytes only. The default path preserves its
         # original bytes and RNG draws exactly.
         missing = max(0, delay - (len(data) - 1 - source[pair]))
+        if distractor_bytes is not None and missing >= 6:
+            # Half of a newly required gap contains ordinary corpus bytes;
+            # the other half can still update competing facts. This is input
+            # context, never an answer or owner hint. The caller owns splits.
+            length = missing // 2
+            offset = context_rng.randrange(len(distractor_bytes))
+            count = length - 2
+            repeated = distractor_bytes * ((offset + count) // len(distractor_bytes) + 1)
+            append(b'\n' + repeated[offset:offset+count] + b'\n', 'natural_distractor')
+            missing -= length
         if cfg.interference:
             while missing:
                 candidates = [other for other in facts if other != pair
@@ -250,10 +263,11 @@ def make_document(config=None, *, split='train', seed=0, index=0):
     return TaskDocument(bytes(data), tuple(targets), tuple(queries), tuple(events), split, index)
 
 
-def make_documents(config=None, *, split='train', seed=0, count=32, start=0):
+def make_documents(config=None, *, split='train', seed=0, count=32, start=0, distractor_bytes=None):
     if count < 1 or start < 0:
         raise ValueError('Positive count and nonnegative start required.')
-    return tuple(make_document(config, split=split, seed=seed, index=i) for i in range(start, start + count))
+    return tuple(make_document(config, split=split, seed=seed, index=i, distractor_bytes=distractor_bytes)
+                 for i in range(start, start + count))
 
 
 class TaskByteStreams:

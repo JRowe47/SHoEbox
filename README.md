@@ -1,6 +1,6 @@
 # SHoEbox
 
-**State-owning HAT-SHoE regions with recurrent exchange over persistent tensor ports.** SHoEbox builds on [Sparse Hierarchy of Experts](https://github.com/JRowe47/Sparse-Hierarchy-of-Experts) at revision `b4bb7cfea18c3833819f6ed08973fd014f15f107`, preserving its history, experiments, and recorded results. The default graph has seven nodes; the latest retained-memory experiment has eleven.
+**State-owning HAT-SHoE regions with recurrent exchange over persistent tensor ports.** SHoEbox builds on [Sparse Hierarchy of Experts](https://github.com/JRowe47/Sparse-Hierarchy-of-Experts) at revision `b4bb7cfea18c3833819f6ed08973fd014f15f107`, preserving its history, experiments, and recorded results. The default graph has seven nodes; earlier retained-memory experiments also exercise eleven-node layouts.
 
 The new experiment is [experiments/text_regions](experiments/text_regions). It executes sparse expert computation inside each node, keeps runtime memory separate from shared weights, and carries state across ordered text chunks. A second regional round reruns contextualization, semantic routing, all three SHoE blocks, and state updates. External bytes are ingested once.
 
@@ -77,6 +77,18 @@ Add `--baseline-backend optimized` when that checkout is a previously optimized 
 P and Q feed the shared byte readout. B has one state owner and publishes to both downstream regions. Delayed P/Q lateral messages and descending messages are read from a snapshot taken before the round starts. Forward edges read completed stages of the current round. The topology is configuration-driven; the seven-node layout is the default, not a runtime constraint.
 
 ## Development status
+
+The [contextual-learning continuation](docs/SHoEbox_Context_Balance_Report.md)
+trains language and memory at identical weights within each optimizer update,
+then combines their gradients. Natural-text distractors now appear between facts
+and queries, alongside competing updates. An optional gradient control caps
+each source separately in the core, readout, recall and publication groups.
+In the matched 128-update run, direct summation wins the held-out comparison:
+language NLL improves from the parent's 3.3672 to 3.0814 and answer NLL from
+2.0579 to 1.8560. Exact accuracy beyond 96 bytes remains 23.5%; useful durable
+recall is still the next target. All 558 unique checks pass. See the
+[protocol](docs/context_balance.md) and
+[metrics](experiments/text_regions/results/context_balance/summary.json).
 
 The [unified regional publication interface](docs/graph_publication.md) brings
 task-trained write/hold policies, producer-state commits and delayed payload
