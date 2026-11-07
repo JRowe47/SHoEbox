@@ -78,6 +78,14 @@ P and Q feed the shared byte readout. B has one state owner and publishes to bot
 
 ## Development status
 
+The [connected recall continuation](docs/SHoEbox_Connected_Recall_Report.md)
+completes 16 matched shared-stream updates per arm. Connected source coverage
+rises from 22.0% to 71.8%, while balanced immediate four-value recall remains
+25%. The optional activation-recomputation path reduces measured process peak
+memory by 58.1% with a 43.5% runtime cost on the matched update; it preserves
+training arithmetic and exact resume. All 43 targeted checks pass. See the
+[protocol](docs/connected_recall.md) and [handoff](STATUS.md).
+
 The [content-credit repair](docs/content_credit.md) preserves exact gradients
 across 16-byte execution chunks inside a configurable optimizer window (384 bytes
 by default). It moves historical-credit capture to window entry, avoiding both

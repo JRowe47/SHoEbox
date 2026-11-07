@@ -6,7 +6,7 @@ is combined; graph inputs are gathered from one snapshot and commit afterward.
 import torch
 from torch.nn import functional as F
 from torch.nn.modules import module as module_hooks
-from .runtime import cached, enabled
+from .runtime import cached, enabled, training_arithmetic
 from .runtime_kernels import projected_event, direction
 
 
@@ -91,7 +91,7 @@ def prepare_nodes(nodes, payloads, states):
 
 
 def prepare_stage(model, requests):
-    if not enabled() or not model.batch_independent or not torch.is_grad_enabled() or len(requests) < 2:
+    if not enabled() or not model.batch_independent or not training_arithmetic() or len(requests) < 2:
         return {}
     # Partial masks keep the existing per-node gather/scatter path. Sorting
     # makes execution independent of the caller's requested traversal order.

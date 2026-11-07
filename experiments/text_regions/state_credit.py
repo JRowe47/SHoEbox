@@ -275,7 +275,31 @@ def make_state_graph_eligibility(model, batch, saved=None):
     return StateGraphEligibility(publication, producer)
 
 
-def state_window_forward(model, chunk, state, credit, truncate_every=0):
+def recorded_segment(model, values, reset, state, producer):
+    """Functional segment, including local trace updates, safe to recompute.
+
+    A fresh recorder is required on every invocation. Reusing a recorder or
+    installing hooks only on the first pass changes the arithmetic/trace clocks
+    during activation recomputation. Its hooks are removed even when
+    recomputation raises an exception.
+    """
+    with ProducerRecorder(model, producer) as recorder:
+        result = model(values, state=state, reset=reset, return_write_activity=True)
+        advanced = recorder.finish(result['state'])
+    return result, advanced
+
+
+def run_recorded_segment(model, values, reset, state, producer, checkpoint_segments=False):
+    if checkpoint_segments and torch.is_grad_enabled():
+        from .activation_checkpoint import checkpoint_tree
+        result, advanced = checkpoint_tree(recorded_segment, model, values, reset, state, producer)
+        # Conditional eligibility is never part of the exact content graph.
+        from .ports import map_tensors
+        return result, map_tensors(advanced, lambda value: value.detach())
+    return recorded_segment(model, values, reset, state, producer)
+
+
+def state_window_forward(model, chunk, state, credit, truncate_every=0, *, checkpoint_segments=False):
     length = chunk.values.shape[1]
     if truncate_every < 0 or (truncate_every and length % truncate_every):
         raise ValueError('Truncation must be zero or a positive divisor of the window.')
@@ -284,10 +308,8 @@ def state_window_forward(model, chunk, state, credit, truncate_every=0):
     for start in range(0, length, span):
         state, boundary = credit.capture(state)
         boundaries.append(boundary)
-        with ProducerRecorder(model, credit.producer) as recorder:
-            result = model(chunk.values[:, start:start+span], state=state,
-                reset=chunk.reset[:, start:start+span], return_write_activity=True)
-            producer = recorder.finish(result['state'])
+        result, producer = run_recorded_segment(model, chunk.values[:, start:start+span],
+            chunk.reset[:, start:start+span], state, credit.producer, checkpoint_segments)
         credit = StateGraphEligibility(credit.publication.advance(result['write_activity']), producer)
         results.append(result)
         state = result['state'].detach()

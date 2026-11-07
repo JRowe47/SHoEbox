@@ -115,7 +115,10 @@ class ContextBalancedRun(GraphMixedRun):
             payload_gradient_norm_sum=payload).items():
             self.totals[source][key] += value
         return gradients, dict(primary_nll=float(primary.detach()), objective=float(loss.detach()),
-            answers=int(chunk.answer_mask.sum()))
+            answers=int(chunk.answer_mask.sum()), **self.chunk_metrics(source, chunk))
+
+    def chunk_metrics(self, source, chunk):
+        return {}
 
     def advance(self):
         self.model.train()

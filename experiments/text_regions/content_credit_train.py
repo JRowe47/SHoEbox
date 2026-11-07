@@ -10,6 +10,7 @@ from .config import GraphConfig
 from .state_credit_train import StateCreditRun
 from .state_credit import state_window_forward
 from .content_credit import content_window_forward
+from .content_credit_audit import window_coverage
 from .task_stream import TaskStreamConfig
 
 
@@ -36,9 +37,24 @@ class ContentCreditRun(StateCreditRun):
         if truncate_every:
             raise ValueError('Execution segmentation must not set the gradient horizon.')
         segment = self.protocol['execution_segment']
+        checkpoint_segments = self.protocol.get('checkpoint_segments', False)
         if self.protocol.get('cut_at_segments', False):
-            return state_window_forward(model, chunk, state, credit, truncate_every=segment)
-        return content_window_forward(model, chunk, state, credit, segment=segment)
+            return state_window_forward(model, chunk, state, credit, truncate_every=segment,
+                                        checkpoint_segments=checkpoint_segments)
+        return content_window_forward(model, chunk, state, credit, segment=segment,
+                                      checkpoint_segments=checkpoint_segments)
+
+    def chunk_metrics(self, source, chunk):
+        if source != 'memory' or not self.protocol.get('audit_coverage', False):
+            return {}
+        counts = window_coverage(chunk, self.streams[source].documents,
+                                 self.protocol['execution_segment'])
+        totals = self.totals[source].setdefault('coverage', {})
+        for group, row in counts.items():
+            summed = totals.setdefault(group, {key: 0 for key in row})
+            for key, value in row.items():
+                summed[key] += value
+        return dict(coverage=counts)
 
 
 def main():
@@ -54,6 +70,9 @@ def main():
     p.add_argument('--seed', type=int, default=97)
     p.add_argument('--data-seed', type=int, default=583)
     p.add_argument('--cut-at-segments', action='store_true', help='Matched old-path ablation only')
+    p.add_argument('--checkpoint-segments', action='store_true',
+                   help='Recompute segment activations during backward to reduce memory')
+    p.add_argument('--audit-coverage', action='store_true')
     p.add_argument('--eval-every', type=int, default=4)
     p.add_argument('--stop-after', type=int)
     p.add_argument('--resume', action='store_true')
@@ -73,6 +92,10 @@ def main():
         execution_segment=a.segment, cut_at_segments=a.cut_at_segments,
         syntax_weight=.1, gradient_mode='sum', gradient_cap=1., natural_context=True,
         delayed_credit=True, state_credit=True, parent_sha256=hashlib.sha256(a.parent.read_bytes()).hexdigest())
+    if a.checkpoint_segments:
+        protocol['checkpoint_segments'] = True
+    if a.audit_coverage:
+        protocol['audit_coverage'] = True
     run = ContentCreditRun(a.data.read_bytes(), config, data_config, protocol, a.parent)
     a.out.mkdir(parents=True, exist_ok=True)
     if a.resume:

@@ -1,6 +1,41 @@
 # SHoEbox handoff
 
-## Latest: repair the historical content path
+## Latest: connected recall continuation and bounded activation memory
+
+Both matched arms finish 16 paired-source updates from the selected update-32
+state-credit parent: 8,192 natural bytes and 8,192 task bytes, with 374 answer
+targets per arm. Four streams use 128-byte optimizer windows and 16-byte
+execution chunks. Both select update 16 on validation.
+
+Exact source coverage rises from 64/291 (22.0%) to 209/291 (71.8%) queries with
+the connected path. Immediate acquisition coverage is 86/90 versus 51/90;
+exact queries beyond 96 bytes receive 16/71 versus 0/71 connected derivatives.
+The audit checks actual source occurrences and resets, not nominal delays.
+
+Held-out natural/answer NLL is 3.1089/1.6659 for connected credit versus
+3.1065/1.6524 for the old cutoff; the parent is 3.1215/1.7924. Balanced
+four-value immediate recall remains 25%, with zero complete sets in both arms.
+The run establishes no useful value-conditioned recall advantage.
+
+Optional activation recomputation drops measured peak process RAM from
+1,634.1 to 685.2 MiB on a matched 64-byte, four-stream paired update, with
+38.59 to 55.37 seconds runtime. State, traces and cursors match exactly;
+post-update weights differ by at most 2.98e-8 from accumulation order.
+The option stays off by default; this paired study uses ordinary activations.
+Training kernels remain selected during checkpoint forwards, including large
+banks and batched stages. All 43 targeted checks pass; exact resume works.
+
+Next: prepare device-aware batches and checkpoint restoration for the planned
+laptop/GPU run, then broaden ordinary shared-stream exposure with larger
+connected windows. Reliable immediate value-conditioned recall remains the
+behavioral target. Keep the existing controls ablatable and add no special
+higher-order curriculum. The repair trainer retains its 384-byte default.
+
+[Report](docs/SHoEbox_Connected_Recall_Report.md) |
+[Protocol](docs/connected_recall.md) |
+[Audited metrics](experiments/text_regions/results/connected_recall/summary.json).
+
+## Completed: repair the historical content path
 
 `ContentCreditRun` separates 16-byte execution chunks from a default 384-byte
 optimizer/gradient window. Internal chunks carry the complete live graph.

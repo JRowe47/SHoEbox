@@ -11,10 +11,10 @@ traces still supply their advertised gate/payload credit from older windows.
 No example replay or stochastic approximation is introduced.
 """
 import torch
-from .state_credit import ProducerRecorder, StateGraphEligibility
+from .state_credit import StateGraphEligibility, run_recorded_segment
 
 
-def content_window_forward(model, chunk, state, credit, segment=16):
+def content_window_forward(model, chunk, state, credit, segment=16, *, checkpoint_segments=False):
     if not isinstance(segment, int) or segment < 1:
         raise ValueError('Execution segment must be a positive integer.')
     length = chunk.values.shape[1]
@@ -25,10 +25,8 @@ def content_window_forward(model, chunk, state, credit, segment=16):
     state, boundary = credit.capture(state.detach())
     results = []
     for start in range(0, length, segment):
-        with ProducerRecorder(model, credit.producer) as recorder:
-            result = model(chunk.values[:, start:start+segment], state=state,
-                reset=chunk.reset[:, start:start+segment], return_write_activity=True)
-            producer = recorder.finish(result['state'])
+        result, producer = run_recorded_segment(model, chunk.values[:, start:start+segment],
+            chunk.reset[:, start:start+segment], state, credit.producer, checkpoint_segments)
         credit = StateGraphEligibility(credit.publication.advance(result['write_activity']), producer)
         results.append(result)
         state = result['state']  # Keep all content, routing and feedback paths.

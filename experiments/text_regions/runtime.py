@@ -4,6 +4,7 @@ The preserved SHoE experiments remain the reference implementation. Training
 caches live for one forward; generation reuses version-checked weight caches.
 """
 from contextvars import ContextVar
+from contextlib import contextmanager
 from functools import wraps
 import torch
 from torch import nn
@@ -18,6 +19,21 @@ from .runtime_autograd import DenseBankGradient, SelectedRows, SelectedExpert
 
 _cache = ContextVar('shoebox_forward_cache', default=None)
 _generation = ContextVar('shoebox_generation_cache', default=None)
+_training_arithmetic = ContextVar('shoebox_training_arithmetic', default=False)
+
+
+def training_arithmetic():
+    return torch.is_grad_enabled() or _training_arithmetic.get()
+
+
+@contextmanager
+def training_arithmetic_scope():
+    """Checkpoint forwards discard activations, but retain training kernels."""
+    token = _training_arithmetic.set(True)
+    try:
+        yield
+    finally:
+        _training_arithmetic.reset(token)
 
 
 def generation_scope(function):
@@ -61,7 +77,7 @@ def forward_scope(function):
     def wrapped(self, *args, **kwargs):
         cache = {} if self.execution_backend == 'optimized' else None
         generation = _generation.get()
-        if cache is not None and not torch.is_grad_enabled() and generation is not None and generation[0] is self:
+        if cache is not None and not training_arithmetic() and generation is not None and generation[0] is self:
             signature = weight_signature(self)
             if signature != generation[1]:
                 generation[1], generation[2] = signature, {}
@@ -108,7 +124,7 @@ class RuntimeMinKron(MinKron):
             raise ValueError('Wrong minKron state shape.')
         acc = torch.float64 if x.dtype == torch.float64 else torch.float32
         decay = cached(self, ('decay', acc), lambda: self.A_log.to(acc).exp())
-        kernel = recurrent_event if torch.is_grad_enabled() and _cache.get().get('fused_recurrence', True) else inference_event
+        kernel = recurrent_event if training_arithmetic() and _cache.get().get('fused_recurrence', True) else inference_event
         return kernel(x, self.projection.weight, self.forget_projection.weight,
             decay, self.dt_bias, self.norm_weight, self.output_gate_bias, self.output.weight,
             None if reset_each else state, self.H, self.K, self.V, self.safe_zero)
@@ -243,7 +259,7 @@ class RuntimeSplitExpertBank(SplitExpertBank):
     def forward(self, x, ids, gates):
         if not enabled():
             return super().forward(x, ids, gates)
-        if not torch.is_grad_enabled() or max(self.shared.up.numel(), self.private.up.numel()) < 65536:
+        if not training_arithmetic() or max(self.shared.up.numel(), self.private.up.numel()) < 65536:
             return expert_bank(x, ids, gates, self.shared.up, self.shared.down,
                                self.private.up, self.private.down)
         flat_ids, flat_gates = ids.reshape(-1), gates.reshape(-1)

@@ -1,0 +1,231 @@
+{
+  "protocol": {
+    "steps": 16,
+    "context": 128,
+    "batch": 4,
+    "lr": 0.001,
+    "seed": 97,
+    "data_seed": 583,
+    "documents": 1024,
+    "eval_every": 8,
+    "eval_count": 4,
+    "eval_chunks": 1,
+    "truncate_every": 0,
+    "execution_segment": 16,
+    "cut_at_segments": true,
+    "checkpoint_segments": false,
+    "audit_coverage": true,
+    "syntax_weight": 0.1,
+    "gradient_mode": "sum",
+    "gradient_cap": 1.0,
+    "natural_context": true,
+    "delayed_credit": true,
+    "state_credit": true,
+    "parent_sha256": "9c56112ad8eca71706f1451dd58a163e0e598103f561729f8918a0443a77778a"
+  },
+  "config": {
+    "nodes": [
+      {
+        "name": "A",
+        "region": "R0",
+        "view": "A"
+      },
+      {
+        "name": "B",
+        "region": "R0",
+        "view": "B"
+      },
+      {
+        "name": "C",
+        "region": "R0",
+        "view": "C"
+      },
+      {
+        "name": "U",
+        "region": "R1",
+        "view": null
+      },
+      {
+        "name": "P",
+        "region": "R1",
+        "view": null
+      },
+      {
+        "name": "V",
+        "region": "R2",
+        "view": null
+      },
+      {
+        "name": "Q",
+        "region": "R2",
+        "view": null
+      }
+    ],
+    "edges": [
+      {
+        "source": "A",
+        "destination": "U",
+        "kind": "forward"
+      },
+      {
+        "source": "B",
+        "destination": "U",
+        "kind": "forward"
+      },
+      {
+        "source": "B",
+        "destination": "V",
+        "kind": "forward"
+      },
+      {
+        "source": "C",
+        "destination": "V",
+        "kind": "forward"
+      },
+      {
+        "source": "A",
+        "destination": "P",
+        "kind": "forward"
+      },
+      {
+        "source": "U",
+        "destination": "P",
+        "kind": "forward"
+      },
+      {
+        "source": "V",
+        "destination": "Q",
+        "kind": "forward"
+      },
+      {
+        "source": "C",
+        "destination": "Q",
+        "kind": "forward"
+      },
+      {
+        "source": "P",
+        "destination": "Q",
+        "kind": "lateral"
+      },
+      {
+        "source": "Q",
+        "destination": "P",
+        "kind": "lateral"
+      },
+      {
+        "source": "P",
+        "destination": "U",
+        "kind": "descending"
+      },
+      {
+        "source": "P",
+        "destination": "A",
+        "kind": "descending"
+      },
+      {
+        "source": "P",
+        "destination": "B",
+        "kind": "descending"
+      },
+      {
+        "source": "Q",
+        "destination": "V",
+        "kind": "descending"
+      },
+      {
+        "source": "Q",
+        "destination": "B",
+        "kind": "descending"
+      },
+      {
+        "source": "Q",
+        "destination": "C",
+        "kind": "descending"
+      }
+    ],
+    "readout": [
+      "P",
+      "Q"
+    ],
+    "readout_mode": "mixed",
+    "width": 32,
+    "experts_per_block": 32,
+    "shared_per_block": 16,
+    "expert_hidden": 4,
+    "groups": 4,
+    "active_groups": 2,
+    "experts_per_group": 2,
+    "address_dim": 8,
+    "laces": 16,
+    "active_laces": 2,
+    "hat_levels": 2,
+    "hat_symbols": 16,
+    "hat_active_symbols": 2,
+    "kron_heads": 2,
+    "kron_key": 4,
+    "kron_value": 4,
+    "rounds": 2,
+    "recurrent_feedback": true,
+    "feedback_gate_init": 0.05,
+    "zero_safe_norm": true,
+    "evidence_gated_ports": false,
+    "selective_publication": [],
+    "task_publication": [
+      "A",
+      "B",
+      "C",
+      "U",
+      "V"
+    ],
+    "publication_features": 8,
+    "publication_payload_rank": 4,
+    "publication_state_commit": "publication",
+    "publication_bootstrap": true,
+    "publication_feedback": true,
+    "independent_sources": [],
+    "recall_slots": 7,
+    "recall_nodes": [],
+    "recall_layout": "distinct",
+    "recall_feedback": true,
+    "recall_hard": true,
+    "context": 16,
+    "auxiliary_loss_weight": 0.01,
+    "hat_balance_weight": 0.001,
+    "seed": 83
+  },
+  "data_config": {
+    "entities": "ABCD",
+    "attributes": [
+      "x"
+    ],
+    "values": "0123",
+    "cycles": 2,
+    "queries_per_cycle": 6,
+    "delays": [
+      4,
+      48,
+      96
+    ],
+    "long_delay_multiplier": 3,
+    "semantic_fraction": 0.2,
+    "contextual_questions": true,
+    "relations": false,
+    "holdout_combinations": false,
+    "interference": true,
+    "acquisition_queries": true
+  },
+  "initialization": {
+    "parent": "/workspace/scratch/cbd83b879f32/SHoEbox/artifacts/state_credit/state/best.pt",
+    "sha256": "9c56112ad8eca71706f1451dd58a163e0e598103f561729f8918a0443a77778a",
+    "transferred": 821,
+    "new_parameters": [],
+    "optimizer_transferred": true,
+    "source_states": "fresh",
+    "source_cursors": "fresh"
+  },
+  "raw_sha256": "86c4e6aa9db7c042ec79f339dcb96d42b0075e16b8fc2e86bf0ca57e2dc565ed",
+  "parameters": 312440,
+  "torch_version": "2.5.1+cpu",
+  "selection": "Minimum mean validation language/answer NLL at 0, eval_every and final; earlier ties win",
+  "training": "Unchanged natural text and four-entity task grammar, no new curriculum"
+}
