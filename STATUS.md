@@ -1,6 +1,51 @@
 # SHoEbox handoff
 
-## Current: 100,000-byte CPU training run complete
+## Current: predictive six-region hierarchy implemented and first gate complete
+
+`HierarchyModel` is the active learning pilot: continuous 64-dimensional messages,
+A1/B1 at byte cadence, L2/S2 at four bytes, L3 at 16, and small ordinary Y with
+joint level slots and a local residual. Required source combinations stay intact.
+Private HAT-SHoE/MinKron state and four-of-32 expert selection remain. The full
+18-region `CorticalModel` is preserved as the expansion/reference implementation.
+
+The pilot has **3,050,848 parameters** and **3.5625 regional executions/byte**.
+Next-byte CE is joined by 0.2-weight next-four-byte and 0.1-weight next-16-byte
+losses. No regional balancing or learned regional dropping runs in this stage.
+Training/evaluation/sampling share the observed-prefix contract. B8/T128 credit
+spans eight L3 updates; detach occurs only at optimizer boundaries.
+
+Both pilot and single-region control completed **256 updates / 262,144 byte
+exposures**. On **65,536 held-out bytes across 23 disjoint documents**:
+
+| Predictor | NLL, nats/byte |
+|---|---:|
+| Fitted unigram | 3.220443 |
+| Fitted bigram | 2.638849 |
+| Local control | 2.556169 |
+| Six-region pilot | 2.615519 |
+
+Pilot training throughput is **209.80 aggregate bytes/s**, versus **785.72** for
+the 287,096-parameter control. The pilot clears the observation-conditioning
+gate and beats bigram; input-stream swapping adds **1.138748 nats/byte**.
+It does **not** yet beat the local control. Upper-only decoder-summary swapping
+adds only **0.000982 nats/byte** with upstream trajectories held fixed. Keep
+regional routing fixed for the full 1,024-update comparison; the hierarchy has
+not yet earned its extra cost. Do not enable the episodic expansion on this result.
+
+**50 checks pass**, including legacy regression checks, causal spans, task credit,
+fused/portable gradient agreement, document isolation and exact optimizer/state
+continuation. The prepared corpus has 194,560 unique target positions across
+75 training documents; it repeats to reach the exposure budget. Both original
+continuity documents are also reserved from training. The old 4k continuity
+slice scores 2.607621 pilot / 2.581630 control.
+
+See [architecture and commands](docs/predictive_hierarchy.md) and
+[recorded results](docs/predictive_hierarchy_results.json). Runtime/source hash:
+`e637bb1a0c32b2efd73afde3102ebe3f4004971d53ebbb53b3faa9c5b6659052`.
+Checkpoints: `artifacts/hierarchy_gate256/last.pt` and
+`artifacts/local_gate256/last.pt`; delivery includes both and the exact corpus.
+
+## Previous: 100,000-byte CPU training run complete
 
 Completed **100,000 additional FineWeb byte targets**, continuing the sparse
 2,048-target checkpoint's weights and AdamW moments: **102,048 lifetime exposures**.

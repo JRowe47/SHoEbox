@@ -1,9 +1,38 @@
 # SHoEbox
 
-**18 ordinary HAT-SHoE regions, four parallel cortical pathways, and one shared
-hippocampus accessed exclusively through two ordinary EC regions.**
+**A predictive six-region HAT-SHoE pilot with continuous messages, a 1/4/16-byte
+temporal hierarchy, and a joint byte decoder.**
 
-The active model implements the Cortical Input Map v2. Every region uses the
+The current learning path is `HierarchyModel`: A1/B1 run every byte, L2/S2
+consume four completed local spans, L3 consumes four completed middle spans,
+and small Y combines local detail with the latest upper representations.
+There are 32 experts per layer, four selected, 64-dimensional messages, and
+3,050,848 total parameters. Regional scheduling is fixed until the hierarchy
+earns learned regional selection. The local-only control has one HAT-SHoE.
+
+```python
+from shoebox import HierarchyModel, HierarchyConfig
+
+model = HierarchyModel()
+# observations[:, t] is the known byte; targets[:, t] is its next byte.
+result = model(observations, targets=targets)
+result['loss'].backward()
+state = result['state'].detach()  # only at the optimization boundary
+```
+
+See [pilot architecture, training and evaluation](docs/predictive_hierarchy.md)
+for corpus preparation, B8/T128 training, exact resume and the local comparison.
+The native CPU backend reuses the AVX512 MinKron and sparse expert kernels;
+`set_execution_backend('optimized')` selects portable PyTorch.
+
+## Preserved cortical expansion model
+
+The 18-region model and measured checkpoints remain available as `CorticalModel`:
+four parallel cortical pathways and one shared hippocampus accessed exclusively
+through two ordinary EC regions. The six-region pilot does not activate episodic
+memory; EC remains the only planned hippocampal interface when it returns.
+
+The expansion model implements the Cortical Input Map v2. Every region uses the
 same framed HAT, three sparse expert layers, and ordinary minKron state.
 Source sets, sequence spans, port widths and feedback connections define the
 intended specialization. Names do not select semantic algorithms.

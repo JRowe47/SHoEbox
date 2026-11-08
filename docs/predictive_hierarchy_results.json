@@ -1,0 +1,557 @@
+{
+  "comparison": {
+    "updates": 256,
+    "trained_targets": 262144,
+    "heldout_targets": 65536,
+    "pilot_nll": 2.6155194211751223,
+    "local_nll": 2.5561692658811808,
+    "pilot_minus_local_nll": 0.0593501552939415,
+    "upper_swap_delta_nll": 0.0009824596345424652,
+    "hierarchy_gate": false,
+    "pilot_bytes_per_second": 209.7994440375907,
+    "local_bytes_per_second": 785.7163117935227,
+    "pilot_cost": {
+      "total": 3050848,
+      "regions": {
+        "A1": {
+          "parameters": 249064,
+          "active_per_invocation": 77032.0,
+          "cadence": 1
+        },
+        "B1": {
+          "parameters": 249064,
+          "active_per_invocation": 77032.0,
+          "cadence": 1
+        },
+        "L2": {
+          "parameters": 518856,
+          "active_per_invocation": 131784.0,
+          "cadence": 4
+        },
+        "S2": {
+          "parameters": 518856,
+          "active_per_invocation": 131784.0,
+          "cadence": 4
+        },
+        "L3": {
+          "parameters": 886952,
+          "active_per_invocation": 198824.0,
+          "cadence": 16
+        },
+        "Y": {
+          "parameters": 151032,
+          "active_per_invocation": 54264.0,
+          "cadence": 1
+        }
+      },
+      "decoder_parameters": 62304,
+      "training_head_parameters": 398336,
+      "scheduled_inference_parameter_touches_per_byte": 349014.5,
+      "region_executions_per_byte": 3.5625,
+      "note": "Parameter-touch estimate, not FLOPs or wall time; optimizer banks are dense."
+    },
+    "local_cost": {
+      "total": 287096,
+      "regions": {
+        "A1": {
+          "parameters": 249064,
+          "active_per_invocation": 77032.0,
+          "cadence": 1
+        }
+      },
+      "decoder_parameters": 21648,
+      "training_head_parameters": 0,
+      "scheduled_inference_parameter_touches_per_byte": 98744.0,
+      "region_executions_per_byte": 1.0,
+      "note": "Parameter-touch estimate, not FLOPs or wall time; optimizer banks are dense."
+    },
+    "baselines": {
+      "unigram": {
+        "nll": 3.2204433602266835,
+        "accuracy": 0.1632537841796875,
+        "targets": 65536,
+        "smoothing": "add-one"
+      },
+      "bigram": {
+        "nll": 2.638848531742607,
+        "accuracy": 0.2610015869140625,
+        "targets": 65536,
+        "smoothing": "add-one"
+      }
+    }
+  },
+  "pilot": {
+    "format": "shoebox-predictive-hierarchy-1",
+    "complete": true,
+    "protocol": {
+      "source_sha256": "e637bb1a0c32b2efd73afde3102ebe3f4004971d53ebbb53b3faa9c5b6659052",
+      "train_sha256": "e96d40808cf015ede46dd546f3043103a0107ed0b3c69985a108f96308376abd",
+      "validation_sha256": "6c77d22de33ebaf9b5f00e5056ea87ffa4aad15bd02e96f65351fc34395d2084",
+      "batch": 8,
+      "context": 128,
+      "updates": 256,
+      "lr": 0.001,
+      "warmup_updates": 16,
+      "local_only": false,
+      "threads": 1,
+      "continuity_sha256": "17c490dcd9a3c7d4639002049c7953549941c415de5275c3ba2b594c5097ce39"
+    },
+    "parameters": {
+      "total": 3050848,
+      "regions": {
+        "A1": {
+          "parameters": 249064,
+          "active_per_invocation": 77032.0,
+          "cadence": 1
+        },
+        "B1": {
+          "parameters": 249064,
+          "active_per_invocation": 77032.0,
+          "cadence": 1
+        },
+        "L2": {
+          "parameters": 518856,
+          "active_per_invocation": 131784.0,
+          "cadence": 4
+        },
+        "S2": {
+          "parameters": 518856,
+          "active_per_invocation": 131784.0,
+          "cadence": 4
+        },
+        "L3": {
+          "parameters": 886952,
+          "active_per_invocation": 198824.0,
+          "cadence": 16
+        },
+        "Y": {
+          "parameters": 151032,
+          "active_per_invocation": 54264.0,
+          "cadence": 1
+        }
+      },
+      "decoder_parameters": 62304,
+      "training_head_parameters": 398336,
+      "scheduled_inference_parameter_touches_per_byte": 349014.5,
+      "region_executions_per_byte": 3.5625,
+      "note": "Parameter-touch estimate, not FLOPs or wall time; optimizer banks are dense."
+    },
+    "updates": 256,
+    "trained_targets": 262144,
+    "unique_corpus_targets": 194560,
+    "epoch": 1,
+    "evaluation": [
+      {
+        "updates": 0,
+        "full": false,
+        "nll": 5.5748714208602905,
+        "accuracy": 0.0023193359375,
+        "targets": 8192,
+        "seconds": 4.53439575000084,
+        "scored_bytes_per_second": 1806.6354265611867,
+        "region_rows_including_padding": 31464,
+        "intervention": null
+      },
+      {
+        "updates": 64,
+        "full": false,
+        "nll": 3.4383031129837036,
+        "accuracy": 0.156005859375,
+        "targets": 8192,
+        "seconds": 4.73035049700411,
+        "scored_bytes_per_second": 1731.7955625462148,
+        "region_rows_including_padding": 31464,
+        "intervention": null
+      },
+      {
+        "updates": 128,
+        "full": false,
+        "nll": 3.0819782614707947,
+        "accuracy": 0.220947265625,
+        "targets": 8192,
+        "seconds": 4.432033000004594,
+        "scored_bytes_per_second": 1848.3616886407453,
+        "region_rows_including_padding": 31464,
+        "intervention": null
+      },
+      {
+        "updates": 192,
+        "full": false,
+        "nll": 2.8538970351219177,
+        "accuracy": 0.25146484375,
+        "targets": 8192,
+        "seconds": 4.754808559999219,
+        "scored_bytes_per_second": 1722.8874510147145,
+        "region_rows_including_padding": 31464,
+        "intervention": null
+      },
+      {
+        "updates": 256,
+        "full": true,
+        "nll": 2.6155194211751223,
+        "accuracy": 0.27496337890625,
+        "targets": 65536,
+        "seconds": 48.13930720499775,
+        "scored_bytes_per_second": 1361.3822841471253,
+        "region_rows_including_padding": 335616,
+        "intervention": null,
+        "baselines": {
+          "unigram": {
+            "nll": 3.2204433602266835,
+            "accuracy": 0.1632537841796875,
+            "targets": 65536,
+            "smoothing": "add-one"
+          },
+          "bigram": {
+            "nll": 2.638848531742607,
+            "accuracy": 0.2610015869140625,
+            "targets": 65536,
+            "smoothing": "add-one"
+          }
+        },
+        "input_swap": {
+          "nll": 3.7542670480906963,
+          "accuracy": 0.0927581787109375,
+          "targets": 65536,
+          "seconds": 48.11637692099612,
+          "scored_bytes_per_second": 1362.0310628875018,
+          "region_rows_including_padding": 335616,
+          "intervention": "input"
+        },
+        "gate_passed": true
+      }
+    ],
+    "training_seconds": 1249.4980680360168,
+    "training_bytes_per_second": 209.7994440375907,
+    "wall_seconds_this_session": 1459.504003013004,
+    "peak_rss_mib": 826.2421875,
+    "runtime_state_bytes": 110592,
+    "torch": "2.15.0+cpu",
+    "native": {
+      "available": true,
+      "namespace": "shoebox_minkron_d5a01c8ccecc4ed4",
+      "compiler": "/usr/bin/c++",
+      "flags": [
+        "-O3",
+        "-std=c++20",
+        "-shared",
+        "-fPIC",
+        "-ffp-contract=off",
+        "-march=native",
+        "-fopenmp"
+      ],
+      "isa": "AVX512",
+      "openmp": true,
+      "library": "/root/.cache/torch_extensions/shoebox_minkron_d5a01c8ccecc4ed4/minkron_cpu.so",
+      "build_log": "/root/.cache/torch_extensions/shoebox_minkron_d5a01c8ccecc4ed4/build.log"
+    },
+    "baselines": {
+      "unigram": {
+        "nll": 3.2204433602266835,
+        "accuracy": 0.1632537841796875,
+        "targets": 65536,
+        "smoothing": "add-one"
+      },
+      "bigram": {
+        "nll": 2.638848531742607,
+        "accuracy": 0.2610015869140625,
+        "targets": 65536,
+        "smoothing": "add-one"
+      }
+    },
+    "input_swap": {
+      "nll": 3.7542670480906963,
+      "accuracy": 0.0927581787109375,
+      "targets": 65536,
+      "seconds": 48.11637692099612,
+      "scored_bytes_per_second": 1362.0310628875018,
+      "region_rows_including_padding": 335616,
+      "intervention": "input"
+    },
+    "upper_swap": {
+      "nll": 2.6165018808096647,
+      "accuracy": 0.2747802734375,
+      "targets": 65536,
+      "seconds": 47.877136944000085,
+      "scored_bytes_per_second": 1368.8370730408287,
+      "region_rows_including_padding": 335616,
+      "intervention": "upper"
+    },
+    "upper_swap_delta_nll": 0.0009824596345424652,
+    "continuity_4k": {
+      "nll": 2.6076212158203127,
+      "accuracy": 0.27625,
+      "targets": 4000,
+      "seconds": 2.045074380002916,
+      "scored_bytes_per_second": 1955.919080065096,
+      "region_rows_including_padding": 14250,
+      "intervention": null
+    },
+    "routing": {
+      "work": {
+        "region_rows": {
+          "A1": 256,
+          "B1": 256,
+          "L2": 64,
+          "S2": 64,
+          "L3": 16,
+          "Y": 256
+        },
+        "occurrence_rows": {
+          "A1": 256,
+          "B1": 256,
+          "L2": 256,
+          "S2": 512,
+          "L3": 128,
+          "Y": 256
+        },
+        "external_bytes": 256
+      },
+      "unique_experts_per_layer": {
+        "A1": [
+          28,
+          31,
+          28
+        ],
+        "B1": [
+          32,
+          30,
+          31
+        ],
+        "L2": [
+          21,
+          24,
+          20
+        ],
+        "S2": [
+          22,
+          30,
+          28
+        ],
+        "L3": [
+          15,
+          15,
+          12
+        ],
+        "Y": [
+          28,
+          29,
+          27
+        ]
+      },
+      "experts_per_bank": 32,
+      "selected_per_invocation": 4,
+      "regional_routing": "fixed complete paths; no regional balancing loss"
+    }
+  },
+  "control": {
+    "format": "shoebox-predictive-hierarchy-1",
+    "complete": true,
+    "protocol": {
+      "source_sha256": "e637bb1a0c32b2efd73afde3102ebe3f4004971d53ebbb53b3faa9c5b6659052",
+      "train_sha256": "e96d40808cf015ede46dd546f3043103a0107ed0b3c69985a108f96308376abd",
+      "validation_sha256": "6c77d22de33ebaf9b5f00e5056ea87ffa4aad15bd02e96f65351fc34395d2084",
+      "batch": 8,
+      "context": 128,
+      "updates": 256,
+      "lr": 0.001,
+      "warmup_updates": 16,
+      "local_only": true,
+      "threads": 1,
+      "continuity_sha256": "17c490dcd9a3c7d4639002049c7953549941c415de5275c3ba2b594c5097ce39"
+    },
+    "parameters": {
+      "total": 287096,
+      "regions": {
+        "A1": {
+          "parameters": 249064,
+          "active_per_invocation": 77032.0,
+          "cadence": 1
+        }
+      },
+      "decoder_parameters": 21648,
+      "training_head_parameters": 0,
+      "scheduled_inference_parameter_touches_per_byte": 98744.0,
+      "region_executions_per_byte": 1.0,
+      "note": "Parameter-touch estimate, not FLOPs or wall time; optimizer banks are dense."
+    },
+    "updates": 256,
+    "trained_targets": 262144,
+    "unique_corpus_targets": 194560,
+    "epoch": 1,
+    "evaluation": [
+      {
+        "updates": 0,
+        "full": false,
+        "nll": 5.587767124176025,
+        "accuracy": 0.0001220703125,
+        "targets": 8192,
+        "seconds": 1.1134105659948546,
+        "scored_bytes_per_second": 7357.573432654004,
+        "region_rows_including_padding": 8832,
+        "intervention": null
+      },
+      {
+        "updates": 64,
+        "full": false,
+        "nll": 3.3559117913246155,
+        "accuracy": 0.170654296875,
+        "targets": 8192,
+        "seconds": 1.1935885130005772,
+        "scored_bytes_per_second": 6863.336829043393,
+        "region_rows_including_padding": 8832,
+        "intervention": null
+      },
+      {
+        "updates": 128,
+        "full": false,
+        "nll": 2.941308319568634,
+        "accuracy": 0.250244140625,
+        "targets": 8192,
+        "seconds": 1.2642418530012947,
+        "scored_bytes_per_second": 6479.772822385442,
+        "region_rows_including_padding": 8832,
+        "intervention": null
+      },
+      {
+        "updates": 192,
+        "full": false,
+        "nll": 2.799384593963623,
+        "accuracy": 0.2568359375,
+        "targets": 8192,
+        "seconds": 1.2916134189945296,
+        "scored_bytes_per_second": 6342.455009779281,
+        "region_rows_including_padding": 8832,
+        "intervention": null
+      },
+      {
+        "updates": 256,
+        "full": true,
+        "nll": 2.5561692658811808,
+        "accuracy": 0.2861328125,
+        "targets": 65536,
+        "seconds": 12.734069512996939,
+        "scored_bytes_per_second": 5146.5087365127965,
+        "region_rows_including_padding": 94208,
+        "intervention": null,
+        "baselines": {
+          "unigram": {
+            "nll": 3.2204433602266835,
+            "accuracy": 0.1632537841796875,
+            "targets": 65536,
+            "smoothing": "add-one"
+          },
+          "bigram": {
+            "nll": 2.638848531742607,
+            "accuracy": 0.2610015869140625,
+            "targets": 65536,
+            "smoothing": "add-one"
+          }
+        },
+        "input_swap": {
+          "nll": 3.929102536290884,
+          "accuracy": 0.090972900390625,
+          "targets": 65536,
+          "seconds": 13.788296904000163,
+          "scored_bytes_per_second": 4753.016304790127,
+          "region_rows_including_padding": 94208,
+          "intervention": "input"
+        },
+        "gate_passed": true
+      }
+    ],
+    "training_seconds": 333.6369578501108,
+    "training_bytes_per_second": 785.7163117935227,
+    "wall_seconds_this_session": 377.52933724600007,
+    "peak_rss_mib": 459.515625,
+    "runtime_state_bytes": 18432,
+    "torch": "2.15.0+cpu",
+    "native": {
+      "available": true,
+      "namespace": "shoebox_minkron_d5a01c8ccecc4ed4",
+      "compiler": "/usr/bin/c++",
+      "flags": [
+        "-O3",
+        "-std=c++20",
+        "-shared",
+        "-fPIC",
+        "-ffp-contract=off",
+        "-march=native",
+        "-fopenmp"
+      ],
+      "isa": "AVX512",
+      "openmp": true,
+      "library": "/root/.cache/torch_extensions/shoebox_minkron_d5a01c8ccecc4ed4/minkron_cpu.so",
+      "build_log": "/root/.cache/torch_extensions/shoebox_minkron_d5a01c8ccecc4ed4/build.log"
+    },
+    "baselines": {
+      "unigram": {
+        "nll": 3.2204433602266835,
+        "accuracy": 0.1632537841796875,
+        "targets": 65536,
+        "smoothing": "add-one"
+      },
+      "bigram": {
+        "nll": 2.638848531742607,
+        "accuracy": 0.2610015869140625,
+        "targets": 65536,
+        "smoothing": "add-one"
+      }
+    },
+    "input_swap": {
+      "nll": 3.929102536290884,
+      "accuracy": 0.090972900390625,
+      "targets": 65536,
+      "seconds": 13.788296904000163,
+      "scored_bytes_per_second": 4753.016304790127,
+      "region_rows_including_padding": 94208,
+      "intervention": "input"
+    },
+    "continuity_4k": {
+      "nll": 2.581630065917969,
+      "accuracy": 0.30325,
+      "targets": 4000,
+      "seconds": 0.47332876799919177,
+      "scored_bytes_per_second": 8450.785733790071,
+      "region_rows_including_padding": 4000,
+      "intervention": null
+    },
+    "routing": {
+      "work": {
+        "region_rows": {
+          "A1": 256
+        },
+        "occurrence_rows": {
+          "A1": 256
+        },
+        "external_bytes": 256
+      },
+      "unique_experts_per_layer": {
+        "A1": [
+          28,
+          27,
+          25
+        ]
+      },
+      "experts_per_bank": 32,
+      "selected_per_invocation": 4,
+      "regional_routing": "fixed complete paths; no regional balancing loss"
+    }
+  },
+  "checkpoint_verification": {
+    "hierarchy_gate256": {
+      "checkpoint_step": 256,
+      "exact_validation_nll": 2.6155194211751223,
+      "absolute_error": 0.0,
+      "parameters_finite": true,
+      "saved_state_event": 8448
+    },
+    "local_gate256": {
+      "checkpoint_step": 256,
+      "exact_validation_nll": 2.5561692658811808,
+      "absolute_error": 0.0,
+      "parameters_finite": true,
+      "saved_state_event": 8448
+    }
+  }
+}

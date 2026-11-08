@@ -1,4 +1,4 @@
-"""Run the active cortical skeleton checks; --legacy includes archived studies."""
+"""Run current hierarchy and cortical checks; --legacy includes archived studies."""
 import argparse
 from pathlib import Path
 import subprocess
@@ -14,7 +14,8 @@ def main():
     result = subprocess.run([sys.executable, '-m', 'unittest', '-v',
                              'shoebox.test_skeleton', 'shoebox.test_fineweb', 'shoebox.test_wide',
                              'shoebox.test_fused_kron', 'shoebox.test_fused_experts',
-                             'shoebox.test_sparse_cpu', 'shoebox.test_cpu_train'], cwd=ROOT)
+                             'shoebox.test_sparse_cpu', 'shoebox.test_cpu_train',
+                             'shoebox.test_hierarchy', 'shoebox.test_hierarchy_training'], cwd=ROOT)
     if result.returncode:
         return result.returncode
     if args.legacy:
