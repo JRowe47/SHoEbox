@@ -10,6 +10,7 @@ import torch
 from torch.nn import functional as F
 from experiments.hat_minkron.kron import normalize_direction
 from experiments.hat_minkron.semantic_core import switch_balance, normalize
+from .fused_kron import fused_final
 
 
 _cache = ContextVar('cortical_forward_cache',default=None)
@@ -18,7 +19,7 @@ _cache = ContextVar('cortical_forward_cache',default=None)
 def forward_scope(function):
     @wraps(function)
     def run(self,*args,**kwargs):
-        token = _cache.set({} if self.execution_backend == 'optimized' else None)
+        token = _cache.set({} if self.execution_backend in ('optimized','fused') else None)
         try:
             return function(self,*args,**kwargs)
         finally:
@@ -66,7 +67,7 @@ def compact_final(k, v, g, beta, write, state):
     return gam[..., -1, :, None]*s+tail.transpose(-1,-2)@(u*v)
 
 
-def minkron_last(memory, x, state):
+def minkron_last(memory, x, state, *, fused=False):
     """Read only the final position, while retaining every state write and gradient."""
     b,t,_ = x.shape
     h,kd,vd = memory.H,memory.K,memory.V
@@ -80,22 +81,24 @@ def minkron_last(memory, x, state):
     rate = cached(memory,('rate',acc),lambda:memory.A_log.to(acc).exp())
     g = -rate[None,None,:,None]*F.softplus(f).reshape(b,t,h,kd)
     erase,write = erase.sigmoid(),write.to(acc).sigmoid()
-    final = state
-    for start in range(0,t,memory.chunk_size):
-        end = start+memory.chunk_size
-        final = compact_final(k[:,start:end],v[:,start:end],g[:,start:end],
-                              erase[:,start:end],write[:,start:end],final)
+    final = fused_final(k.to(acc),v.to(acc),g,erase.to(acc),write,state) if fused else None
+    if final is None:
+        final = state
+        for start in range(0,t,memory.chunk_size):
+            end = start+memory.chunk_size
+            final = compact_final(k[:,start:end],v[:,start:end],g[:,start:end],
+                                  erase[:,start:end],write[:,start:end],final)
     z = (q[:,0].to(acc).unsqueeze(-1)*final).sum(-2)*kd**-.5
     z = z*torch.rsqrt(z.square().mean(-1,keepdim=True)+1e-5)*memory.norm_weight.to(acc)
     z = z*(gate[:, -1]+memory.output_gate_bias).reshape(b,h,vd).sigmoid()
     return memory.output(z.reshape(b,1,h*vd).to(x.dtype)),final
 
 
-def symbol_single(level, x, previous, *, terminal, optimized):
+def symbol_single(level, x, previous, *, terminal, optimized, fused=False):
     """The cortical HAT always has one joint, ordered source sequence."""
     z = level.norm(x)
     if terminal and optimized:
-        context,final = minkron_last(level.memory,z,previous)
+        context,final = minkron_last(level.memory,z,previous,fused=fused)
         h = x[:, -1:]+context
     else:
         context,final = level.memory(z,previous,backend='chunk')
@@ -162,11 +165,12 @@ def lace_forward(lace,evidence,context):
     return prior.reshape(shape),{'balance':switch_balance(external.softmax(-1),ids)}
 
 
-def execute_private(core, x, prior, states):
+def execute_private(core, x, prior, states, *, fused=False):
     """Skip shared-bank dispatch and an unused second lace calculation."""
     aux,final,expert_ids = x.new_zeros(()),[],[]
     for index,block in enumerate(core.blocks):
-        memory,state = block.memory(block.norm1(x),states[index],backend='step')
+        memory,state = (minkron_last(block.memory,block.norm1(x),states[index],fused=True) if fused else
+                        block.memory(block.norm1(x),states[index],backend='step'))
         x = x+memory
         z = block.norm2(x)
         routed = route(block.router,z,prior[:, :, index])

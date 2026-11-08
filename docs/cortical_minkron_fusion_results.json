@@ -1,0 +1,247 @@
+{
+  "complete": true,
+  "tests_passed": 23,
+  "endpoint_reload_exact": true,
+  "parallel_value_gradient_exact": true,
+  "source_sha256": "7614d405c19a004f2764ae231640e721cac358d70cae94da71baa7d772914b6c",
+  "data_sha256": "1c90add58bbc10507b9118973006cc518fa31bba2e8462a440865806dd5e783e",
+  "parameters": 14976882,
+  "trained_targets": 1000,
+  "updates": 8,
+  "initial_probe_nll": 5.584954738616943,
+  "final_probe_nll": 5.066979885101318,
+  "training_seconds": 151.38769304999732,
+  "training_bytes_per_second": 6.605556765236788,
+  "training_peak_rss_mib": 2822.61328125,
+  "state_bytes": 320064,
+  "matched": {
+    "baseline": {
+      "backend": "optimized",
+      "batch": 4,
+      "context": 32,
+      "target_positions": 128,
+      "parameters": 14976882,
+      "nll": 5.575036525726318,
+      "gradient_norm": 2.1937148571014404,
+      "forward_seconds": 11.87211305800156,
+      "backward_seconds": 12.62601228800122,
+      "bytes_per_second": 5.2248895861284765,
+      "rss_before_mib": 304.5234375,
+      "rss_after_forward_mib": 3949.84765625,
+      "peak_rss_mib": 4082.6875,
+      "saved_tensor_calls": 672305,
+      "saved_tensor_logical_bytes": 5843995892,
+      "saved_unique_storage_bytes": 2773667128,
+      "saved_unique_storages": 383417
+    },
+    "fused": {
+      "backend": "fused",
+      "batch": 4,
+      "context": 32,
+      "target_positions": 128,
+      "parameters": 14976882,
+      "nll": 5.575036525726318,
+      "gradient_norm": 2.1937146186828613,
+      "forward_seconds": 9.535487958000886,
+      "backward_seconds": 10.036119053998846,
+      "bytes_per_second": 6.5400863568086525,
+      "rss_before_mib": 308.21875,
+      "rss_after_forward_mib": 2502.0703125,
+      "peak_rss_mib": 2637.96484375,
+      "saved_tensor_calls": 531839,
+      "saved_tensor_logical_bytes": 3957102340,
+      "saved_unique_storage_bytes": 1523975000,
+      "saved_unique_storages": 309104
+    },
+    "speedup": 1.2517176198654767,
+    "peak_rss_reduction_percent": 35.38655986406013,
+    "saved_storage_reduction_percent": 45.05559140044003,
+    "max_logit_difference": 4.3213367462158203e-07,
+    "mean_logit_difference": 5.0393502704082493e-08,
+    "greedy_predictions_identical": true
+  },
+  "native": {
+    "available": true,
+    "namespace": "shoebox_minkron_0c342470869b7eaa",
+    "compiler": "/usr/bin/c++",
+    "flags": [
+      "-O3",
+      "-std=c++20",
+      "-shared",
+      "-fPIC",
+      "-ffp-contract=off",
+      "-march=native"
+    ]
+  },
+  "optimized_operators": {
+    "total_self_seconds": 0.9379015669999968,
+    "positive_allocation_bytes": 563232695,
+    "top_self": [
+      {
+        "operator": "aten::mul",
+        "calls": 15656,
+        "self_seconds": 0.09678212099999817,
+        "positive_allocation_bytes": 202404288
+      },
+      {
+        "operator": "aten::mm",
+        "calls": 4201,
+        "self_seconds": 0.0704281739999886,
+        "positive_allocation_bytes": 80597632
+      },
+      {
+        "operator": "aten::sum",
+        "calls": 6098,
+        "self_seconds": 0.02824055200000067,
+        "positive_allocation_bytes": 6773560
+      },
+      {
+        "operator": "autograd::engine::evaluate_function: MulBackward0",
+        "calls": 4595,
+        "self_seconds": 0.024783412999998138,
+        "positive_allocation_bytes": 0
+      },
+      {
+        "operator": "aten::index",
+        "calls": 588,
+        "self_seconds": 0.02066208400000001,
+        "positive_allocation_bytes": 20406272
+      },
+      {
+        "operator": "aten::add",
+        "calls": 3318,
+        "self_seconds": 0.018132184999997476,
+        "positive_allocation_bytes": 33024164
+      },
+      {
+        "operator": "aten::copy_",
+        "calls": 11736,
+        "self_seconds": 0.017755968999996815,
+        "positive_allocation_bytes": 0
+      },
+      {
+        "operator": "aten::transpose",
+        "calls": 9829,
+        "self_seconds": 0.016967576999995262,
+        "positive_allocation_bytes": 0
+      },
+      {
+        "operator": "aten::view",
+        "calls": 10059,
+        "self_seconds": 0.01562770999999637,
+        "positive_allocation_bytes": 0
+      },
+      {
+        "operator": "aten::reshape",
+        "calls": 9257,
+        "self_seconds": 0.01557845700000298,
+        "positive_allocation_bytes": 0
+      },
+      {
+        "operator": "aten::div",
+        "calls": 5570,
+        "self_seconds": 0.014843854999996289,
+        "positive_allocation_bytes": 9520180
+      },
+      {
+        "operator": "aten::as_strided",
+        "calls": 31784,
+        "self_seconds": 0.014518720000003723,
+        "positive_allocation_bytes": 0
+      }
+    ],
+    "native": []
+  },
+  "fused_operators": {
+    "total_self_seconds": 0.6064440280000024,
+    "positive_allocation_bytes": 323305919,
+    "top_self": [
+      {
+        "operator": "aten::mm",
+        "calls": 4201,
+        "self_seconds": 0.06654284299999895,
+        "positive_allocation_bytes": 80597632
+      },
+      {
+        "operator": "aten::mul",
+        "calls": 8792,
+        "self_seconds": 0.03366269499999973,
+        "positive_allocation_bytes": 69169256
+      },
+      {
+        "operator": "aten::sum",
+        "calls": 4414,
+        "self_seconds": 0.01682619299999867,
+        "positive_allocation_bytes": 2198008
+      },
+      {
+        "operator": "aten::add",
+        "calls": 3108,
+        "self_seconds": 0.014229972000002521,
+        "positive_allocation_bytes": 30659156
+      },
+      {
+        "operator": "aten::index",
+        "calls": 588,
+        "self_seconds": 0.013729194000000368,
+        "positive_allocation_bytes": 20406272
+      },
+      {
+        "operator": "aten::div",
+        "calls": 5570,
+        "self_seconds": 0.013077677999999706,
+        "positive_allocation_bytes": 9520180
+      },
+      {
+        "operator": "autograd::engine::evaluate_function: MulBackward0",
+        "calls": 2653,
+        "self_seconds": 0.011980365999997477,
+        "positive_allocation_bytes": 0
+      },
+      {
+        "operator": "aten::_to_copy",
+        "calls": 7282,
+        "self_seconds": 0.010862404000000244,
+        "positive_allocation_bytes": 0
+      },
+      {
+        "operator": "aten::empty_strided",
+        "calls": 8681,
+        "self_seconds": 0.008801306999997253,
+        "positive_allocation_bytes": 6360252
+      },
+      {
+        "operator": "aten::view",
+        "calls": 9393,
+        "self_seconds": 0.008416813999996824,
+        "positive_allocation_bytes": 0
+      },
+      {
+        "operator": "aten::copy_",
+        "calls": 9320,
+        "self_seconds": 0.008399806999996684,
+        "positive_allocation_bytes": 0
+      },
+      {
+        "operator": "aten::fill_",
+        "calls": 5078,
+        "self_seconds": 0.008378862999999183,
+        "positive_allocation_bytes": 0
+      }
+    ],
+    "native": [
+      {
+        "operator": "minkron::final_backward",
+        "calls": 136,
+        "self_seconds": 0.007075251000000105,
+        "positive_allocation_bytes": 0
+      },
+      {
+        "operator": "minkron::final_forward",
+        "calls": 136,
+        "self_seconds": 0.0034249599999997904,
+        "positive_allocation_bytes": 0
+      }
+    ]
+  }
+}

@@ -21,6 +21,7 @@ from .config import REGIONS
 def source_digest():
     root = Path(__file__).resolve().parents[1]
     files = [*sorted((root/'shoebox').glob('*.py')),
+             *sorted((root/'shoebox').glob('*.cpp')),
              *sorted((root/'experiments/hat_minkron').glob('*.py'))]
     h = hashlib.sha256()
     for path in files:

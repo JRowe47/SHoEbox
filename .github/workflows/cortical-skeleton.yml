@@ -22,7 +22,7 @@ jobs:
           python -m pip install 'torch==2.5.1+cpu' --index-url https://download.pytorch.org/whl/cpu
           python -m pip install 'numpy>=1.26' reportlab pymupdf pillow
       - name: Check active architecture
-        run: python scripts/check_all.py
+        run: SHOEBOX_REQUIRE_FUSED=1 python scripts/check_all.py
       - name: Check preserved HAT and minKron primitives
         working-directory: experiments/hat_minkron
         run: python -m unittest verify -v

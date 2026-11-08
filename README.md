@@ -65,6 +65,13 @@ experts per regional layer. Its completed **1,000-byte FineWeb profile** uses a
 diversity, and compares reference with optimized execution. See
 [configuration and profiling commands](docs/cortical_wide_profile.md).
 
+The **fused MinKron CPU backend** uses a native recurrence and analytic
+backward, replacing pairwise temporal intermediates in the HAT and fusing
+the regional single-step recurrence. The matched 32-observation benchmark
+is **25.2% faster** than the previous optimized path, with **35.4% less peak
+RSS**. Enable it with `model.set_execution_backend('fused')`; see
+[implementation, checks and commands](docs/cortical_minkron_fusion.md).
+
 The active model has no question/answer classifiers, conflicting-query heads,
 regional fact archives, retention controllers or replicated retrieval APIs.
 The older seven/eleven-node implementation remains under experiments/text_regions

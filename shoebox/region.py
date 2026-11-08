@@ -32,6 +32,7 @@ class FramedHAT(nn.Module):
         self.cfg = cfg
         self.terminal = terminal
         self.optimized = False
+        self.fused = False
         self.byte = nn.Embedding(256, cfg.width)
         self.source = nn.Embedding(len(SOURCE_IDS), cfg.width)
         self.origin = nn.Embedding(len(SOURCE_IDS), cfg.width)
@@ -86,7 +87,7 @@ class FramedHAT(nn.Module):
         for index,(layer, previous) in enumerate(zip(self.levels, states)):
             terminal = self.terminal and index == len(self.levels)-1
             if self.optimized or self.terminal:
-                x,updated,balance = symbol_single(layer,x,previous,terminal=terminal,optimized=self.optimized)
+                x,updated,balance = symbol_single(layer,x,previous,terminal=terminal,optimized=self.optimized,fused=self.fused)
             else:
                 x,states_out,record = layer(x,links,{0:previous},backend='chunk')
                 updated,balance = states_out[0],record['balance']
@@ -101,6 +102,7 @@ class CorticalRegion(nn.Module):
         hc = cfg.hat_config(index)
         self.hat = FramedHAT(hc,cfg.max_port_bytes,cfg.terminal_hat)
         self.optimized = False
+        self.fused = False
         c = hc.child_config()
         # Private banks by default: sharing weights never accidentally shares state.
         empty_banks = [ExpertBank(c, 0) for _ in range(3)]
@@ -134,7 +136,7 @@ class CorticalRegion(nn.Module):
         evidence = torch.stack([pilot(block.router,x) if self.optimized else block.router.pilot(x)
                                 for block in self.core.blocks], -2)
         prior, lace = (lace_forward(self.core.lace,evidence,x) if self.optimized else self.core.lace(evidence,x))
-        output = (execute_private(self.core,x,prior,state.blocks) if self.optimized else
+        output = (execute_private(self.core,x,prior,state.blocks,fused=self.fused) if self.optimized else
                   self.core.execute(x, prior, state.blocks, decode=False, backend='step'))
         latent = output['latent'][:, 0]
         logits = {int(width): head(latent).reshape(latent.shape[0], int(width), 256)

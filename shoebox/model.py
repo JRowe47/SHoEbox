@@ -85,12 +85,12 @@ class CorticalModel(nn.Module):
         self.hippocampus = Hippocampus(self.cfg)
 
     def set_execution_backend(self, backend):
-        if backend not in ('reference', 'optimized'):
-            raise ValueError('Backend must be reference or optimized.')
+        if backend not in ('reference', 'optimized', 'fused'):
+            raise ValueError('Backend must be reference, optimized or fused.')
         self.execution_backend = backend
         for region in self.regions.values():
-            region.optimized = backend == 'optimized'
-            region.hat.optimized = backend == 'optimized'
+            region.optimized = region.hat.optimized = backend != 'reference'
+            region.fused = region.hat.fused = backend == 'fused'
         return self
 
     def initial_state(self, batch, device=None):

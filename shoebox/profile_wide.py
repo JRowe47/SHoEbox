@@ -17,6 +17,7 @@ from torch.nn import functional as F
 from . import CorticalModel, cortical_wide
 from .checkpoint import save, load
 from .diagnostics import PortMonitor, SavedTensorAccounting
+from .fused_kron import native_status
 from .train_fineweb import atomic_json, optimizer_for, source_digest
 
 
@@ -81,10 +82,10 @@ def benchmark(args,data):
 
 
 def train(args,data,raw):
-    if args.backend != 'optimized':
-        raise ValueError('The main profile uses the optimized backend; benchmark reference separately.')
-    if (args.out/'last.pt').exists():
-        raise ValueError('Refuse to overwrite an existing profile endpoint.')
+    if args.backend not in ('optimized','fused'):
+        raise ValueError('Train with optimized or fused; benchmark reference separately.')
+    if any((args.out/name).exists() for name in ('last.pt','history.jsonl','ports.jsonl')):
+        raise ValueError('Refuse to overwrite an existing or partial profile run.')
     model = new_model(args)
     optimizer = optimizer_for(model,args.lr,.01)
     state = model.initial_state(args.batch)
@@ -93,7 +94,8 @@ def train(args,data,raw):
                'config':model.cfg.to_dict(),'targets':args.targets,'batch':args.batch,'context':args.context,
                'lr':args.lr,'warmup_targets':args.warmup_targets,'lr_after_warmup':'constant',
                'source_sha256':source_digest(),'data_sha256':hashlib.sha256(raw).hexdigest(),
-               'threads':args.threads,'torch':str(torch.__version__),'python':platform.python_version()}
+               'threads':args.threads,'torch':str(torch.__version__),'python':platform.python_version(),
+               'backend':args.backend,'native':native_status() if args.backend=='fused' else None}
     summary['allocation'] = {name:{'parameters':sum(p.numel() for p in region.parameters()),
                                   'width':region.hat.cfg.width,'experts':region.hat.cfg.experts,
                                   'expert_hidden':region.hat.cfg.expert_hidden,'hat_symbols':region.hat.cfg.hat_symbols,
@@ -173,7 +175,7 @@ def train(args,data,raw):
          metadata={'format':'cortical-wide-profile','complete':True,'trained_targets':args.targets,'cursor':cursor,
                    'protocol':{k:summary[k] for k in ('config','targets','batch','context','lr','warmup_targets',
                                                      'source_sha256','data_sha256','threads','torch','python')},
-                   'execution_backend':'optimized'})
+                   'execution_backend':args.backend})
     summary.update(complete=True,trained_targets=args.targets,updates=step,training_seconds=elapsed,
                    training_bytes_per_second=args.targets/elapsed,temporal_diagnostic_seconds=diagnostic_seconds,
                    peak_rss_mib=resource.getrusage(resource.RUSAGE_SELF).ru_maxrss/1024,
@@ -224,7 +226,7 @@ def operators(args,data):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--mode',choices=('benchmark','train','operators'),required=True)
-    parser.add_argument('--backend',choices=('reference','optimized'),default='optimized')
+    parser.add_argument('--backend',choices=('reference','optimized','fused'),default='optimized')
     parser.add_argument('--data',type=Path,required=True)
     parser.add_argument('--out',type=Path,required=True)
     parser.add_argument('--old-checkpoint',type=Path)
@@ -238,6 +240,8 @@ def main():
     if min(args.targets,args.batch,args.context,args.threads)<1:
         parser.error('Budgets, batch, horizon and thread count must be positive.')
     torch.set_num_threads(args.threads)
+    if args.backend=='fused' and not native_status()['available']:
+        parser.error('Fused profiling requires an available native kernel: '+str(native_status()))
     args.out.mkdir(parents=True,exist_ok=True)
     data,raw = corpus(args)
     if args.mode=='benchmark':benchmark(args,data)

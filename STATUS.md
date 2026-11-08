@@ -1,6 +1,39 @@
 # SHoEbox handoff
 
-## Current: wider cortical transport, 1k profile complete
+## Current: native MinKron fusion complete
+
+The existing cortical/FineWeb/wide-port changes were published to GitHub as
+[4695bb3](https://github.com/JRowe47/SHoEbox/commit/4695bb378813b92060f9c6eaa57d0bb0fcce2e61).
+
+The new `fused` backend replaces HAT pairwise recurrence tensors with a compiled
+CPU scan and analytic backward, and also fuses each regional SHoE's single-step
+MinKron recurrence. It preserves the recurrence equations, state schema and
+14,976,882-parameter configuration. No model-capacity or training-horizon change.
+
+Matched B=4/T=32 benchmark: **24.50 -> 19.57 seconds**, **25.2% more bytes/s**;
+peak RSS **3.99 -> 2.58 GiB** (**35.4% lower**); referenced saved storage
+**2.58 -> 1.42 GiB** (**45.1% lower**). FP32 maximum logit difference:
+**4.32e-7**, with identical greedy predictions on the matched batch.
+
+Completed a fresh **1,000-byte FineWeb run** in **151.39 seconds** of
+forward/backward/optimizer work. Training peak RSS: **2.76 GiB**, with stable
+successive windows and unchanged 320,064-byte compact state. Fixed training
+probe NLL: **5.584955 -> 5.066980**. Changing floating-point evaluation order
+does not preserve the entire discrete-routing training trajectory bit for bit.
+
+All **23 tests** pass, plus exact checkpoint/probe reload and a bit-identical
+one-thread/two-thread kernel value/gradient audit. Numerical gradcheck, FP64
+full-parameter gradients, zero/clamped directions, multiple chunks/calls and
+portable fallback are covered. Linux CPU FP32/FP64 compiles locally once;
+other cases retain the portable path. The profile CLI requires native execution
+when `--backend fused` is requested. Native backward is first-order only.
+
+Endpoint: `artifacts/cortical_minkron_fusion/last.pt`. The next measured target
+is selected-expert gradient accumulation; matrix operations now lead the
+remaining operator costs. See [fusion notes](docs/cortical_minkron_fusion.md)
+and [measured results](docs/cortical_minkron_fusion_results.json).
+
+## Previous: wider cortical transport, 1k profile complete
 
 `cortical_wide()` has **14,976,882 parameters**, independent **4/8/16-byte**
 internal ports, widths **128/96/64** at orders 1/2/later, and **4 of 32** experts
@@ -32,7 +65,7 @@ fusing MinKron HAT intermediates and backward, then expert-gradient accumulation
 Endpoint: `artifacts/cortical_wide_profile/last.pt`, with optimizer, RNG and
 carried state after 250 observations per stream. The matching report and raw
 profiles document timings and operator allocation traffic. Source and runs are
-delivered as downloadable files; this pass has not been pushed to GitHub.
+delivered as downloadable files; source is now published in commit 4695bb3.
 
 [Wide configuration and reproduction](docs/cortical_wide_profile.md).
 
@@ -59,8 +92,8 @@ observations are in the run package. No training remains pending.
 The final endpoint is `artifacts/cortical_fineweb_10m/last.pt`, with optimizer,
 RNG and all carried states, at 100,000 targets / 500 observations per stream.
 The exact corpus and unpublished source patch accompany the downloadable
-checkpoint package. GitHub publication was blocked by automatic approval
-review; the code and completed run are delivered as files.
+checkpoint package. Initial GitHub publication was blocked by automatic approval
+review; the user subsequently authorized publication, completed in 4695bb3.
 
 [Training and reproduction](docs/cortical_fineweb.md) |
 [Compact measured results](docs/cortical_fineweb_results.json).
