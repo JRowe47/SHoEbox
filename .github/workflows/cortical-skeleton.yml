@@ -1,0 +1,47 @@
+name: Cortical skeleton shakedown
+
+on:
+  push:
+    branches: [main, 'codex/cortical-skeleton']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  skeleton:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install CPU dependencies
+        run: |
+          python -m pip install 'torch==2.5.1+cpu' --index-url https://download.pytorch.org/whl/cpu
+          python -m pip install 'numpy>=1.26' reportlab pymupdf pillow
+      - name: Check active architecture
+        run: python scripts/check_all.py
+      - name: Check preserved HAT and minKron primitives
+        working-directory: experiments/hat_minkron
+        run: python -m unittest verify -v
+      - name: Train small skeleton
+        run: python -m shoebox.shakedown --steps 24 --out artifacts/cortical_skeleton
+      - name: Check streaming continuation
+        run: |
+          python -c "from pathlib import Path; Path('stream_fixture.txt').write_text('red blue red.\nblue red blue.\n'*12)"
+          python -m shoebox.shakedown --data stream_fixture.txt --context 2 --steps 2 --out artifacts/cortical_stream_smoke
+          python -m shoebox.shakedown --data stream_fixture.txt --context 2 --steps 1 --resume artifacts/cortical_stream_smoke/last.pt --out artifacts/cortical_stream_resumed
+      - name: Package source, checkpoints and reports
+        run: python scripts/package_cortical_skeleton.py
+      - uses: actions/upload-artifact@v4
+        with:
+          name: SHoEbox_Cortical_Skeleton
+          path: |
+            delivery/SHoEbox_Cortical_Skeleton.zip
+            delivery/SHoEbox_Cortical_Skeleton_Report.md
+            delivery/SHoEbox_Cortical_Skeleton_Report.pdf
+            delivery/report_preview.png
+          if-no-files-found: error
+          retention-days: 30
