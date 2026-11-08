@@ -1,6 +1,56 @@
 # SHoEbox handoff
 
-## Latest: hippocampus retrieval control repair
+## Latest: lace-separation pilot complete
+
+The default-off rank-four query head, helpful-unique credit and selective
+shared-lace inhibition are implemented. All four matched arms complete their
+fixed 32-update continuation from
+`artifacts/hippocampus_binding/ca1/bounded/last.pt`. All 38 locked evaluation
+sections are complete and audited. All 52 focused checks pass, and a separate
+production-checkpoint audit reproduces one complete bypassed update exactly.
+
+**Keep `artifacts/hippocampus/parent.pt` as the working model.** Every arm fails
+the paired and correction validation gates. B/C/D pass single-fact validation;
+A fails it. All four pass the natural-text gate. No checkpoint is promoted.
+
+| Final native pairs | +0 / 192 | +32 / 192 | +64 / 192 |
+| --- | ---: | ---: | ---: |
+| A: bypass | 0 | 3 | 0 |
+| B: learned head | 1 | 1 | 6 |
+| C: unique credit | 0 | 1 | 1 |
+| D: full rule | 2 | 1 | 0 |
+
+B is the strongest continuation to inspect next: +64 single/correction accuracy
+is 96.9%/88.3%, versus A's 90.6%/74.2%. C drops to 79.7%/69.5%; D recovers to
+95.3%/84.4% without solving paired recall. Unseen wording does not produce a
+reliable gain. D's credit is live (141/168 eligible final +32 decisions updated),
+but swapping its dedicated cues leaves all 1,536 native predictions unchanged.
+The same-weight bias/readback controls and full per-case predictions are saved.
+
+Next development target: trace each question's target-versus-contender margin
+through owner readbacks, expert inputs and answer readout at frozen weights.
+Use source-specific interventions to locate the binding loss. Favor the simpler
+head for that investigation; retain the extra-credit switches for later ablations.
+
+Recovery: the fixed experimental endpoints are
+`artifacts/lace_separation/{A,B,C,D}/last.pt`, all at step 32 / next document 856.
+Initial and 8/16/24/32 snapshots preserve weights, AdamW, RNG and carried language
+state. Each arm consumes 768 answer targets, 23,680 logical task bytes, 20,032
+executed batch-byte positions and 4,096 language targets. Source ledgers match;
+all 223 guarded files still match the training revision. No training or final
+evaluation is pending.
+
+Next command after restoring both archives:
+`python scripts/summarize_lace_separation.py` verifies the completed evidence.
+Exact resumes keep source/protocol guards; new training requires an explicit new
+continuation. The public implementation revision is `827d8861c0e821a4e568d58db50fe72123aaeb28`.
+
+[Report](docs/lace_separation_report.md) |
+[Protocol and reproduction](docs/lace_separation.md) |
+[Audited results](experiments/text_regions/results/lace_separation/summary.json).
+
+
+## Earlier: hippocampus retrieval control repair
 
 The new controls independently select an external-event cue clock, direct
 expert-input reinstatement and bounded CA1 reread acceptance. The controller

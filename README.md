@@ -78,7 +78,15 @@ P and Q feed the shared byte readout. B has one state owner and publishes to bot
 
 ## Development status
 
-The latest [retrieval control repair](docs/hippocampus_binding.md) adds an
+The [query-conditioned lace-separation pilot](docs/lace_separation.md) adds a
+small rank-four bias to existing recurrent-node routing, plus optional local
+credit for useful unique laces and contentious shared laces. All four matched
+32-update continuations are complete; none meets the paired-validation promotion
+gate. Keep the original strong parent. The controls default off, and 52 focused
+checks pass. [Report](docs/lace_separation_report.md) |
+[audited results](experiments/text_regions/results/lace_separation/summary.json).
+
+The preceding [retrieval control repair](docs/hippocampus_binding.md) adds an
 external-event cue clock, direct expert-input reinstatement and bounded CA1
 acceptance after a reread. The original controller let refinement compete with
 acceptance, then suppressed the refined result using the original acceptance

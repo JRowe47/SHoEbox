@@ -4,6 +4,20 @@ This is a new-protocol continuation of the fixed bounded-CA1 endpoint from publi
 revision `f762518a30c7cc01cc308a4a362a3be73d62b52e`. The retained working model stays
 `artifacts/hippocampus/parent.pt` until the existing promotion gates pass.
 
+## Pilot decision
+
+All four fixed 32-update arms fail the paired-validation gate. The strong parent
+remains the working model; the new controls remain independently default-off.
+The [completed report](lace_separation_report.md) and
+[audited results](../experiments/text_regions/results/lace_separation/summary.json)
+separate the head, unique-credit and overlap-inhibition effects.
+
+The next development target is to locate the query-dependent binding bottleneck:
+trace each question's target-versus-contender margin through owner readbacks,
+expert inputs and answer readout at frozen weights. Use one-source-at-a-time
+interventions to distinguish selection failure from downstream loss of binding.
+Keep the current coefficients and fixed endpoints as the comparison controls.
+
 ## Forward path
 
 `GraphConfig.lace_separation` defaults to uninstalled/disabled. Installing a head
@@ -89,6 +103,11 @@ on these exact same inputs. Case hashes are checked against reconstructed prior
 paired banks and training document identities and against all new cohorts.
 This controls exact input reuse, not the reuse of semantic fact combinations.
 
+The reversed templates exchange the two entity byte values throughout the
+generated task history and query, including matching characters in distractors.
+The 24-byte natural lead-in is added afterward. Both questions still share one
+exact history; the audit hashes the fully rendered bytes.
+
 A separate, predeclared unseen-wording bank changes `A x?` to `Value of A x?`.
 Its results are reported separately from native primary results. Neither wording
 nor any labels are installed as an inference parser.
@@ -118,6 +137,11 @@ python -m unittest experiments.text_regions.test_lace_separation experiments.tex
 python scripts/run_lace_separation.py --arm D --out artifacts/reproduction/D --initial artifacts/lace_separation/initial.json
 python scripts/evaluate_lace_separation.py --checkpoint artifacts/reproduction/D/last.pt --cohort validation --part pairs --out artifacts/reproduction/D_validation_pairs.json
 ```
+
+To complete a restored full pilot after its previous executor has stopped, run
+`python scripts/finish_lace_separation.py --workers 2 --eval-workers 6`, then
+`python scripts/audit_lace_endpoints.py` and
+`python scripts/summarize_lace_separation.py`.
 
 Use `--resume` on the identical arm/output/protocol after an interruption. New
 runs require empty output directories. Recorded artifacts include the locked

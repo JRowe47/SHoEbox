@@ -1,5 +1,5 @@
 """Locked validation/final inputs and same-weight ablations; no credit capture."""
-import argparse,hashlib,json,resource,sys,time
+import argparse,fcntl,hashlib,json,resource,sys,time
 from pathlib import Path
 from dataclasses import replace
 import torch
@@ -52,6 +52,8 @@ def evaluate_pairs(model,records,control='intact'):
         both_accuracy=sum(map(both,distinct))/len(distinct),query_switches=sum(r['older_prediction']!=r['newer_prediction'] for r in distinct),
         older_accuracy=sum(r['older']==r['older_prediction'] for r in rows)/len(rows),
         newer_accuracy=sum(r['newer']==r['newer_prediction'] for r in rows)/len(rows),
+        distinct_older_accuracy=sum(r['older']==r['older_prediction'] for r in distinct)/len(distinct),
+        distinct_newer_accuracy=sum(r['newer']==r['newer_prediction'] for r in distinct)/len(distinct),
         equal_answer_histories=len(same),equal_answer_both_correct=sum(map(both,same)),nll=nll/(2*len(rows)),
         seconds=time.perf_counter()-started,executed_positions=positions,expert_executions=experts,
         memory_work=work,peak_mib=resource.getrusage(resource.RUSAGE_SELF).ru_maxrss/1024,rows=rows)
@@ -65,6 +67,9 @@ def main():
     p.add_argument('--control',choices=('intact','bias_off','cue_permuted','blocked'),default='intact')
     p.add_argument('--cohorts',type=Path,default=ROOT/'artifacts/lace_separation/cohorts.json')
     a=p.parse_args();torch.set_num_threads(1)
+    a.out.parent.mkdir(parents=True,exist_ok=True)
+    lock_file=a.out.with_suffix('.json.lock').open('a')
+    fcntl.flock(lock_file.fileno(),fcntl.LOCK_EX)
     if a.cohort=='test' and not (ROOT/'artifacts/lace_separation/training_complete.json').exists():
         raise ValueError('Final test remains sealed until every fixed endpoint is complete.')
     model,saved=load_model(a.checkpoint,a.control);lock=json.loads(a.cohorts.read_text())

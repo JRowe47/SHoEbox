@@ -134,6 +134,8 @@ def render_pdf(md,pdf,*,title='SHoEbox hippocampus implementation',
     styles['Heading2'].keepWithNext=True
     def inline(value):
         value=escape(value).replace('–','-').replace('—','-')
+        value=re.sub(r'\[([^\]]+)\]\((https?://[^)]+)\)',
+            r'<link href="\2" color="#174d43"><u>\1</u></link>',value)
         value=re.sub(r'\*\*(.*?)\*\*',r'<b>\1</b>',value)
         return re.sub(r'`(.*?)`',r'<font name="ReportMono">\1</font>',value)
     flow=[]; lines=md.read_text().splitlines(); i=0
