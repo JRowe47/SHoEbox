@@ -76,7 +76,7 @@ unique tensor-storage accounting and plain-dictionary serialization.
 
 Optimizer migration maps the retained parent's AdamW moments by stable parameter
 name, including aliases only once. New moments appear only when a new parameter
-receives a gradient. Activation checkpointing uses non-reentrant recomputation
+receives a gradient. Activation checkpointing uses reentrant recomputation with unmaterialized cotangents
 for associative state to preserve `None` gradients on unused pages and owners;
 the legacy path keeps its original implementation.
 
@@ -102,10 +102,15 @@ natural bytes. Source labels and answers never enter inference.
 python -m unittest experiments.text_regions.test_hippocampus
 python scripts/run_hippocampus.py --arm A --out artifacts/hippocampus/A
 python scripts/run_hippocampus.py --arm B --out artifacts/hippocampus/B
-python scripts/run_hippocampus.py --arm C --out artifacts/hippocampus/C
+python scripts/run_hippocampus.py --arm C --out artifacts/hippocampus/C --checkpoint-training
 python scripts/finish_hippocampus.py --workers 3
 python scripts/benchmark_hippocampus.py --out artifacts/hippocampus/scaling.json
 ```
+
+`--checkpoint-training` recomputes 16-byte segments for calls over 768 batch-byte
+positions while retaining full live
+credit across boundaries. It bounds activation memory without truncating the
+learning window. Use it again when resuming the shared-memory arm.
 
 `--resume` continues a saved run from its original parent with the same protocol.
 `--initial-reference artifacts/hippocampus/A` reuses A's initial validation for B/C

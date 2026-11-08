@@ -326,6 +326,36 @@ class HippocampusIntegrationTests(unittest.TestCase):
         state,results=fabric.service(state,5,None)
         self.assertEqual(results,((('future',0),'ok',10),))
 
+    def test_segmented_recomputation_preserves_masked_objective_and_state(self):
+        from .activation_checkpoint import enable_associative_checkpointing
+        model=self.model(); torch.nn.init.normal_(model.hippocampus.compose.weight,std=.05)
+        x=torch.tensor([[1,2,3,4,5,6,7],[8,9,10,11,12,13,14]])
+        valid=torch.ones_like(x,dtype=torch.bool); valid[0,:2]=False
+        reset=torch.zeros_like(valid); reset[0,2]=True; reset[1,0]=True
+        expected=None
+        for checkpoint in (False,True):
+            model.zero_grad(set_to_none=True)
+            if checkpoint: enable_associative_checkpointing(model,segment=3,min_positions=0)
+            result=model(x,targets=x,reset=reset,availability={v:valid for v in model.cfg.views},node_masks={n:valid for n in model.nodes})
+            result['loss'].backward()
+            gradients=[None if p.grad is None else p.grad.clone() for p in model.parameters()]
+            if expected is None: expected=(result,gradients)
+            else:
+                torch.testing.assert_close(result['logits'],expected[0]['logits'],atol=0,rtol=0)
+                torch.testing.assert_close(result['loss'],expected[0]['loss'],atol=1e-7,rtol=1e-6)
+                same(self,result['state'].to_dict(),expected[0]['state'].to_dict())
+                self.assertEqual(result['external_events'],expected[0]['external_events'])
+                actual_flat=[]; expected_flat=[]
+                for a,b in zip(gradients,expected[1]):
+                    if a is None: self.assertIsNone(b)
+                    else:
+                        actual_flat.append(a.flatten()); expected_flat.append(b.flatten())
+                actual_flat=torch.cat(actual_flat); expected_flat=torch.cat(expected_flat)
+                # Chunking changes FP32 accumulation order; the FP64 probe
+                # agrees to 1.2e-15 relative L2. Check the full gradient norm.
+                relative=(actual_flat-expected_flat).norm()/expected_flat.norm()
+                self.assertLess(float(relative),2e-6)
+
     def test_training_resume_names_moments_fast_state_and_rng(self):
         import hashlib
         from .data import OrderedByteStreams,split_bytes

@@ -34,6 +34,13 @@ class HippocampusRun(PairedRecallRun):
             seed=683,start=3000,count=validation_cases,mode=mode,gap=gap,distractor_bytes=self.validation)
             for mode in ('single','older','newer','correction') for gap in (0,32)}
         torch.set_rng_state(parent['rng'])
+        self.validation_workers=1
+
+    def validate(self):
+        if self.validation_workers>1:
+            from experiments.text_regions.hippocampus_validation import parallel_validation
+            return parallel_validation(self,self.validation_workers)
+        return super().validate()
 
     def state_dict(self):
         return super().state_dict()|dict(kind='hippocampus_v1',optimizer_parameter_names=[n for n,_ in self.model.named_parameters()])
@@ -51,6 +58,8 @@ def main():
     parser.add_argument('--validation-cases',type=int,default=8)
     parser.add_argument('--resume',action='store_true')
     parser.add_argument('--checkpoint-training',action='store_true',help='Recompute activations; does not change the training protocol')
+    parser.add_argument('--checkpoint-min-positions',type=int,default=768,help='Batch-byte threshold; zero recomputes every training call')
+    parser.add_argument('--validation-workers',type=int,default=1,help='Independent CPU validation cohorts; unchanged measurements')
     parser.add_argument('--initial-reference',type=Path,help='Reuse audited zero-residual arm-A initial validation')
     parser.add_argument('--skip-initial-validation',action='store_true',help='Timing smoke only; do not use for comparisons')
     a=parser.parse_args(); torch.set_num_threads(1)
@@ -59,9 +68,11 @@ def main():
     run=HippocampusRun(torch.load(a.parent,map_location='cpu',weights_only=True),a.data.read_bytes(),
         arm=a.arm,steps=a.steps,eval_every=a.eval_every,validation_cases=a.validation_cases)
     run.protocol['parent_sha256']=hashlib.sha256(a.parent.read_bytes()).hexdigest()
+    if not 1<=a.validation_workers<=4: parser.error('Use one through four validation workers.')
+    run.validation_workers=a.validation_workers
     if a.checkpoint_training:
         from experiments.text_regions.activation_checkpoint import enable_associative_checkpointing
-        enable_associative_checkpointing(run.model)
+        enable_associative_checkpointing(run.model,min_positions=a.checkpoint_min_positions)
     if a.resume:
         run.restore(torch.load(a.out/'last.pt',map_location='cpu',weights_only=True))
     else:
@@ -89,7 +100,9 @@ def main():
     while run.step<stop:
         row=run.update()
         row['activation_checkpointing']=a.checkpoint_training
+        row['checkpoint_min_positions']=a.checkpoint_min_positions if a.checkpoint_training else None
         if run.step%a.eval_every==0 or run.step==a.steps:
+            print(json.dumps({'stage':'validation','step':run.step,'workers':run.validation_workers}),flush=True)
             row['validation']=run.validate()
             if row['validation']['selection_score']<run.best:
                 run.best=row['validation']['selection_score']; run.save(a.out/'best.pt')

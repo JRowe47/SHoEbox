@@ -78,6 +78,12 @@ P and Q feed the shared byte readout. B has one state owner and publishes to bot
 
 ## Development status
 
+The optional [shared hippocampus](docs/hippocampus.md) adds dedicated cues,
+versioned regional capsules, bounded DG/CA3/CA1 lookup and conditional expert
+readbacks. It defaults off. Structural checks and a 64-512-region actor smoke
+pass; the matched fixed-budget learning comparison is in progress. The strong
+retention parent remains the working baseline until the promotion gates pass.
+
 The latest [shared-history query experiment](docs/paired_recall.md) completes
 64 updates with both questions trained from one live history. Diagnostic
 readouts recover both stored values after 32 intervening bytes, but the model

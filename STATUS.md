@@ -19,7 +19,7 @@ Matched 64-update A/B/C comparisons run from the retained parent; A keeps the
 unchanged model, B adds local cue/anchor access, C adds the shared index. The
 fixed endpoint and held-out ablations must complete before promotion is decided.
 Resume with `scripts/run_hippocampus.py --arm C --out artifacts/hippocampus/C
---resume` (one command). The exact corpus/parent and ongoing checkpoints are
+--resume --checkpoint-training --validation-workers 3` (one command). The exact corpus/parent and ongoing checkpoints are
 under `artifacts/hippocampus/`; the result/report commit follows the run.
 
 

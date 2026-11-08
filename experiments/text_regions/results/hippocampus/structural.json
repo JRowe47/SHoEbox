@@ -1,5 +1,5 @@
 {
-  "targeted_checks": 50,
+  "targeted_checks": 51,
   "all_passed": true,
   "additional_fabric_checks": 2,
   "disabled_rng_logits_state_clocks": true,
@@ -11,10 +11,15 @@
   "stale_descriptors_and_payloads_masked": true,
   "duplicate_and_eviction_and_reset_checks": true,
   "production_recomputation": {
-    "checkpoint_step": 14,
+    "step": 14,
     "parameter_tensors": 828,
+    "sequence_bytes": 28,
+    "segment": 8,
     "logits_max_error": 0.0,
-    "gradient_max_error": 0.0
+    "gradient_max_error": 3.5762786865234375e-07,
+    "loss_error": 0.0,
+    "unused_gradients_preserved": true,
+    "implementation": "segmented sparse reentrant recomputation"
   },
   "training_resource_event": {
     "arm": "C",
@@ -22,5 +27,11 @@
     "reason": "host memory limit",
     "resolution": "Resume with exact activation recomputation; unchanged learning protocol"
   },
-  "backend": "lazy immutable one-record pages; bounded single-process actor simulator"
+  "backend": "lazy immutable one-record pages; bounded single-process actor simulator",
+  "parallel_validation": {
+    "cohorts": 8,
+    "workers": 2,
+    "all_measurements_exact": true,
+    "paired_selection_exact": true
+  }
 }
