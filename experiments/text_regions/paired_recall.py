@@ -49,7 +49,9 @@ def fork_state(state, rows):
         raise ValueError('State row selection requires a nonempty int64 vector.')
     if rows.device != state.events_seen.device:
         raise ValueError('State row selection must stay on the state device.')
-    result = map_tensors(state, lambda x: x.index_select(0, rows))
+    result = map_tensors(replace(state, hippocampus=None), lambda x: x.index_select(0, rows))
+    if state.hippocampus is not None:
+        result = replace(result, hippocampus=state.hippocampus.fork(rows))
     return replace(result, ingress={k:replace(v, batch_size=len(rows))
                                     for k,v in result.ingress.items()})
 

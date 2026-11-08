@@ -1,5 +1,28 @@
 # SHoEbox handoff
 
+## Latest: explicit shared hippocampus implementation
+
+The default-off hippocampal extension implements dedicated regional cues,
+immutable owner-local anchors, shallow DG/CA3/CA1 controls, bounded shared lookup,
+conditional owner readers and causal next-round commits. Regional intelligence
+and the ordinary optimizer/objectives stay in place. The original strong
+`artifacts/memory_selectivity/selective/best.pt` remains the working baseline.
+
+[Implementation/protocol](docs/hippocampus.md) follows the attached
+[hippocampus specification](docs/SHoEbox_Hippocampus_Spec_v1.md). Tests cover
+legacy/zero-residual parity, live source/query/read credit, isolated forks,
+causal versions, stale descriptors, revision, eviction, checkpoint migration,
+exact optimizer resume and sparse activation recomputation. A lazy paged
+reference service and bounded actor fabric exercise 64/128/256/512 mock regions.
+
+Matched 64-update A/B/C comparisons run from the retained parent; A keeps the
+unchanged model, B adds local cue/anchor access, C adds the shared index. The
+fixed endpoint and held-out ablations must complete before promotion is decided.
+Resume with `scripts/run_hippocampus.py --arm C --out artifacts/hippocampus/C
+--resume` (one command). The exact corpus/parent and ongoing checkpoints are
+under `artifacts/hippocampus/`; the result/report commit follows the run.
+
+
 ## Latest: paired histories expose a query-binding bottleneck
 
 Memory-only focus continues. **Keep `artifacts/memory_selectivity/selective/best.pt`

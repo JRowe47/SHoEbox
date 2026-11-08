@@ -26,9 +26,13 @@ class GraphState:
     input_mode: str = ''
     recall_feedback: dict[str, torch.Tensor] = field(default_factory=dict)
     publication_demand: dict[str, torch.Tensor] = field(default_factory=dict)
+    hippocampus: object | None = None
 
     def detach(self):
-        return map_tensors(self, lambda x: x.detach())
+        result = map_tensors(self, lambda x: x.detach())
+        if result.hippocampus is not None:
+            result = replace(result, hippocampus=replace(result.hippocampus, window=result.hippocampus.window+1))
+        return result
 
     def clone(self):
         return map_tensors(self, lambda x: x.clone())
@@ -46,7 +50,8 @@ class GraphState:
                        recall_feedback={k: choose_rows(rows, torch.zeros_like(v), v)
                                         for k, v in self.recall_feedback.items()},
                        publication_demand={k: choose_rows(rows, torch.zeros_like(v), v)
-                                           for k, v in self.publication_demand.items()})
+                                           for k, v in self.publication_demand.items()},
+                       hippocampus=None if self.hippocampus is None else self.hippocampus.reset(rows))
 
     def memory_tensor(self, owners):
         return torch.stack([torch.cat((self.ports.latest[n].payload,
@@ -77,14 +82,17 @@ class GraphState:
         return sum(x.numel()*x.element_size() for x in self.tensors())
 
     def to_dict(self):
-        return plain_dict(self.detach())
+        # Serialization is not an optimizer boundary and must not advance credit.
+        return plain_dict(map_tensors(self, lambda x: x.detach()))
 
     @classmethod
     def from_dict(cls, data):
+        from .hippocampus_interface import HippocampusState
         return cls(ingress={k: HATState(**h) for k, h in data['ingress'].items()},
                    nodes={k: NodeState(tuple(n['contextualizer']), tuple(n['blocks']), n['clock'])
                           for k, n in data['nodes'].items()},
                    ports=TensorPorts({k: Publication.from_dict(p) for k, p in data['ports']['latest'].items()}),
                    events_seen=data['events_seen'], rounds_seen=data['rounds_seen'], epochs=data['epochs'],
                    input_mode=data['input_mode'], recall_feedback=data.get('recall_feedback', {}),
-                   publication_demand=data.get('publication_demand', {}))
+                   publication_demand=data.get('publication_demand', {}),
+                   hippocampus=HippocampusState.from_dict(data['hippocampus']) if data.get('hippocampus') is not None else None)

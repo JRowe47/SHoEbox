@@ -58,6 +58,23 @@ class RegionLanguageModel(nn.Module):
             with torch.random.fork_rng(devices=[]):
                 torch.manual_seed(self.cfg.seed + 17389)
                 self.publisher = GraphPublicationPolicy(self.cfg)
+        self.hippocampus = None
+        if self.cfg.hippocampus.enabled:
+            from .hippocampus import Hippocampus
+            with torch.random.fork_rng(devices=[]):
+                torch.manual_seed(self.cfg.seed + 80317)
+                self.hippocampus = Hippocampus(self.cfg)
+            self.memory_requesters = {region: owners[-1] for region, owners in self.cfg.regions.items()}
+            # Topology-derived ingress routes, computed once. Never search the
+            # publication candidates to decide the identity of a memory cue.
+            ancestry = {n.name: ({n.view} if n.view is not None else set()) for n in self.cfg.nodes}
+            for stage in self.stages:
+                for name in stage:
+                    for edge in self.cfg.edges:
+                        if edge.destination == name and edge.kind == 'forward':
+                            ancestry[name].update(ancestry[edge.source])
+            self.memory_views = {region: tuple(sorted(set().union(*(ancestry[n] for n in owners))))
+                                 for region, owners in self.cfg.regions.items()}
 
     def initial_state(self, batch, device=None):
         if batch < 1:
@@ -81,7 +98,9 @@ class RegionLanguageModel(nn.Module):
                           recall_feedback={name: torch.zeros(batch, c.width, device=device, dtype=dtype)
                                            for name in self.connections.recall},
                           publication_demand={name: torch.zeros(batch, 2, device=device, dtype=dtype)
-                                              for name in c.task_publication})
+                                              for name in c.task_publication},
+                          hippocampus=self.hippocampus.initial_state(batch, device, dtype)
+                              if self.hippocampus is not None else None)
 
     def ingress_hat(self, view):
         owner = self.view_owners.get(view)
@@ -102,6 +121,11 @@ class RegionLanguageModel(nn.Module):
             if e.values.shape != (b, t) or e.values.device != first.values.device:
                 raise ValueError('All aligned views must have the same [B,T] shape and device.')
         state = state or self.initial_state(b, first.values.device)
+        if self.hippocampus is not None and state.hippocampus is None:
+            memory = self.hippocampus.initial_state(b, first.values.device, self.readout.weight.dtype)
+            memory = replace(memory, rows=tuple(replace(row, namespace=int(state.epochs[i]),
+                round=int(state.rounds_seen[i])) for i, row in enumerate(memory.rows)))
+            state = replace(state, hippocampus=memory)
         if state.events_seen.shape != (b,) or state.events_seen.device != first.values.device:
             raise ValueError('State batch/device mismatch.')
         if set(state.nodes) != set(self.nodes):
@@ -200,6 +224,7 @@ class RegionLanguageModel(nn.Module):
         aux = self.readout.weight.new_zeros(())
         hat_aux = aux
         activations = ingress_activations = executed = 0
+        memory_work = []
         for event_index in range(t):
             next_event()
             event_recalls = {name: [] for name in recall_activity}
@@ -231,8 +256,48 @@ class RegionLanguageModel(nn.Module):
                 ingress_activations += int(active.sum())
             state = replace(state, ingress=ingress_states, ports=state.ports.commit(staged_ingress))
             for k in range(k_total):
+                memory_residuals, memory_receipts = {}, ()
+                if self.hippocampus is not None:
+                    source_values, source_valid = [], []
+                    for region in self.hippocampus.regions:
+                        views = self.memory_views[region] if controlled else ('text',)
+                        pubs = [state.ports.latest['@'+v] for v in views]
+                        mask = torch.stack([p.valid for p in pubs], 1)
+                        source_values.append((torch.stack([p.payload for p in pubs], 1)*mask[..., None]).sum(1)
+                                             /mask.sum(1, keepdim=True).clamp_min(1))
+                        source_valid.append(mask.any(1))
+                    grounded = torch.stack(source_valid, 1)
+                    memory, memory_keys = self.hippocampus.advance_cues(
+                        state.hippocampus, torch.stack(source_values, 1), grounded)
+                    owner_active = {n: node_masks[n][:, event_index] if n in node_masks else all_active
+                                    for n in self.nodes}
+                    query_active = torch.stack([owner_active[self.memory_requesters[r]]
+                                                for r in self.hippocampus.regions], 1)
+                    residuals, memory_receipts, work = self.hippocampus.query(
+                        memory, memory_keys, self.nodes, self.memory_requesters, query_active,
+                        {n: p.payload*p.valid[:, None] for n,p in state.ports.latest.items() if n in self.nodes},
+                        owner_active)
+                    memory_residuals = {self.memory_requesters[r]: residuals[:, i]
+                                        for i,r in enumerate(self.hippocampus.regions)}
+                    state = replace(state, hippocampus=memory)
+                    memory_work.extend(work)
+                    memory_latents, memory_active = {}, {}
                 delayed = state.ports.snapshot() if feedback else None
                 demands = {name: [] for name in self.cfg.task_publication}
+                memory_demands = {}
+                if (self.hippocampus is not None and self.cfg.hippocampus.feedback
+                        and self.cfg.hippocampus.control != 'no_feedback'):
+                    # Attribute usage only to actual, version-validated owners.
+                    # This is a next-round policy feature, not a second gradient
+                    # receipt. Its zero-initialized gain preserves parent logits.
+                    for bi, receipts in enumerate(memory_receipts):
+                        for receipt in receipts:
+                            for owner in dict.fromkeys(handle.node for _,handle in receipt.contributors):
+                                if owner in demands:
+                                    value = receipt.support*self.hippocampus.publication_feedback_gain.tanh()
+                                    values = value.new_zeros(b,2).index_copy(0,
+                                        torch.tensor([bi],device=device),value.expand(1,2))
+                                    memory_demands[owner] = memory_demands.get(owner,0.)+values
                 round_writes = {}
                 for stage in self.stages:
                     current, staged, node_states = state.ports.snapshot(), {}, dict(state.nodes)
@@ -250,6 +315,8 @@ class RegionLanguageModel(nn.Module):
                         payload, context, dependencies = self.connections.gather(
                             spec, current, delayed, ingress, active, event_index, edge_masks, substitutions, edge_bias,
                             state.recall_feedback.get(name), recall_control, recall_record)
+                        if name in memory_residuals:
+                            payload = payload + memory_residuals[name]*active[:, None]
                         if name in event_recalls:
                             event_recalls[name].append(recall_record)
                         if self.publisher is not None:
@@ -264,6 +331,9 @@ class RegionLanguageModel(nn.Module):
                     for name, (payload, context, node_state, active, dependencies) in requests.items():
                         spec = self.specs[name]
                         result = self.nodes[name](payload, context, node_state, active, trace, lace_bias.get(name), prepared.get(name))
+                        if self.hippocampus is not None:
+                            memory_latents[name] = result['latent']
+                            memory_active[name] = active
                         node_states[name] = result['state']
                         if name in self.connections.recall:
                             previous = state.recall_feedback.get(name, torch.zeros_like(result['latent']))
@@ -315,8 +385,15 @@ class RegionLanguageModel(nn.Module):
                                             'dependencies': tuple(d for d in dependencies if bool(d.consumed.any()))})
                     state = replace(state, nodes=node_states, ports=state.ports.commit(staged),
                                     recall_feedback=recall_feedback)
+                if self.hippocampus is not None:
+                    offers = self.hippocampus.make_offers(state.hippocampus, memory_keys, memory_latents,
+                        self.nodes, memory_active, {n:state.ports.latest[n].version for n in self.nodes}, grounded)
+                    state = replace(state, hippocampus=self.hippocampus.commit(state.hippocampus, offers, memory_receipts))
+                next_demand = finish_demand(demands, state.publication_demand)
+                for owner, demand in memory_demands.items():
+                    next_demand[owner] = next_demand[owner]+demand
                 state = replace(state, rounds_seen=state.rounds_seen+1,
-                                publication_demand=finish_demand(demands, state.publication_demand))
+                                publication_demand=next_demand)
                 if return_write_activity and round_writes:
                     write_activity.append({key: torch.stack([round_writes[n][key]
                         for n in self.cfg.task_publication], 1) for key in next(iter(round_writes.values()))})
@@ -375,6 +452,7 @@ class RegionLanguageModel(nn.Module):
                 'publication_activity': publication_activity,
                 'recall_activity': recall_activity,
                 'write_activity': write_activity,
+                'hippocampus_work': memory_work,
                 'recall_edges': {n: tuple(e.key for e in self.connections.incoming[n]) for n in recall_activity},
                 'external_events': b*t, 'source_occurrences': ingress_activations, 'internal_rounds': b*t*k_total}
 

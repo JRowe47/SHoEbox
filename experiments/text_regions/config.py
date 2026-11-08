@@ -1,6 +1,7 @@
 """Serializable topology and capacity. External depth is independent of SHoE depth."""
 from dataclasses import asdict, dataclass, field
 from ..hat_minkron.model import HATConfig
+from .hippocampus_config import HippocampusConfig
 
 BASELINE_REVISION = 'b4bb7cfea18c3833819f6ed08973fd014f15f107'
 
@@ -83,6 +84,7 @@ class GraphConfig:
     auxiliary_loss_weight: float = .01
     hat_balance_weight: float = .001
     seed: int = 20261104
+    hippocampus: HippocampusConfig = field(default_factory=HippocampusConfig)
 
     @property
     def views(self):
@@ -107,6 +109,7 @@ class GraphConfig:
         return tuple(stages)
 
     def validate(self):
+        self.hippocampus.validate()
         names = [n.name for n in self.nodes]
         if not names or len(set(names)) != len(names):
             raise ValueError('Each node must have exactly one state owner and a unique name.')
@@ -195,6 +198,7 @@ class GraphConfig:
         data['task_publication'] = tuple(data.get('task_publication', ()))
         data['independent_sources'] = tuple(data.get('independent_sources', ()))
         data['recall_nodes'] = tuple(data.get('recall_nodes', ()))
+        data['hippocampus'] = HippocampusConfig(**data.get('hippocampus', {}))
         return cls(**data)
 
     @classmethod

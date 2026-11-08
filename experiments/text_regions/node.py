@@ -70,6 +70,21 @@ class RecurrentNode(nn.Module):
             self.publication_gate = nn.Linear(cfg.width, 1)
             nn.init.zeros_(self.publication_gate.weight)
             nn.init.constant_(self.publication_gate.bias, 2.)
+        if cfg.hippocampus.enabled:
+            with torch.random.fork_rng(devices=[]):
+                torch.manual_seed(cfg.seed + 48031 + index)
+                self.anchor_encoder = nn.Linear(cfg.width, cfg.width)
+                self.anchor_query = nn.Linear(cfg.hippocampus.address_width, cfg.width)
+                self.anchor_reader = nn.Linear(4*cfg.width, cfg.width)
+
+    def encode_anchor(self, latent):
+        return self.anchor_encoder(latent).tanh()
+
+    def read_anchor(self, capsule, cue, context=None):
+        """Owner-local conditional computation, without advancing native clocks."""
+        query = self.anchor_query(cue).tanh()
+        context = torch.zeros_like(capsule) if context is None else context
+        return self.anchor_reader(torch.cat((capsule, query, capsule*query, context), -1)).tanh()
 
     def publication_logit(self, latent):
         """A producer's write decision reads only its computed latent."""
