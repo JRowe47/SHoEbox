@@ -1,3 +1,5 @@
+> Historical experiment: superseded by the [cortical skeleton](../../shoebox/) and [current run instructions](../../README.md). Retention and query machinery below is preserved only for reproducing earlier studies.
+
 # Recurrent text regions
 
 This is SHoEbox's event-major reference implementation of the [development specification](../../docs/SHoE_Text_Development_Specification.md). It reuses the baseline's SymbolLevel, RecurrentChild, minKron, lace controller, and split expert banks. No old experiment is copied into this directory.

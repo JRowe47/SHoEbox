@@ -1,5 +1,27 @@
 # SHoEbox handoff
 
+## Current: cortical input map v2 skeleton
+
+The active development model is now `shoebox.CorticalModel`: 18 ordinary
+HAT-SHoE regions and one shared hippocampus behind EC-C/EC-X. The old local
+retention, conflicting-query, reserved-question and owner-readback mechanisms
+are absent from this model. The older studies below are historical and do not
+define the next development target.
+
+The 635,466-parameter skeleton has complete source-tagged byte frames,
+the map's ordered recipes, previous-round context, two-occurrence transport
+queues, independent regional state, and once-per-observation episodic storage.
+All nine behavioral checks passed locally. A 24-update fixed-fixture run reduced
+NLL from 5.571365 to 3.629863 in 59.27 seconds on one CPU thread.
+CI regenerates checkpoints, traces, a Markdown/PDF report and source package.
+See [commands and implementation](docs/cortical_skeleton.md).
+
+Next: use this model for ordinary stream/composition shakedowns. Keep the
+18-region connectivity fixed while checking frame usage and learned context.
+Do not resume the archived paired-question retention target.
+
+## Archived development record
+
 ## Latest: first-class memory interface
 
 The architecture-review refactor is implemented. `MemoryContextConfig` adds a
