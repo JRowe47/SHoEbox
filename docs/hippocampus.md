@@ -37,6 +37,10 @@ an already returned capsule does not add a native graph round or transport read.
 
 A handle includes stream/reset namespace, region/node, slot, generation, content
 version and semantic version. Recycled slots cannot impersonate expired content.
+In the reference backend, the enclosing batch row identifies the world and the
+integer namespace identifies its reset epoch. Handles and actor queues are
+world-scoped; a future multi-world transport must preserve that outer identity
+in its envelope instead of combining row-local handles in one unqualified map.
 Snapshots own immutable tensor pages; updates copy only touched record containers.
 Capsules are ready before a binding references them. Invalid descriptors and
 payloads are masked together. Stale returns become null; bounded maintenance
@@ -118,6 +122,21 @@ only when parent/cohort identities match and both added output gains are exactly
 zero. This reuse is recorded in the initial result. Each arm is evaluated normally
 after training. `--stop-after` makes an explicit resumable checkpoint; it does not
 change the declared 64-update budget.
+
+The recorded C run changed execution policy after host-memory failures. To
+reproduce its exact phase schedule from scratch, use an empty output directory:
+
+```bash
+python scripts/run_hippocampus.py --arm C --out artifacts/hippocampus/C --stop-after 14
+python scripts/run_hippocampus.py --arm C --out artifacts/hippocampus/C --resume --stop-after 18 --checkpoint-training --checkpoint-min-positions 0
+python scripts/run_hippocampus.py --arm C --out artifacts/hippocampus/C --resume --checkpoint-training --validation-workers 3
+```
+
+For a new run, enabling adaptive recomputation from the start is simpler. Both
+paths preserve the objective and live credit; segment boundaries can change
+floating-point gradient accumulation order. `execution_policy.json` in the
+checkpoint archive records the actual phase boundaries. Parallel validation
+was checked for exact equality on all eight validation cohorts and language.
 
 A is the unchanged paired-training baseline. B enables dedicated cues and local
 conditional anchors without the global index. C enables the shared index. All

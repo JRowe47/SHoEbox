@@ -81,17 +81,21 @@ P and Q feed the shared byte readout. B has one state owner and publishes to bot
 The optional [shared hippocampus](docs/hippocampus.md) adds dedicated cues,
 versioned regional capsules, bounded DG/CA3/CA1 lookup and conditional expert
 readbacks. It defaults off. Structural checks and a 64-512-region actor smoke
-pass; the matched fixed-budget learning comparison is in progress. The strong
-retention parent remains the working baseline until the promotion gates pass.
+pass, including 51 targeted checks. All three matched 64-update arms are
+complete. Shared-memory validation preserves 100% single-fact recall at gaps
+0/32 and improves language NLL, but both conflicting questions pass only
+3/96 and 0/96 times. The promotion gate fails, so the strong retention parent
+remains the working baseline. [Implementation report](docs/hippocampus_implementation_report.md) |
+[audited evidence](experiments/text_regions/results/hippocampus/summary.json).
 
-The latest [shared-history query experiment](docs/paired_recall.md) completes
+The preceding [shared-history query experiment](docs/paired_recall.md) completed
 64 updates with both questions trained from one live history. Diagnostic
 readouts recover both stored values after 32 intervening bytes, but the model
 still rarely chooses the correct value according to the question: only 1/192
 conflicting pairs pass at +24 and +64 bytes. Older-value answers improve while
 single-fact retention and corrections regress. The earlier strong retention
-checkpoint remains the working baseline. The next target is learned interaction
-between query identity and retained content, with existing controls preserved.
+checkpoint remains the working baseline. That result motivated the dedicated
+cue lane and conditional anchor readers in the hippocampal extension.
 All 16 targeted checks pass; [audited results](experiments/text_regions/results/paired_recall/summary.json)
 include exact continuation, source-budget reconstruction and state/gradient
 equivalence for the shared-history execution path.

@@ -32,10 +32,16 @@ def main():
             except (IndexError,json.JSONDecodeError): continue
             if last['step']!=64: continue
             checkpoint=root/arm/'last.pt'
-            schedule(arm,checkpoint); scheduled.add(arm)
+            scheduled.add(arm)
             if arm=='C':
+                # Start long paired interventions together; smaller endpoint
+                # cohorts can fill the remaining worker slots afterward.
+                schedule(arm,checkpoint,parts=('pairs',))
                 for control in ('blocked','shuffled','pooled','no_refinement','no_feedback'):
                     schedule('C',checkpoint,control,('pairs',))
+                schedule(arm,checkpoint,parts=('single','correction','streams'))
+            else:
+                schedule(arm,checkpoint)
         while queue and len(active)<a.workers:
             name,command,log=queue.popleft(); stream=log.open('w')
             child=subprocess.Popen(command,cwd=ROOT,stdout=stream,stderr=subprocess.STDOUT)

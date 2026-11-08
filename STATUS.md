@@ -7,6 +7,7 @@ immutable owner-local anchors, shallow DG/CA3/CA1 controls, bounded shared looku
 conditional owner readers and causal next-round commits. Regional intelligence
 and the ordinary optimizer/objectives stay in place. The original strong
 `artifacts/memory_selectivity/selective/best.pt` remains the working baseline.
+Its bundled copy is `artifacts/hippocampus/parent.pt`.
 
 [Implementation/protocol](docs/hippocampus.md) follows the attached
 [hippocampus specification](docs/SHoEbox_Hippocampus_Spec_v1.md). Tests cover
@@ -15,15 +16,33 @@ causal versions, stale descriptors, revision, eviction, checkpoint migration,
 exact optimizer resume and sparse activation recomputation. A lazy paged
 reference service and bounded actor fabric exercise 64/128/256/512 mock regions.
 
-Matched 64-update A/B/C comparisons run from the retained parent; A keeps the
-unchanged model, B adds local cue/anchor access, C adds the shared index. The
-fixed endpoint and held-out ablations must complete before promotion is decided.
-Resume with `scripts/run_hippocampus.py --arm C --out artifacts/hippocampus/C
---resume --checkpoint-training --validation-workers 3` (one command). The exact corpus/parent and ongoing checkpoints are
-under `artifacts/hippocampus/`; the result/report commit follows the run.
+The matched A/B/C arms finish 64 updates from the retained parent. A keeps the
+unchanged model, B adds local cue/anchor access, C adds the shared index. A's
+previous endpoint is reused after exact 30-update reproduction and complete
+protocol/source-ledger verification. Every arm consumes the same 1,536 answer
+targets, 46,976 logical task bytes, 40,384 executed task positions and 8,192
+language bytes. All regional parameters remain trainable.
+
+**C fails the declared promotion gate.** On the locked validation bank, both
+conflicting questions pass in 3/96 immediate histories and 0/96 after 32 bytes.
+Single-fact accuracy stays 100% at both gaps. Correction accuracy is 95.3%/93.0%,
+and natural-text NLL improves from 3.312089 to 3.173513. Retain the original
+strong parent, and retain the extension behind its default-off switch.
+
+The implementation passes 51 targeted checks. H0-H2 structural exits and the
+bounded H4 actor smoke pass; H3's behavioral exit fails. Actual distributed/GPU
+deployment remains H5. Shared training used sparse segmented recomputation after
+update 14 to fit host memory, preserving live credit and unused `None` gradients.
+The recorded phase schedule and exact reproduction commands are in the docs.
+
+[Completed report](docs/hippocampus_implementation_report.md) |
+[audited results](experiments/text_regions/results/hippocampus/summary.json).
+The checkpoint archive contains the original parent and A/B/C endpoint plus
+validation-selected checkpoints. They restore under `artifacts/hippocampus/`;
+the exact corpus restores to `data/tiny_shakespeare.txt`.
 
 
-## Latest: paired histories expose a query-binding bottleneck
+## Earlier: paired histories expose a query-binding bottleneck
 
 Memory-only focus continues. **Keep `artifacts/memory_selectivity/selective/best.pt`
 as the working joint-language/retention baseline.** The new paired continuation
