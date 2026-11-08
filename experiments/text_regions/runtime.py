@@ -308,12 +308,14 @@ class RuntimeChild(RecurrentChild):
         if self.decoder is not None:
             nn.init.normal_(self.decoder.weight, std=.02)
 
-    def execute_node(self, payload, prior, states, backend='chunk', memory_enabled=True, trace=False, decode=True):
-        if not enabled():
+    def execute_node(self, payload, prior, states, backend='chunk', memory_enabled=True, trace=False, decode=True, memory_input=None):
+        if not enabled() and memory_input is None:
             return super().execute(payload, prior, states, backend, memory_enabled, trace, decode)
         x, aux = payload, payload.new_zeros(())
         actual, final, details, semantic, group_ids, expert_ids = [], [], [], [], [], []
         for layer, block in enumerate(self.blocks):
+            if memory_input is not None:
+                x = memory_input(layer,x)
             x, memory, route = block(x, prior[:, :, layer], states[layer], backend, memory_enabled)
             final.append(memory)
             aux = aux+route['aux']

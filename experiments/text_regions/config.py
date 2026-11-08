@@ -3,6 +3,7 @@ from dataclasses import asdict, dataclass, field
 from ..hat_minkron.model import HATConfig
 from .hippocampus_config import HippocampusConfig
 from .lace_separation import LaceSeparationConfig
+from .memory_context import MemoryContextConfig
 
 BASELINE_REVISION = 'b4bb7cfea18c3833819f6ed08973fd014f15f107'
 
@@ -88,6 +89,7 @@ class GraphConfig:
     hippocampus: HippocampusConfig = field(default_factory=HippocampusConfig)
 
     lace_separation: LaceSeparationConfig = field(default_factory=LaceSeparationConfig)
+    memory_context: MemoryContextConfig = field(default_factory=MemoryContextConfig)
 
     @property
     def views(self):
@@ -113,6 +115,9 @@ class GraphConfig:
 
     def validate(self):
         self.hippocampus.validate()
+        self.memory_context.validate()
+        if self.memory_context.enabled and not self.hippocampus.enabled:
+            raise ValueError('First-class memory requires the shared memory service.')
         self.lace_separation.validate()
         if self.lace_separation.installed and not self.hippocampus.enabled:
             raise ValueError("Lace heads require the dedicated regional cue.")
@@ -206,6 +211,10 @@ class GraphConfig:
         data['recall_nodes'] = tuple(data.get('recall_nodes', ()))
         data['hippocampus'] = HippocampusConfig(**data.get('hippocampus', {}))
         data['lace_separation'] = LaceSeparationConfig(**data.get('lace_separation', {}))
+        memory = dict(data.get('memory_context', {}))
+        if 'block_depths' in memory:
+            memory['block_depths'] = tuple(memory['block_depths'])
+        data['memory_context'] = MemoryContextConfig(**memory)
         return cls(**data)
 
     @classmethod

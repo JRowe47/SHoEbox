@@ -40,6 +40,11 @@ class LocalAnchor:
     provenance: str
     ready_round: int
     source_version: int
+    source_event: int = -1
+    event_id: tuple = ()
+    detail: str = 'abstract'
+    parents: tuple[EngramHandle, ...] = ()
+    sources: tuple = ()
 
 
 @dataclass(frozen=True)
@@ -63,6 +68,7 @@ class BindingRecord:
     created: int
     revised: int
     representation_version: int
+    event_id: tuple = ()
 
 
 @dataclass(frozen=True)
@@ -133,6 +139,8 @@ class MemoryRow:
     committed: dict = field(default_factory=dict)  # producer high-watermarks
     credited: dict = field(default_factory=dict)  # requester high-watermarks
     round: int = 0
+    event_anchors: dict = field(default_factory=dict)
+    event_bindings: dict = field(default_factory=dict)
 
     def anchor(self, handle, watermark):
         if handle.namespace != self.namespace:
@@ -171,7 +179,8 @@ class HippocampusState:
         rows = []
         for raw in data['rows']:
             raw = dict(raw)
-            raw['anchors'] = {r:{s:LocalAnchor(**(dict(a) | {'handle':EngramHandle(**a['handle'])}))
+            raw['anchors'] = {r:{s:LocalAnchor(**(dict(a) | {'handle':EngramHandle(**a['handle']),
+                                  'parents':tuple(EngramHandle(**h) for h in a.get('parents',()))}))
                                   for s,a in slots.items()} for r,slots in raw['anchors'].items()}
             raw['bindings'] = {r:{s:BindingRecord(**(dict(a) | {
                 'handle':BindingHandle(**a['handle']),
@@ -180,6 +189,8 @@ class HippocampusState:
                 for s,a in slots.items()} for r,slots in raw['bindings'].items()}
             raw['postings'] = {k:tuple(BindingHandle(**h) for h in v) for k,v in raw['postings'].items()}
             raw['recent'] = {k:tuple(BindingHandle(**h) for h in v) for k,v in raw['recent'].items()}
+            raw['event_anchors'] = {k:EngramHandle(**h) for k,h in raw.get('event_anchors',{}).items()}
+            raw['event_bindings'] = {k:BindingHandle(**h) for k,h in raw.get('event_bindings',{}).items()}
             rows.append(MemoryRow(**raw))
         return cls(tuple(rows), data['cues'], data['schema'], data['window'])
 

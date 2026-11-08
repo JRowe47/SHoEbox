@@ -26,6 +26,7 @@ class Hippocampus(nn.Module):
         self.width = w = graph_config.width
         self.regions = tuple(graph_config.regions)
         self.owners = graph_config.regions
+        self.event_links = graph_config.memory_context.enabled and graph_config.memory_context.event_links
         self.interface = RegionalInterface(w,c)
         d = c.address_width
         self.dg = nn.Linear(d,c.dg_cells)
@@ -39,6 +40,9 @@ class Hippocampus(nn.Module):
         self.compose = nn.Linear(c.readbacks*w,w,bias=False)
         self.publication_feedback_gain = nn.Parameter(torch.zeros(()))
         self.directory = SparseDirectory(c)
+        if self.event_links:
+            self.detail_roles = nn.Embedding(2,d)
+            nn.init.normal_(self.detail_roles.weight,std=.02)
         # One zero factor preserves the warm-start logits; the nonzero readers,
         # selectors and role controls acquire gradients once this projection moves.
         nn.init.zeros_(self.compose.weight)
@@ -145,7 +149,8 @@ class Hippocampus(nn.Module):
                 anchor.handle.semantic_version))
         return result
 
-    def query(self,state,keys,nodes,requesters,active,contexts=None,available_owners=None,regions=None):
+    def query(self,state,keys,nodes,requesters,active,contexts=None,available_owners=None,regions=None,
+              requester_nodes=None,slot_capture=None,event_times=None):
         """Batched neural work, bounded metadata gathers, immutable causal reads.
 
         Returns residuals [B,R,W], receipts per world, and actual work counters.
@@ -162,8 +167,10 @@ class Hippocampus(nn.Module):
         for row_index,row in enumerate(state.rows):
             for region_index,region in enumerate(regions):
                 j = row_index*r+region_index
-                request = CueRequest((row.namespace,row.round,region),row.namespace,region,
-                                     requesters[region],q[j],q[j],row.round)
+                requester = requesters[region] if requester_nodes is None else requester_nodes[region_index]
+                identity = region if requester_nodes is None else requester
+                request = CueRequest((row.namespace,row.round,identity),row.namespace,region,
+                                     requester,q[j],q[j],row.round)
                 budget = WorkBudget(c)
                 found = self._candidates(row,request,codes[j],cells[j].tolist(),budget) if bool(active[row_index,region_index]) else []
                 # Transport validity masks descriptors as well as payloads.
@@ -195,8 +202,10 @@ class Hippocampus(nn.Module):
         code_bank = stack_feature(lambda x:x.code,codes.new_zeros(c.dg_cells))
         utility = stack_feature(lambda x:x.utility,q.new_zeros(()))
         valid = torch.tensor([[True]*len(items)+[False]*(count-len(items)) for items in records],device=q.device)
-        ages = q.new_tensor([[max(0,request.watermark-x.created) for x in items]+[0]*(count-len(items))
-                             for request,items in zip(requests,records)]).log1p()
+        ages = q.new_tensor([[max(0,int(event_times[j//r])-x.event_id[-1])
+                              if event_times is not None and x.event_id else max(0,request.watermark-x.created)
+                              for x in items]+[0]*(count-len(items))
+                             for j,(request,items) in enumerate(zip(requests,records))]).log1p()
         base = (key_bank*q[:,None]).sum(-1)*4 + (code_bank*codes[:,None]).sum(-1)/c.dg_active
         base = base + self.context_score(context_bank*q[:,None]).squeeze(-1)
         base = base + self.age_utility[0]*ages + self.age_utility[1]*utility
@@ -222,6 +231,8 @@ class Hippocampus(nn.Module):
         probs = torch.cat((scores,null),-1).softmax(-1)
         picks = torch.cat((scores,null),-1).topk(min(c.selected_bindings,count+1),-1).indices.tolist()
         read_capsules,read_cues,read_roles,read_weights,read_owners,contributors = [],[],[],[],[],[]
+        original_cues,stored_keys,selected_entries = [],[],[]
+        fetched,shared_fetch_hits = {},0
         for j,(items,indices,row,request,budget) in enumerate(zip(records,picks,worlds,requests,budgets)):
             entries=[]
             if c.read and c.control != 'blocked':
@@ -234,7 +245,13 @@ class Hippocampus(nn.Module):
                     for link in record.links:
                         if not budget.read(link.handle):
                             continue
-                        anchor = row.anchor(link.handle,request.watermark)
+                        identity = (j//r,link.handle)
+                        if slot_capture is not None and identity in fetched:
+                            anchor = fetched[identity]; shared_fetch_hits += 1
+                        else:
+                            anchor = row.anchor(link.handle,request.watermark)
+                            if slot_capture is not None and anchor is not None:
+                                fetched[identity] = anchor
                         allowed = available_owners is None or bool(available_owners.get(link.handle.node,active.new_zeros(b))[j//r])
                         if anchor is None or not allowed or link.handle.semantic_version != c.representation_version:
                             budget.stale += 1
@@ -246,18 +263,24 @@ class Hippocampus(nn.Module):
                 anchors = [e[0] for e in entries]
                 entries = [(anchors[(k+1)%len(entries)],e[1],e[2],e[3]) for k,e in enumerate(entries)]
             entries=entries[:c.readbacks]
+            selected_entries.append(entries)
             contributors.append(tuple((e[3],e[0].handle) for e in entries))
             for anchor,link,weight,binding in entries:
                 read_capsules.append(anchor.capsule)
                 read_cues.append(q[j]+link.cue)
+                original_cues.append(q[j]); stored_keys.append(link.cue)
                 read_roles.append(link.role)
                 read_weights.append(weight*link.strength)
                 read_owners.append(anchor.handle.node)
             for _ in range(c.readbacks-len(entries)):
                 read_capsules.append(q.new_zeros(self.width)); read_cues.append(z); read_roles.append(z)
                 read_weights.append(q.new_zeros(())); read_owners.append('')
+                original_cues.append(z); stored_keys.append(z)
         capsules = torch.stack(read_capsules)
         cues = torch.stack(read_cues)
+        if slot_capture is not None:
+            cues = torch.stack(original_cues)
+        stored_keys = torch.stack(stored_keys)
         values = capsules.new_zeros(capsules.shape)
         # Dispatch only selected owners; no scan of all regional payloads.
         for owner in dict.fromkeys(o for o in read_owners if o):
@@ -267,7 +290,8 @@ class Hippocampus(nn.Module):
                 rows = (indices//(r*c.readbacks))
                 local_context = contexts[owner].index_select(0,rows)
             values = values.index_copy(0,indices,nodes[owner].read_anchor(
-                capsules.index_select(0,indices),cues.index_select(0,indices),local_context))
+                capsules.index_select(0,indices),cues.index_select(0,indices),local_context,
+                **({'stored_key':stored_keys.index_select(0,indices)} if slot_capture is not None else {})))
         roles = torch.stack(read_roles)
         values = values*(1.+self.role_gate(roles).tanh())*torch.stack(read_weights)[:,None]
         values = values.reshape(-1,c.readbacks,self.width)
@@ -291,7 +315,8 @@ class Hippocampus(nn.Module):
                 indices = torch.tensor([i for i,o in enumerate(read_owners) if o == owner],device=q.device)
                 context = None if contexts is None else contexts[owner].index_select(0,indices//(r*c.readbacks))
                 refined = refined.index_copy(0,indices,nodes[owner].read_anchor(
-                    capsules.index_select(0,indices),refined_cues.index_select(0,indices),context))
+                    capsules.index_select(0,indices),refined_cues.index_select(0,indices),context,
+                    **({'stored_key':stored_keys.index_select(0,indices)} if slot_capture is not None else {})))
             refined = refined*(1.+self.role_gate(roles).tanh())*torch.stack(read_weights)[:,None]
             refined = refined.reshape_as(values)
             if c.control == 'pooled':
@@ -308,6 +333,9 @@ class Hippocampus(nn.Module):
                 values = values + comparison[:,2,None,None]*(refined-values)
         gain = torch.ones_like(accepted) if bounded and can_refine else accepted
         residual = self.compose(values.reshape(-1,c.readbacks*self.width))*gain[:,None]*has_return[:,None]
+        if slot_capture is not None:
+            slot_capture.update(entries=selected_entries,accepted=accepted,
+                                capsule_fetches=len(fetched),shared_fetch_hits=shared_fetch_hits)
         receipts=[[] for _ in state.rows]
         for j,parts in enumerate(contributors):
             if parts:
@@ -348,6 +376,9 @@ class Hippocampus(nn.Module):
         return replace(state,rows=tuple(rows))
 
     def offer(self,row,offer):
+        if self.event_links and offer.anchor.event_id:
+            from .memory_events import admit_event
+            return admit_event(self,row,offer)
         c=self.config
         if (offer.namespace != row.namespace or offer.provenance == 'reinstated'
                 or offer.ready_round != row.round+1):

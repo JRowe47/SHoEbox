@@ -50,6 +50,7 @@ class FabricState:
                 if kind=='CueRequest': payload=CueRequest(**payload)
                 elif kind=='BindingOffer':
                     anchor=dict(payload['anchor']); anchor['handle']=EngramHandle(**anchor['handle'])
+                    anchor['parents']=tuple(EngramHandle(**h) for h in anchor.get('parents',()))
                     payload=BindingOffer(**(dict(payload)|{'anchor':LocalAnchor(**anchor)}))
                 elif kind=='ReinstatementRequest':
                     payload=ReinstatementRequest(**(dict(payload)|{'binding':BindingHandle(**payload['binding']),

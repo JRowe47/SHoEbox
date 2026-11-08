@@ -59,6 +59,7 @@ class RegionLanguageModel(nn.Module):
                 torch.manual_seed(self.cfg.seed + 17389)
                 self.publisher = GraphPublicationPolicy(self.cfg)
         self.hippocampus = None
+        self.memory_interface = None
         if self.cfg.hippocampus.enabled:
             from .hippocampus import Hippocampus
             with torch.random.fork_rng(devices=[]):
@@ -75,6 +76,12 @@ class RegionLanguageModel(nn.Module):
                             ancestry[name].update(ancestry[edge.source])
             self.memory_views = {region: tuple(sorted(set().union(*(ancestry[n] for n in owners))))
                                  for region, owners in self.cfg.regions.items()}
+
+        if self.cfg.memory_context.enabled:
+            from .memory_context import MemoryContextInterface
+            with torch.random.fork_rng(devices=[]):
+                torch.manual_seed(self.cfg.seed+88031)
+                self.memory_interface = MemoryContextInterface(self.cfg)
 
     def initial_state(self, batch, device=None):
         if batch < 1:
@@ -100,7 +107,9 @@ class RegionLanguageModel(nn.Module):
                           publication_demand={name: torch.zeros(batch, 2, device=device, dtype=dtype)
                                               for name in c.task_publication},
                           hippocampus=self.hippocampus.initial_state(batch, device, dtype)
-                              if self.hippocampus is not None else None)
+                              if self.hippocampus is not None else None,
+                          memory_context={name:self.memory_interface.empty(batch,device,dtype) for name in self.nodes}
+                              if self.memory_interface is not None else {})
 
     def ingress_hat(self, view):
         owner = self.view_owners.get(view)
@@ -277,15 +286,19 @@ class RegionLanguageModel(nn.Module):
                         memory = state.hippocampus
                     owner_active = {n: node_masks[n][:, event_index] if n in node_masks else all_active
                                     for n in self.nodes}
-                    query_active = torch.stack([owner_active[self.memory_requesters[r]]
-                                                for r in self.hippocampus.regions], 1)
-                    residuals, memory_receipts, work = self.hippocampus.query(
-                        memory, memory_keys, self.nodes, self.memory_requesters, query_active,
-                        {n: p.payload*p.valid[:, None] for n,p in state.ports.latest.items() if n in self.nodes},
-                        owner_active)
-                    memory_residuals = {self.memory_requesters[r]: residuals[:, i]
-                                        for i,r in enumerate(self.hippocampus.regions)}
                     state = replace(state, hippocampus=memory)
+                    if self.memory_interface is not None:
+                        state, memory_receipts, work = self.memory_interface.begin_round(
+                            self,state,torch.stack(source_values,1),owner_active)
+                    else:
+                        query_active = torch.stack([owner_active[self.memory_requesters[r]]
+                                                    for r in self.hippocampus.regions], 1)
+                        residuals, memory_receipts, work = self.hippocampus.query(
+                            memory, memory_keys, self.nodes, self.memory_requesters, query_active,
+                            {n: p.payload*p.valid[:, None] for n,p in state.ports.latest.items() if n in self.nodes},
+                            owner_active)
+                        memory_residuals = {self.memory_requesters[r]: residuals[:, i]
+                                            for i,r in enumerate(self.hippocampus.regions)}
                     memory_work.extend(work)
                     memory_latents, memory_active = {}, {}
                 delayed = state.ports.snapshot() if feedback else None
@@ -332,6 +345,10 @@ class RegionLanguageModel(nn.Module):
                             for dependency in dependencies:
                                 if dependency.edge in edge_indices:
                                     usage[:, event_index, edge_indices[dependency.edge]] += dependency.consumed.long()
+                        if self.memory_interface is not None:
+                            context_slots = self.memory_interface.gather(name,state,current,delayed,active,
+                                event_index,edge_masks,substitutions)
+                            state = replace(state,memory_context={**state.memory_context,name:context_slots})
                         requests[name] = (payload, context, state.nodes[name], active, dependencies)
                     prepared = prepare_stage(self, requests)
                     for name, (payload, context, node_state, active, dependencies) in requests.items():
@@ -351,9 +368,14 @@ class RegionLanguageModel(nn.Module):
                             valid = state.events_seen.eq(collector.event) & active
                             if bool(valid.any()):
                                 capture = (collector, (name, k), valid)
+                        memory_options = {}
+                        if self.memory_interface is not None:
+                            memory_options = dict(memory_context=self.memory_interface.interpret(
+                                state.memory_context[name],state,self,active),
+                                memory_interface=self.memory_interface,event=state.events_seen)
                         result = self.nodes[name](payload, context, node_state, active, trace,
                             lace_bias.get(name), prepared.get(name), reinstatement=memory,
-                            cue=cue, lace_capture=capture)
+                            cue=cue, lace_capture=capture, **memory_options)
                         if self.hippocampus is not None:
                             memory_latents[name] = result['latent']
                             memory_active[name] = active
@@ -409,8 +431,13 @@ class RegionLanguageModel(nn.Module):
                     state = replace(state, nodes=node_states, ports=state.ports.commit(staged),
                                     recall_feedback=recall_feedback)
                 if self.hippocampus is not None:
-                    offers = self.hippocampus.make_offers(state.hippocampus, memory_keys, memory_latents,
-                        self.nodes, memory_active, {n:state.ports.latest[n].version for n in self.nodes}, grounded)
+                    if self.memory_interface is not None and self.cfg.memory_context.event_links:
+                        from .memory_events import event_offers
+                        offers = event_offers(self,state,memory_keys,torch.stack(source_values,1),
+                                              memory_latents,memory_active,grounded)
+                    else:
+                        offers = self.hippocampus.make_offers(state.hippocampus, memory_keys, memory_latents,
+                            self.nodes, memory_active, {n:state.ports.latest[n].version for n in self.nodes}, grounded)
                     state = replace(state, hippocampus=self.hippocampus.commit(state.hippocampus, offers, memory_receipts))
                 next_demand = finish_demand(demands, state.publication_demand)
                 for owner, demand in memory_demands.items():
@@ -439,6 +466,8 @@ class RegionLanguageModel(nn.Module):
                 activity['valid'].append(publication.valid)
             values = [state.ports.latest[n].payload*state.ports.latest[n].valid[:, None] for n in self.cfg.readout]
             latent = self.readout_norm(self.readout_mix(torch.cat(values, -1)))
+            if self.memory_interface is not None:
+                latent = self.memory_interface.compose(latent,state,self)
             logits.append(self.readout(latent))
             state = replace(state, events_seen=state.events_seen+1)
         logits = torch.stack(logits, 1)

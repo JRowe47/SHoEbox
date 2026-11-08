@@ -68,7 +68,8 @@ class GraphPublicationPolicy(nn.Module):
             header=replace(publication.header, memberships=publication.header.memberships +
                 tangent[:, :, None] * (result['header'].memberships - previous.header.memberships)))
         node_state = result['state']
-        if cfg.publication_state_commit == 'publication':
+        if cfg.publication_state_commit == 'publication' and not (
+                cfg.memory_context.enabled and cfg.memory_context.decouple_working_state):
             node_state = commit_producer_state(result['previous_state'], node_state,
                                                writing, probability, eligible)
         activity = dict(write_probs=probability, write_actions=writing.to(candidate.dtype),

@@ -10,6 +10,7 @@ class NodeState:
     contextualizer: tuple[torch.Tensor, ...]
     blocks: tuple[torch.Tensor, ...]
     clock: torch.Tensor
+    working: torch.Tensor | None = None
 
     def reset(self, rows):
         return map_tensors(self, lambda x: choose_rows(rows, torch.zeros_like(x), x))
@@ -27,6 +28,7 @@ class GraphState:
     recall_feedback: dict[str, torch.Tensor] = field(default_factory=dict)
     publication_demand: dict[str, torch.Tensor] = field(default_factory=dict)
     hippocampus: object | None = None
+    memory_context: dict = field(default_factory=dict)
 
     def detach(self):
         result = map_tensors(self, lambda x: x.detach())
@@ -51,7 +53,8 @@ class GraphState:
                                         for k, v in self.recall_feedback.items()},
                        publication_demand={k: choose_rows(rows, torch.zeros_like(v), v)
                                            for k, v in self.publication_demand.items()},
-                       hippocampus=None if self.hippocampus is None else self.hippocampus.reset(rows))
+                       hippocampus=None if self.hippocampus is None else self.hippocampus.reset(rows),
+                       memory_context={k:v.reset(rows) for k,v in self.memory_context.items()})
 
     def memory_tensor(self, owners):
         return torch.stack([torch.cat((self.ports.latest[n].payload,
@@ -88,11 +91,13 @@ class GraphState:
     @classmethod
     def from_dict(cls, data):
         from .hippocampus_interface import HippocampusState
+        from .memory_context import MemoryContext
         return cls(ingress={k: HATState(**h) for k, h in data['ingress'].items()},
-                   nodes={k: NodeState(tuple(n['contextualizer']), tuple(n['blocks']), n['clock'])
+                   nodes={k: NodeState(tuple(n['contextualizer']), tuple(n['blocks']), n['clock'], n.get('working'))
                           for k, n in data['nodes'].items()},
                    ports=TensorPorts({k: Publication.from_dict(p) for k, p in data['ports']['latest'].items()}),
                    events_seen=data['events_seen'], rounds_seen=data['rounds_seen'], epochs=data['epochs'],
                    input_mode=data['input_mode'], recall_feedback=data.get('recall_feedback', {}),
                    publication_demand=data.get('publication_demand', {}),
-                   hippocampus=HippocampusState.from_dict(data['hippocampus']) if data.get('hippocampus') is not None else None)
+                   hippocampus=HippocampusState.from_dict(data['hippocampus']) if data.get('hippocampus') is not None else None,
+                   memory_context={k:MemoryContext(**v) for k,v in data.get('memory_context',{}).items()})

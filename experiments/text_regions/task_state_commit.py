@@ -30,4 +30,5 @@ def commit_producer_state(previous, candidate, actions, probabilities=None, elig
 
     return NodeState(tuple(commit(a, b) for a, b in zip(previous.contextualizer, candidate.contextualizer)),
                      tuple(commit(a, b) for a, b in zip(previous.blocks, candidate.blocks)),
-                     candidate.clock)
+                     candidate.clock, commit(previous.working,candidate.working)
+                     if previous.working is not None and candidate.working is not None else candidate.working)

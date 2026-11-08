@@ -78,6 +78,14 @@ P and Q feed the shared byte readout. B has one state owner and publishes to bot
 
 ## Development status
 
+The [first-class memory interface](docs/memory_context.md) preserves distinct,
+versioned evidence slots for sparse blocks and the final composer. Every node
+forms its own request; cached capsules retain a direct content path; working
+state advances independently of held publications. Event-level source/abstract
+links, versioned revision and bounded demand-driven retrieval are included.
+The new continuation uses ordinary task and language losses. See the
+[implementation report](docs/memory_context_report.md) for acceptance results.
+
 The [query-conditioned lace-separation pilot](docs/lace_separation.md) adds a
 small rank-four bias to existing recurrent-node routing, plus optional local
 credit for useful unique laces and contentious shared laces. All four matched

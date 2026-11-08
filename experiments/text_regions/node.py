@@ -77,18 +77,32 @@ class RecurrentNode(nn.Module):
                 self.anchor_encoder = nn.Linear(cfg.width, cfg.width)
                 self.anchor_query = nn.Linear(cfg.hippocampus.address_width, cfg.width)
                 self.anchor_reader = nn.Linear(4*cfg.width, cfg.width)
+                if cfg.memory_context.enabled:
+                    self.anchor_content = nn.Linear(cfg.width,cfg.width,bias=False)
+                    self.anchor_key = nn.Linear(cfg.hippocampus.address_width,cfg.width)
+                    self.anchor_adjustment = nn.Linear(5*cfg.width,cfg.width)
+                    nn.init.eye_(self.anchor_content.weight)
+                    nn.init.normal_(self.anchor_adjustment.weight,std=.01)
+                    nn.init.zeros_(self.anchor_adjustment.bias)
 
         if cfg.lace_separation.installed:
             self.lace_head = LaceBiasHead(2*cfg.width, 3, cfg.laces, cfg.lace_separation,
                                           seed=cfg.seed+49031+index)
 
     def encode_anchor(self, latent):
+        if self.cfg.memory_context.enabled:
+            return latent + .1*self.anchor_encoder(latent).tanh()
         return self.anchor_encoder(latent).tanh()
 
-    def read_anchor(self, capsule, cue, context=None):
+    def read_anchor(self, capsule, cue, context=None, stored_key=None):
         """Owner-local conditional computation, without advancing native clocks."""
         query = self.anchor_query(cue).tanh()
         context = torch.zeros_like(capsule) if context is None else context
+        if self.cfg.memory_context.enabled:
+            stored_key = torch.zeros_like(cue) if stored_key is None else stored_key
+            key = self.anchor_key(stored_key).tanh()
+            adjustment = self.anchor_adjustment(torch.cat((capsule,query,key,capsule*query,context),-1)).tanh()
+            return self.anchor_content(capsule)+adjustment
         return self.anchor_reader(torch.cat((capsule, query, capsule*query, context), -1)).tanh()
 
     def publication_logit(self, latent):
@@ -98,10 +112,11 @@ class RecurrentNode(nn.Module):
     def initial_state(self, batch, device, dtype):
         return NodeState(tuple(level.memory.initial_state(batch, device, dtype) for level in self.adapter.levels),
                          tuple(block.memory.initial_state(batch, device, dtype) for block in self.core.blocks),
-                         torch.zeros(batch, dtype=torch.long, device=device))
+                         torch.zeros(batch, dtype=torch.long, device=device),
+                         torch.zeros(batch,self.cfg.width,device=device,dtype=dtype) if self.cfg.memory_context.enabled else None)
 
     def forward(self, payload, routing_context, state, active, trace=False, lace_bias=None, prepared=None,
-                reinstatement=None, cue=None, lace_capture=None):
+                reinstatement=None, cue=None, lace_capture=None, memory_context=None, memory_interface=None, event=None):
         cfg = self.cfg
         b, d = payload.shape
         rows = active.nonzero().flatten()
@@ -131,6 +146,17 @@ class RecurrentNode(nn.Module):
             recall = reinstatement if full else reinstatement.index_select(0, rows)
             x = x + recall[:, None]
             evidence = torch.stack([block.router.pilot(x) for block in self.core.blocks], -2)
+        memory_input = None
+        if memory_context is not None:
+            selected_context = memory_context if full else memory_context.select_rows(rows)
+            selected_event = event if full else event.index_select(0,rows)
+            def access(layer, values):
+                return values + memory_interface.block_gain[layer]*memory_interface.reader(
+                    values[:,0],selected_context,selected_event)[:,None]
+            if 0 in cfg.memory_context.block_depths:
+                x = access(0,x)
+            evidence = torch.stack([block.router.pilot(x) for block in self.core.blocks], -2)
+            memory_input = lambda layer, values: access(layer,values) if layer and layer in cfg.memory_context.block_depths else values
         query_bias = cache = None
         if cfg.lace_separation.enabled:
             if cue is None:
@@ -142,12 +168,15 @@ class RecurrentNode(nn.Module):
         if lace_capture is not None:
             collector, key, valid = lace_capture
             collector.record(key, getattr(self, 'lace_head', None), rows, valid[rows], lace, cache)
-        execute = self.core.execute_node if enabled() else self.core.execute
+        execute = self.core.execute_node if enabled() or memory_input is not None else self.core.execute
+        extra = {'memory_input':memory_input} if memory_input is not None else {}
         result = execute(x, prior, state.blocks if full else tuple(s[rows] for s in state.blocks), backend='step',
-                                   trace=trace, decode=False)
+                                   trace=trace, decode=False, **extra)
         final = NodeState(adapter_state if full else tuple(old.index_copy(0, rows, new) for old, new in zip(state.contextualizer, adapter_state)),
                           result['state'] if full else tuple(old.index_copy(0, rows, new) for old, new in zip(state.blocks, result['state'])),
-                          state.clock + active.long())
+                          state.clock + active.long(),
+                          (result['latent'][:,0] if full else (state.working if state.working is not None else latent).index_copy(
+                              0,rows,result['latent'][:,0])) if cfg.memory_context.enabled else None)
         header = SemanticHeader(self.name,
             result['semantic'][:, 0] if full else memberships.index_copy(0, rows, result['semantic'][:, 0]),
             result['group_ids'][:, 0] if full else groups.index_copy(0, rows, result['group_ids'][:, 0]),

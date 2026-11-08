@@ -1,5 +1,30 @@
 # SHoEbox handoff
 
+## Latest: first-class memory interface
+
+The architecture-review refactor is implemented. `MemoryContextConfig` adds a
+reserved query and up to eight distinct, versioned slots per consumer. All
+nodes can request evidence. The common slot reader reaches routing/experts and
+the final composer, and owner reads preserve direct content. Working-state
+updates are independent of durable publication admission. Source/abstract
+anchors share regional event bindings, repeated rounds revise existing pages,
+and fetches are cached under a bounded fair request budget.
+
+Use `scripts/run_memory_context.py` for an ordinary-loss continuation and
+`scripts/evaluate_memory_context.py` for its compact acceptance bank. Extra
+lace credit remains excluded from this phase. Exact resume retains source and
+protocol guards; a new continuation uses a new output directory.
+
+All 94 checks pass, exact optimizer/state resume passes, and 227 guarded files
+match the training source. The fixed four-update continuation finishes at
+`artifacts/memory_context/pilot/last.pt` (next document 667). Compact paired
+accuracy remains 0/12 at +0/+32/+64; single/correction retention is 4/4 and 15/16
+at +64. Paired NLL falls to 1.2978 at +64, and language NLL to 3.3627. No model is
+promoted; keep `artifacts/memory_context/parent.pt` as the retained working model.
+
+[Implementation and commands](docs/memory_context.md) |
+[Measured report](docs/memory_context_report.md).
+
 ## Latest: lace-separation pilot complete
 
 The default-off rank-four query head, helpful-unique credit and selective
