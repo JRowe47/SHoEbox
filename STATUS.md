@@ -1,6 +1,30 @@
 # SHoEbox handoff
 
-## Current: predictive six-region hierarchy implemented and first gate complete
+## Current: regional cycle tested; joint AdamW remains preferred
+
+Implemented optional 32-update upper / 32-update lower / 64-update joint training
+with regional AdamW groups, per-objective readiness, half-rate fast groups during
+joint phases, and occasional half-strength local decoder slots. Frozen parameters
+keep their moments and skip weight decay; state and input derivatives stay live.
+
+Two arms continue the same 256-update checkpoint for another **256 updates /
+262,144 byte targets each** (512 lifetime updates / 524,288 exposures). On the
+same 65,536 held-out targets, joint scores **2.392272**, cycle
+**2.448039** nats/byte; cycle minus joint is **+0.055767**.
+Combined decoder/feedback swapping adds **0.001448**
+for joint and **0.005682** for cycle. The initial
+checkpoint's combined swap delta was 0.001180. Joint AdamW remains the default;
+the alternate regimen is available through `--training-mode cycle`.
+
+**59 checks pass**, plus exact six-update CLI pause/resume and exact full endpoint
+score reproduction for both checkpoints. The data repeats 194,560 unique training
+targets. Full results, protocol and interpretation are in
+[the report](docs/regional_training_report.md),
+[commands](docs/regional_training.md), and
+[machine-readable comparison](docs/regional_training_results.json).
+Endpoints: `artifacts/joint_cont256/last.pt` and `artifacts/cycle_cont256/last.pt`.
+
+## Previous: predictive six-region hierarchy implemented and first gate complete
 
 `HierarchyModel` is the active learning pilot: continuous 64-dimensional messages,
 A1/B1 at byte cadence, L2/S2 at four bytes, L3 at 16, and small ordinary Y with

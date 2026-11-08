@@ -22,6 +22,10 @@ state = result['state'].detach()  # only at the optimization boundary
 
 See [pilot architecture, training and evaluation](docs/predictive_hierarchy.md)
 for corpus preparation, B8/T128 training, exact resume and the local comparison.
+The optional [regional training cycle](docs/regional_training.md) alternates
+upper development, lower alignment and joint learning, preserving recurrent
+execution and gradients through frozen regions. Joint AdamW remains the default. See the
+[matched continuation results](docs/regional_training_report.md).
 The native CPU backend reuses the AVX512 MinKron and sparse expert kernels;
 `set_execution_backend('optimized')` selects portable PyTorch.
 

@@ -4,7 +4,7 @@ At position t, values[:, t] is observed and logits[:, t] predicts its successor.
 Targets never enter state. Sampling feeds the actually sampled byte back through
 this same API. There is no previous-argmax input or obligatory second round.
 """
-from dataclasses import dataclass, fields, is_dataclass
+from dataclasses import dataclass, fields, is_dataclass, replace
 import math
 import torch
 from torch import nn
@@ -95,10 +95,14 @@ class JointDecoder(nn.Module):
         self.head = nn.Linear(w, 256, bias=False)
         nn.init.normal_(self.head.weight, std=.02)
 
-    def combine(self, observed, latest, event, permutation=None):
+    def combine(self, observed, latest, event, permutation=None, local_scale=1.):
         zero = torch.zeros_like(observed)
         local = self.local(torch.cat((observed, latest['A1'].value,
                                       latest['B1'].value if 'B1' in latest else zero), -1))
+        if local_scale != 1.:
+            # Weaken only the decoder shortcut, including its final residual.
+            # The evidence entering A1/B1 and every upper region stays intact.
+            local = local*local_scale
         def value(name):
             frame = latest.get(name)
             v = zero if frame is None else frame.value
@@ -167,7 +171,8 @@ class HierarchyModel(nn.Module):
 
     @forward_scope
     def forward(self, values, targets=None, state=None, *, future_targets=None,
-                trace=False, context_permutation=None):
+                trace=False, context_permutation=None, feedback_permutation=None,
+                decoder_local_scale=1.):
         if (values.ndim != 2 or min(values.shape) < 1 or values.dtype not in (torch.uint8, torch.int32, torch.int64)
                 or bool(((values < 0) | (values > 255)).any())):
             raise ValueError('Expected nonempty integer observations [B,T] in [0,255].')
@@ -184,10 +189,15 @@ class HierarchyModel(nn.Module):
         if future_targets is not None and (targets is None or future_targets.shape[1] < length or
                                           not torch.equal(future_targets[:, :length], targets)):
             raise ValueError('Future target prefix must equal next-byte targets.')
-        if context_permutation is not None and (context_permutation.dtype != torch.long or
-                context_permutation.device != values.device or context_permutation.shape != (batch,) or
-                not torch.equal(context_permutation.sort().values, torch.arange(batch, device=values.device))):
-            raise ValueError('Context intervention must be a permutation of batch rows.')
+        for permutation in (context_permutation, feedback_permutation):
+            if permutation is not None and (permutation.dtype != torch.long or
+                    permutation.device != values.device or permutation.shape != (batch,) or
+                    not torch.equal(permutation.sort().values, torch.arange(batch, device=values.device))):
+                raise ValueError('Context intervention must be a permutation of batch rows.')
+        if not math.isfinite(decoder_local_scale) or not 0 <= decoder_local_scale <= 1:
+            raise ValueError('Decoder local scale must be in [0,1].')
+        if self.cfg.local_only and decoder_local_scale != 1.:
+            raise ValueError('Local attenuation requires the full hierarchy.')
         state = state or self.initial_state(batch)
         if state.batch != batch or state.signature != self.cfg.to_dict():
             raise ValueError('State/configuration/batch mismatch.')
@@ -203,6 +213,8 @@ class HierarchyModel(nn.Module):
         observed = self.embedding(values.long())
 
         def run(name, frames, event, context=None):
+            if context is not None and feedback_permutation is not None:
+                context = replace(context, value=context.value[feedback_permutation])
             out = self.regions[name](frames, nodes[name], event, context=context,
                                      fused=self.execution_backend == 'cpu')
             nodes[name] = out['state']
@@ -248,7 +260,8 @@ class HierarchyModel(nn.Module):
                 if targets is not None:
                     spans['high'][0].append(high.value)
                     spans['high'][1].append(t)
-            local, joint = self.decoder.combine(observed[:, t], latest, event, context_permutation)
+            local, joint = self.decoder.combine(observed[:, t], latest, event, context_permutation,
+                                                decoder_local_scale)
             # Y remains an ordinary small HAT-SHoE. Its one new occurrence is
             # the nonlinear conjunction of separate local/mid/high slots.
             y_frame = LatentFrame('joint', self.decoder.message(joint), event, event, event)

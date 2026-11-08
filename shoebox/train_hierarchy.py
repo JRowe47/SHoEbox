@@ -18,6 +18,7 @@ from .hierarchy_config import HierarchyConfig
 from .checkpoint import save, load, HIERARCHY_FORMAT
 from .train_fineweb import atomic_json, optimizer_for, source_digest
 from .fused_kron import native_status
+from .hierarchy_training import CycleConfig, RegionalCycle, regional_optimizer, gradient_norms
 
 
 def load_data(folder):
@@ -47,10 +48,13 @@ def load_data(folder):
 
 
 @torch.no_grad()
-def evaluate(model, docs, *, context=128, batch=32, intervention=None, limit=None):
+def evaluate(model, docs, *, context=128, batch=32, intervention=None, limit=None, span_metrics=False):
+    if intervention not in (None, 'input', 'upper', 'feedback', 'upper_all'):
+        raise ValueError('Unknown hierarchy intervention.')
     training = model.training
     model.eval()
     nll, correct, count, rows = 0., 0, 0, 0
+    span_sums, span_counts = dict(mid=0., high=0.), dict(mid=0, high=0)
     start = time.perf_counter()
     try:
         for offset in range(0, len(docs), batch):
@@ -77,13 +81,21 @@ def evaluate(model, docs, *, context=128, batch=32, intervention=None, limit=Non
                 scored = int((y != -100).sum())
                 if not scored:
                     continue
+                future = (targets[:, cursor:cursor+x.shape[1]+15] if limit is None else y)
                 out = model(x if intervention != 'input' else x[permutation], state=state,
-                            context_permutation=permutation if intervention == 'upper' else None)
+                            targets=y if span_metrics else None,
+                            future_targets=future if span_metrics else None,
+                            context_permutation=permutation if intervention in ('upper', 'upper_all') else None,
+                            feedback_permutation=permutation if intervention in ('feedback', 'upper_all') else None)
                 state = out['state']
                 nll += float(F.cross_entropy(out['logits'].flatten(0, 1), y.flatten(), reduction='sum'))
                 correct += int(((out['logits'].argmax(-1) == y) & (y != -100)).sum())
                 count += scored
                 rows += sum(out['work']['region_rows'].values())
+                if span_metrics:
+                    for scale in span_sums:
+                        span_counts[scale] += out['span_targets'][scale]
+                        span_sums[scale] += float(out['span_losses'][scale])*out['span_targets'][scale]
             if limit is not None and count >= limit:
                 break
     finally:
@@ -91,7 +103,8 @@ def evaluate(model, docs, *, context=128, batch=32, intervention=None, limit=Non
     seconds = time.perf_counter()-start
     return dict(nll=nll/count, accuracy=correct/count, targets=count, seconds=seconds,
                 scored_bytes_per_second=count/seconds, region_rows_including_padding=rows,
-                intervention=intervention)
+                intervention=intervention,
+                span_nll={k: span_sums[k]/n for k, n in span_counts.items() if n}, span_targets=span_counts)
 
 
 def count_baselines(counts, docs):
@@ -151,19 +164,21 @@ def sample(model, prompt='The ', count=64, seed=731, temperature=.8):
         model.train(training)
 
 
-def train_update(model, optimizer, x, y, state, future_targets):
+def train_update(model, optimizer, x, y, state, future_targets, *, decoder_local_scale=1., diagnostics=False):
     optimizer.zero_grad(set_to_none=True)
     start = time.perf_counter()
-    out = model(x, y, state, future_targets=future_targets)
+    out = model(x, y, state, future_targets=future_targets, decoder_local_scale=decoder_local_scale)
     forward = time.perf_counter()-start
     start = time.perf_counter(); out['loss'].backward(); backward = time.perf_counter()-start
     start = time.perf_counter()
+    regional_norms = gradient_norms(model) if diagnostics else {}
     norm = torch.nn.utils.clip_grad_norm_(model.parameters(), 1., error_if_nonfinite=True, foreach=True)
     optimizer.step(); update = time.perf_counter()-start
     seconds = forward+backward+update
     return out['state'].detach(), dict(nll=float(out['ce'].detach()),
             mid_nll=float(out['span_losses']['mid'].detach()), high_nll=float(out['span_losses']['high'].detach()),
             span_targets=out['span_targets'], gradient_norm=float(norm),
+            regional_gradient_norms=regional_norms,
             forward_seconds=forward, backward_seconds=backward, optimizer_seconds=update,
             training_seconds=seconds, training_bytes_per_second=x.numel()/seconds,
             region_executions_per_byte=sum(out['work']['region_rows'].values())/x.numel())
@@ -182,7 +197,18 @@ def main():
     p.add_argument('--checkpoint-every', type=int, default=32)
     p.add_argument('--log-every', type=int, default=16)
     p.add_argument('--local-only', action='store_true')
-    p.add_argument('--resume', type=Path)
+    origin = p.add_mutually_exclusive_group()
+    origin.add_argument('--resume', type=Path)
+    origin.add_argument('--initialize-from', type=Path, help='Fork a checkpoint with state, Adam moments and data cursor; --updates is the new budget.')
+    p.add_argument('--training-mode', choices=('joint', 'cycle'), default='joint')
+    p.add_argument('--cycle-warmup', type=int, default=64)
+    p.add_argument('--upper-updates', type=int, default=32)
+    p.add_argument('--lower-updates', type=int, default=32)
+    p.add_argument('--joint-updates', type=int, default=64)
+    p.add_argument('--fast-lr-scale', type=float, default=.5)
+    p.add_argument('--minimum-span-improvement', type=float, default=.02)
+    p.add_argument('--attenuation-every', type=int, default=4, help='Every N upper-phase chunks; 0 disables.')
+    p.add_argument('--decoder-local-scale', type=float, default=.5)
     p.add_argument('--max-updates', type=int, help='Pause after this many additional updates, retaining the full protocol.')
     p.add_argument('--continuity', type=Path, help='Optional old 4k raw validation slice; separate continuity metric.')
     args = p.parse_args()
@@ -192,6 +218,15 @@ def main():
         p.error('--max-updates must be positive.')
     if args.out.exists() and not args.resume:
         p.error('Choose a new output directory.')
+    try:
+        cycle_config = CycleConfig(args.training_mode, args.cycle_warmup, args.upper_updates,
+                args.lower_updates, args.joint_updates, args.fast_lr_scale,
+                args.minimum_span_improvement, args.attenuation_every, args.decoder_local_scale)
+    except ValueError as exc:
+        p.error(str(exc))
+    if args.local_only and args.training_mode == 'cycle':
+        p.error('Regional cycles require the full hierarchy.')
+    cycle = RegionalCycle(cycle_config)
     torch.set_num_threads(args.threads); torch.set_num_interop_threads(1)
     train, validation, manifest = load_data(args.data)
     continuity_sha = None
@@ -212,22 +247,48 @@ def main():
                     batch=train.shape[0], context=args.context, updates=args.updates, lr=args.lr,
                     warmup_updates=args.warmup_updates, local_only=args.local_only, threads=args.threads)
     protocol['continuity_sha256'] = continuity_sha
+    protocol['regional_cycle'] = cycle_config.to_dict()
+    protocol['initial_checkpoint_sha256'] = (hashlib.sha256(args.initialize_from.read_bytes()).hexdigest()
+                                            if args.initialize_from else None)
     step, cursor, epoch, elapsed = 0, 0, 0, 0.
+    initial_updates = 0
     history, evaluations, state = [], [], None
     counts = torch.zeros(256, 256, dtype=torch.float64)
     if args.resume:
         model, state, _, checkpoint = load(args.resume)
+        protocol['initial_checkpoint_sha256'] = checkpoint['metadata']['protocol'].get('initial_checkpoint_sha256')
         if checkpoint['format'] != HIERARCHY_FORMAT or checkpoint['metadata']['protocol'] != protocol:
             raise ValueError('Resume requires the same model, corpus, source and training protocol.')
-        optimizer = optimizer_for(model, args.lr, .01); optimizer.load_state_dict(checkpoint['optimizer'])
+        optimizer = regional_optimizer(model, args.lr); optimizer.load_state_dict(checkpoint['optimizer'])
         old = checkpoint['metadata']
         step, cursor, epoch, elapsed = checkpoint['step'], old['cursor'], old['epoch'], old['elapsed']
         history, evaluations, counts = old['history'], old['evaluations'], old['counts']
+        cycle.load_state_dict(old['cycle'])
+        initial_updates = old['initial_updates']
+    elif args.initialize_from:
+        model, state, _, checkpoint = load(args.initialize_from)
+        old = checkpoint['metadata']
+        if checkpoint['format'] != HIERARCHY_FORMAT or model.cfg != HierarchyConfig(local_only=args.local_only):
+            raise ValueError('Initialization requires the same hierarchy configuration.')
+        for key in ('train_sha256', 'validation_sha256', 'batch', 'context', 'lr', 'local_only'):
+            if old['protocol'][key] != protocol[key]:
+                raise ValueError(f'Initialization would change {key}; use a matched corpus/protocol.')
+        optimizer = regional_optimizer(model, args.lr,
+                legacy_state=checkpoint['optimizer'] if 'regional_cycle' not in old['protocol'] else None)
+        if 'regional_cycle' in old['protocol']:
+            optimizer.load_state_dict(checkpoint['optimizer'])
+        cursor, epoch, counts = old['cursor'], old['epoch'], old['counts']
+        initial_updates = old.get('initial_updates', 0)+checkpoint['step']
+        if 'cycle' in old:
+            cycle.load_state_dict(old['cycle'])
+        else:
+            for row in old['history']:
+                cycle.observe(row)
     else:
         cfg = HierarchyConfig(local_only=args.local_only)
         torch.manual_seed(cfg.seed)
         model = HierarchyModel(cfg)
-        optimizer = optimizer_for(model, args.lr, .01)
+        optimizer = regional_optimizer(model, args.lr)
     model.set_execution_backend('cpu')
     kernel = native_status()
     if not kernel['available']:
@@ -241,6 +302,9 @@ def main():
     def summary(complete=False):
         return dict(format=HIERARCHY_FORMAT, complete=complete, protocol=protocol,
                     parameters=model.parameter_cost(), updates=step, trained_targets=step*train.shape[0]*args.context,
+                    initial_updates=initial_updates, lifetime_updates=initial_updates+step,
+                    lifetime_targets=(initial_updates+step)*train.shape[0]*args.context,
+                    cycle=cycle.state_dict(),
                     unique_corpus_targets=manifest['train_targets'], epoch=epoch, history=history, evaluation=evaluations,
                     training_seconds=elapsed, training_bytes_per_second=step*train.shape[0]*args.context/elapsed if elapsed else 0,
                     wall_seconds_this_session=time.perf_counter()-started,
@@ -250,11 +314,12 @@ def main():
     def snapshot(complete=False):
         save(args.out/'last.pt', model, state, optimizer, step=step,
              metadata=dict(protocol=protocol, cursor=cursor, epoch=epoch, elapsed=elapsed,
-                           history=history, evaluations=evaluations, counts=counts))
+                           history=history, evaluations=evaluations, counts=counts,
+                           initial_updates=initial_updates, cycle=cycle.state_dict()))
         atomic_json(args.out/'results.json', summary(complete))
 
     def validate(full=False):
-        score = evaluate(model, validation, context=args.context, limit=None if full else 8192)
+        score = evaluate(model, validation, context=args.context, limit=None if full else 8192, span_metrics=True)
         row = dict(updates=step, full=full, **score)
         if full:
             row['baselines'] = count_baselines(counts, validation)
@@ -271,12 +336,14 @@ def main():
         x = train[:, cursor:cursor+args.context]
         y = train[:, cursor+1:cursor+args.context+1]
         future = train[:, cursor+1:cursor+args.context+16]
-        for group in optimizer.param_groups:
-            group['lr'] = args.lr*min(1., (step+1)/max(1, args.warmup_updates))
-        state, row = train_update(model, optimizer, x, y, state, future)
+        rate = args.lr*min(1., (initial_updates+step+1)/max(1, args.warmup_updates))
+        plan = cycle.apply(model, optimizer, step, rate)
+        state, row = train_update(model, optimizer, x, y, state, future,
+                                 decoder_local_scale=plan['local_scale'], diagnostics=True)
+        cycle.observe(row)
         counts += torch.bincount((x*256+y).flatten(), minlength=65536).reshape(256, 256)
         cursor += args.context; step += 1; elapsed += row['training_seconds']
-        row.update(updates=step, trained_targets=step*x.numel(), epoch=epoch, lr=optimizer.param_groups[0]['lr'])
+        row.update(updates=step, trained_targets=step*x.numel(), epoch=epoch, lr=rate, **plan)
         history.append(row)
         with (args.out/'history.jsonl').open('a') as stream:
             stream.write(json.dumps(row)+'\n')
@@ -308,6 +375,8 @@ def main():
     if not model.cfg.local_only:
         final['upper_swap'] = evaluate(model, validation, context=args.context, intervention='upper')
         final['upper_swap_delta_nll'] = final['upper_swap']['nll']-evaluations[-1]['nll']
+        final['upper_all_swap'] = evaluate(model, validation, context=args.context, intervention='upper_all')
+        final['upper_all_swap_delta_nll'] = final['upper_all_swap']['nll']-evaluations[-1]['nll']
     if args.continuity:
         raw = torch.frombuffer(bytearray(args.continuity.read_bytes()), dtype=torch.uint8).long()
         if raw.numel() < 4050:
