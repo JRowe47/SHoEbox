@@ -29,7 +29,8 @@ class Hippocampus(nn.Module):
     def __init__(self, cfg):
         super().__init__()
         self.cfg = cfg
-        self.address = nn.Linear(2*cfg.width, cfg.episode_address, bias=False)
+        self.address = nn.Linear(cfg.for_region('EC-C').width+cfg.for_region('EC-X').width,
+                                 cfg.episode_address, bias=False)
         self.log_scale = nn.Parameter(torch.tensor(1.))
         self.null = nn.Parameter(torch.tensor(0.))
 

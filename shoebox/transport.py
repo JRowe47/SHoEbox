@@ -16,6 +16,27 @@ def map_tensors(value, function):
     return value
 
 
+def detach_state(value, compact=False):
+    """Drop hard one-hot transport buffers only at an explicit TBPTT boundary.
+
+    Inside the live window, straight-through distributions retain their graph.
+    Once detached, integer bytes carry the exact same forward information.
+    """
+    if torch.is_tensor(value):
+        return value.detach()
+    if isinstance(value, Frame) and compact:
+        return replace(value, **{f.name: None if f.name == 'distribution' else
+                                  detach_state(getattr(value, f.name), compact)
+                                  for f in fields(value)})
+    if is_dataclass(value):
+        return replace(value, **{f.name: detach_state(getattr(value, f.name), compact) for f in fields(value)})
+    if isinstance(value, dict):
+        return {k: detach_state(v, compact) for k,v in value.items()}
+    if isinstance(value, (list, tuple)):
+        return type(value)(detach_state(v, compact) for v in value)
+    return value
+
+
 @dataclass(frozen=True)
 class Frame:
     source: str
@@ -48,8 +69,10 @@ class Frame:
                 'episode_events': None if self.episode_events is None else self.episode_events.cpu().tolist()}
 
 
-def byte_frame(source, event, revision, logits):
-    probabilities = logits.softmax(-1)
+def byte_frame(source, event, revision, logits, probabilities=None):
+    if not torch.is_grad_enabled():
+        return Frame(source, event, revision, logits.argmax(-1))
+    probabilities = logits.softmax(-1) if probabilities is None else probabilities
     values = probabilities.argmax(-1)
     hard = F.one_hot(values, 256).to(probabilities.dtype)
     # Forward transport contains exact bytes; backward connects producer and HAT.

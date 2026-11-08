@@ -4,9 +4,10 @@ import torch
 from torch import nn
 from torch.nn import functional as F
 from .config import SkeletonConfig, REGIONS, NAMES
-from .transport import Frame, map_tensors, publish, recipe_frames
+from .transport import Frame, map_tensors, detach_state, publish, recipe_frames
 from .region import CorticalRegion, RegionState
 from .hippocampus import Hippocampus, EpisodicState, Episode
+from .runtime import forward_scope
 
 
 @dataclass
@@ -20,8 +21,8 @@ class CorticalState:
     event: int = 0
     signature: dict | None = None
 
-    def detach(self):
-        return map_tensors(self, lambda t: t.detach())
+    def detach(self, compact=False):
+        return detach_state(self, compact)
 
     def to(self, device):
         return map_tensors(self, lambda t: t.to(device))
@@ -68,17 +69,29 @@ class CorticalModel(nn.Module):
         super().__init__()
         self.cfg = cfg or SkeletonConfig()
         self.cfg.validate()
+        self.specs = self.cfg.topology()
+        self.execution_backend = 'reference'
         widths = {name: set() for name in NAMES}
-        for region in REGIONS:
+        for region in self.specs:
             for edge in region.inputs:
                 widths[edge.source].add(edge.width)
-        widths['EC-C'].add(4)
-        widths['EC-X'].add(4)
+        widths['EC-C'].add(self.cfg.max_port_bytes)
+        widths['EC-X'].add(self.cfg.max_port_bytes)
         widths['Y'].add(1)
-        self.regions = nn.ModuleDict({spec.name: CorticalRegion(self.cfg, i, widths[spec.name],
-                                                              temporal_scale=4. if spec.name == 'B1' else 1.)
-                                      for i, spec in enumerate(REGIONS)})
+        self.regions = nn.ModuleDict({spec.name: CorticalRegion(self.cfg.for_region(spec.name), i, widths[spec.name],
+                                                              temporal_scale=4. if spec.name == 'B1' else 1.,
+                                                              input_scale=self.cfg.port_scale if spec.order>1 else 1.)
+                                      for i, spec in enumerate(self.specs)})
         self.hippocampus = Hippocampus(self.cfg)
+
+    def set_execution_backend(self, backend):
+        if backend not in ('reference', 'optimized'):
+            raise ValueError('Backend must be reference or optimized.')
+        self.execution_backend = backend
+        for region in self.regions.values():
+            region.optimized = backend == 'optimized'
+            region.hat.optimized = backend == 'optimized'
+        return self
 
     def initial_state(self, batch, device=None):
         if type(batch) is not int or batch < 1:
@@ -88,8 +101,9 @@ class CorticalModel(nn.Module):
         nodes = {name: region.initial_state(batch, device, parameter.dtype) for name, region in self.regions.items()}
         return CorticalState(batch, nodes, {}, EpisodicState(), {}, signature=self.cfg.to_dict())
 
+    @forward_scope
     def forward(self, values, targets=None, state=None, *, source=0, trace=False,
-                continuation=None, memory_enabled=None):
+                continuation=None, memory_enabled=None, observer=None):
         """Predict each next byte from observations and preceding emitted output.
 
         values is integer [B,T] external input. continuation optionally supplies
@@ -127,7 +141,7 @@ class CorticalModel(nn.Module):
         current_state = state
         for step in range(t):
             result = self._event(values[:, step:step+1].long(), current_state, source, trace,
-                                 None if continuation is None else continuation[:, step:step+1], memory_on)
+                                 None if continuation is None else continuation[:, step:step+1], memory_on, observer)
             current_state = result['state']
             outputs.append(result['logits'])
             losses.append(result['aux'])
@@ -138,7 +152,7 @@ class CorticalModel(nn.Module):
         return {'logits': logits, 'state': current_state, 'ce': ce, 'aux': aux,
                 'loss': None if ce is None else ce+self.cfg.auxiliary_weight*aux, 'trace': traces}
 
-    def _event(self, values, state, source, trace, continuation, memory_on):
+    def _event(self, values, state, source, trace, continuation, memory_on, observer=None):
         event = state.event
         nodes, ports, latents = dict(state.nodes), dict(state.ports), dict(state.latents)
         observed = Frame(f'external:{source}', event, 0, values)
@@ -147,20 +161,24 @@ class CorticalModel(nn.Module):
             previous_output = (None if bool((continuation == -1).all()) else
                                Frame('Y-output', event-1, 0, continuation))
         aux, records = [], []
-        zero = next(self.parameters()).new_zeros(state.batch, self.cfg.width)
+        zero_c = next(self.parameters()).new_zeros(state.batch, self.cfg.for_region('EC-C').width)
+        zero_x = next(self.parameters()).new_zeros(state.batch, self.cfg.for_region('EC-X').width)
         for revision in range(self.cfg.rounds):
             snapshot = ports
-            returns = (self.hippocampus.read(latents.get('EC-C', zero), latents.get('EC-X', zero),
+            returns = (self.hippocampus.read(latents.get('EC-C', zero_c), latents.get('EC-X', zero_x),
                                             state.memory, event, revision-1)
                        if memory_on else {'EC-C': [], 'EC-X': []})
-            for spec in REGIONS:
+            for spec in self.specs:
                 if spec.order == 1 and revision:
                     continue
                 frames = [observed] if spec.order == 1 else recipe_frames(spec, ports, snapshot)
                 frames += returns.get(spec.name, [])
                 if spec.name == 'Y' and previous_output is not None:
                     frames = [*frames, previous_output]
-                result = self.regions[spec.name](spec.name, frames, nodes[spec.name], event, revision)
+                collect = observer is not None and (spec.order == 1 or revision == self.cfg.rounds-1)
+                result = self.regions[spec.name](spec.name, frames, nodes[spec.name], event, revision,observe=collect)
+                if observer is not None and (spec.order == 1 or revision == self.cfg.rounds-1):
+                    observer(spec.name, event, revision, result)
                 nodes[spec.name], latents[spec.name] = result['state'], result['latent']
                 ports = publish(ports, spec.name, result['frames'])
                 aux.append(result['aux'])
@@ -173,7 +191,8 @@ class CorticalModel(nn.Module):
                     emission = replace(result['frames'][1], source='Y-output', origin_source='Y')
         memory = state.memory
         if memory_on:
-            memory = self.hippocampus.write(ports['EC-C:4'][-1], ports['EC-X:4'][-1],
+            memory = self.hippocampus.write(ports[f'EC-C:{self.cfg.max_port_bytes}'][-1],
+                                           ports[f'EC-X:{self.cfg.max_port_bytes}'][-1],
                                            latents['EC-C'], latents['EC-X'], memory)
         return {'logits': logits, 'aux': torch.stack(aux).mean(), 'trace': records,
                 'state': CorticalState(state.batch, nodes, ports, memory, latents, emission,

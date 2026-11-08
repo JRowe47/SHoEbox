@@ -28,6 +28,11 @@ def load(path, *, device='cpu', optimizer_factory=None):
     model = CorticalModel(SkeletonConfig(**data['config'])).to(device)
     model.load_state_dict(data['model'], strict=True)
     state = None if data['state'] is None else CorticalState.from_dict(data['state'])
+    if state is not None:
+        if state.signature != data['config']:
+            raise ValueError('Saved state/configuration signatures disagree.')
+        # Older v2 files omit newly added fields whose defaults preserve v2.
+        state.signature = model.cfg.to_dict()
     optimizer = None if optimizer_factory is None else optimizer_factory(model.parameters())
     if optimizer is not None and data['optimizer'] is not None:
         optimizer.load_state_dict(data['optimizer'])

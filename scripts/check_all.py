@@ -11,7 +11,8 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--legacy', action='store_true')
     args = parser.parse_args()
-    result = subprocess.run([sys.executable, '-m', 'unittest', '-v', 'shoebox.test_skeleton'], cwd=ROOT)
+    result = subprocess.run([sys.executable, '-m', 'unittest', '-v',
+                             'shoebox.test_skeleton', 'shoebox.test_fineweb', 'shoebox.test_wide'], cwd=ROOT)
     if result.returncode:
         return result.returncode
     if args.legacy:

@@ -1,6 +1,71 @@
 # SHoEbox handoff
 
-## Current: cortical input map v2 skeleton
+## Current: wider cortical transport, 1k profile complete
+
+`cortical_wide()` has **14,976,882 parameters**, independent **4/8/16-byte**
+internal ports, widths **128/96/64** at orders 1/2/later, and **4 of 32** experts
+selected per regional layer. The first two orders hold about **55%** of capacity.
+The 18-region topology and EC-only hippocampal boundary remain in place.
+
+Completed **1,000 FineWeb byte targets**, B=4, TBPTT=32, eight updates, with
+256-target learning-rate warmup and constant 0.001 thereafter. Training
+forward/backward/update took **194.62 seconds**, excluding probes and a
+10.42-second temporal-gradient diagnostic. Fixed training-slice probe NLL:
+**5.584954 -> 5.060832**. This is a cold-start profile, not a holdout benchmark.
+
+Final A1/B1/L2 primary ports emit **123/126/127** unique complete 16-byte frames
+across 128 probe publications. Context ports remain near-uniform in their soft
+probabilities, with L3 and EC-C showing reduced conditioning variation. The
+old trained L3 1-byte context used only three codes on this probe (82% one code).
+Task gradients reach A1/B1/L2 across 31 observations, at 2.8–5.9% of each
+region's same-observation gradient RMS.
+
+Implemented per-forward projection/key caches, terminal HAT reads retaining
+all recurrent writes, private-bank dispatch, removal of unused lace work,
+softmax reuse, and exact frame compaction at TBPTT boundaries. An initial
+instrumentation leak was fixed; corrected training RSS plateaus around 4.3 GiB.
+Matched B=4/T=32 execution is **16.6% faster** (30.18 -> 25.89 seconds), with
+**23.4% less peak RSS** (5.21 -> 3.99 GiB). All **17 checks** and the endpoint
+reload/data/state audit pass. The remaining operator profile points first to
+fusing MinKron HAT intermediates and backward, then expert-gradient accumulation.
+
+Endpoint: `artifacts/cortical_wide_profile/last.pt`, with optimizer, RNG and
+carried state after 250 observations per stream. The matching report and raw
+profiles document timings and operator allocation traffic. Source and runs are
+delivered as downloadable files; this pass has not been pushed to GitHub.
+
+[Wide configuration and reproduction](docs/cortical_wide_profile.md).
+
+## Previous: 10M cortical FineWeb run complete
+
+The cortical model has **9,982,290 parameters** and completed **100,000
+FineWeb byte targets in one pass**, across 250 updates. All 18 regions, complete
+byte ports, two rounds, and the EC-only hippocampus remain in place.
+
+Fixed-holdout NLL: **5.556483 -> 3.266079**; final next-byte accuracy:
+**17.65%**. Training took **17.63 minutes** at
+**94.52 bytes/s** on two CPU threads. All 11 behavioral/data/runner
+checks passed, and the final checkpoint reload/inference and exact byte/state
+accounting audit passed.
+
+The result is close to a byte-frequency predictor: the unigram count baseline
+scores 3.255803 NLL, while the bigram baseline scores 2.680461. Samples remain
+character-level fragments. Pure task gradients reach every region and the
+hippocampus. At the endpoint, EC-C and L3 emit only 4 and 8 distinct complete
+4-byte frames, respectively, across the 200 current stream states; Y's greedy
+byte is identical across those states. The full loss curve and these raw
+observations are in the run package. No training remains pending.
+
+The final endpoint is `artifacts/cortical_fineweb_10m/last.pt`, with optimizer,
+RNG and all carried states, at 100,000 targets / 500 observations per stream.
+The exact corpus and unpublished source patch accompany the downloadable
+checkpoint package. GitHub publication was blocked by automatic approval
+review; the code and completed run are delivered as files.
+
+[Training and reproduction](docs/cortical_fineweb.md) |
+[Compact measured results](docs/cortical_fineweb_results.json).
+
+## Previous: cortical input map v2 skeleton
 
 The active development model is now `shoebox.CorticalModel`: 18 ordinary
 HAT-SHoE regions and one shared hippocampus behind EC-C/EC-X. The old local

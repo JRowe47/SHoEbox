@@ -3,7 +3,7 @@
 Names document intended specialization; neither names nor C0-C10 select code.
 Widths are complete learned output ports, never slices of another token.
 """
-from dataclasses import asdict, dataclass
+from dataclasses import asdict, dataclass, field, replace
 from experiments.hat_minkron.model import HATConfig
 
 
@@ -69,6 +69,7 @@ class SkeletonConfig:
     address_dim: int = 4
     hat_symbols: int = 16
     hat_levels: int = 1
+    hat_active_symbols: int = 2
     kron_heads: int = 1
     kron_key: int = 4
     kron_value: int = 4
@@ -80,21 +81,37 @@ class SkeletonConfig:
     memory_enabled: bool = True
     auxiliary_weight: float = .001
     seed: int = 20261108
+    port_scale: int = 1
+    terminal_hat: bool = False
+    region_overrides: dict = field(default_factory=dict)
+
+    def topology(self):
+        return tuple(replace(region, inputs=tuple(replace(edge, width=edge.width*self.port_scale)
+                                                  for edge in region.inputs)) for region in REGIONS)
+
+    def for_region(self, name):
+        if name not in NAMES:
+            raise ValueError('Unknown cortical region: '+name)
+        return replace(self, **self.region_overrides.get(name, {}), region_overrides={})
+
+    @property
+    def max_port_bytes(self):
+        return 4*self.port_scale
 
     def hat_config(self, index=0):
         return HATConfig(width=self.width, experts=self.experts,
                          expert_hidden=self.expert_hidden, groups=self.groups,
                          active_groups=self.active_groups, experts_per_group=self.experts_per_group,
                          laces=self.laces, active_laces=self.active_laces, address_dim=self.address_dim,
-                         hat_symbols=self.hat_symbols, hat_active_symbols=2, hat_levels=self.hat_levels,
+                         hat_symbols=self.hat_symbols, hat_active_symbols=self.hat_active_symbols, hat_levels=self.hat_levels,
                          kron_heads=self.kron_heads, kron_key=self.kron_key, kron_value=self.kron_value,
                          chunk_size=32, seed=self.seed+1009*index)
 
     def validate(self):
         for field in ('width', 'experts', 'expert_hidden', 'groups', 'active_groups',
                       'experts_per_group', 'laces', 'active_laces', 'address_dim',
-                      'hat_symbols', 'hat_levels', 'kron_heads', 'kron_key', 'kron_value',
-                      'rounds', 'episode_capacity', 'episode_reads', 'episode_address', 'episode_active'):
+                      'hat_symbols', 'hat_levels', 'hat_active_symbols', 'kron_heads', 'kron_key', 'kron_value',
+                      'rounds', 'episode_capacity', 'episode_reads', 'episode_address', 'episode_active', 'port_scale'):
             value = getattr(self, field)
             if type(value) is not int or value < 1:
                 raise ValueError(f'{field} must be a positive integer.')
@@ -108,6 +125,18 @@ class SkeletonConfig:
             raise ValueError('Sparse address exceeds address width.')
         if not 0 <= self.auxiliary_weight <= 1:
             raise ValueError('Invalid auxiliary weight.')
+        if self.port_scale > 8 or type(self.terminal_hat) is not bool:
+            raise ValueError('Invalid port scale or terminal HAT setting.')
+        allowed = {'width', 'experts', 'expert_hidden', 'groups', 'active_groups',
+                   'experts_per_group', 'laces', 'active_laces', 'address_dim',
+                   'hat_symbols', 'hat_active_symbols', 'hat_levels',
+                   'kron_heads', 'kron_key', 'kron_value'}
+        if not isinstance(self.region_overrides, dict):
+            raise ValueError('Region overrides must be a mapping.')
+        for name, values in self.region_overrides.items():
+            if name not in NAMES or not isinstance(values, dict) or set(values)-allowed:
+                raise ValueError('Invalid regional capacity override.')
+            self.for_region(name).validate()
         try:
             self.hat_config().validate()
         except AssertionError as exc:
@@ -123,3 +152,43 @@ class SkeletonConfig:
 
     def to_dict(self):
         return asdict(self)
+
+
+def cortical_10m(**overrides):
+    """9,982,290 parameters; the skeleton's exact 18-region wiring and ports.
+
+    Capacity grows inside each ordinary region. No extra semantic controllers,
+    regional archives, sharing, or changes to recurrence scheduling are added.
+    """
+    values = dict(width=64, experts=192, expert_hidden=16, groups=8,
+                  laces=32, address_dim=16, hat_symbols=64,
+                  kron_heads=2, kron_key=8, kron_value=8,
+                  episode_address=64, episode_active=8)
+    values.update(overrides)
+    return SkeletonConfig(**values)
+
+
+def cortical_wide(**overrides):
+    """Wider transport and active paths, with extra capacity at orders 1 and 2.
+
+    Ports retain three independent learned code widths: 1/2/4 -> 4/8/16.
+    External bytes and Y's externally emitted byte remain literal bytes.
+    A 16-byte code is one publication, not sixteen observations of history.
+    """
+    regional = {}
+    for name in ('A1', 'B1'):
+        regional[name] = dict(width=128, expert_hidden=32, hat_symbols=256,
+                              hat_active_symbols=8, kron_heads=4, address_dim=32,
+                              laces=64, active_laces=4)
+    for name in ('L2', 'S2', 'R2', 'F2'):
+        regional[name] = dict(width=96, expert_hidden=24, hat_symbols=256,
+                              hat_active_symbols=8, kron_heads=3, address_dim=24,
+                              laces=48, active_laces=4)
+    values = dict(width=64, experts=96, expert_hidden=16, groups=8,
+                  active_groups=2, experts_per_group=2, laces=32, active_laces=4,
+                  address_dim=16, hat_symbols=128, hat_active_symbols=4,
+                  kron_heads=2, kron_key=8, kron_value=8,
+                  episode_address=64, episode_active=8, port_scale=4,
+                  terminal_hat=True, region_overrides=regional)
+    values.update(overrides)
+    return SkeletonConfig(**values)

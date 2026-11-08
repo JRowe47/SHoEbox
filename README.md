@@ -44,7 +44,8 @@ next_byte_logits = result["logits"][:, -1]
 - E4/F4/V4/M4/G5 compose situations, operations, relevance and broader context.
 - EC-C and EC-X are ordinary regions with additional framed hippocampal input.
 - Y receives language, operations, local content, EC content and preceding output.
-- Complete 1-, 2- and 4-byte learned ports preserve source and frame order.
+- Complete learned ports preserve source and frame order: 1/2/4 bytes in the
+  original presets, 4/8/16 bytes in `cortical_wide()`.
 - Feedback reads a previous committed round. A1/B1 ingest each observation once.
 - Two recent transport occurrences are retained per port; durable episodes exist
   only in the shared hippocampus. Repeated rounds revise the current publication.
@@ -52,6 +53,17 @@ next_byte_logits = result["logits"][:, -1]
 
 See [implementation and shakedown](docs/cortical_skeleton.md) and
 [current status](STATUS.md).
+
+For the **9,982,290-parameter** version and the one-pass **100,000-byte-target
+FineWeb** run, see [configuration, data and training](docs/cortical_fineweb.md).
+Use `from shoebox import cortical_10m` to construct the larger configuration.
+
+The **14,976,882-parameter** `cortical_wide()` preset concentrates capacity at
+orders 1 and 2, widens internal ports to **4/8/16 bytes**, and selects **4 of 32**
+experts per regional layer. Its completed **1,000-byte FineWeb profile** uses a
+**32-observation gradient horizon**, logs port entropy and complete-frame
+diversity, and compares reference with optimized execution. See
+[configuration and profiling commands](docs/cortical_wide_profile.md).
 
 The active model has no question/answer classifiers, conflicting-query heads,
 regional fact archives, retention controllers or replicated retrieval APIs.
