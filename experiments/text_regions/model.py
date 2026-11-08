@@ -267,8 +267,14 @@ class RegionLanguageModel(nn.Module):
                                              /mask.sum(1, keepdim=True).clamp_min(1))
                         source_valid.append(mask.any(1))
                     grounded = torch.stack(source_valid, 1)
-                    memory, memory_keys = self.hippocampus.advance_cues(
-                        state.hippocampus, torch.stack(source_values, 1), grounded)
+                    if k == 0 or self.cfg.hippocampus.cue_clock == 'round':
+                        memory, memory_keys = self.hippocampus.advance_cues(
+                            state.hippocampus, torch.stack(source_values, 1), grounded)
+                    else:
+                        # The cue represents the external event, not the number
+                        # of internal computation rounds. Reuse its live tensor;
+                        # memory commits and conditional reads still run each round.
+                        memory = state.hippocampus
                     owner_active = {n: node_masks[n][:, event_index] if n in node_masks else all_active
                                     for n in self.nodes}
                     query_active = torch.stack([owner_active[self.memory_requesters[r]]
@@ -315,7 +321,7 @@ class RegionLanguageModel(nn.Module):
                         payload, context, dependencies = self.connections.gather(
                             spec, current, delayed, ingress, active, event_index, edge_masks, substitutions, edge_bias,
                             state.recall_feedback.get(name), recall_control, recall_record)
-                        if name in memory_residuals:
+                        if name in memory_residuals and self.cfg.hippocampus.reinstatement == 'ingress':
                             payload = payload + memory_residuals[name]*active[:, None]
                         if name in event_recalls:
                             event_recalls[name].append(recall_record)
@@ -330,7 +336,10 @@ class RegionLanguageModel(nn.Module):
                     prepared = prepare_stage(self, requests)
                     for name, (payload, context, node_state, active, dependencies) in requests.items():
                         spec = self.specs[name]
-                        result = self.nodes[name](payload, context, node_state, active, trace, lace_bias.get(name), prepared.get(name))
+                        memory = (memory_residuals.get(name)
+                                  if self.cfg.hippocampus.reinstatement == 'expert' else None)
+                        result = self.nodes[name](payload, context, node_state, active, trace,
+                                                  lace_bias.get(name), prepared.get(name), reinstatement=memory)
                         if self.hippocampus is not None:
                             memory_latents[name] = result['latent']
                             memory_active[name] = active

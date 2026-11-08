@@ -6,6 +6,8 @@ from dataclasses import dataclass
 class HippocampusConfig:
     enabled: bool = False
     mode: str = 'shared'  # 'local' is comparison B, with no associative directory.
+    cue_clock: str = 'round'  # Legacy checkpoints preserve their original clock.
+    reinstatement: str = 'ingress'  # 'expert' enters after the regional HAT adapter.
     address_width: int = 32
     dg_cells: int = 256
     dg_active: int = 8
@@ -37,6 +39,10 @@ class HippocampusConfig:
     def validate(self):
         if self.mode not in ('shared', 'local'):
             raise ValueError('Hippocampus mode must be shared or local.')
+        if self.cue_clock not in ('round', 'event'):
+            raise ValueError('Cue clock must be round or event.')
+        if self.reinstatement not in ('ingress', 'expert'):
+            raise ValueError('Reinstatement must enter ingress or expert input.')
         if self.control not in ('intact', 'blocked', 'shuffled', 'pooled', 'no_refinement', 'no_feedback'):
             raise ValueError('Unknown hippocampus intervention.')
         for name in ('address_width', 'dg_cells', 'dg_active', 'shards', 'bindings_per_shard',

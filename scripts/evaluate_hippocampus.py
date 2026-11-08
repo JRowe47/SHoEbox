@@ -51,9 +51,16 @@ def main():
     p=argparse.ArgumentParser(description=__doc__)
     p.add_argument('--checkpoint',type=Path,required=True); p.add_argument('--out',type=Path,required=True)
     p.add_argument('--data',type=Path,default=ROOT/'data/tiny_shakespeare.txt')
-    p.add_argument('--part',choices=('full','pairs','single','correction','streams'),default='full')
+    p.add_argument('--part',choices=('full','pairs','single','correction','streams','language'),default='full')
     p.add_argument('--control',choices=('intact','blocked','shuffled','pooled','no_refinement','no_feedback'),default='intact')
     p.add_argument('--split',choices=('validation','test'),default='test')
+    p.add_argument('--seed',type=int)
+    p.add_argument('--start',type=int)
+    p.add_argument('--pair-count',type=int)
+    p.add_argument('--single-count',type=int)
+    p.add_argument('--gaps',type=int,nargs='+')
+    p.add_argument('--cue-clock',choices=('round','event'))
+    p.add_argument('--reinstatement',choices=('ingress','expert'))
     a=p.parse_args(); torch.set_num_threads(1)
     saved=torch.load(a.checkpoint,map_location='cpu',weights_only=True)
     raw=a.data.read_bytes(); train,validation,test=split_bytes(raw)
@@ -61,15 +68,28 @@ def main():
     cfg=GraphConfig.from_dict(saved['config']); data=TaskStreamConfig.from_dict(saved['data_config'])
     if a.control!='intact' and not cfg.hippocampus.enabled: raise ValueError('Control requires enabled hippocampus.')
     cfg=replace(cfg,hippocampus=replace(cfg.hippocampus,control=a.control))
+    intervention={key:value for key,value in dict(cue_clock=a.cue_clock,reinstatement=a.reinstatement).items()
+                  if value is not None}
+    if intervention:
+        if not cfg.hippocampus.enabled: raise ValueError('Path intervention requires enabled hippocampus.')
+        cfg=replace(cfg,hippocampus=replace(cfg.hippocampus,**intervention))
     model=RegionLanguageModel(cfg); model.load_state_dict(saved['weights']); model.eval()
     heldout=validation if a.split=='validation' else test
     seed,start=(683,3000) if a.split=='validation' else (1201,80000)
     pair_count=8 if a.split=='validation' else 16
     single_count=8 if a.split=='validation' else 32
+    seed=seed if a.seed is None else a.seed
+    start=start if a.start is None else a.start
+    pair_count=pair_count if a.pair_count is None else a.pair_count
+    single_count=single_count if a.single_count is None else a.single_count
+    gaps=((0,32) if a.split=='validation' else (0,32,64)) if a.gaps is None else tuple(a.gaps)
+    if start<0 or min(pair_count,single_count)<1 or not gaps or min(gaps)<0:
+        raise ValueError('Invalid cohort or delay budget.')
     identity=dict(checkpoint_sha256=hashlib.sha256(a.checkpoint.read_bytes()).hexdigest(),step=saved['step'],
         raw_sha256=saved['raw_sha256'],seed=seed,start=start,pair_templates=pair_count,single_templates=single_count,
-        gaps=[0,32,64],control=a.control,part=a.part,split=a.split,
+        gaps=list(gaps),control=a.control,part=a.part,split=a.split,
         evaluator_sha256=hashlib.sha256(Path(__file__).read_bytes()).hexdigest())
+    if intervention: identity['path_intervention']=intervention
     if a.out.exists():
         result=json.loads(a.out.read_text())
         if result['identity']!=identity: raise ValueError('Evaluation cache identity mismatch.')
@@ -77,7 +97,6 @@ def main():
     def record(name,value):
         result['measurements'][name]=value; a.out.parent.mkdir(parents=True,exist_ok=True); write_json(a.out,result)
         print(json.dumps({'measurement':name,'summary':{k:v for k,v in value.items() if k!='rows'}}),flush=True)
-    gaps=(0,32) if a.split=='validation' else (0,32,64)
     if a.part in ('pairs','full'):
         for gap in gaps:
             name=f'pairs_{gap}'
@@ -91,10 +110,10 @@ def main():
                 cases=selective_cases(data,split=a.split,seed=seed,start=start,
                     count=single_count if mode=='single' else pair_count,mode=mode,gap=gap,distractor_bytes=heldout)
                 record(name,summarize_values(evaluate_values(model,cases,context=32,cases_per_batch=8)))
-    if a.part in ('streams','full'):
+    if a.part in ('streams','language','full'):
         if 'language' not in result['measurements']:
             record('language',evaluate_language(model,heldout,batch=4,context=32,chunks=8))
-        for split in ('test','long_delay'):
+        for split in (() if a.part=='language' else ('test','long_delay')):
             if split not in result['measurements']:
                 docs=make_documents(data,split=split,seed=seed,count=8,start=start,distractor_bytes=heldout)
                 metrics,traces=evaluate_memory(model,data,seed,8,32,split,documents=docs)

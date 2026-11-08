@@ -16,12 +16,16 @@ from experiments.text_regions.memory_selectivity import selective_cases
 
 
 class HippocampusRun(PairedRecallRun):
-    def __init__(self,parent,raw,*,arm='C',steps=64,eval_every=16,validation_cases=8):
+    def __init__(self,parent,raw,*,arm='C',steps=64,eval_every=16,validation_cases=8,
+                 cue_clock='round',reinstatement='ingress'):
         super().__init__(parent,raw,steps=steps,eval_every=eval_every,validation_cases=validation_cases)
         if arm not in ('A','B','C'): raise ValueError('Expected arm A, B or C.')
+        if arm=='A' and (cue_clock,reinstatement)!=('round','ingress'):
+            raise ValueError('Hippocampal path controls require arm B or C.')
         if arm!='A':
             old=self.model
-            self.cfg=replace(self.cfg,hippocampus=HippocampusConfig(enabled=True,mode='local' if arm=='B' else 'shared'))
+            self.cfg=replace(self.cfg,hippocampus=HippocampusConfig(enabled=True,
+                mode='local' if arm=='B' else 'shared',cue_clock=cue_clock,reinstatement=reinstatement))
             self.model=RegionLanguageModel(self.cfg)
             self.new_parameters=load_parent(self.model,parent)
             self.optimizer=migrate_optimizer(old,parent['optimizer'],self.model,.003)
@@ -30,6 +34,9 @@ class HippocampusRun(PairedRecallRun):
         self.protocol.update(arm=arm,validation_start=3000,test_seed=1201,test_start=80000,
             checkpoint_selection='Validation candidates reported separately; primary endpoint is update 64',
             hippocampus_source_sha256=hashlib.sha256((ROOT/'experiments/text_regions/hippocampus.py').read_bytes()).hexdigest())
+        # Keep the exact historical default protocol readable/resumable.
+        if (cue_clock,reinstatement)!=('round','ingress'):
+            self.protocol.update(cue_clock=cue_clock,reinstatement=reinstatement)
         self.val_cases={f'{mode}_{gap}':selective_cases(self.data_cfg,split='validation',
             seed=683,start=3000,count=validation_cases,mode=mode,gap=gap,distractor_bytes=self.validation)
             for mode in ('single','older','newer','correction') for gap in (0,32)}
@@ -51,6 +58,8 @@ def main():
     parser.add_argument('--parent',type=Path,default=ROOT/'artifacts/hippocampus/parent.pt')
     parser.add_argument('--data',type=Path,default=ROOT/'data/tiny_shakespeare.txt')
     parser.add_argument('--arm',choices=['A','B','C'],required=True)
+    parser.add_argument('--cue-clock',choices=['round','event'],default='round')
+    parser.add_argument('--reinstatement',choices=['ingress','expert'],default='ingress')
     parser.add_argument('--out',type=Path,required=True)
     parser.add_argument('--steps',type=int,default=64)
     parser.add_argument('--stop-after',type=int)
@@ -66,7 +75,8 @@ def main():
     if not a.resume and a.out.exists() and any(a.out.iterdir()): parser.error('Use an empty output directory.')
     a.out.mkdir(parents=True,exist_ok=True)
     run=HippocampusRun(torch.load(a.parent,map_location='cpu',weights_only=True),a.data.read_bytes(),
-        arm=a.arm,steps=a.steps,eval_every=a.eval_every,validation_cases=a.validation_cases)
+        arm=a.arm,steps=a.steps,eval_every=a.eval_every,validation_cases=a.validation_cases,
+        cue_clock=a.cue_clock,reinstatement=a.reinstatement)
     run.protocol['parent_sha256']=hashlib.sha256(a.parent.read_bytes()).hexdigest()
     if not 1<=a.validation_workers<=4: parser.error('Use one through four validation workers.')
     run.validation_workers=a.validation_workers

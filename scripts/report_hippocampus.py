@@ -112,7 +112,8 @@ correct about the same unchanged history.
     return md
 
 
-def render_pdf(md,pdf):
+def render_pdf(md,pdf,*,title='SHoEbox hippocampus implementation',
+               footer_text='SHoEbox | Explicit hippocampus | November 8, 2026 UTC'):
     fonts=Path('/usr/share/fonts/truetype/dejavu')
     filenames=('DejaVuSans.ttf','DejaVuSans-Bold.ttf','DejaVuSansMono.ttf')
     if not all((fonts/name).exists() for name in filenames):
@@ -164,10 +165,10 @@ def render_pdf(md,pdf):
     def footer(canvas,document):
         canvas.setStrokeColor(colors.HexColor('#c5d3cc'));canvas.line(42,38,570,38)
         canvas.setFont('ReportSans',8);canvas.setFillColor(colors.HexColor('#587069'))
-        canvas.drawString(42,25,'SHoEbox | Explicit hippocampus | November 8, 2026 UTC')
+        canvas.drawString(42,25,footer_text)
         canvas.drawRightString(570,25,str(document.page))
     SimpleDocTemplate(str(pdf),pagesize=letter,rightMargin=42,leftMargin=42,topMargin=40,bottomMargin=52,
-        title='SHoEbox hippocampus implementation',author='Joshua Rowe / SHoEbox').build(flow,onFirstPage=footer,onLaterPages=footer)
+        title=title,author='Joshua Rowe / SHoEbox').build(flow,onFirstPage=footer,onLaterPages=footer)
 
 
 def main():

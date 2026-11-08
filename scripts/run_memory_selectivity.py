@@ -129,7 +129,8 @@ class SelectivityRun:
 
     def restore(self, saved):
         for key in ('schema','kind','config','data_config','protocol','raw_sha256'):
-            if saved[key] != self.state_dict()[key]:
+            value = GraphConfig.from_dict(saved[key]).to_dict() if key == 'config' else saved[key]
+            if value != self.state_dict()[key]:
                 raise ValueError(f'Resume mismatch: {key}')
         self.model.load_state_dict(saved['weights']); self.optimizer.load_state_dict(saved['optimizer'])
         self.language_state = GraphState.from_dict(saved['language_state'])
