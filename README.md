@@ -78,6 +78,18 @@ P and Q feed the shared byte readout. B has one state owner and publishes to bot
 
 ## Development status
 
+The latest [shared-history query experiment](docs/paired_recall.md) completes
+64 updates with both questions trained from one live history. Diagnostic
+readouts recover both stored values after 32 intervening bytes, but the model
+still rarely chooses the correct value according to the question: only 1/192
+conflicting pairs pass at +24 and +64 bytes. Older-value answers improve while
+single-fact retention and corrections regress. The earlier strong retention
+checkpoint remains the working baseline. The next target is learned interaction
+between query identity and retained content, with existing controls preserved.
+All 16 targeted checks pass; [audited results](experiments/text_regions/results/paired_recall/summary.json)
+include exact continuation, source-budget reconstruction and state/gradient
+equivalence for the shared-history execution path.
+
 The [acquired-memory continuation](docs/memory_selectivity.md) reaches **100%
 held-out recall through 24 added natural-text bytes, 98.4% through 64, and
 76.6% through 128**, after training with at most 32 added bytes. At +64, 30/32

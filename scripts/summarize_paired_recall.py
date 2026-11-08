@@ -2,6 +2,7 @@
 import argparse
 import hashlib
 import json
+import math
 from pathlib import Path
 import sys
 import torch
@@ -9,6 +10,8 @@ import torch
 ROOT=Path(__file__).resolve().parents[1]
 sys.path.insert(0,str(ROOT))
 from experiments.text_regions.data import split_bytes
+from experiments.text_regions.config import GraphConfig
+from experiments.text_regions.model import RegionLanguageModel
 from experiments.text_regions.task_stream import TaskStreamConfig
 from experiments.text_regions.memory_selectivity import selective_cases
 from experiments.text_regions.memory_acquisition import pack_cases
@@ -88,14 +91,26 @@ def main():
         assert identity['diagnostic_sha256']==digest(ROOT/'scripts/diagnose_paired_recall.py')
         assert identity['generator_sha256']==protocol['generator_sha256']
         assert set(diagnostics[name]['gaps'])=={'0','32'}
+    model=RegionLanguageModel(GraphConfig.from_dict(best['config']))
+    model.load_state_dict(best['weights'])
+    parameters=sum(p.numel() for p in model.parameters())
+    # state_dict contains aliases for shared banks; summing its entries would
+    # count shared parameters repeatedly.
+    assert parameters==read(directory/'protocol.json')['parameters']
     result=dict(completed_updates=last['step'],selected_update=best['step'],
         selected_and_final_weights_equal=all(torch.equal(v,last['weights'][k]) for k,v in best['weights'].items()),
-        parameters=sum(v.numel() for v in best['weights'].values()),finite_weights=True,
+        parameters=parameters,finite_weights=True,
         reconstructed_training_budgets=True,protocol=protocol,totals=totals,selected_totals=selected_totals,
         initial_document=protocol['initial_document'],next_document=cursor,validation=opportunities,
         comparisons=comparisons,diagnostics=diagnostics,
         production_equivalence=read(a.root/'production_equivalence.json'),
         executed_position_saving=1-totals['executed_positions']/totals['memory_padded_positions'])
+    size=len(data.values); recent=.5+.5/size; other=.5/size
+    result['shortcut_baselines']=dict(
+        query_blind_maximum_accuracy=.5+.5/size,
+        newest_value_only_optimal_nll=-recent*math.log(recent)-(size-1)*other*math.log(other),
+        both_values_known_query_blind_optimal_nll=(1-1/size)*math.log(2),
+        assumptions='Balanced independent values and query directions; byte syntax/language losses excluded')
     (a.root/'summary.json').write_text(json.dumps(result,indent=2,allow_nan=False)+'\n')
     print(json.dumps({k:result[k] for k in ('completed_updates','selected_update','totals','executed_position_saving')}))
 

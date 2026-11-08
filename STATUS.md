@@ -1,6 +1,56 @@
 # SHoEbox handoff
 
-## Latest: stronger retention and the remaining fact-selection failure
+## Latest: paired histories expose a query-binding bottleneck
+
+Memory-only focus continues. **Keep `artifacts/memory_selectivity/selective/best.pt`
+as the working joint-language/retention baseline.** The new paired continuation
+is an experimental branch, not a replacement: it trades retention/revision for
+greater older-value influence without reliable entity-specific selection.
+
+The unchanged 312,440-parameter model completes 64 updates. Each paired template
+executes one history, then forks live state for both native questions; both
+losses backpropagate into the same history. The schedule mixes paired, paired,
+single and correction updates. All weights, AdamW moments, language state/cursor,
+RNG and the training document cursor carry forward. There is no replay buffer.
+
+Validation selects update 64 (paired NLL 1.651034 -> 0.852152). Fresh seed-1031
+tests show older-fact accuracy of 46.1% immediately and 44.1% at +64 bytes,
+versus 25% for the parent. However, both conflicting questions are correct in
+0/192, 1/192 and 1/192 histories at +0/+24/+64. Query-only changes switch outputs
+2/192, 1/192 and 5/192 times. Newer-fact accuracy at +64 falls to 73.4%.
+Single-fact retention falls from 100% to 85.2% at +64, and from 86.7% to 68.0%
+at +128. Changed-value corrections at +64 fall from 100% to 64.1%.
+Natural-text NLL stays close: 3.132340 -> 3.134060. Ordinary-stream later exact
+accuracy stays 35.7% (84 queries); corrected exact is 43.3% versus 45.0%
+(60 queries), and long-delay later exact is 32.5% versus 33.8% (77 queries).
+
+The signal audit resolves a key ambiguity: positional diagnostic readouts
+recover both old/new values from floating state in 256/256 fresh snapshots at
+gaps 0 and 32, for both models. An entity-conditioned diagnostic probe solves
+177/192 immediate conflicting pairs but only 40/192 delayed pairs in the parent;
+the continuation scores 168/192 and 50/192. These probes never enter model
+inference. Source keys/values and query keys receive nonzero gradients.
+Preserved content is available; query-dependent selection and stable binding
+are the next implementation target.
+
+Budget: 1,536 answer targets (1,024 paired, 256 single, 256 correction), 46,976
+logical task bytes, 8,192 language bytes; documents 660 through 771. Shared
+histories avoid 11,968 duplicated task positions (22.9%). All 16 unique targeted
+checks pass, including exact resume and next-phase continuation. Production
+logits/gradients/states match duplicated prefixes; 757 parameter tensors and
+275 state tensors are checked. Budgets/selection reconstruct and weights are finite.
+
+Next phase: implement an ablatable learned interaction between query identity
+and preserved content in the existing expert/recall path. Compare against paired
+supervision alone, starting from the retained strong parent. Require actual
+paired correctness and retention/correction preservation before promotion.
+Keep broad GPU preparation, scaling and higher-order curricula deferred.
+
+The experimental checkpoint is `artifacts/paired_recall/train/best.pt` (also the
+final step-64 weights). [Protocol/results](docs/paired_recall.md) |
+[audited evidence](experiments/text_regions/results/paired_recall/summary.json).
+
+## Completed: stronger retention and the remaining fact-selection failure
 
 Continue the memory-only development focus. GPU preparation, broader integrated
 acceptance and scaling remain deferred.

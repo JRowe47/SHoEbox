@@ -106,6 +106,13 @@ class PairedRecallChecks(unittest.TestCase):
         assert_tree_equal(self,restored.state_dict(),torch.load(expected,weights_only=True))
         self.assertEqual(restored.next_document,662)
         self.assertEqual(restored.totals['memory_targets'],64)
+        continued=PairedRecallRun(restored.state_dict(),raw,validation_cases=1)
+        self.assertEqual(continued.step,0)
+        self.assertEqual(continued.next_document,restored.next_document)
+        assert_tree_equal(self,continued.model.state_dict(),restored.model.state_dict())
+        assert_tree_equal(self,continued.optimizer.state_dict(),restored.optimizer.state_dict())
+        assert_tree_equal(self,continued.language_state.to_dict(),restored.language_state.to_dict())
+        self.assertEqual(continued.streams.state_dict(),restored.streams.state_dict())
         changed=PairedRecallRun(parent,raw,lr=.001,validation_cases=1)
         with self.assertRaises(ValueError): changed.restore(checkpoint)
 
