@@ -78,6 +78,19 @@ P and Q feed the shared byte readout. B has one state owner and publishes to bot
 
 ## Development status
 
+The latest [retrieval control repair](docs/hippocampus_binding.md) adds an
+external-event cue clock, direct expert-input reinstatement and bounded CA1
+acceptance after a reread. The original controller let refinement compete with
+acceptance, then suppressed the refined result using the original acceptance
+weight. The corrected policy rechecks the reread with accept/null; no new
+parameters, transport fetches or native rounds are required. All options keep
+legacy defaults. The 64-update placement experiment and two matched 16-update
+controller continuations are complete; 42 targeted tests pass. Corrected CA1
+preserves 100% single-fact/correction validation at gaps 0/32, but paired recall
+still fails the promotion gate. Keep the original strong parent as the working
+baseline. [Report](docs/hippocampus_binding_report.md) |
+[audited evidence](experiments/text_regions/results/hippocampus_binding/summary.json).
+
 The optional [shared hippocampus](docs/hippocampus.md) adds dedicated cues,
 versioned regional capsules, bounded DG/CA3/CA1 lookup and conditional expert
 readbacks. It defaults off. Structural checks and a 64-512-region actor smoke

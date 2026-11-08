@@ -109,10 +109,17 @@ class Hippocampus(nn.Module):
         key = key.reshape(b,r,-1)
         return replace(state,cues=trace),key
 
-    def compare(self,query,expected,returned,valid,age):
+    def compare(self,query,expected,returned,valid,age,terminal=False):
         features = torch.cat((query,expected,returned,query-returned,expected-returned,
                               valid[...,None],age[...,None]),-1)
-        return self.comparison(features).softmax(-1)
+        logits = self.comparison(features)
+        if terminal:
+            # When the local reread budget is exhausted, only accept/null are
+            # legal. Probability assigned to an unavailable refine action must
+            # not silently suppress an otherwise accepted return.
+            decisions = logits[...,:2].softmax(-1)
+            return torch.cat((decisions,torch.zeros_like(decisions[...,:1])),-1)
+        return logits.softmax(-1)
 
     def _candidates(self,row,request,code,cells,budget):
         if self.config.mode == 'shared':
@@ -269,11 +276,15 @@ class Hippocampus(nn.Module):
         expected = (probs[:,:count,None]*key_bank).sum(1)
         returned = F.normalize(self.return_descriptor(values.sum(1)),dim=-1)
         has_return = q.new_tensor([bool(x) for x in contributors])
-        comparison = self.compare(q,expected,returned,has_return,ages.mean(-1))
+        can_refine = bool(c.refinement_steps and c.control != 'no_refinement')
+        bounded = c.ca1_policy == 'bounded'
+        comparison = self.compare(q,expected,returned,has_return,ages.mean(-1),
+                                  terminal=bounded and not can_refine)
+        accepted = comparison[:,0]
         # CA1's refine action conditions a second read of the SAME selected local
         # capsules, without another transport read or candidate-budget reset.
         # This is a shallow query-conditioned computation, not an extra graph round.
-        if c.refinement_steps and c.control != 'no_refinement':
+        if can_refine:
             refined_cues = cues + (q-returned)[:,None].expand(-1,c.readbacks,-1).reshape_as(cues)
             refined = capsules.new_zeros(capsules.shape)
             for owner in dict.fromkeys(o for o in read_owners if o):
@@ -285,14 +296,24 @@ class Hippocampus(nn.Module):
             refined = refined.reshape_as(values)
             if c.control == 'pooled':
                 refined = refined.mean(1,keepdim=True).expand_as(refined)
-            values = values + comparison[:,2,None,None]*(refined-values)
-        residual = self.compose(values.reshape(-1,c.readbacks*self.width))*comparison[:,0,None]*has_return[:,None]
+            if bounded:
+                refined_return = F.normalize(self.return_descriptor(refined.sum(1)),dim=-1)
+                terminal = self.compare(q,expected,refined_return,has_return,ages.mean(-1),terminal=True)
+                refined_accept = comparison[:,2]*terminal[:,0]
+                # Accept the original read OR refine then accept the reread.
+                # Do not multiply both branches by the original accept action.
+                values = comparison[:,0,None,None]*values + refined_accept[:,None,None]*refined
+                accepted = accepted + refined_accept
+            else:
+                values = values + comparison[:,2,None,None]*(refined-values)
+        gain = torch.ones_like(accepted) if bounded and can_refine else accepted
+        residual = self.compose(values.reshape(-1,c.readbacks*self.width))*gain[:,None]*has_return[:,None]
         receipts=[[] for _ in state.rows]
         for j,parts in enumerate(contributors):
             if parts:
                 request=requests[j]
                 receipts[j//r].append(CreditReceipt((*request.request_id,'credit'),request.request_id,
-                    parts,comparison[j,0],state.window))
+                    parts,accepted[j],state.window))
         return residual.reshape(b,r,self.width),tuple(tuple(x) for x in receipts),[x.metrics() for x in budgets]
 
     def feedback(self,row,receipts,window):

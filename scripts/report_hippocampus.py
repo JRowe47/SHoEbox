@@ -113,7 +113,8 @@ correct about the same unchanged history.
 
 
 def render_pdf(md,pdf,*,title='SHoEbox hippocampus implementation',
-               footer_text='SHoEbox | Explicit hippocampus | November 8, 2026 UTC'):
+               footer_text='SHoEbox | Explicit hippocampus | November 8, 2026 UTC',
+               page_break_before=('Validation and promotion','Structural and gradient exits','Reproducibility and delivery')):
     fonts=Path('/usr/share/fonts/truetype/dejavu')
     filenames=('DejaVuSans.ttf','DejaVuSans-Bold.ttf','DejaVuSansMono.ttf')
     if not all((fonts/name).exists() for name in filenames):
@@ -141,7 +142,7 @@ def render_pdf(md,pdf,*,title='SHoEbox hippocampus implementation',
         if not line.strip(): i+=1;continue
         if line.startswith('# '): flow.append(Paragraph(inline(line[2:]),styles['Title']));i+=1;continue
         if line.startswith('## '):
-            if line[3:] in ('Validation and promotion','Structural and gradient exits','Reproducibility and delivery'):
+            if line[3:] in page_break_before:
                 flow.append(PageBreak())
             flow.append(Paragraph(inline(line[3:]),styles['Heading2']));i+=1;continue
         if line.startswith('|'):

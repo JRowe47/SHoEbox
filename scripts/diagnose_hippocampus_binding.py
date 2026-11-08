@@ -58,9 +58,12 @@ def audit(saved, raw, gap=0, count=2, seed=881, start=4000):
         def hook(module, args, name=name):
             last.setdefault('payload', {})[name] = args[0]
         handles.append(model.nodes[name].register_forward_pre_hook(hook))
-    def compare_hook(module, args, output):
-        last['comparison'] = output.softmax(-1)
-    handles.append(h.comparison.register_forward_hook(compare_hook))
+    compare = h.compare
+    def traced_compare(*args, **kwargs):
+        output = compare(*args, **kwargs)
+        last['comparison'] = output
+        return output
+    h.compare = traced_compare
     result = paired_forward(model, batch)
     scores = result['logits'][:, -1]
     predictions = scores.argmax(-1).reshape(-1, 2)
@@ -100,9 +103,11 @@ def audit(saved, raw, gap=0, count=2, seed=881, start=4000):
         final_round=last['state'].rows[0].round, source_byte_positions=batch['sources'][0],
         candidates_mean=sum(last['counts'])/len(last['counts']),
         ca1_mean=last['comparison'].mean(0).tolist(),
+        effective_acceptance_mean=sum(float(receipt.support) for row in last['receipts'] for receipt in row)
+            /max(1,sum(len(row) for row in last['receipts'])),
         memory_anchors=[sum(map(len,row.anchors.values())) for row in last['state'].rows[:2]])
     for hook in handles: hook.remove()
-    h.query = query; h._candidates = candidates
+    h.query = query; h._candidates = candidates; h.compare = compare
     model.cfg = replace(cfg, hippocampus=replace(cfg.hippocampus, control='blocked'))
     h.config = model.cfg.hippocampus
     blocked = paired_forward(model, batch)['logits'][:, -1]

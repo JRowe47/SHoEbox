@@ -8,6 +8,7 @@ class HippocampusConfig:
     mode: str = 'shared'  # 'local' is comparison B, with no associative directory.
     cue_clock: str = 'round'  # Legacy checkpoints preserve their original clock.
     reinstatement: str = 'ingress'  # 'expert' enters after the regional HAT adapter.
+    ca1_policy: str = 'legacy'  # 'bounded' rechecks refined evidence before delivery.
     address_width: int = 32
     dg_cells: int = 256
     dg_active: int = 8
@@ -43,6 +44,8 @@ class HippocampusConfig:
             raise ValueError('Cue clock must be round or event.')
         if self.reinstatement not in ('ingress', 'expert'):
             raise ValueError('Reinstatement must enter ingress or expert input.')
+        if self.ca1_policy not in ('legacy', 'bounded'):
+            raise ValueError('CA1 policy must be legacy or bounded.')
         if self.control not in ('intact', 'blocked', 'shuffled', 'pooled', 'no_refinement', 'no_feedback'):
             raise ValueError('Unknown hippocampus intervention.')
         for name in ('address_width', 'dg_cells', 'dg_active', 'shards', 'bindings_per_shard',

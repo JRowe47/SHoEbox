@@ -6,6 +6,14 @@ service holds compact associations and versioned handles to owner-local capsules
 The feature defaults off. The original retention checkpoint remains the working
 parent until the paired-recall promotion gates pass.
 
+The [retrieval control repair](hippocampus_binding.md) adds independent
+`cue_clock='event'`, `reinstatement='expert'` and `ca1_policy='bounded'` options. They update
+the input-driven cue once per external event and deliver recalled evidence after
+the regional HAT adapter, before expert routing and computation. The original
+`round`/`ingress` defaults preserve existing checkpoints and comparisons. The
+bounded CA1 policy gives a refined return its own terminal accept/null decision;
+the `legacy` default preserves the original controller.
+
 ## Execution and ownership
 
 Each region has a dedicated input-driven cue trace, one multiplexed interface

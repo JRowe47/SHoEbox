@@ -1,6 +1,58 @@
 # SHoEbox handoff
 
-## Latest: explicit shared hippocampus implementation
+## Latest: hippocampus retrieval control repair
+
+The new controls independently select an external-event cue clock, direct
+expert-input reinstatement and bounded CA1 reread acceptance. The controller
+repair removes suppression of refined evidence by the original competing
+accept weight. A reread gets its own terminal accept/null decision. Owner
+readers, bounded fetches, native rounds, global objectives and the 391,174
+hippocampus parameters are unchanged. Legacy defaults preserve prior behavior.
+
+The event/expert arm completes 64 updates from the original strong parent.
+Matched legacy/bounded CA1 arms then each complete 16 additional updates from
+that endpoint, with identical initial weights, optimizer, RNG, language state,
+stream cursor and next document. Their source schedules match exactly.
+
+**Keep the original retained parent as the working model.** Bounded CA1 has
+100% single-fact and correction validation at gaps 0/32, and text NLL 3.161174
+versus the original parent's 3.312089. However, both conflicting questions pass
+in 0/96 histories at both gaps. The paired-recall promotion gate remains open.
+The matched legacy continuation scores 0/96 and 1/96 pairs, with correction
+accuracy 100%/85.9% and text NLL 3.112721.
+
+All 42 targeted checks pass. A trained-checkpoint comparison against public
+revision `59244b3` also produces exactly identical logits in legacy mode on
+16 histories and 32 question branches. The completed report separates the
+192-history placement tests from the fresh 96-history CA1 tests and includes
+same-weight blocking/controller interventions and final signal audits.
+
+The fresh CA1 test bank confirms the remaining newest-fact bias: corrected
+immediate recall is 100% for the newer fact and 25% for the older fact, with no
+query-induced answer switches among 96 conflicting pairs. Paired correctness
+is 0/96 at all three delays. The final signal audit has about 8.1 times stronger
+returned residuals than the matched legacy continuation, while query cue cosine
+is still 0.999947. Next target: query-conditioned selection within the regional
+cue/owner-read path; stronger delivery alone has not resolved binding.
+
+On the fresh +64-byte retention bank, corrected/legacy single-fact accuracy is
+98.4%/98.4%, correction accuracy is 97.7%/79.7%, and text NLL is
+2.976824/2.955399. Blocking corrected readbacks or restoring its legacy policy
+at fixed weights still gives 0/96 pairs at every delay.
+
+Recovery: the working parent is `artifacts/hippocampus/parent.pt`; the new
+placement endpoint is `artifacts/hippocampus_binding/event_expert/last.pt`;
+matched continuations are `artifacts/hippocampus_binding/ca1/{legacy,bounded}/last.pt`.
+Validation selects bounded `best.pt` at update 0 and legacy `best.pt` at update 16;
+the reported matched results use both `last.pt` files at update 16. Exact-resume
+source guards remain enforced; use the recorded source or start an explicit new
+continuation. No additional training is pending from this pass.
+
+[Report](docs/hippocampus_binding_report.md) |
+[Protocol and recovery](docs/hippocampus_binding.md) |
+[Audited results](experiments/text_regions/results/hippocampus_binding/summary.json).
+
+## Earlier: explicit shared hippocampus implementation
 
 The default-off hippocampal extension implements dedicated regional cues,
 immutable owner-local anchors, shallow DG/CA3/CA1 controls, bounded shared lookup,
