@@ -54,6 +54,9 @@ REGIONS = cortical_map()
 NAMES = tuple(r.name for r in REGIONS)
 SOURCES = NAMES + ('Y-output', 'HC-C', 'HC-X') + tuple(f'external:{i}' for i in range(16))
 SOURCE_IDS = {name: i for i, name in enumerate(SOURCES)}
+SPINE = ('A1', 'B1', 'S2', 'Y')
+# EC is an ordinary paired activation unit, preserving aligned episodic writes.
+ROUTING_GROUPS = tuple((name,) for name in NAMES if name not in (*SPINE, 'EC-C', 'EC-X')) + (('EC-C', 'EC-X'),)
 
 
 @dataclass(frozen=True)
@@ -84,6 +87,10 @@ class SkeletonConfig:
     port_scale: int = 1
     terminal_hat: bool = False
     region_overrides: dict = field(default_factory=dict)
+    region_topk: int = 0
+    edge_topk: int = 2
+    routing_dim: int = 32
+    routing_noise: float = .5
 
     def topology(self):
         return tuple(replace(region, inputs=tuple(replace(edge, width=edge.width*self.port_scale)
@@ -108,6 +115,10 @@ class SkeletonConfig:
                          chunk_size=32, seed=self.seed+1009*index)
 
     def validate(self):
+        if type(self.region_topk) is not int or not 0 <= self.region_topk <= len(ROUTING_GROUPS):
+            raise ValueError('Invalid optional regional activation budget.')
+        if type(self.edge_topk) is not int or self.edge_topk < 1 or self.routing_dim < 1 or not 0 <= self.routing_noise <= 5:
+            raise ValueError('Invalid regional router configuration.')
         for field in ('width', 'experts', 'expert_hidden', 'groups', 'active_groups',
                       'experts_per_group', 'laces', 'active_laces', 'address_dim',
                       'hat_symbols', 'hat_levels', 'hat_active_symbols', 'kron_heads', 'kron_key', 'kron_value',
@@ -192,3 +203,10 @@ def cortical_wide(**overrides):
                   terminal_hat=True, region_overrides=regional)
     values.update(overrides)
     return SkeletonConfig(**values)
+
+
+def cortical_cpu(**overrides):
+    """Sparse regional execution, complete wide ports and a live ingress spine."""
+    values = dict(region_topk=3, edge_topk=2)
+    values.update(overrides)
+    return cortical_wide(**values)

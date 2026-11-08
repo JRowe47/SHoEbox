@@ -1,6 +1,50 @@
 # SHoEbox handoff
 
-## Current: indexed expert optimization complete
+## Current: CPU overhaul and learned sparse regional execution complete
+
+The new `cortical_cpu()` preset learns optional regional activation and top-two
+incoming connections per stream. A1/B1/S2/Y remain a live input-output path;
+three optional groups select another three or four regions, with EC-C/EC-X paired
+for aligned episodic writes. No unselected regional row enters its HAT or experts.
+Inactive state and the last two genuine publications retain their timestamps and
+live gradients within the 32-observation window. Ports remain 4/8/16 bytes.
+
+The `cpu` backend adds indexed straight-through byte embedding, grouped regional
+cores, variable-length native HAT scans, and direct publication of batched results.
+AVX512 dot products and correctly enabled OpenMP support native CPU parallelism;
+optional worker threads execute independent graph waves. Small-batch timing favors
+one intra-op thread and one worker; larger batches can use the exposed controls.
+
+Three matched B4/T32 repetitions: **8.72 -> 12.19 external bytes/s** forward/backward
+(**+39.8%**), peak RSS **2,048 -> 1,301 MiB** (**-36.5%**). Actual work is about
+**12.8 regional evaluations and 357 HAT byte steps per byte**, versus **34 and
+1,940** for the dense schedule. These are measured external byte positions summed
+across the batch, not internal HAT symbols or per-stream decoding rates.
+
+B32/T32 reaches **42.3 bytes/s** forward/backward (three-run median). A single
+B64/T32/two-thread measurement reaches **69.1 bytes/s**, **239.8 bytes/s forward
+only**, and **5.64 GiB peak RSS**. Single-stream forward throughput is **22.9
+bytes/s**. More threads do not improve the repeated B32 training result; optional
+regional workers also cost time at B4. None of these results reaches 1,000 bytes/s.
+
+Matched 2,048-byte FineWeb shakedowns, B4/T32, 16 updates: **8.56 -> 12.63 bytes/s**
+including clipping and AdamW. On the disjoint 256-target slice, dense validation
+NLL goes **5.568 -> 4.414**, sparse **5.559 -> 4.512**. The sparse run stores aligned
+EC episodes, changes its learned route selections and has nonzero pure task
+gradients into regional and edge routing. Lag-31 A1/B1 task gradients remain live.
+All **36 checks** pass; checkpoint validation reload is exact. FP64 values and all
+parameter gradients are unchanged by removing redundant publication copies.
+
+Model: **14,989,597 parameters**; only the **12,715-parameter** router is new.
+Original dense presets and checkpoints retain dense execution. The measured next
+target is whole-region fusion of the many small projections, pointwise operations
+and their autograd work. Native recurrence/expert arithmetic alone does not remove
+this overhead. See [CPU implementation](docs/cortical_cpu.md) and
+[reproducible results](docs/cortical_cpu_results.json).
+
+Endpoint: `artifacts/cpu_overhaul/final_learning/last.pt`.
+
+## Previous: indexed expert optimization complete
 
 The fused CPU backend now reads selected expert weights directly and combines
 compact row derivatives through groups of eight independent autograd edges.

@@ -79,6 +79,18 @@ throughput**, **23.8% less peak RSS**, and **41.0% less saved storage**. Dense
 AdamW and temporal gradients retain their behavior. See
 [expert execution and reproduction](docs/cortical_expert_fusion.md).
 
+The **14,989,597-parameter** `cortical_cpu()` preset extends learned sparsity to
+regions and their allowed connections. Each stream activates **7–8 of 18 regions**
+and selects incoming edges; skipped regional rows keep their state and do no
+forward work. The CPU backend combines variable-length HAT sequences and active
+SHoE rows, uses indexed byte transport, AVX512 expert arithmetic and OpenMP native
+loops, and offers independent regional worker threads. At B4/T32, repeated
+forward/backward timing improves **8.72 -> 12.19 bytes/s**, with **36% less peak
+RSS**. A matched 2,048-byte training shakedown improves **8.56 -> 12.63 bytes/s**;
+held-out NLL is **4.51 sparse vs 4.41 dense** after the same budget.
+See [CPU configuration and commands](docs/cortical_cpu.md) and
+[measurements](docs/cortical_cpu_results.json).
+
 The active model has no question/answer classifiers, conflicting-query heads,
 regional fact archives, retention controllers or replicated retrieval APIs.
 The older seven/eleven-node implementation remains under experiments/text_regions

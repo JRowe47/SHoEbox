@@ -7,8 +7,40 @@
 #include <algorithm>
 #include <cmath>
 #include <vector>
+#include <type_traits>
+#if defined(__AVX512F__)
+#include <immintrin.h>
+#endif
 
 using at::Tensor;
+
+template<typename T> static T scaled_dot(const T* a, const T* b, int64_t size, T scale) {
+    int64_t i=0;
+    T result=0;
+#if defined(__AVX512F__)
+    if constexpr (std::is_same_v<T,float>) {
+        __m512 accum=_mm512_setzero_ps(), factor=_mm512_set1_ps(scale);
+        for (;i+16<=size;i+=16)
+            accum=_mm512_add_ps(accum,_mm512_mul_ps(_mm512_mul_ps(_mm512_loadu_ps(a+i),factor),_mm512_loadu_ps(b+i)));
+        result=_mm512_reduce_add_ps(accum);
+    } else {
+        __m512d accum=_mm512_setzero_pd(), factor=_mm512_set1_pd(scale);
+        for (;i+8<=size;i+=8)
+            accum=_mm512_add_pd(accum,_mm512_mul_pd(_mm512_mul_pd(_mm512_loadu_pd(a+i),factor),_mm512_loadu_pd(b+i)));
+        result=_mm512_reduce_add_pd(accum);
+    }
+#endif
+    for (;i<size;++i) result+=(a[i]*scale)*b[i];
+    return result;
+}
+
+std::string cpu_isa() {
+#if defined(__AVX512F__)
+    return "AVX512";
+#else
+    return "portable native";
+#endif
+}
 
 static void check_inputs(const Tensor& k, const Tensor& v, const Tensor& g,
                          const Tensor& beta, const Tensor& write, const Tensor& state) {
@@ -26,9 +58,17 @@ static void check_inputs(const Tensor& k, const Tensor& v, const Tensor& g,
 }
 
 std::vector<Tensor> final_forward(const Tensor& k, const Tensor& v, const Tensor& g,
-        const Tensor& beta, const Tensor& write, const Tensor& previous, bool keep_tape) {
+        const Tensor& beta, const Tensor& write, const Tensor& previous, bool keep_tape,
+        const std::optional<Tensor>& lengths) {
     check_inputs(k,v,g,beta,write,previous);
     const auto B=k.size(0), T=k.size(1), H=k.size(2), K=k.size(3), V=v.size(3), KV=K*V;
+    const int64_t* lengths_ptr=nullptr;
+    if (lengths.has_value()) {
+        TORCH_CHECK(lengths->device().is_cpu() && lengths->scalar_type()==at::kLong &&
+                    lengths->is_contiguous() && lengths->sizes()==at::IntArrayRef({B}), "Invalid sequence lengths");
+        lengths_ptr=lengths->data_ptr<int64_t>();
+        for (int64_t b=0;b<B;++b) TORCH_CHECK(lengths_ptr[b]>0 && lengths_ptr[b]<=T, "Sequence length outside input");
+    }
     auto final=at::empty_like(previous);
     // Final has its own compact storage, so detaching it cannot retain the tape.
     auto tape=keep_tape ? at::empty({B,H,T,K,V},k.options()) : at::empty({0},k.options());
@@ -41,7 +81,8 @@ std::vector<Tensor> final_forward(const Tensor& k, const Tensor& v, const Tensor
             for (int64_t n=begin;n<end;++n) {
                 const auto b=n/H, h=n%H;
                 std::copy_n(P+n*KV,KV,s.data());
-                for (int64_t t=0;t<T;++t) {
+                const auto count=lengths_ptr ? lengths_ptr[b] : T;
+                for (int64_t t=0;t<count;++t) {
                     const auto index=(b*T+t)*H+h;
                     const auto a=A+index*K, w=W+index*V;
                     if (keep_tape) std::copy_n(s.data(),KV,Tape+(n*T+t)*KV);
@@ -68,7 +109,8 @@ std::vector<Tensor> final_forward(const Tensor& k, const Tensor& v, const Tensor
 }
 
 std::vector<Tensor> final_backward(const Tensor& grad_final, const Tensor& k, const Tensor& v,
-        const Tensor& g, const Tensor& beta, const Tensor& write, const Tensor& previous, const Tensor& tape) {
+        const Tensor& g, const Tensor& beta, const Tensor& write, const Tensor& previous, const Tensor& tape,
+        const std::optional<Tensor>& lengths) {
     check_inputs(k,v,g,beta,write,previous);
     const auto B=k.size(0), T=k.size(1), H=k.size(2), K=k.size(3), V=v.size(3), KV=K*V;
     for (const auto& x : {grad_final,tape})
@@ -76,8 +118,16 @@ std::vector<Tensor> final_backward(const Tensor& grad_final, const Tensor& k, co
                     "Invalid fused MinKron gradient/tape storage");
     TORCH_CHECK(grad_final.sizes()==previous.sizes() && tape.sizes()==at::IntArrayRef({B,H,T,K,V}),
                 "Invalid fused MinKron gradient/tape dimensions");
-    auto dk=at::empty_like(k),dv=at::empty_like(v),dg=at::empty_like(g);
-    auto db=at::empty_like(beta),dc=at::empty_like(write),ds=at::empty_like(previous);
+    const int64_t* lengths_ptr=nullptr;
+    if (lengths.has_value()) {
+        TORCH_CHECK(lengths->device().is_cpu() && lengths->scalar_type()==at::kLong &&
+                    lengths->is_contiguous() && lengths->sizes()==at::IntArrayRef({B}), "Invalid sequence lengths");
+        lengths_ptr=lengths->data_ptr<int64_t>();
+        for (int64_t b=0;b<B;++b) TORCH_CHECK(lengths_ptr[b]>0 && lengths_ptr[b]<=T, "Sequence length outside input");
+    }
+    auto make_grad=[&](const Tensor& t) { return lengths_ptr ? at::zeros_like(t) : at::empty_like(t); };
+    auto dk=make_grad(k),dv=make_grad(v),dg=make_grad(g);
+    auto db=make_grad(beta),dc=make_grad(write),ds=at::empty_like(previous);
     AT_DISPATCH_FLOATING_TYPES(k.scalar_type(), "minkron_final_backward", [&] {
         const auto A=k.data_ptr<scalar_t>(), W=v.data_ptr<scalar_t>(), G=g.data_ptr<scalar_t>();
         const auto E=beta.data_ptr<scalar_t>(), C=write.data_ptr<scalar_t>(), Tape=tape.data_ptr<scalar_t>();
@@ -89,7 +139,8 @@ std::vector<Tensor> final_backward(const Tensor& grad_final, const Tensor& k, co
             for (int64_t n=begin;n<end;++n) {
                 const auto b=n/H,h=n%H;
                 std::copy_n(DY+n*KV,KV,delta.data());
-                for (int64_t t=T-1;t>=0;--t) {
+                const auto count=lengths_ptr ? lengths_ptr[b] : T;
+                for (int64_t t=count-1;t>=0;--t) {
                     const auto index=(b*T+t)*H+h;
                     const auto a=A+index*K,w=W+index*V,p=Tape+(n*T+t)*KV;
                     scalar_t norm=0,score=0,du=0;
@@ -178,8 +229,7 @@ std::vector<Tensor> experts_forward(const Tensor& x, const Tensor& up, const Ten
                 for (int64_t k=0;k<K;++k) {
                     const auto row=n*K+k, bank=I[row]*H*D;
                     for (int64_t h=0;h<H;++h) {
-                        scalar_t z=0;
-                        for (int64_t d=0;d<D;++d) z+=U[bank+h*D+d]*X[n*D+d];
+                        const scalar_t z=scaled_dot(U+bank+h*D,X+n*D,D,scalar_t(1));
                         if (keep_tape) P[row*H+h]=z;
                         hidden[h]=scalar_t(.5)*z*(1+std::erf(z*invsqrt2));
                     }
@@ -219,8 +269,7 @@ std::vector<Tensor> experts_backward(const Tensor& dy, const Tensor& x, const Te
                     const auto row=n*K+k, bank=I[row]*H*D;
                     scalar_t gate_grad=0;
                     for (int64_t h=0;h<H;++h) {
-                        scalar_t dh=0;
-                        for (int64_t d=0;d<D;++d) dh+=(Y[n*D+d]*scale)*W[bank+h*D+d];
+                        const scalar_t dh=scaled_dot(Y+n*D,W+bank+h*D,D,scale);
                         const scalar_t z=P[row*H+h], cdf=scalar_t(.5)*(1+std::erf(z*invsqrt2));
                         const scalar_t hidden=z*cdf, dz=(dh*G[row])*(cdf+z*std::exp(scalar_t(-.5)*z*z)*invsqrt2pi);
                         gate_grad+=dh*hidden;
@@ -266,8 +315,9 @@ Tensor dense_row_grads(const std::vector<Tensor>& gradients) {
 }
 
 TORCH_LIBRARY(shoebox_minkron_cpu, m) {
-    m.def("final_forward(Tensor k, Tensor v, Tensor g, Tensor beta, Tensor write, Tensor previous, bool keep_tape) -> Tensor[]", &final_forward);
-    m.def("final_backward(Tensor grad_final, Tensor k, Tensor v, Tensor g, Tensor beta, Tensor write, Tensor previous, Tensor tape) -> Tensor[]", &final_backward);
+    m.def("cpu_isa() -> str", &cpu_isa);
+    m.def("final_forward(Tensor k, Tensor v, Tensor g, Tensor beta, Tensor write, Tensor previous, bool keep_tape, Tensor? lengths=None) -> Tensor[]", &final_forward);
+    m.def("final_backward(Tensor grad_final, Tensor k, Tensor v, Tensor g, Tensor beta, Tensor write, Tensor previous, Tensor tape, Tensor? lengths=None) -> Tensor[]", &final_backward);
     m.def("experts_forward(Tensor x, Tensor up, Tensor down, Tensor ids, Tensor gates, bool keep_tape) -> Tensor[]", &experts_forward);
     m.def("experts_backward(Tensor dy, Tensor x, Tensor up, Tensor down, Tensor ids, Tensor gates, Tensor pre) -> Tensor[]", &experts_backward);
     m.def("dense_row_grads(Tensor[] gradients) -> Tensor", &dense_row_grads);

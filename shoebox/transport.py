@@ -25,7 +25,7 @@ def detach_state(value, compact=False):
     if torch.is_tensor(value):
         return value.detach()
     if isinstance(value, Frame) and compact:
-        return replace(value, **{f.name: None if f.name == 'distribution' else
+        return replace(value, **{f.name: None if f.name in ('distribution', 'soft') else
                                   detach_state(getattr(value, f.name), compact)
                                   for f in fields(value)})
     if is_dataclass(value):
@@ -50,6 +50,8 @@ class Frame:
     origin_revision: int = -1
     episode_events: torch.Tensor | None = None
     episode_revisions: torch.Tensor | None = None
+    soft: torch.Tensor | None = None
+    valid: torch.Tensor | None = None
 
     @property
     def width(self):
@@ -59,21 +61,24 @@ class Frame:
         return map_tensors(self, lambda t: t.detach())
 
     def trace(self):
-        return {'source': self.source, 'event': self.event, 'revision': self.revision,
+        scalar = lambda v: v.detach().cpu().tolist() if torch.is_tensor(v) else v
+        return {'source': self.source, 'event': scalar(self.event), 'revision': scalar(self.revision),
                 'width': self.width, 'values': self.values.detach().cpu().tolist(),
                 'origin_source': self.origin_source or self.source,
                 'origin_event': (self.episode_events.cpu().tolist() if self.episode_events is not None else
-                                 self.origin_event if self.origin_event >= 0 else self.event),
+                                 self.origin_event if self.origin_event >= 0 else scalar(self.event)),
                 'origin_revision': (self.episode_revisions.cpu().tolist() if self.episode_revisions is not None else
-                                    self.origin_revision if self.origin_revision >= 0 else self.revision),
+                                    self.origin_revision if self.origin_revision >= 0 else scalar(self.revision)),
                 'episode_events': None if self.episode_events is None else self.episode_events.cpu().tolist()}
 
 
-def byte_frame(source, event, revision, logits, probabilities=None):
+def byte_frame(source, event, revision, logits, probabilities=None, *, compact=False):
     if not torch.is_grad_enabled():
         return Frame(source, event, revision, logits.argmax(-1))
     probabilities = logits.softmax(-1) if probabilities is None else probabilities
     values = probabilities.argmax(-1)
+    if compact:
+        return Frame(source, event, revision, values, soft=probabilities)
     hard = F.one_hot(values, 256).to(probabilities.dtype)
     # Forward transport contains exact bytes; backward connects producer and HAT.
     straight_through = hard + (probabilities - probabilities.detach())

@@ -25,6 +25,12 @@ class EpisodicState:
     writes: int = 0
 
 
+@dataclass(frozen=True)
+class SparseMemory:
+    """Each stream retains its own bounded sequence of genuine EC writes."""
+    streams: tuple
+
+
 class Hippocampus(nn.Module):
     def __init__(self, cfg):
         super().__init__()
@@ -72,7 +78,7 @@ class Hippocampus(nn.Module):
         if state.episodes and content.event <= state.episodes[-1].event:
             raise ValueError('An occurrence may enter episodic storage only once, in order.')
         episode = Episode(content.event,
-                          replace(content.detach(), distribution=None),
-                          replace(context.detach(), distribution=None),
+                          replace(content.detach(), distribution=None, soft=None),
+                          replace(context.detach(), distribution=None, soft=None),
                           torch.cat((content_latent, context_latent), -1).detach())
         return EpisodicState((*state.episodes, episode)[-self.cfg.episode_capacity:], state.writes+1)

@@ -25,7 +25,8 @@ def load(path, *, device='cpu', optimizer_factory=None):
     data = torch.load(path, map_location=device, weights_only=True)
     if data.get('format') != FORMAT:
         raise ValueError('Expected a cortical-v2 skeleton checkpoint; legacy checkpoints are incompatible.')
-    model = CorticalModel(SkeletonConfig(**data['config'])).to(device)
+    dtype = next(value.dtype for value in data['model'].values() if value.is_floating_point())
+    model = CorticalModel(SkeletonConfig(**data['config'])).to(device=device, dtype=dtype)
     model.load_state_dict(data['model'], strict=True)
     state = None if data['state'] is None else CorticalState.from_dict(data['state'])
     if state is not None:

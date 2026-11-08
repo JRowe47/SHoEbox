@@ -6,7 +6,7 @@ from torch.nn import functional as F
 from .config import SkeletonConfig, REGIONS, NAMES
 from .transport import Frame, map_tensors, detach_state, publish, recipe_frames
 from .region import CorticalRegion, RegionState
-from .hippocampus import Hippocampus, EpisodicState, Episode
+from .hippocampus import Hippocampus, EpisodicState, Episode, SparseMemory
 from .runtime import forward_scope
 
 
@@ -52,7 +52,7 @@ class CorticalState:
 
     @classmethod
     def from_dict(cls, data):
-        kinds = {c.__name__: c for c in (cls, Frame, RegionState, EpisodicState, Episode)}
+        kinds = {c.__name__: c for c in (cls, Frame, RegionState, EpisodicState, Episode, SparseMemory)}
         def unpack(x):
             if isinstance(x, dict):
                 if '_kind' in x:
@@ -83,14 +83,26 @@ class CorticalModel(nn.Module):
                                                               input_scale=self.cfg.port_scale if spec.order>1 else 1.)
                                       for i, spec in enumerate(self.specs)})
         self.hippocampus = Hippocampus(self.cfg)
+        self.cpu_workers = 1
+        if self.cfg.region_topk:
+            from .regional_routing import RegionalRouter, compile_waves
+            self.graph_router = RegionalRouter(self.cfg)
+            self.execution_waves = compile_waves(self.specs)
 
     def set_execution_backend(self, backend):
-        if backend not in ('reference', 'optimized', 'fused'):
-            raise ValueError('Backend must be reference, optimized or fused.')
+        if backend not in ('reference', 'optimized', 'fused', 'cpu'):
+            raise ValueError('Backend must be reference, optimized, fused or cpu.')
         self.execution_backend = backend
         for region in self.regions.values():
             region.optimized = region.hat.optimized = backend != 'reference'
-            region.fused = region.hat.fused = backend == 'fused'
+            region.fused = region.hat.fused = backend in ('fused', 'cpu')
+            region.compact_transport = region.hat.compact_transport = backend == 'cpu'
+        return self
+
+    def set_cpu_workers(self, workers):
+        if type(workers) is not int or workers < 1:
+            raise ValueError('CPU worker count must be positive.')
+        self.cpu_workers = workers
         return self
 
     def initial_state(self, batch, device=None):
@@ -99,7 +111,13 @@ class CorticalModel(nn.Module):
         parameter = next(self.parameters())
         device = device or parameter.device
         nodes = {name: region.initial_state(batch, device, parameter.dtype) for name, region in self.regions.items()}
-        return CorticalState(batch, nodes, {}, EpisodicState(), {}, signature=self.cfg.to_dict())
+        memory = EpisodicState()
+        if self.cfg.region_topk:
+            memory = SparseMemory(tuple(EpisodicState() for _ in range(batch)))
+            for node in nodes.values():
+                node.clock = torch.zeros(batch, dtype=torch.long, device=device)
+                node.bytes_seen = torch.zeros_like(node.clock)
+        return CorticalState(batch, nodes, {}, memory, {}, signature=self.cfg.to_dict())
 
     @forward_scope
     def forward(self, values, targets=None, state=None, *, source=0, trace=False,
@@ -137,7 +155,7 @@ class CorticalModel(nn.Module):
         if any(v.hat[0].device != values.device for v in state.nodes.values()):
             raise ValueError('State and input must share a device; use state.to(device).')
         memory_on = self.cfg.memory_enabled if memory_enabled is None else bool(memory_enabled)
-        losses, traces, outputs = [], [], []
+        losses, traces, outputs, routing = [], [], [], []
         current_state = state
         for step in range(t):
             result = self._event(values[:, step:step+1].long(), current_state, source, trace,
@@ -146,13 +164,18 @@ class CorticalModel(nn.Module):
             outputs.append(result['logits'])
             losses.append(result['aux'])
             traces.extend(result['trace'])
+            if 'routing' in result:
+                routing.append(result['routing'])
         logits = torch.stack(outputs, 1)
         aux = torch.stack(losses).mean()
         ce = None if targets is None else F.cross_entropy(logits.reshape(-1, 256), targets.reshape(-1))
         return {'logits': logits, 'state': current_state, 'ce': ce, 'aux': aux,
-                'loss': None if ce is None else ce+self.cfg.auxiliary_weight*aux, 'trace': traces}
+                'loss': None if ce is None else ce+self.cfg.auxiliary_weight*aux, 'trace': traces, 'routing': routing}
 
     def _event(self, values, state, source, trace, continuation, memory_on, observer=None):
+        if self.cfg.region_topk:
+            from .sparse_executor import sparse_event
+            return sparse_event(self, values, state, source, trace, continuation, memory_on, observer)
         event = state.event
         nodes, ports, latents = dict(state.nodes), dict(state.ports), dict(state.latents)
         observed = Frame(f'external:{source}', event, 0, values)

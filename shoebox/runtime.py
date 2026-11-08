@@ -4,7 +4,8 @@ The minKron state equations follow experiments.hat_minkron.kron and retain
 its attribution. No archived experiment or native extension is modified.
 """
 import math
-from contextvars import ContextVar
+from contextvars import ContextVar, copy_context
+from concurrent.futures import ThreadPoolExecutor
 from functools import wraps
 import torch
 from torch.nn import functional as F
@@ -15,17 +16,37 @@ from .fused_experts import expert_forward
 
 
 _cache = ContextVar('cortical_forward_cache',default=None)
+_pool = ContextVar('cortical_cpu_pool',default=None)
 
 
 def forward_scope(function):
     @wraps(function)
     def run(self,*args,**kwargs):
-        token = _cache.set({} if self.execution_backend in ('optimized','fused') else None)
+        token = _cache.set({} if self.execution_backend in ('optimized','fused','cpu') else None)
+        workers = getattr(self, 'cpu_workers', 1) if self.execution_backend == 'cpu' else 1
+        pool = ThreadPoolExecutor(max_workers=workers) if workers > 1 else None
+        pool_token = _pool.set(pool)
         try:
             return function(self,*args,**kwargs)
         finally:
+            if pool is not None:
+                pool.shutdown(wait=True)
+            _pool.reset(pool_token)
             _cache.reset(token)
     return run
+
+
+def parallel_regions(function, jobs):
+    """Independent regions only; publish results on the caller in stable order."""
+    pool = _pool.get()
+    if pool is None or len(jobs) < 2:
+        return [function(job) for job in jobs]
+    grad_enabled = torch.is_grad_enabled()
+    def run(job):
+        with torch.set_grad_enabled(grad_enabled):
+            return function(job)
+    futures = [pool.submit(copy_context().run, run, job) for job in jobs]
+    return [future.result() for future in futures]
 
 
 def cached(module,name,compute):
@@ -68,13 +89,14 @@ def compact_final(k, v, g, beta, write, state):
     return gam[..., -1, :, None]*s+tail.transpose(-1,-2)@(u*v)
 
 
-def minkron_last(memory, x, state, *, fused=False):
+def minkron_last(memory, x, state, *, fused=False, lengths=None):
     """Read only the final position, while retaining every state write and gradient."""
     b,t,_ = x.shape
     h,kd,vd = memory.H,memory.K,memory.V
     qkv,erase,write,forget,gate = memory.projection(x).split(memory.splits,-1)
     q,k,v = qkv.split([h*kd,h*kd,h*vd],-1)
-    q = normalize_direction(F.silu(q[:, -1:]).reshape(b,1,h,kd),safe_zero=memory.safe_zero)
+    last = lambda value: value[:,-1:] if lengths is None else value[torch.arange(b,device=x.device),lengths-1][:,None]
+    q = normalize_direction(F.silu(last(q)).reshape(b,1,h,kd),safe_zero=memory.safe_zero)
     k = normalize_direction(F.silu(k).reshape(b,t,h,kd),safe_zero=memory.safe_zero)
     v = normalize_direction(F.silu(v).reshape(b,t,h,vd),safe_zero=memory.safe_zero)
     acc = torch.float64 if x.dtype == torch.float64 else torch.float32
@@ -82,7 +104,13 @@ def minkron_last(memory, x, state, *, fused=False):
     rate = cached(memory,('rate',acc),lambda:memory.A_log.to(acc).exp())
     g = -rate[None,None,:,None]*F.softplus(f).reshape(b,t,h,kd)
     erase,write = erase.sigmoid(),write.to(acc).sigmoid()
-    final = fused_final(k.to(acc),v.to(acc),g,erase.to(acc),write,state) if fused else None
+    final = fused_final(k.to(acc),v.to(acc),g,erase.to(acc),write,state,lengths) if fused else None
+    if final is None and lengths is not None:
+        # Portable fallback keeps exactly the real sequence for each row.
+        final = torch.cat([compact_final(k[i:i+1,:n],v[i:i+1,:n],g[i:i+1,:n],
+                                        erase[i:i+1,:n],write[i:i+1,:n],
+                                        None if state is None else state[i:i+1])
+                           for i,n in enumerate(lengths.tolist())],0)
     if final is None:
         final = state
         for start in range(0,t,memory.chunk_size):
@@ -91,16 +119,17 @@ def minkron_last(memory, x, state, *, fused=False):
                                   erase[:,start:end],write[:,start:end],final)
     z = (q[:,0].to(acc).unsqueeze(-1)*final).sum(-2)*kd**-.5
     z = z*torch.rsqrt(z.square().mean(-1,keepdim=True)+1e-5)*memory.norm_weight.to(acc)
-    z = z*(gate[:, -1]+memory.output_gate_bias).reshape(b,h,vd).sigmoid()
+    z = z*(last(gate)[:,0]+memory.output_gate_bias).reshape(b,h,vd).sigmoid()
     return memory.output(z.reshape(b,1,h*vd).to(x.dtype)),final
 
 
-def symbol_single(level, x, previous, *, terminal, optimized, fused=False):
+def symbol_single(level, x, previous, *, terminal, optimized, fused=False, lengths=None):
     """The cortical HAT always has one joint, ordered source sequence."""
     z = level.norm(x)
     if terminal and optimized:
-        context,final = minkron_last(level.memory,z,previous,fused=fused)
-        h = x[:, -1:]+context
+        context,final = minkron_last(level.memory,z,previous,fused=fused,lengths=lengths)
+        last = x[:,-1:] if lengths is None else x[torch.arange(x.shape[0],device=x.device),lengths-1][:,None]
+        h = last+context
     else:
         context,final = level.memory(z,previous,backend='chunk')
         h = x+context

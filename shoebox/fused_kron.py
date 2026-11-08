@@ -39,6 +39,10 @@ def load_native():
                       if line.startswith(('flags','Features'))),'')
         flags=['-O3','-std=c++20','-shared','-fPIC','-ffp-contract=off']
         if platform.machine() in ('x86_64','AMD64'):flags+=['-march=native']
+        # ATen's header-only parallel_for is serial unless the extension itself
+        # enables OpenMP, even when the installed PyTorch build uses it.
+        if 'ATen parallel backend: OpenMP' in torch.__config__.parallel_info():
+            flags+=['-fopenmp']
         identity=(str(torch.__version__),compiler,torch._C._GLIBCXX_USE_CXX11_ABI,cpu,flags)
         fingerprint=hashlib.sha256(source.read_bytes()+Path(__file__).read_bytes()+repr(identity).encode()).hexdigest()[:16]
         namespace='shoebox_minkron_'+fingerprint
@@ -64,6 +68,8 @@ def load_native():
                     temporary.unlink(missing_ok=True)
         torch.ops.load_library(str(library))
         _status={'available':True,'namespace':namespace,'compiler':compiler,'flags':flags,
+                 'isa':getattr(torch.ops,namespace).cpu_isa(),
+                 'openmp':'-fopenmp' in flags,
                  'library':str(library),'build_log':str(folder/'build.log')}
         return getattr(torch.ops,namespace)
     except (OSError,RuntimeError,ImportError,subprocess.TimeoutExpired) as exc:
@@ -85,25 +91,25 @@ def for_tensor(tensor):
 
 class _FinalState(torch.autograd.Function):
     @staticmethod
-    def forward(ctx,k,v,g,beta,write,previous):
+    def forward(ctx,k,v,g,beta,write,previous,lengths):
         native=load_native()
-        final,tape=native.final_forward(k,v,g,beta,write,previous,True)
-        ctx.save_for_backward(k,v,g,beta,write,previous,tape)
+        final,tape=native.final_forward(k,v,g,beta,write,previous,True,lengths)
+        ctx.save_for_backward(k,v,g,beta,write,previous,tape,lengths)
         ctx.native=native
         return final
 
     @staticmethod
     @once_differentiable
     def backward(ctx,grad_final):
-        return tuple(ctx.native.final_backward(grad_final.contiguous(),*ctx.saved_tensors))
+        return (*ctx.native.final_backward(grad_final.contiguous(),*ctx.saved_tensors),None)
 
 
-def fused_final(k,v,g,beta,write,state):
+def fused_final(k,v,g,beta,write,state,lengths=None):
     """Return a fused final state, or None when the portable path is needed."""
     native=for_tensor(k)
     if native is None:return None
     if state is None:state=k.new_zeros(k.shape[0],k.shape[2],k.shape[3],v.shape[3])
     args=tuple(t.contiguous() for t in (k,v,g,beta,write,state))
     if torch.is_grad_enabled() and any(t.requires_grad for t in args):
-        return _FinalState.apply(*args)
-    return native.final_forward(*args,False)[0]
+        return _FinalState.apply(*args,lengths)
+    return native.final_forward(*args,False,lengths)[0]
