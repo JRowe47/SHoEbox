@@ -6,6 +6,7 @@ from ..hat_minkron.events import ByteBatch
 from .runtime import RuntimeSymbolLevel as SymbolLevel, RuntimeChild as RecurrentChild, enabled
 from .ports import SemanticHeader
 from .state import NodeState
+from .lace_separation import LaceBiasHead
 
 
 def masked_ingress(hat, events, state, active):
@@ -77,6 +78,10 @@ class RecurrentNode(nn.Module):
                 self.anchor_query = nn.Linear(cfg.hippocampus.address_width, cfg.width)
                 self.anchor_reader = nn.Linear(4*cfg.width, cfg.width)
 
+        if cfg.lace_separation.installed:
+            self.lace_head = LaceBiasHead(2*cfg.width, 3, cfg.laces, cfg.lace_separation,
+                                          seed=cfg.seed+49031+index)
+
     def encode_anchor(self, latent):
         return self.anchor_encoder(latent).tanh()
 
@@ -96,7 +101,7 @@ class RecurrentNode(nn.Module):
                          torch.zeros(batch, dtype=torch.long, device=device))
 
     def forward(self, payload, routing_context, state, active, trace=False, lace_bias=None, prepared=None,
-                reinstatement=None):
+                reinstatement=None, cue=None, lace_capture=None):
         cfg = self.cfg
         b, d = payload.shape
         rows = active.nonzero().flatten()
@@ -126,7 +131,17 @@ class RecurrentNode(nn.Module):
             recall = reinstatement if full else reinstatement.index_select(0, rows)
             x = x + recall[:, None]
             evidence = torch.stack([block.router.pilot(x) for block in self.core.blocks], -2)
-        prior, lace = self.core.lace(evidence + (routing_context[:, None] if full else routing_context[rows, None]), x, utility_bias=lace_bias)
+        query_bias = cache = None
+        if cfg.lace_separation.enabled:
+            if cue is None:
+                raise ValueError('Enabled lace bias requires a causal regional cue.')
+            z = torch.cat((x[:, 0], cue if full else cue.index_select(0, rows)), -1)
+            query_bias, cache = self.lace_head(z, capture=lace_capture is not None)
+        prior, lace = self.core.lace(evidence + (routing_context[:, None] if full else routing_context[rows, None]),
+            x, utility_bias=lace_bias, query_bias=query_bias, capture_scores=lace_capture is not None)
+        if lace_capture is not None:
+            collector, key, valid = lace_capture
+            collector.record(key, getattr(self, 'lace_head', None), rows, valid[rows], lace, cache)
         execute = self.core.execute_node if enabled() else self.core.execute
         result = execute(x, prior, state.blocks if full else tuple(s[rows] for s in state.blocks), backend='step',
                                    trace=trace, decode=False)

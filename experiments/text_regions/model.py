@@ -338,8 +338,22 @@ class RegionLanguageModel(nn.Module):
                         spec = self.specs[name]
                         memory = (memory_residuals.get(name)
                                   if self.cfg.hippocampus.reinstatement == 'expert' else None)
+                        cue = None
+                        if self.cfg.lace_separation.enabled:
+                            ri = self.hippocampus.regions.index(spec.region)
+                            cue = state.hippocampus.cues[:, ri]
+                            cue_rows = getattr(self, '_lace_cue_rows', None)
+                            if cue_rows is not None:
+                                cue = cue.index_select(0, cue_rows)
+                        collector = getattr(self, '_lace_capture', None)
+                        capture = None
+                        if collector is not None and torch.is_grad_enabled():
+                            valid = state.events_seen.eq(collector.event) & active
+                            if bool(valid.any()):
+                                capture = (collector, (name, k), valid)
                         result = self.nodes[name](payload, context, node_state, active, trace,
-                                                  lace_bias.get(name), prepared.get(name), reinstatement=memory)
+                            lace_bias.get(name), prepared.get(name), reinstatement=memory,
+                            cue=cue, lace_capture=capture)
                         if self.hippocampus is not None:
                             memory_latents[name] = result['latent']
                             memory_active[name] = active

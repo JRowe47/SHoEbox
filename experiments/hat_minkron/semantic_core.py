@@ -83,7 +83,8 @@ back. Only the selected lace factors contribute to each message.
         template += .05 * torch.randn(template.shape, generator=gen)
         self.template_logits = nn.Parameter(template)
 
-    def forward(self, evidence, context, enabled=True, permutation=None, utility_bias=None):
+    def forward(self, evidence, context, enabled=True, permutation=None, utility_bias=None,
+                query_bias=None, capture_scores=False):
         # evidence: B,T,L,G, independently organized group axes at every layer.
         c = self.c
         templates = self.template_logits.softmax(-1)
@@ -108,6 +109,8 @@ back. Only the selected lace factors contribute to each message.
             external = (ctx[:, :, None] + support.sum(-1, keepdim=True) - support).transpose(1, 2)
             if utility_bias is not None:
                 external = external + utility_bias
+            if query_bias is not None:
+                external = external + query_bias.reshape_as(external)
             scores, ids = external.topk(c.active_laces, -1)
             weight = scores.softmax(-1)
             layer_ids = torch.arange(c.layers, device=e.device)[None, :, None]
@@ -120,6 +123,7 @@ back. Only the selected lace factors contribute to each message.
         return prior.reshape(base_shape), {
             'lace_ids': ids.reshape(*base_shape[:2], c.layers, c.active_laces),
             'lace_weights': weight.reshape(*base_shape[:2], c.layers, c.active_laces),
+            **({'selected_scores': scores} if capture_scores else {}),
             'balance': balance,
         }
 

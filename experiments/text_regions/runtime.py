@@ -178,9 +178,10 @@ class RuntimeHAT(HAT):
 
 class RuntimeLaceController(LaceController):
     def forward(self, evidence, context, enabled=True, permutation=None, utility_bias=None,
-                observe_only=False, probabilities=None):
+                observe_only=False, probabilities=None, query_bias=None, capture_scores=False):
         if _cache.get() is None or not enabled or permutation is not None:
-            return super().forward(evidence, context, enabled, permutation, utility_bias)
+            return super().forward(evidence, context, enabled, permutation, utility_bias,
+                                   query_bias, capture_scores)
         c = self.c
         templates = cached(self, 'templates', lambda: self.template_logits.softmax(-1))
         base_shape = evidence.shape
@@ -198,6 +199,8 @@ class RuntimeLaceController(LaceController):
             external = (ctx[:, :, None]+support.sum(-1, keepdim=True)-support).transpose(1, 2)
             if utility_bias is not None:
                 external = external+utility_bias
+            if query_bias is not None:
+                external = external + query_bias.reshape_as(external)
             scores, ids = external.topk(c.active_laces, -1)
             if observe_only and iteration == c.refinement_rounds-1:
                 return None, {'lace_ids': ids.reshape(*base_shape[:2], c.layers, c.active_laces)}
@@ -209,7 +212,8 @@ class RuntimeLaceController(LaceController):
         return prior.reshape(base_shape), dict(
             lace_ids=ids.reshape(*base_shape[:2], c.layers, c.active_laces),
             lace_weights=weight.reshape(*base_shape[:2], c.layers, c.active_laces),
-            balance=switch_balance(external.softmax(-1), ids))
+            balance=switch_balance(external.softmax(-1), ids),
+            **({"selected_scores": scores} if capture_scores else {}))
 
 
 class RuntimeRouter(StreamingRouter):

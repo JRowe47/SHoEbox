@@ -67,5 +67,7 @@ def paired_forward(model, batch):
         state=branch['state'], history_state=prefix['state'],
         aux=(n*prefix['aux']+m*branch['aux'])/(n+m),
         hat_aux=(n*prefix['hat_aux']+m*branch['hat_aux'])/(n+m),
+        expert_executions=prefix['expert_executions']+branch['expert_executions'],
+        hippocampus_work=prefix['hippocampus_work']+branch['hippocampus_work'],
         executed_positions=history.numel()+query.numel(),
         duplicated_positions=batch['full'].numel())
