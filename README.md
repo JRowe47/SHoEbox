@@ -72,6 +72,13 @@ is **25.2% faster** than the previous optimized path, with **35.4% less peak
 RSS**. Enable it with `model.set_execution_backend('fused')`; see
 [implementation, checks and commands](docs/cortical_minkron_fusion.md).
 
+The fused backend also reads **selected expert weights in place** and combines
+their gradients in bounded groups of eight calls. Against fused MinKron with
+the previous expert path, three matched B4/T32 pairs show **6.5% higher median
+throughput**, **23.8% less peak RSS**, and **41.0% less saved storage**. Dense
+AdamW and temporal gradients retain their behavior. See
+[expert execution and reproduction](docs/cortical_expert_fusion.md).
+
 The active model has no question/answer classifiers, conflicting-query heads,
 regional fact archives, retention controllers or replicated retrieval APIs.
 The older seven/eleven-node implementation remains under experiments/text_regions

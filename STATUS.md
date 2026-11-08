@@ -1,6 +1,42 @@
 # SHoEbox handoff
 
-## Current: native MinKron fusion complete
+## Current: indexed expert optimization complete
+
+The fused CPU backend now reads selected expert weights directly and combines
+compact row derivatives through groups of eight independent autograd edges.
+Each group produces one dense bank gradient. Whole-bank gradient allocations
+fall eightfold on full groups, without changing AdamW or temporal credit.
+
+Three alternating matched B4/T32 pairs show **19.34 -> 18.16 seconds** median
+forward/backward time, **6.5% more bytes/s**, **23.8% lower peak RSS**
+(**2.57 -> 1.96 GiB**), and **41.0% less referenced saved storage**.
+The baseline retains fused MinKron and disables only indexed experts.
+All matched batches have identical greedy predictions; maximum logit difference
+is **1.79e-7**. The 14,976,882 parameters, 4/8/16-byte ports and 32-observation
+training horizon are unchanged.
+
+Completed **1,000 FineWeb byte targets** in eight updates and **148.28 seconds**
+of forward/backward/optimizer work. Training peak RSS is **2.14 GiB**;
+compact state remains **320,064 bytes**. Fixed training-slice probe NLL:
+**5.584955 -> 5.069314**. All **28 tests** pass, including FP64/numerical
+expert gradients, retained graphs, duplicate selections, frozen weights,
+AdamW moments/decay, threading, fallback and live state across model calls.
+The endpoint reload reproduces its probe and port diagnostics exactly;
+lag-31 task gradients remain live in A1/B1/L2. A 64-call bank audit reduces
+dense gradient allocations **128 -> 16**, with no sparse coalescing. The
+same-checkpoint operator profile reduces positive allocation traffic from
+**308.3 -> 235.4 MiB** per four-stream observation.
+
+Enable with `model.set_execution_backend('fused')`; set `SHOEBOX_EXPERTS=0`
+for the previous expert path. Native CPU FP32/FP64 remains optional, with
+portable fallback and first-order reverse-mode training support.
+
+See [implementation and reproduction](docs/cortical_expert_fusion.md) and
+[matched results and endpoint audit](docs/cortical_expert_fusion_results.json).
+Endpoint: `artifacts/expert_fusion/train/last.pt`. The next target is small
+dense projection and pointwise/autograd overhead.
+
+## Previous: native MinKron fusion complete
 
 The existing cortical/FineWeb/wide-port changes were published to GitHub as
 [4695bb3](https://github.com/JRowe47/SHoEbox/commit/4695bb378813b92060f9c6eaa57d0bb0fcce2e61).

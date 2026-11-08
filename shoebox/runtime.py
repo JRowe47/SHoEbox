@@ -11,6 +11,7 @@ from torch.nn import functional as F
 from experiments.hat_minkron.kron import normalize_direction
 from experiments.hat_minkron.semantic_core import switch_balance, normalize
 from .fused_kron import fused_final
+from .fused_experts import expert_forward
 
 
 _cache = ContextVar('cortical_forward_cache',default=None)
@@ -176,7 +177,11 @@ def execute_private(core, x, prior, states, *, fused=False):
         routed = route(block.router,z,prior[:, :, index])
         if block.experts.shared_count:
             raise ValueError('Private cortical execution cannot contain shared banks.')
-        x = x+block.experts.private(z,routed['experts'],routed['gates'])
+        bank = block.experts.private
+        update = expert_forward(bank,z,routed['experts'],routed['gates'],cached) if fused else None
+        if update is None:
+            update = bank(z,routed['experts'],routed['gates'])
+        x = x+update
         final.append(state)
         aux = aux+routed['aux']
         expert_ids.append(routed['experts'])

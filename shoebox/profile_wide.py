@@ -18,6 +18,7 @@ from . import CorticalModel, cortical_wide
 from .checkpoint import save, load
 from .diagnostics import PortMonitor, SavedTensorAccounting
 from .fused_kron import native_status
+from .fused_experts import expert_status
 from .train_fineweb import atomic_json, optimizer_for, source_digest
 
 
@@ -70,7 +71,8 @@ def benchmark(args,data):
     backward = time.perf_counter()-start
     norm = float(torch.nn.utils.clip_grad_norm_(model.parameters(),float('inf'),error_if_nonfinite=True))
     torch.save(result['logits'].detach(),args.out/f'benchmark_{args.backend}_logits.pt')
-    summary = {'backend':args.backend,'batch':args.batch,'context':args.context,
+    summary = {'backend':args.backend,'expert_kernel':expert_status() if args.backend=='fused' else None,
+               'batch':args.batch,'context':args.context,
                'target_positions':x.numel(),'parameters':sum(p.numel() for p in model.parameters()),
                'nll':float(result['ce'].detach()),'gradient_norm':norm,
                'forward_seconds':forward,'backward_seconds':backward,
@@ -95,7 +97,8 @@ def train(args,data,raw):
                'lr':args.lr,'warmup_targets':args.warmup_targets,'lr_after_warmup':'constant',
                'source_sha256':source_digest(),'data_sha256':hashlib.sha256(raw).hexdigest(),
                'threads':args.threads,'torch':str(torch.__version__),'python':platform.python_version(),
-               'backend':args.backend,'native':native_status() if args.backend=='fused' else None}
+               'backend':args.backend,'native':native_status() if args.backend=='fused' else None,
+               'expert_kernel':expert_status() if args.backend=='fused' else None}
     summary['allocation'] = {name:{'parameters':sum(p.numel() for p in region.parameters()),
                                   'width':region.hat.cfg.width,'experts':region.hat.cfg.experts,
                                   'expert_hidden':region.hat.cfg.expert_hidden,'hat_symbols':region.hat.cfg.hat_symbols,
@@ -212,7 +215,8 @@ def operators(args,data):
                      'self_cpu_memory_bytes':entry.self_cpu_memory_usage,
                      'input_shapes':str(entry.input_shapes)})
     rows.sort(key=lambda r:r['self_cpu_seconds'],reverse=True)
-    summary = {'backend':args.backend,'scope':'one observation per stream at the final checkpoint; backward only; no optimizer update',
+    summary = {'backend':args.backend,'expert_kernel':expert_status() if args.backend=='fused' else None,
+               'scope':'one observation per stream at the final checkpoint; forward and backward; no optimizer update',
                'scored_positions':x.numel(),'nll':float(result['ce'].detach()),'operators':rows,
                'total_self_cpu_seconds':sum(r['self_cpu_seconds'] for r in rows),
                'positive_self_allocated_bytes':sum(max(0,r['self_cpu_memory_bytes']) for r in rows),

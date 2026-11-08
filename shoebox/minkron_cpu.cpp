@@ -140,7 +140,135 @@ std::vector<Tensor> final_backward(const Tensor& grad_final, const Tensor& k, co
     return {dk,dv,dg,db,dc,ds};
 }
 
+// Read expert weights in place. Compact derivatives use one row per selection;
+// duplicate ids are summed once per bounded group of bank uses.
+static void check_experts(const Tensor& x, const Tensor& up, const Tensor& down,
+                          const Tensor& ids, const Tensor& gates) {
+    TORCH_CHECK(x.device().is_cpu() && (x.scalar_type()==at::kFloat || x.scalar_type()==at::kDouble),
+                "Indexed experts require CPU FP32/FP64");
+    for (const auto& t : {x,up,down,gates})
+        TORCH_CHECK(t.device().is_cpu() && t.scalar_type()==x.scalar_type() && t.is_contiguous(),
+                    "Expert tensors must be contiguous with matching dtype");
+    TORCH_CHECK(ids.device().is_cpu() && ids.scalar_type()==at::kLong && ids.is_contiguous(),
+                "Expert ids must be contiguous CPU int64");
+    TORCH_CHECK(x.dim()==2 && up.dim()==3 && ids.dim()==2, "Invalid expert dimensions");
+    TORCH_CHECK(x.size(0)>0 && x.size(1)>0 && up.size(0)>0 && up.size(1)>0 && ids.size(1)>0 &&
+                up.size(2)==x.size(1) && down.sizes()==up.sizes() && ids.size(0)==x.size(0) &&
+                gates.sizes()==ids.sizes(), "Invalid expert dimensions");
+    const auto I=ids.data_ptr<int64_t>();
+    for (int64_t i=0;i<ids.numel();++i)
+        TORCH_CHECK(I[i]>=0 && I[i]<up.size(0), "Expert row index out of range");
+}
+
+std::vector<Tensor> experts_forward(const Tensor& x, const Tensor& up, const Tensor& down,
+                                   const Tensor& ids, const Tensor& gates, bool keep_tape) {
+    check_experts(x,up,down,ids,gates);
+    const auto N=x.size(0), D=x.size(1), H=up.size(1), K=ids.size(1);
+    auto result=at::zeros_like(x);
+    auto pre=keep_tape ? at::empty({N,K,H},x.options()) : at::empty({0},x.options());
+    const auto I=ids.data_ptr<int64_t>();
+    AT_DISPATCH_FLOATING_TYPES(x.scalar_type(), "indexed_experts_forward", [&] {
+        const auto X=x.data_ptr<scalar_t>(), U=up.data_ptr<scalar_t>(), W=down.data_ptr<scalar_t>();
+        const auto G=gates.data_ptr<scalar_t>();
+        auto Y=result.data_ptr<scalar_t>(), P=keep_tape ? pre.data_ptr<scalar_t>() : nullptr;
+        const scalar_t invsqrt2=1/std::sqrt(scalar_t(2)), scale=1/std::sqrt(scalar_t(K));
+        at::parallel_for(0,N,8,[&](int64_t begin,int64_t end) {
+            std::vector<scalar_t> hidden(H), raw(D);
+            for (int64_t n=begin;n<end;++n) {
+                for (int64_t k=0;k<K;++k) {
+                    const auto row=n*K+k, bank=I[row]*H*D;
+                    for (int64_t h=0;h<H;++h) {
+                        scalar_t z=0;
+                        for (int64_t d=0;d<D;++d) z+=U[bank+h*D+d]*X[n*D+d];
+                        if (keep_tape) P[row*H+h]=z;
+                        hidden[h]=scalar_t(.5)*z*(1+std::erf(z*invsqrt2));
+                    }
+                    std::fill(raw.begin(),raw.end(),scalar_t(0));
+                    for (int64_t h=0;h<H;++h)
+                        for (int64_t d=0;d<D;++d) raw[d]+=hidden[h]*W[bank+h*D+d];
+                    for (int64_t d=0;d<D;++d) Y[n*D+d]+=raw[d]*G[row];
+                }
+                for (int64_t d=0;d<D;++d) Y[n*D+d]*=scale;
+            }
+        });
+    });
+    return {result,pre};
+}
+
+std::vector<Tensor> experts_backward(const Tensor& dy, const Tensor& x, const Tensor& up,
+        const Tensor& down, const Tensor& ids, const Tensor& gates, const Tensor& pre) {
+    check_experts(x,up,down,ids,gates);
+    const auto N=x.size(0), D=x.size(1), H=up.size(1), K=ids.size(1);
+    for (const auto& t : {dy,pre})
+        TORCH_CHECK(t.device().is_cpu() && t.scalar_type()==x.scalar_type() && t.is_contiguous(),
+                    "Invalid expert gradient/tape storage");
+    TORCH_CHECK(dy.sizes()==x.sizes() && pre.sizes()==at::IntArrayRef({N,K,H}),
+                "Invalid expert gradient/tape dimensions");
+    auto dx=at::zeros_like(x),du=at::empty({N*K,H,D},x.options()),dd=at::empty_like(du);
+    auto dg=at::empty_like(gates);
+    const auto I=ids.data_ptr<int64_t>();
+    AT_DISPATCH_FLOATING_TYPES(x.scalar_type(), "indexed_experts_backward", [&] {
+        const auto X=x.data_ptr<scalar_t>(), U=up.data_ptr<scalar_t>(), W=down.data_ptr<scalar_t>();
+        const auto G=gates.data_ptr<scalar_t>(), P=pre.data_ptr<scalar_t>(), Y=dy.data_ptr<scalar_t>();
+        auto dX=dx.data_ptr<scalar_t>(), dU=du.data_ptr<scalar_t>(), dW=dd.data_ptr<scalar_t>(), dG=dg.data_ptr<scalar_t>();
+        const scalar_t invsqrt2=1/std::sqrt(scalar_t(2)), scale=1/std::sqrt(scalar_t(K));
+        const scalar_t invsqrt2pi=1/std::sqrt(scalar_t(2)*scalar_t(3.1415926535897932384626433832795));
+        at::parallel_for(0,N,8,[&](int64_t begin,int64_t end) {
+            for (int64_t n=begin;n<end;++n) {
+                for (int64_t k=0;k<K;++k) {
+                    const auto row=n*K+k, bank=I[row]*H*D;
+                    scalar_t gate_grad=0;
+                    for (int64_t h=0;h<H;++h) {
+                        scalar_t dh=0;
+                        for (int64_t d=0;d<D;++d) dh+=(Y[n*D+d]*scale)*W[bank+h*D+d];
+                        const scalar_t z=P[row*H+h], cdf=scalar_t(.5)*(1+std::erf(z*invsqrt2));
+                        const scalar_t hidden=z*cdf, dz=(dh*G[row])*(cdf+z*std::exp(scalar_t(-.5)*z*z)*invsqrt2pi);
+                        gate_grad+=dh*hidden;
+                        for (int64_t d=0;d<D;++d) {
+                            const auto offset=(row*H+h)*D+d;
+                            dU[offset]=dz*X[n*D+d];
+                            dW[offset]=((Y[n*D+d]*scale)*G[row])*hidden;
+                            dX[n*D+d]+=dz*U[bank+h*D+d];
+                        }
+                    }
+                    dG[row]=gate_grad;
+                }
+            }
+        });
+    });
+    return {dx,du,dd,dg};
+}
+
+Tensor dense_row_grads(const std::vector<Tensor>& gradients) {
+    TORCH_CHECK(!gradients.empty(), "Need at least one expert gradient");
+    const auto& first=gradients[0];
+    TORCH_CHECK(first.device().is_cpu() && first.dim()==3 && first.is_sparse() &&
+                (first.scalar_type()==at::kFloat || first.scalar_type()==at::kDouble),
+                "Expected sparse CPU expert gradients");
+    auto result=at::zeros(first.sizes(),first.options().layout(at::kStrided));
+    const auto rows=first.size(0), width=first.size(1)*first.size(2);
+    AT_DISPATCH_FLOATING_TYPES(first.scalar_type(), "expert_dense_row_grads", [&] {
+        auto O=result.data_ptr<scalar_t>();
+        for (const auto& gradient : gradients) {
+            TORCH_CHECK(gradient.device().is_cpu() && gradient.is_sparse() && gradient.sparse_dim()==1 &&
+                        gradient.sizes()==first.sizes() && gradient.scalar_type()==first.scalar_type(),
+                        "Incompatible sparse expert gradients");
+            auto indices=gradient._indices().contiguous(), values=gradient._values().contiguous();
+            const auto I=indices.data_ptr<int64_t>();
+            const auto V=values.data_ptr<scalar_t>();
+            for (int64_t row=0;row<values.size(0);++row) {
+                TORCH_CHECK(I[row]>=0 && I[row]<rows, "Expert row index out of range");
+                for (int64_t i=0;i<width;++i) O[I[row]*width+i]+=V[row*width+i];
+            }
+        }
+    });
+    return result;
+}
+
 TORCH_LIBRARY(shoebox_minkron_cpu, m) {
     m.def("final_forward(Tensor k, Tensor v, Tensor g, Tensor beta, Tensor write, Tensor previous, bool keep_tape) -> Tensor[]", &final_forward);
     m.def("final_backward(Tensor grad_final, Tensor k, Tensor v, Tensor g, Tensor beta, Tensor write, Tensor previous, Tensor tape) -> Tensor[]", &final_backward);
+    m.def("experts_forward(Tensor x, Tensor up, Tensor down, Tensor ids, Tensor gates, bool keep_tape) -> Tensor[]", &experts_forward);
+    m.def("experts_backward(Tensor dy, Tensor x, Tensor up, Tensor down, Tensor ids, Tensor gates, Tensor pre) -> Tensor[]", &experts_backward);
+    m.def("dense_row_grads(Tensor[] gradients) -> Tensor", &dense_row_grads);
 }
