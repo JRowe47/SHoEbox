@@ -1,6 +1,42 @@
 # SHoEbox handoff
 
-## Current: CPU overhaul and learned sparse regional execution complete
+## Current: 100,000-byte CPU training run complete
+
+Completed **100,000 additional FineWeb byte targets**, continuing the sparse
+2,048-target checkpoint's weights and AdamW moments: **102,048 lifetime exposures**.
+Runtime state resets for 50 streams; the 32-observation training horizon and
+14,989,597-parameter architecture are unchanged. This is 63 optimizer updates,
+with two CPU intra-operation threads and one regional worker.
+
+Held-out NLL improves **4.434360 -> 3.269114 nats/byte** on 4,000 targets from
+source documents absent from training. Bits/byte falls **6.3974 -> 4.7163**.
+Best and final weights are at 100,000 targets. Training takes **27.08 minutes**
+at **61.54 external bytes/s** including clipping and AdamW; full session time
+is **29.59 minutes**, peak RSS **4.90 GiB**. This is aggregate B50 throughput.
+
+The learning result remains at byte-frequency level. A training-fitted unigram
+scores **3.256191**; all 4,000 greedy predictions are spaces (**17.725% accuracy**).
+Pairing each held-out input stream with another stream's targets changes NLL by
+**-0.000103**. Samples are incoherent. Further training/learning work should
+measure input-conditioned gains against this baseline, alongside throughput.
+
+The final checkpoint reload exactly reproduces validation; all parameters and
+logged gradient norms are finite. The new long-run harness writes periodic
+last/best checkpoints and exact target counts. A split-run check reproduces model,
+optimizer, runtime state and RNG exactly and rejects protocol changes.
+The 36 existing core checks passed in the CPU overhaul; the new resume check
+passes independently. No runtime source changed during this run.
+
+Training writes 16,863 aligned EC episodes (292-390 per stream, bounded retained
+capacity). Complete port/routing diagnostics, data hashes, history, samples and
+endpoint audit are retained. A1/B1 soft byte entropy remains near 7.95 bits;
+complete-frame diversity is 87.8%/63.6% on the first held-out window.
+
+See [commands and resume semantics](docs/cpu_training.md) and
+[results and endpoint audit](docs/cpu_training_results.json).
+Endpoint: `artifacts/cpu_fineweb_100k/last.pt`; `best.pt` has the same final weights.
+
+## Previous: CPU overhaul and learned sparse regional execution complete
 
 The new `cortical_cpu()` preset learns optional regional activation and top-two
 incoming connections per stream. A1/B1/S2/Y remain a live input-output path;

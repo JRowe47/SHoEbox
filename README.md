@@ -91,6 +91,10 @@ held-out NLL is **4.51 sparse vs 4.41 dense** after the same budget.
 See [CPU configuration and commands](docs/cortical_cpu.md) and
 [measurements](docs/cortical_cpu_results.json).
 
+For longer runs, `python -m shoebox.train_cpu` adds periodic last/best checkpoints,
+held-out validation, exact restart and explicit continuation from existing
+weights. See [100k-run commands and checkpoint semantics](docs/cpu_training.md).
+
 The active model has no question/answer classifiers, conflicting-query heads,
 regional fact archives, retention controllers or replicated retrieval APIs.
 The older seven/eleven-node implementation remains under experiments/text_regions
@@ -101,3 +105,8 @@ also runs those historical suites. [Historical overview](docs/legacy_project_ove
 SHoEbox reuses the established HAT/minKron/sparse expert primitives in
 experiments/hat_minkron. Original attribution and experiment provenance remain
 in [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) and [SHoE_BASELINE.md](SHoE_BASELINE.md).
+
+The completed **100,000-byte CPU continuation** averages **61.54 training bytes/s**
+at B50/T32. Held-out NLL falls **4.434 -> 3.269**, remaining at unigram level
+(3.256 baseline; greedy predictions are spaces). See
+[training results and checkpoint audit](docs/cpu_training_results.json).
