@@ -16,7 +16,7 @@ def main():
                              'shoebox.test_fused_kron', 'shoebox.test_fused_experts',
                              'shoebox.test_sparse_cpu', 'shoebox.test_cpu_train',
                              'shoebox.test_hierarchy', 'shoebox.test_hierarchy_training',
-                             'shoebox.test_hierarchy_cycle'], cwd=ROOT)
+                             'shoebox.test_hierarchy_cycle', 'shoebox.test_hierarchy_objectives'], cwd=ROOT)
     if result.returncode:
         return result.returncode
     if args.legacy:

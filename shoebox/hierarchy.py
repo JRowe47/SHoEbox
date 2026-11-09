@@ -9,7 +9,8 @@ import math
 import torch
 from torch import nn
 from torch.nn import functional as F
-from .hierarchy_config import HierarchyConfig, CADENCES
+from .hierarchy_config import HierarchyConfig, ObjectiveConfig, CADENCES
+from .hierarchy_objectives import RegionalObjectives, PRODUCERS, publication_records
 from .latent_region import LatentFrame, LatentRegion
 from .region import RegionState
 from .runtime import forward_scope
@@ -135,7 +136,7 @@ last boundary without ever feeding that future tail to the recurrent model.
 
 
 class HierarchyModel(nn.Module):
-    def __init__(self, cfg=None):
+    def __init__(self, cfg=None, objective=None):
         super().__init__()
         self.cfg = cfg or HierarchyConfig()
         self.cfg.validate()
@@ -154,6 +155,20 @@ class HierarchyModel(nn.Module):
             self.future_heads = nn.ModuleDict({
                 'mid': nn.Linear(2*self.cfg.message_width, 4*256),
                 'high': nn.Linear(self.cfg.message_width, 16*256)})
+        self.configure_objective(objective or ObjectiveConfig())
+
+    def configure_objective(self, objective):
+        if objective.mode == 'latent' and self.cfg.local_only:
+            raise ValueError('Regional latent objectives require the full hierarchy.')
+        self.objective_config = objective
+        if objective.mode == 'latent':
+            if not hasattr(self, 'regional_objectives'):
+                parameter = next(self.parameters())
+                self.regional_objectives = RegionalObjectives(self.cfg.message_width, objective).to(parameter)
+            self.regional_objectives.config = objective
+        elif hasattr(self, 'regional_objectives'):
+            del self.regional_objectives
+        return self
 
     def set_execution_backend(self, backend):
         if backend not in ('cpu', 'optimized'):
@@ -172,13 +187,16 @@ class HierarchyModel(nn.Module):
     @forward_scope
     def forward(self, values, targets=None, state=None, *, future_targets=None,
                 trace=False, context_permutation=None, feedback_permutation=None,
-                decoder_local_scale=1.):
+                decoder_local_scale=1., document_ids=None, collect_messages=False):
         if (values.ndim != 2 or min(values.shape) < 1 or values.dtype not in (torch.uint8, torch.int32, torch.int64)
                 or bool(((values < 0) | (values > 255)).any())):
             raise ValueError('Expected nonempty integer observations [B,T] in [0,255].')
         if values.device != next(self.parameters()).device:
             raise ValueError('Input and model must share a device.')
         batch, length = values.shape
+        if document_ids is not None and (document_ids.shape != values.shape or
+                document_ids.dtype != torch.long or document_ids.device != values.device):
+            raise ValueError('Document IDs must be int64 [B,T] on the input device.')
         for labels in (targets, future_targets):
             if labels is not None and (labels.ndim != 2 or labels.shape[0] != batch or
                     labels.dtype != torch.long or labels.device != values.device or
@@ -207,6 +225,10 @@ class HierarchyModel(nn.Module):
         local_pending, mid_pending = list(state.pending_local), list(state.pending_mid)
         outputs, aux, records = [], [], []
         spans = {'mid': ([], []), 'high': ([], [])}
+        latent_objective = targets is not None and self.objective_config.mode == 'latent'
+        collect = latent_objective or collect_messages
+        publications = {n: [] for n in PRODUCERS} if collect else None
+        positions = {n: [] for n in PRODUCERS} if collect else None
         counts = {n: 0 for n in self.cfg.names}
         occurrences = {n: 0 for n in self.cfg.names}
         expert_rows = {n: [] for n in self.cfg.names} if trace else None
@@ -223,6 +245,9 @@ class HierarchyModel(nn.Module):
             counts[name] += batch
             occurrences[name] += batch*len(frames)
             aux.append(out['aux'])
+            if collect and name in publications:
+                publications[name].append(frame.value)
+                positions[name].append(event)
             if trace:
                 records.append(dict(region=name, event=event, inputs=[f.trace(event) for f in frames],
                                     context=None if context is None else context.trace(event)))
@@ -249,7 +274,7 @@ class HierarchyModel(nn.Module):
                 s2, _ = run('S2', [f for pair in local_pending for f in pair], event, context)
                 mid_pending.append((l2, s2))
                 local_pending.clear()
-                if targets is not None:
+                if targets is not None and not latent_objective:
                     spans['mid'][0].append(torch.cat((l2.value, s2.value), -1))
                     spans['mid'][1].append(t)
             if (event+1) % 16 == 0:
@@ -257,7 +282,7 @@ class HierarchyModel(nn.Module):
                     raise ValueError('Incomplete second-order source span.')
                 high, _ = run('L3', [f for pair in mid_pending for f in pair], event)
                 mid_pending.clear()
-                if targets is not None:
+                if targets is not None and not latent_objective:
                     spans['high'][0].append(high.value)
                     spans['high'][1].append(t)
             local, joint = self.decoder.combine(observed[:, t], latest, event, context_permutation,
@@ -277,8 +302,20 @@ class HierarchyModel(nn.Module):
                     if scale in self.future_heads else (logits.new_zeros(()), 0))
         loss = None if ce is None else (ce+self.cfg.mid_loss_weight*losses['mid']+
                 self.cfg.high_loss_weight*losses['high']+self.cfg.expert_balance_weight*balance)
+        messages, regional = {}, None
+        if collect:
+            if document_ids is None:
+                # One uninterrupted document per row is the standalone API default.
+                document_ids = torch.arange(batch, device=values.device)[:, None].expand_as(values)
+            valid = torch.ones_like(values, dtype=torch.bool) if targets is None else targets != -100
+            messages = publication_records(publications, positions, start=state.event,
+                                           documents=document_ids, valid=valid)
+        if latent_objective:
+            regional = self.regional_objectives(messages)
+            loss = ce+self.cfg.expert_balance_weight*balance+regional['loss']
         return dict(logits=logits, ce=ce, loss=loss, aux=balance, span_losses=losses,
-                    span_targets=target_counts, trace=records,
+                    span_targets=target_counts, trace=records, regional=regional,
+                    publications=messages,
                     experts={n: torch.stack(rows) for n, rows in expert_rows.items() if rows} if trace else {},
                     work=dict(region_rows=counts, occurrence_rows=occurrences, external_bytes=values.numel()),
                     state=HierarchyState(batch, nodes, latest, tuple(local_pending), tuple(mid_pending),
@@ -300,8 +337,11 @@ class HierarchyModel(nn.Module):
             regions[name] = dict(parameters=total, active_per_invocation=used, cadence=CADENCES[name])
         decoder = sum(p.numel() for p in self.decoder.parameters())
         future = sum(p.numel() for p in self.future_heads.parameters())
+        regional = sum(p.numel() for p in self.regional_objectives.parameters()) if hasattr(self, 'regional_objectives') else 0
         return dict(total=sum(p.numel() for p in self.parameters()), regions=regions,
-                    decoder_parameters=decoder, training_head_parameters=future,
+                    decoder_parameters=decoder, training_head_parameters=future+regional,
+                    latent_head_parameters=regional,
+                    inference_parameters=sum(p.numel() for p in self.parameters())-future-regional,
                     scheduled_inference_parameter_touches_per_byte=active+decoder+self.cfg.message_width,
                     region_executions_per_byte=sum(1/CADENCES[n] for n in self.cfg.names),
                     note='Parameter-touch estimate, not FLOPs or wall time; optimizer banks are dense.')

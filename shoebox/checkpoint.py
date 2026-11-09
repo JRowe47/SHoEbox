@@ -19,6 +19,11 @@ def save(path, model, state, optimizer=None, *, step=0, metadata=None):
             'state': None if state is None else state.detach().to_dict(),
             'optimizer': None if optimizer is None else optimizer.state_dict(),
             'rng': torch.get_rng_state(), 'step': step, 'metadata': metadata or {}}
+    if isinstance(model, HierarchyModel):
+        data['objective_config'] = model.objective_config.to_dict()
+        if optimizer is not None:
+            names = {id(p): n for n, p in model.named_parameters()}
+            data['optimizer_names'] = [[names[id(p)] for p in g['params']] for g in optimizer.param_groups]
     temporary = path.with_suffix(path.suffix+'.tmp')
     torch.save(data, temporary)
     os.replace(temporary, path)
@@ -30,9 +35,10 @@ def load(path, *, device='cpu', optimizer_factory=None):
         raise ValueError('Expected a cortical-v2 skeleton checkpoint; legacy checkpoints are incompatible.')
     dtype = next(value.dtype for value in data['model'].values() if value.is_floating_point())
     if data['format'] == HIERARCHY_FORMAT:
-        from .hierarchy_config import HierarchyConfig
+        from .hierarchy_config import HierarchyConfig, ObjectiveConfig
         from .hierarchy import HierarchyModel, HierarchyState
-        model = HierarchyModel(HierarchyConfig(**data['config'])).to(device=device, dtype=dtype)
+        model = HierarchyModel(HierarchyConfig(**data['config']),
+                ObjectiveConfig(**data.get('objective_config', {}))).to(device=device, dtype=dtype)
         state_type = HierarchyState
     else:
         model = CorticalModel(SkeletonConfig(**data['config'])).to(device=device, dtype=dtype)

@@ -14,11 +14,11 @@ import time
 import torch
 from torch.nn import functional as F
 from .hierarchy import HierarchyModel
-from .hierarchy_config import HierarchyConfig
+from .hierarchy_config import HierarchyConfig, ObjectiveConfig
 from .checkpoint import save, load, HIERARCHY_FORMAT
 from .train_fineweb import atomic_json, optimizer_for, source_digest
 from .fused_kron import native_status
-from .hierarchy_training import CycleConfig, RegionalCycle, regional_optimizer, gradient_norms
+from .hierarchy_training import CycleConfig, RegionalCycle, regional_optimizer, gradient_norms, restore_named_optimizer
 
 
 def load_data(folder):
@@ -55,6 +55,8 @@ def evaluate(model, docs, *, context=128, batch=32, intervention=None, limit=Non
     model.eval()
     nll, correct, count, rows = 0., 0, 0, 0
     span_sums, span_counts = dict(mid=0., high=0.), dict(mid=0, high=0)
+    regional_sums, regional_counts, regional_possible = {}, {}, {}
+    health_sums, health_counts = {}, {}
     start = time.perf_counter()
     try:
         for offset in range(0, len(docs), batch):
@@ -92,6 +94,18 @@ def evaluate(model, docs, *, context=128, batch=32, intervention=None, limit=Non
                 correct += int(((out['logits'].argmax(-1) == y) & (y != -100)).sum())
                 count += scored
                 rows += sum(out['work']['region_rows'].values())
+                if out['regional'] is not None:
+                    for name, item in out['regional']['metrics'].items():
+                        n = item['pairs']
+                        regional_counts[name] = regional_counts.get(name, 0)+n
+                        regional_possible[name] = regional_possible.get(name, 0)+item['possible']
+                        for key in ('huber', 'persistence', 'shuffled_future', 'mse', 'persistence_mse', 'shuffled_future_mse'):
+                            regional_sums.setdefault(name, {}).setdefault(key, 0.)
+                            regional_sums[name][key] += item.get(key, 0.)*n
+                    for name, item in out['regional']['health'].items():
+                        n = item['examples']
+                        health_counts[name] = health_counts.get(name, 0)+n
+                        health_sums[name] = health_sums.get(name, 0.)+item['mean_std']*n
                 if span_metrics:
                     for scale in span_sums:
                         span_counts[scale] += out['span_targets'][scale]
@@ -104,7 +118,10 @@ def evaluate(model, docs, *, context=128, batch=32, intervention=None, limit=Non
     return dict(nll=nll/count, accuracy=correct/count, targets=count, seconds=seconds,
                 scored_bytes_per_second=count/seconds, region_rows_including_padding=rows,
                 intervention=intervention,
-                span_nll={k: span_sums[k]/n for k, n in span_counts.items() if n}, span_targets=span_counts)
+                span_nll={k: span_sums[k]/n for k, n in span_counts.items() if n}, span_targets=span_counts,
+                regional={k: dict(pairs=n, possible=regional_possible[k],
+                    **{m: v/n for m, v in regional_sums[k].items()}) for k, n in regional_counts.items() if n},
+                message_std={k: v/health_counts[k] for k, v in health_sums.items()})
 
 
 def count_baselines(counts, docs):
@@ -164,10 +181,10 @@ def sample(model, prompt='The ', count=64, seed=731, temperature=.8):
         model.train(training)
 
 
-def train_update(model, optimizer, x, y, state, future_targets, *, decoder_local_scale=1., diagnostics=False):
+def train_update(model, optimizer, x, y, state, future_targets, *, decoder_local_scale=1., diagnostics=False, document_ids=None):
     optimizer.zero_grad(set_to_none=True)
     start = time.perf_counter()
-    out = model(x, y, state, future_targets=future_targets, decoder_local_scale=decoder_local_scale)
+    out = model(x, y, state, future_targets=future_targets, decoder_local_scale=decoder_local_scale, document_ids=document_ids)
     forward = time.perf_counter()-start
     start = time.perf_counter(); out['loss'].backward(); backward = time.perf_counter()-start
     start = time.perf_counter()
@@ -175,13 +192,32 @@ def train_update(model, optimizer, x, y, state, future_targets, *, decoder_local
     norm = torch.nn.utils.clip_grad_norm_(model.parameters(), 1., error_if_nonfinite=True, foreach=True)
     optimizer.step(); update = time.perf_counter()-start
     seconds = forward+backward+update
-    return out['state'].detach(), dict(nll=float(out['ce'].detach()),
+    row = dict(nll=float(out['ce'].detach()),
             mid_nll=float(out['span_losses']['mid'].detach()), high_nll=float(out['span_losses']['high'].detach()),
             span_targets=out['span_targets'], gradient_norm=float(norm),
             regional_gradient_norms=regional_norms,
             forward_seconds=forward, backward_seconds=backward, optimizer_seconds=update,
             training_seconds=seconds, training_bytes_per_second=x.numel()/seconds,
             region_executions_per_byte=sum(out['work']['region_rows'].values())/x.numel())
+    if out['regional'] is not None:
+        row.pop('mid_nll'); row.pop('high_nll')
+        row.update(regional=out['regional']['metrics'], message_health=out['regional']['health'],
+                   variance_penalty=float(out['regional']['variance'].detach()),
+                   covariance_penalty=float(out['regional']['covariance'].detach()))
+    return out['state'].detach(), row
+
+
+def training_document_ids(manifest):
+    spec = manifest['files']['train']
+    ids = torch.full((spec['bytes'],), -1, dtype=torch.long)
+    for i, doc in enumerate(spec['documents']):
+        start, end = doc['offset'], doc['offset']+doc['bytes']
+        if start < 0 or end > ids.numel() or bool((ids[start:end] != -1).any()):
+            raise ValueError('Overlapping or invalid training document boundaries.')
+        ids[start:end] = i
+    if bool((ids < 0).any()):
+        raise ValueError('Training document boundaries must cover the corpus.')
+    return ids.reshape(manifest['batch'], -1)
 
 
 def initialize_stream(checkpoint, state, protocol, *, new_stream=False):
@@ -226,6 +262,8 @@ def main():
     origin.add_argument('--resume', type=Path)
     origin.add_argument('--initialize-from', type=Path, help='Fork a checkpoint with state, Adam moments and data cursor; --updates is the new budget.')
     p.add_argument('--new-stream', action='store_true', help='With --initialize-from, allow new training data/batch/horizon and reset only runtime state/cursor.')
+    p.add_argument('--objective', choices=('legacy', 'latent'), default='legacy')
+    p.add_argument('--objective-config', type=Path, help='Fixed versioned training objective JSON; overrides --objective.')
     p.add_argument('--training-mode', choices=('joint', 'cycle'), default='joint')
     p.add_argument('--cycle-warmup', type=int, default=64)
     p.add_argument('--upper-updates', type=int, default=32)
@@ -254,9 +292,14 @@ def main():
         p.error(str(exc))
     if args.local_only and args.training_mode == 'cycle':
         p.error('Regional cycles require the full hierarchy.')
+    objective_config = (ObjectiveConfig(**json.loads(args.objective_config.read_text()))
+                        if args.objective_config else ObjectiveConfig(mode=args.objective))
+    if objective_config.mode == 'latent' and (args.local_only or args.training_mode != 'joint'):
+        p.error('Phase A uses the full hierarchy with joint training.')
     cycle = RegionalCycle(cycle_config)
     torch.set_num_threads(args.threads); torch.set_num_interop_threads(1)
     train, validation, manifest = load_data(args.data)
+    document_ids = training_document_ids(manifest)
     continuity_sha = None
     if args.continuity:
         old = json.loads((args.continuity.parent/'manifest.json').read_text())['files']['validation']
@@ -274,7 +317,9 @@ def main():
                     validation_sha256=manifest['files']['validation']['sha256'],
                     batch=train.shape[0], context=args.context, updates=args.updates, lr=args.lr,
                     warmup_updates=args.warmup_updates, local_only=args.local_only, threads=args.threads)
-    protocol.update(eval_context=args.eval_context, new_stream=args.new_stream)
+    protocol.update(eval_context=args.eval_context, new_stream=args.new_stream,
+                    objective=objective_config.to_dict(),
+                    data_manifest_sha256=hashlib.sha256((args.data/'manifest.json').read_bytes()).hexdigest())
     protocol['continuity_sha256'] = continuity_sha
     protocol['regional_cycle'] = cycle_config.to_dict()
     protocol['initial_checkpoint_sha256'] = (hashlib.sha256(args.initialize_from.read_bytes()).hexdigest()
@@ -282,6 +327,7 @@ def main():
     step, cursor, epoch, elapsed = 0, 0, 0, 0.
     initial_updates, initial_targets = 0, 0
     history, evaluations, state = [], [], None
+    migration = None
     counts = torch.zeros(256, 256, dtype=torch.float64)
     if args.resume:
         model, state, _, checkpoint = load(args.resume)
@@ -289,7 +335,9 @@ def main():
         protocol['new_stream'] = checkpoint['metadata']['protocol'].get('new_stream', False)
         if checkpoint['format'] != HIERARCHY_FORMAT or checkpoint['metadata']['protocol'] != protocol:
             raise ValueError('Resume requires the same model, corpus, source and training protocol.')
-        optimizer = regional_optimizer(model, args.lr); optimizer.load_state_dict(checkpoint['optimizer'])
+        optimizer = regional_optimizer(model, args.lr)
+        restore_named_optimizer(model, optimizer, checkpoint)
+        optimizer.load_state_dict(checkpoint['optimizer'])
         old = checkpoint['metadata']
         step, cursor, epoch, elapsed = checkpoint['step'], old['cursor'], old['epoch'], old['elapsed']
         history, evaluations, counts = old['history'], old['evaluations'], old['counts']
@@ -302,10 +350,9 @@ def main():
         if checkpoint['format'] != HIERARCHY_FORMAT or model.cfg != HierarchyConfig(local_only=args.local_only):
             raise ValueError('Initialization requires the same hierarchy configuration.')
         transition = initialize_stream(checkpoint, state, protocol, new_stream=args.new_stream)
-        optimizer = regional_optimizer(model, args.lr,
-                legacy_state=checkpoint['optimizer'] if 'regional_cycle' not in old['protocol'] else None)
-        if 'regional_cycle' in old['protocol']:
-            optimizer.load_state_dict(checkpoint['optimizer'])
+        model.configure_objective(objective_config)
+        optimizer = regional_optimizer(model, args.lr)
+        migration = restore_named_optimizer(model, optimizer, checkpoint)
         state, cursor, epoch, counts = (transition[k] for k in ('state', 'cursor', 'epoch', 'counts'))
         initial_updates, initial_targets = transition['initial_updates'], transition['initial_targets']
         if 'cycle' in old:
@@ -316,7 +363,7 @@ def main():
     else:
         cfg = HierarchyConfig(local_only=args.local_only)
         torch.manual_seed(cfg.seed)
-        model = HierarchyModel(cfg)
+        model = HierarchyModel(cfg, objective_config)
         optimizer = regional_optimizer(model, args.lr)
     model.set_execution_backend('cpu')
     kernel = native_status()
@@ -330,7 +377,7 @@ def main():
 
     def summary(complete=False):
         return dict(format=HIERARCHY_FORMAT, complete=complete, protocol=protocol,
-                    parameters=model.parameter_cost(), updates=step, trained_targets=step*train.shape[0]*args.context,
+                    parameters=model.parameter_cost(), optimizer_migration=migration, updates=step, trained_targets=step*train.shape[0]*args.context,
                     initial_updates=initial_updates, lifetime_updates=initial_updates+step,
                     initial_targets=initial_targets,
                     lifetime_targets=initial_targets+step*train.shape[0]*args.context,
@@ -369,8 +416,10 @@ def main():
         rate = args.lr*min(1., (initial_updates+step+1)/max(1, args.warmup_updates))
         plan = cycle.apply(model, optimizer, step, rate)
         state, row = train_update(model, optimizer, x, y, state, future,
-                                 decoder_local_scale=plan['local_scale'], diagnostics=True)
-        cycle.observe(row)
+                                 decoder_local_scale=plan['local_scale'], diagnostics=True,
+                                 document_ids=document_ids[:, cursor:cursor+args.context])
+        if objective_config.mode == 'legacy':
+            cycle.observe(row)
         counts += torch.bincount((x*256+y).flatten(), minlength=65536).reshape(256, 256)
         cursor += args.context; step += 1; elapsed += row['training_seconds']
         row.update(updates=step, trained_targets=step*x.numel(), epoch=epoch, lr=rate, **plan)

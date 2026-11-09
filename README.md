@@ -34,6 +34,11 @@ It reaches 1,048,576 lifetime targets and improves full held-out NLL from
 The native CPU backend reuses the AVX512 MinKron and sparse expert kernels;
 `set_execution_backend('optimized')` selects portable PyTorch.
 
+The optional [Phase A latent objective](docs/hybrid_learning.md) predicts each
+upper region's next incoming message bundle with causal document-aware pairs,
+training-only normalization, live diversity penalties and named Adam migration.
+It adds 83,200 training parameters and leaves inference unchanged.
+
 ## Preserved cortical expansion model
 
 The 18-region model and measured checkpoints remain available as `CorticalModel`:

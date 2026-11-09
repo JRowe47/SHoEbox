@@ -1,6 +1,17 @@
 # SHoEbox handoff
 
-## Current: fresh-data joint phase reaches one million target exposures
+## Current: Phase A regional latent objectives implemented
+
+Added optional future-input prediction for L2/S2/L3 with causal, ordered,
+document-isolated bundles; detached source normalization; live message diversity
+controls; named optimizer migration and explicit owner metadata. Joint byte
+credit and the inference topology are preserved. All **69 checks pass**, plus
+exact CLI pause/resume and source/data/objective mismatch rejection.
+
+Legacy remains the default while the matched 262,144-target continuation per
+arm completes. See [contracts and commands](docs/hybrid_learning.md).
+
+## Previous: fresh-data joint phase reaches one million target exposures
 
 Continued the stronger joint checkpoint for **256 updates / 524,288 new byte
 targets**, one pass through **195 previously unused FineWeb documents**. Joint

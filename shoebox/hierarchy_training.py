@@ -4,6 +4,7 @@ Only parameter learning is paused. Forward execution, recurrent state updates,
 and derivatives with respect to inputs remain live through frozen regions.
 """
 from dataclasses import asdict, dataclass
+from copy import deepcopy
 import math
 import torch
 from .train_fineweb import optimizer_for
@@ -16,11 +17,81 @@ def parameter_role(name):
         return 'local_projection'
     if name.startswith(('regions.L2.', 'regions.S2.', 'regions.L3.')):
         return 'upper'
-    if name.startswith('future_heads.'):
+    if name.startswith(('future_heads.', 'regional_objectives.predictors.')):
         return 'heads'
     if name.startswith(('decoder.', 'regions.Y.')):
         return 'reader'
     raise ValueError(f'Unassigned hierarchy parameter: {name}')
+
+
+def parameter_owner(name):
+    """Ownership metadata for later local/global gradient routing, not a detach."""
+    if name.startswith('regional_objectives.predictors.'):
+        return name.split('.')[2]
+    if name.startswith('regions.'):
+        return name.split('.')[1]
+    return parameter_role(name)
+
+
+def restore_named_optimizer(model, optimizer, checkpoint):
+    """Restore Adam by verified names, never onto an extended positional list.
+
+    Old checkpoints omitted names. Reconstruct only their two documented group
+    schemas from saved model names, roles, decay flags and exact tensor shapes.
+    New checkpoints always carry explicit per-group names.
+    """
+    saved = checkpoint['optimizer']
+    if saved is None:
+        raise ValueError('Continuation requires saved Adam history.')
+    parameters = dict(model.named_parameters())
+    shared = {n: p for n, p in parameters.items() if n in checkpoint['model']}
+    for name, p in shared.items():
+        if p.shape != checkpoint['model'][name].shape:
+            raise ValueError(f'Optimizer parameter shape changed: {name}')
+    names = checkpoint.get('optimizer_names')
+    if names is None:
+        if checkpoint.get('objective_config', {}).get('mode', 'legacy') != 'legacy':
+            raise ValueError('Latent checkpoints require named optimizer state.')
+        names = []
+        for group in saved['param_groups']:
+            selected = [n for n, p in shared.items()
+                        if ('role' not in group or parameter_role(n) == group['role'])
+                        and (p.ndim < 2 or getattr(p, '_no_weight_decay', False)) == (group['weight_decay'] == 0)]
+            names.append(selected)
+    if len(names) != len(saved['param_groups']):
+        raise ValueError('Optimizer name/group count mismatch.')
+    flat = [n for group in names for n in group]
+    if len(flat) != len(set(flat)) or set(flat) != set(shared):
+        raise ValueError('Optimizer names do not cover exactly the saved parameters.')
+    current_groups = {id(p): g for g in optimizer.param_groups for p in g['params']}
+    seen_ids, ages = set(), []
+    for group, group_names in zip(saved['param_groups'], names):
+        if len(group['params']) != len(group_names):
+            raise ValueError('Optimizer group length mismatch.')
+        for key, name in zip(group['params'], group_names):
+            if key in seen_ids:
+                raise ValueError('Duplicate saved optimizer parameter ID.')
+            seen_ids.add(key)
+            p = parameters[name]
+            if 'role' in group and group['role'] != parameter_role(name):
+                raise ValueError(f'Optimizer role mismatch: {name}')
+            destination = current_groups[id(p)]
+            for option in ('betas', 'eps', 'amsgrad', 'weight_decay'):
+                if group[option] != destination[option]:
+                    raise ValueError(f'Optimizer {option} changed for {name}.')
+            if key not in saved['state']:
+                continue
+            state = deepcopy(saved['state'][key])
+            for option in ('exp_avg', 'exp_avg_sq'):
+                if state[option].shape != p.shape:
+                    raise ValueError(f'Adam tensor shape mismatch: {name}')
+            optimizer.state[p] = state
+            ages.append(float(state['step']))
+    if set(saved['state'])-seen_ids:
+        raise ValueError('Orphan saved optimizer state.')
+    return dict(shared_parameters=len(shared), new_parameters=sorted(set(parameters)-set(shared)),
+                restored_states=len(ages), min_age=min(ages) if ages else 0, max_age=max(ages) if ages else 0,
+                mapping='saved names' if 'optimizer_names' in checkpoint else 'verified legacy roles/shapes')
 
 
 def regional_optimizer(model, lr, weight_decay=.01, legacy_state=None):
@@ -34,11 +105,7 @@ def regional_optimizer(model, lr, weight_decay=.01, legacy_state=None):
         for (role, decay), params in groups.items()
     ], lr=lr, betas=(.9, .95), foreach=True)
     if legacy_state is not None:
-        # The previous trainer saved decay/no-decay groups in model order.
-        # Rebind those same per-parameter moments without resetting Adam's age.
-        legacy = optimizer_for(model, lr, weight_decay)
-        legacy.load_state_dict(legacy_state)
-        optimizer.state.update(legacy.state)
+        restore_named_optimizer(model, optimizer, dict(optimizer=legacy_state, model=model.state_dict()))
     return optimizer
 
 
@@ -139,7 +206,8 @@ def gradient_norms(model):
     for name, parameter in model.named_parameters():
         if parameter.grad is not None:
             parts = name.split('.')
-            key = parts[1] if parts[0] in ('regions', 'future_heads') else parts[0]
+            key = ('predictor_'+parts[2] if parts[0] == 'regional_objectives' else
+                   parts[1] if parts[0] in ('regions', 'future_heads') else parts[0])
             buckets.setdefault(key, []).append(parameter.grad)
     return {key: float(torch.linalg.vector_norm(torch.stack(torch._foreach_norm(values))))
             for key, values in buckets.items()}

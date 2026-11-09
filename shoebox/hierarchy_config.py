@@ -1,10 +1,43 @@
 """The predictive six-region pilot; the full cortical map remains in config.py."""
 from dataclasses import asdict, dataclass
+import math
 from experiments.hat_minkron.model import HATConfig
 
 
 PILOT_NAMES = ('A1', 'B1', 'L2', 'S2', 'L3', 'Y')
 CADENCES = dict(A1=1, B1=1, L2=4, S2=4, L3=16, Y=1)
+
+
+@dataclass(frozen=True)
+class ObjectiveConfig:
+    """Training-only protocol. Kept outside the inference/state signature."""
+    mode: str = 'legacy'
+    version: int = 1
+    l2_weight: float = .05
+    s2_weight: float = .05
+    l3_weight: float = .05
+    variance_weight: float = .01
+    covariance_weight: float = .001
+    target_std: float = .1
+    normalizer_variance_floor: float = .01
+    normalizer_rate: float = .05
+    head_seed: int = 20261109
+
+    def __post_init__(self):
+        if self.mode not in ('legacy', 'latent') or self.version != 1:
+            raise ValueError('Unknown regional objective protocol.')
+        for name, value in asdict(self).items():
+            if name in ('mode', 'version', 'head_seed'):
+                continue
+            if not isinstance(value, (int, float)) or not math.isfinite(value) or not 0 <= value <= 1:
+                raise ValueError(f'Invalid objective {name}.')
+            if not name.endswith('_weight') and value == 0:
+                raise ValueError(f'Objective {name} must be positive.')
+        if type(self.head_seed) is not int or self.head_seed < 0:
+            raise ValueError('Invalid head seed.')
+
+    def to_dict(self):
+        return asdict(self)
 
 
 @dataclass(frozen=True)
