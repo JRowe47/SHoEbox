@@ -12,6 +12,8 @@ from reportlab.lib import colors
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib.enums import TA_LEFT
 from reportlab.lib.units import inch
+from reportlab.pdfbase import pdfmetrics
+from reportlab.pdfbase.ttfonts import TTFont
 
 
 def main():
@@ -57,9 +59,11 @@ def main():
              f"(Phase A minus legacy {delta:+.6f}; {abs(relative):.2f}% {'lower' if relative>0 else 'higher'} NLL). "
              f"Accuracy is {100*b['accuracy']:.3f}% versus {100*a['accuracy']:.3f}%.")
     # This report deliberately keeps promotion separate from a single short arm comparison.
-    decision=("Keep both modes available and retain legacy as the default. The requested Phase A implementation "
-              "and 262,144-target comparison are complete. The next decision is whether to strengthen future-input "
-              "grounding before introducing owner-local gradient routing; no Phase B-D dynamics were added.")
+    decision=("Retain legacy as the default and keep Phase A available as an explicit objective mode. "
+              "The middle-level predictors learned useful future-input structure, but L3's advantage over "
+              "shuffled futures is small and Phase A did not improve byte prediction in this comparison. "
+              "Strengthen L3 grounding before introducing owner-local credit assignment. The requested "
+              "implementation and matched pilot are complete; no Phase B-D dynamics were added.")
     interpretation=(f"Against shuffled-future labels, the largest predictive advantage is {best} "
                     f"({100*gains[best]:.2f}% lower Huber); the smallest is {worst} ({100*gains[worst]:.2f}%). "
                     "Persistence repeats the preceding ordered source bundle. Shuffling rotates complete future "
@@ -187,7 +191,8 @@ audits and report generation have dedicated scripts in `scripts/`.
 The checkpoint ZIP contains the original seed, calibrated seed, both final
 checkpoints, exact prepared corpora and manifests, cached FineWeb responses,
 fixed coefficients, histories and verification records. Model source is published
-on `JRowe47/SHoEbox`, branch `feat/hierarchy-pilot`; an attached patch contains
+in [implementation commit 67ac68c](https://github.com/JRowe47/SHoEbox/commit/67ac68c65feae1a2328dd0d3d94a26e2089a2f37),
+branch `feat/hierarchy-pilot`; an attached patch contains
 this implementation and documentation relative to b4507b4.
 
 | Provenance | SHA-256 |
@@ -215,11 +220,15 @@ this implementation and documentation relative to b4507b4.
     ax[1].set(xticks=x,xticklabels=regions,ylabel='Normalized Huber',title='Full held-out latent targets');ax[1].legend(frameon=False,fontsize=8)
     fig.savefig(args.out/'SHoEbox_Hybrid_Learning_Curves.png',dpi=180);plt.close(fig)
 
+    font_dir=Path(matplotlib.get_data_path())/'fonts/ttf'
+    for font,file in [('DejaVu','DejaVuSans.ttf'),('DejaVu-Bold','DejaVuSans-Bold.ttf'),('DejaVuMono','DejaVuSansMono.ttf')]:
+        pdfmetrics.registerFont(TTFont(font,str(font_dir/file)))
     styles=getSampleStyleSheet()
-    styles.add(ParagraphStyle(name='TitleCustom',fontName='Helvetica-Bold',fontSize=24,leading=29,textColor=colors.HexColor('#132d3a'),spaceAfter=13))
-    styles.add(ParagraphStyle(name='BodyCustom',fontName='Helvetica',fontSize=10,leading=14,spaceAfter=9,textColor=colors.HexColor('#243744')))
-    styles.add(ParagraphStyle(name='SmallCustom',fontName='Helvetica',fontSize=8.4,leading=11,spaceAfter=7))
-    styles.add(ParagraphStyle(name='CodeCustom',fontName='Courier',fontSize=8,leading=11,spaceAfter=8))
+    styles['Heading2'].fontName='DejaVu-Bold'
+    styles.add(ParagraphStyle(name='TitleCustom',fontName='DejaVu-Bold',fontSize=24,leading=29,textColor=colors.HexColor('#132d3a'),spaceAfter=13))
+    styles.add(ParagraphStyle(name='BodyCustom',fontName='DejaVu',fontSize=9.5,leading=13.5,spaceAfter=9,textColor=colors.HexColor('#243744')))
+    styles.add(ParagraphStyle(name='SmallCustom',fontName='DejaVu',fontSize=8.4,leading=11,spaceAfter=7))
+    styles.add(ParagraphStyle(name='CodeCustom',fontName='DejaVuMono',fontSize=8,leading=11,spaceAfter=8))
     story=[]
     def para(text,style='BodyCustom'):
         story.append(Paragraph(escape(text),styles[style]))
@@ -253,9 +262,9 @@ this implementation and documentation relative to b4507b4.
             para(sample.encode('ascii','backslashreplace').decode(), 'CodeCustom')
     heading('Reproduction');para('See docs/hybrid_learning.md for complete commands and contracts. The accompanying checkpoint archive includes seed and endpoint states, exact data, calibration, histories and verification. The downloadable Markdown report contains complete hashes; the code patch is relative to b4507b4.','SmallCustom')
     def footer(canvas,doc):
-        canvas.setFont('Helvetica',8);canvas.setFillColor(colors.HexColor('#64748b'))
+        canvas.setFont('DejaVu',8);canvas.setFillColor(colors.HexColor('#64748b'))
         canvas.drawString(54,31,'SHoEbox | Hybrid learning Phase A');canvas.drawRightString(558,31,str(doc.page))
-    SimpleDocTemplate(str(args.out/(name+'.pdf')),pagesize=(612,792),leftMargin=54,rightMargin=54,topMargin=42,bottomMargin=48).build(story,onFirstPage=footer,onLaterPages=footer)
+    SimpleDocTemplate(str(args.out/(name+'.pdf')),title='SHoEbox Hybrid Learning Phase A',author='SHoEbox',pagesize=(612,792),leftMargin=54,rightMargin=54,topMargin=42,bottomMargin=48).build(story,onFirstPage=footer,onLaterPages=footer)
     print(json.dumps(dict(delta_nll=delta,outputs=[name+'.md',name+'.pdf','SHoEbox_Hybrid_Learning_Results.json'])))
 
 

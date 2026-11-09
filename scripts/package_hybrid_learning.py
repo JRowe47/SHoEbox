@@ -36,8 +36,9 @@ Endpoints retain model tensors, named Adam states, RNG, complete recurrent state
 normalizer statistics, objective configuration, histories and data cursors.
 Each endpoint is 896 lifetime updates / 1,310,720 optimizer byte exposures.
 
-Check out JRowe47/SHoEbox branch feat/hierarchy-pilot at the published Phase A
-commit, or apply the accompanying patch to b4507b4. Extract this archive alongside
+Check out JRowe47/SHoEbox implementation commit
+67ac68c65feae1a2328dd0d3d94a26e2089a2f37 (feat/hierarchy-pilot), or apply the
+accompanying patch to b4507b4. Extract this archive alongside
 that checkout. Source is intentionally delivered separately from numeric data.
 See docs/hybrid_learning.md and the accompanying report for commands.
 The existing objective JSON must be supplied for latent continuation.

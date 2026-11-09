@@ -37,7 +37,10 @@ The native CPU backend reuses the AVX512 MinKron and sparse expert kernels;
 The optional [Phase A latent objective](docs/hybrid_learning.md) predicts each
 upper region's next incoming message bundle with causal document-aware pairs,
 training-only normalization, live diversity penalties and named Adam migration.
-It adds 83,200 training parameters and leaves inference unchanged.
+It adds 83,200 training parameters and leaves inference unchanged. The
+[matched 262,144-target pilot](docs/hybrid_learning_report.md) scores 2.185723
+nats/byte for legacy versus 2.188464 for Phase A. Legacy remains the default;
+L2/S2 show useful latent prediction, while L3 remains close to shuffled futures.
 
 ## Preserved cortical expansion model
 

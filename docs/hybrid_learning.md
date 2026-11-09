@@ -1,7 +1,7 @@
 # Phase A: future-input regional objectives
 
 The six-region `HierarchyModel` now supports a versioned `latent` objective.
-The default remains `legacy` pending the matched comparison. Phase A retains
+The default remains `legacy` after the [matched comparison](hybrid_learning_report.md). Phase A retains
 joint next-byte backpropagation and the existing router penalty. It replaces
 upper raw-byte auxiliary losses with prediction of subsequent real input
 messages. It does not change forward topology, cadences, sparse dispatch,

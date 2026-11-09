@@ -1,15 +1,36 @@
 # SHoEbox handoff
 
-## Current: Phase A regional latent objectives implemented
+## Current: Phase A implemented; legacy remains the default
 
-Added optional future-input prediction for L2/S2/L3 with causal, ordered,
-document-isolated bundles; detached source normalization; live message diversity
-controls; named optimizer migration and explicit owner metadata. Joint byte
-credit and the inference topology are preserved. All **69 checks pass**, plus
-exact CLI pause/resume and source/data/objective mismatch rejection.
+Added optional ordered future-input prediction for L2/S2/L3, document-isolated
+pairing, detached source normalization, live message diversity controls, named
+Adam migration and explicit owner metadata. Joint byte credit, regional cadences,
+sparse dispatch, MinKron and inference messages are unchanged.
 
-Legacy remains the default while the matched 262,144-target continuation per
-arm completes. See [contracts and commands](docs/hybrid_learning.md).
+The matched continuation completes **128 updates / 262,144 fresh byte targets
+per arm**, B8/T256, joint AdamW 0.001. Both start from the same 1,048,576-target
+shared weights and Adam history. On 65,536 held-out targets, **legacy scores
+2.185723 NLL / 37.743% accuracy; Phase A scores 2.188464 / 37.488%**. The candidate
+is **0.002741 nats/byte worse**. Retain legacy as the default.
+
+Phase A beats shuffled-future Huber by **7.41% (L2), 10.93% (S2), 0.74% (L3)**.
+Messages remain variable and react to changed future observations, but L3 has
+little learned advantage over shuffling. Strengthen its grounding before adding
+owner-local credit assignment. Both modes train at about **183.5 bytes/s** and
+**1,350 MiB** peak RSS here. The new heads add **83,200 training parameters**;
+inference remains **2,652,512 parameters**.
+
+**69 checks pass**, plus GitHub CI, exact CLI pause/resume and protocol mismatch
+rejection. Both endpoints reproduce full scores exactly after reload. Active
+shared Adam states reach age 896; candidate predictors reach 128 and its unused
+legacy heads retain age 768. Each arm ends at **1,310,720 lifetime optimizer
+target exposures**. Calibration observes 4,096 separate training bytes without
+updating shared weights.
+
+See [contracts and commands](docs/hybrid_learning.md),
+[report](docs/hybrid_learning_report.md), and
+[comparison data](docs/hybrid_learning_results.json).
+Endpoints: `artifacts/hybrid_legacy/last.pt` and `artifacts/hybrid_latent/last.pt`.
 
 ## Previous: fresh-data joint phase reaches one million target exposures
 
