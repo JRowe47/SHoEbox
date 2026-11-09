@@ -1,0 +1,169 @@
+{
+  "format": "shoebox-fresh-joint-phase-1",
+  "initial_updates": 512,
+  "additional_updates": 256,
+  "lifetime_updates": 768,
+  "initial_targets": 524288,
+  "additional_targets": 524288,
+  "lifetime_targets": 1048576,
+  "lifetime_unique_targets": 718848,
+  "training_documents": 195,
+  "validation_documents": 23,
+  "validation_targets": 65536,
+  "before": {
+    "nll": 2.3922723047435284,
+    "accuracy": 0.324493408203125,
+    "span_nll": {
+      "mid": 3.043643963084385,
+      "high": 3.209371304585534
+    },
+    "upper_swap_delta_nll": -3.302469849586487e-06,
+    "upper_all_swap_delta_nll": 0.0014475416392087936
+  },
+  "after": {
+    "nll": 2.2367834355682135,
+    "accuracy": 0.3602447509765625,
+    "span_nll": {
+      "mid": 2.9799645319937245,
+      "high": 3.1824325293170417
+    },
+    "upper_swap_delta_nll": -5.511566996574402e-05,
+    "upper_all_swap_delta_nll": 0.004213094711303711
+  },
+  "delta_nll": -0.1554888691753149,
+  "nll_reduction_percent": 6.499630868400853,
+  "perplexity_reduction_percent": 14.400339517595828,
+  "protocol": {
+    "source_sha256": "5e89dca3ac52f1d1c0b6e5e4dd7f74ccb7dbf0c1f1314736a3dde99a8fa375d8",
+    "train_sha256": "d184ed71dc4cd7b2547498f66389233ccd4c89d4231c9af251c7e98f975423ff",
+    "validation_sha256": "6c77d22de33ebaf9b5f00e5056ea87ffa4aad15bd02e96f65351fc34395d2084",
+    "batch": 8,
+    "context": 256,
+    "updates": 256,
+    "lr": 0.001,
+    "warmup_updates": 16,
+    "local_only": false,
+    "threads": 1,
+    "eval_context": 128,
+    "new_stream": true,
+    "continuity_sha256": null,
+    "regional_cycle": {
+      "mode": "joint",
+      "warmup": 0,
+      "upper": 32,
+      "lower": 32,
+      "joint": 64,
+      "fast_lr_scale": 0.5,
+      "minimum_span_improvement": 0.02,
+      "attenuation_every": 4,
+      "local_scale": 0.5
+    },
+    "initial_checkpoint_sha256": "032aa8a4aa00e7e591fc0ebfa2cd00a7ac352e70b8b8ae8a22d9ac33744db149"
+  },
+  "final_checkpoint_sha256": "4130cc9cb6f5674f231dd54ce3a0bc45cbaf6e028417676a0fbb8e4558f82301",
+  "training_seconds": 2562.923289968101,
+  "training_bytes_per_second": 204.5664035487092,
+  "peak_rss_mib": 1256.953125,
+  "checkpoint_audit": {
+    "exact_score_reproduction": true,
+    "finite_parameters": true,
+    "finite_state": true,
+    "checkpoint_step": 256,
+    "evaluation": {
+      "nll": 2.2367834355682135,
+      "accuracy": 0.3602447509765625,
+      "targets": 65536,
+      "seconds": 49.74780082999496,
+      "scored_bytes_per_second": 1317.3647660116405,
+      "region_rows_including_padding": 335616,
+      "intervention": null,
+      "span_nll": {
+        "mid": 2.9799645319937245,
+        "high": 3.1824325293170417
+      },
+      "span_targets": {
+        "mid": 65467,
+        "high": 65191
+      }
+    },
+    "monitoring_endpoint": {
+      "updates": 256,
+      "full": false,
+      "nll": 2.4159359335899353,
+      "accuracy": 0.32275390625,
+      "targets": 8192,
+      "seconds": 4.53186743799597,
+      "scored_bytes_per_second": 1807.6433417528583,
+      "region_rows_including_padding": 31464,
+      "intervention": null,
+      "span_nll": {
+        "mid": 3.144758299229755,
+        "high": 3.3326574278716916
+      },
+      "span_targets": {
+        "mid": 7997,
+        "high": 7217
+      }
+    }
+  },
+  "samples": [
+    "The Eath Dy Bamar Hesomatyis Larazer LemROun Ex Thig Thallie thes ag",
+    "In the math neting reangery yir ware se felllition stick aghore thes ag"
+  ],
+  "routing": {
+    "work": {
+      "region_rows": {
+        "A1": 256,
+        "B1": 256,
+        "L2": 64,
+        "S2": 64,
+        "L3": 16,
+        "Y": 256
+      },
+      "occurrence_rows": {
+        "A1": 256,
+        "B1": 256,
+        "L2": 256,
+        "S2": 512,
+        "L3": 128,
+        "Y": 256
+      },
+      "external_bytes": 256
+    },
+    "unique_experts_per_layer": {
+      "A1": [
+        32,
+        31,
+        32
+      ],
+      "B1": [
+        32,
+        32,
+        32
+      ],
+      "L2": [
+        24,
+        26,
+        26
+      ],
+      "S2": [
+        25,
+        29,
+        28
+      ],
+      "L3": [
+        16,
+        12,
+        14
+      ],
+      "Y": [
+        28,
+        31,
+        28
+      ]
+    },
+    "experts_per_bank": 32,
+    "selected_per_invocation": 4,
+    "regional_routing": "fixed complete paths; no regional balancing loss"
+  }
+}

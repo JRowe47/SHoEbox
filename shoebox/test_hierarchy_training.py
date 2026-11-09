@@ -6,10 +6,11 @@ from pathlib import Path
 import torch
 from .hierarchy import HierarchyModel
 from .test_hierarchy import tiny
-from .train_hierarchy import train_update, evaluate, count_baselines, load_data
+from .train_hierarchy import train_update, evaluate, count_baselines, load_data, initialize_stream
 from .train_fineweb import optimizer_for
 from .checkpoint import save, load
 from scripts.prepare_hierarchy_data import prepare
+from scripts.prepare_hierarchy_phase import prepare as prepare_phase
 
 
 class TrainingTests(unittest.TestCase):
@@ -76,6 +77,55 @@ class TrainingTests(unittest.TestCase):
                                validation_targets=300, document_cap=50, reserved=reserved)
             for split in manifest['files'].values():
                 self.assertNotIn('2', {r['id'] for r in split['documents']})
+
+    def test_new_stream_preserves_progress_without_rescaling_prior_exposures(self):
+        protocol = dict(train_sha256='old', validation_sha256='fixed', batch=8, context=128,
+                        lr=.001, local_only=False)
+        counts = torch.zeros(256, 256)
+        checkpoint = dict(step=256, metadata=dict(protocol=protocol, initial_updates=256,
+                                                  cursor=16896, epoch=2, counts=counts))
+        changed = dict(protocol, train_sha256='fresh', context=256)
+        old_state = object()
+        with self.assertRaisesRegex(ValueError, 'new-stream'):
+            initialize_stream(checkpoint, old_state, changed)
+        fork = initialize_stream(checkpoint, old_state, changed, new_stream=True)
+        self.assertIsNone(fork['state'])
+        self.assertEqual((fork['cursor'], fork['epoch']), (0, 0))
+        self.assertIs(fork['counts'], counts)
+        self.assertEqual((fork['initial_updates'], fork['initial_targets']), (512, 524288))
+        # A second transition must use the accumulated mixed-horizon history.
+        later = dict(step=256, metadata=dict(protocol=changed, initial_updates=512,
+                      initial_targets=fork['initial_targets'], cursor=65536, epoch=0, counts=counts))
+        second = initialize_stream(later, old_state, changed, new_stream=True)
+        self.assertEqual((second['initial_updates'], second['initial_targets']), (768, 1048576))
+        with self.assertRaisesRegex(ValueError, 'validation_sha256'):
+            initialize_stream(checkpoint, old_state, dict(changed, validation_sha256='changed'), new_stream=True)
+
+    def test_same_stream_initialization_keeps_state_and_cursor(self):
+        protocol = dict(train_sha256='same', validation_sha256='fixed', batch=2, context=16,
+                        lr=.001, local_only=False)
+        state = object()
+        checkpoint = dict(step=7, metadata=dict(protocol=protocol, cursor=112, epoch=0, counts=torch.zeros(1)))
+        fork = initialize_stream(checkpoint, state, protocol)
+        self.assertIs(fork['state'], state)
+        self.assertEqual(fork['cursor'], 112)
+        self.assertEqual(fork['initial_targets'], 224)
+
+    def test_fresh_corpus_excludes_all_prior_documents_and_preserves_validation(self):
+        rows = [dict(row_idx=i, row=dict(id=str(i), text=('document '+str(i)+' ')*10)) for i in range(30)]
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            previous = prepare(rows[:20], root/'old', train_targets=256, batch=2, validation_targets=100, document_cap=50)
+            # Different ID with identical text is still an excluded duplicate.
+            duplicate = dict(row_idx=0, row=dict(id='alias', text=rows[0]['row']['text']))
+            current = prepare_phase([duplicate]+rows, root/'old', root/'new', train_targets=256, batch=2)
+            old_ids = {r['id'] for split in previous['files'].values() for r in split['documents']}
+            new_ids = {r['id'] for r in current['files']['train']['documents']}
+            self.assertFalse(old_ids & new_ids)
+            self.assertNotIn('alias', new_ids)
+            self.assertEqual((root/'new/validation.bin').read_bytes(), (root/'old/validation.bin').read_bytes())
+            self.assertEqual(current['files']['validation'], previous['files']['validation'])
+            load_data(root/'new')
 
 
 if __name__ == '__main__':

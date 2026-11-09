@@ -184,12 +184,37 @@ def train_update(model, optimizer, x, y, state, future_targets, *, decoder_local
             region_executions_per_byte=sum(out['work']['region_rows'].values())/x.numel())
 
 
+def initialize_stream(checkpoint, state, protocol, *, new_stream=False):
+    """Fork learning history while making a data/horizon transition explicit.
+
+    New streams retain weights, Adam moments and lifetime pair counts, but start
+    fresh recurrent state and a new corpus cursor. Exposure counts use each
+    phase's actual batch/horizon, rather than rescaling earlier optimizer steps.
+    """
+    old = checkpoint['metadata']
+    previous = old['protocol']
+    for key in ('validation_sha256', 'lr', 'local_only'):
+        if previous[key] != protocol[key]:
+            raise ValueError(f'Initialization would change {key}.')
+    for key in ('train_sha256', 'batch', 'context'):
+        if previous[key] != protocol[key] and not new_stream:
+            raise ValueError(f'Initialization would change {key}; use --new-stream explicitly.')
+    previous_window = previous['batch']*previous['context']
+    initial_updates = old.get('initial_updates', 0)+checkpoint['step']
+    initial_targets = (old.get('initial_targets', old.get('initial_updates', 0)*previous_window)
+                       +checkpoint['step']*previous_window)
+    return dict(state=None if new_stream else state,
+                cursor=0 if new_stream else old['cursor'], epoch=0 if new_stream else old['epoch'],
+                counts=old['counts'], initial_updates=initial_updates, initial_targets=initial_targets)
+
+
 def main():
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument('--data', type=Path, required=True)
     p.add_argument('--out', type=Path, required=True)
     p.add_argument('--updates', type=int, default=1024)
     p.add_argument('--context', type=int, default=128)
+    p.add_argument('--eval-context', type=int, default=128, help='Keep the monitoring window fixed when changing the training horizon.')
     p.add_argument('--threads', type=int, default=1)
     p.add_argument('--lr', type=float, default=.001)
     p.add_argument('--warmup-updates', type=int, default=16)
@@ -200,6 +225,7 @@ def main():
     origin = p.add_mutually_exclusive_group()
     origin.add_argument('--resume', type=Path)
     origin.add_argument('--initialize-from', type=Path, help='Fork a checkpoint with state, Adam moments and data cursor; --updates is the new budget.')
+    p.add_argument('--new-stream', action='store_true', help='With --initialize-from, allow new training data/batch/horizon and reset only runtime state/cursor.')
     p.add_argument('--training-mode', choices=('joint', 'cycle'), default='joint')
     p.add_argument('--cycle-warmup', type=int, default=64)
     p.add_argument('--upper-updates', type=int, default=32)
@@ -212,12 +238,14 @@ def main():
     p.add_argument('--max-updates', type=int, help='Pause after this many additional updates, retaining the full protocol.')
     p.add_argument('--continuity', type=Path, help='Optional old 4k raw validation slice; separate continuity metric.')
     args = p.parse_args()
-    if min(args.updates, args.context, args.threads, args.validate_every, args.checkpoint_every, args.log_every) < 1 or args.lr <= 0 or args.warmup_updates < 0:
+    if min(args.updates, args.context, args.eval_context, args.threads, args.validate_every, args.checkpoint_every, args.log_every) < 1 or args.lr <= 0 or args.warmup_updates < 0:
         p.error('Counts and learning rate must be positive.')
     if args.max_updates is not None and args.max_updates < 1:
         p.error('--max-updates must be positive.')
     if args.out.exists() and not args.resume:
         p.error('Choose a new output directory.')
+    if args.new_stream and not args.initialize_from:
+        p.error('--new-stream accompanies --initialize-from; exact resume restores the transition automatically.')
     try:
         cycle_config = CycleConfig(args.training_mode, args.cycle_warmup, args.upper_updates,
                 args.lower_updates, args.joint_updates, args.fast_lr_scale,
@@ -246,17 +274,19 @@ def main():
                     validation_sha256=manifest['files']['validation']['sha256'],
                     batch=train.shape[0], context=args.context, updates=args.updates, lr=args.lr,
                     warmup_updates=args.warmup_updates, local_only=args.local_only, threads=args.threads)
+    protocol.update(eval_context=args.eval_context, new_stream=args.new_stream)
     protocol['continuity_sha256'] = continuity_sha
     protocol['regional_cycle'] = cycle_config.to_dict()
     protocol['initial_checkpoint_sha256'] = (hashlib.sha256(args.initialize_from.read_bytes()).hexdigest()
                                             if args.initialize_from else None)
     step, cursor, epoch, elapsed = 0, 0, 0, 0.
-    initial_updates = 0
+    initial_updates, initial_targets = 0, 0
     history, evaluations, state = [], [], None
     counts = torch.zeros(256, 256, dtype=torch.float64)
     if args.resume:
         model, state, _, checkpoint = load(args.resume)
         protocol['initial_checkpoint_sha256'] = checkpoint['metadata']['protocol'].get('initial_checkpoint_sha256')
+        protocol['new_stream'] = checkpoint['metadata']['protocol'].get('new_stream', False)
         if checkpoint['format'] != HIERARCHY_FORMAT or checkpoint['metadata']['protocol'] != protocol:
             raise ValueError('Resume requires the same model, corpus, source and training protocol.')
         optimizer = regional_optimizer(model, args.lr); optimizer.load_state_dict(checkpoint['optimizer'])
@@ -265,20 +295,19 @@ def main():
         history, evaluations, counts = old['history'], old['evaluations'], old['counts']
         cycle.load_state_dict(old['cycle'])
         initial_updates = old['initial_updates']
+        initial_targets = old['initial_targets']
     elif args.initialize_from:
         model, state, _, checkpoint = load(args.initialize_from)
         old = checkpoint['metadata']
         if checkpoint['format'] != HIERARCHY_FORMAT or model.cfg != HierarchyConfig(local_only=args.local_only):
             raise ValueError('Initialization requires the same hierarchy configuration.')
-        for key in ('train_sha256', 'validation_sha256', 'batch', 'context', 'lr', 'local_only'):
-            if old['protocol'][key] != protocol[key]:
-                raise ValueError(f'Initialization would change {key}; use a matched corpus/protocol.')
+        transition = initialize_stream(checkpoint, state, protocol, new_stream=args.new_stream)
         optimizer = regional_optimizer(model, args.lr,
                 legacy_state=checkpoint['optimizer'] if 'regional_cycle' not in old['protocol'] else None)
         if 'regional_cycle' in old['protocol']:
             optimizer.load_state_dict(checkpoint['optimizer'])
-        cursor, epoch, counts = old['cursor'], old['epoch'], old['counts']
-        initial_updates = old.get('initial_updates', 0)+checkpoint['step']
+        state, cursor, epoch, counts = (transition[k] for k in ('state', 'cursor', 'epoch', 'counts'))
+        initial_updates, initial_targets = transition['initial_updates'], transition['initial_targets']
         if 'cycle' in old:
             cycle.load_state_dict(old['cycle'])
         else:
@@ -303,7 +332,8 @@ def main():
         return dict(format=HIERARCHY_FORMAT, complete=complete, protocol=protocol,
                     parameters=model.parameter_cost(), updates=step, trained_targets=step*train.shape[0]*args.context,
                     initial_updates=initial_updates, lifetime_updates=initial_updates+step,
-                    lifetime_targets=(initial_updates+step)*train.shape[0]*args.context,
+                    initial_targets=initial_targets,
+                    lifetime_targets=initial_targets+step*train.shape[0]*args.context,
                     cycle=cycle.state_dict(),
                     unique_corpus_targets=manifest['train_targets'], epoch=epoch, history=history, evaluation=evaluations,
                     training_seconds=elapsed, training_bytes_per_second=step*train.shape[0]*args.context/elapsed if elapsed else 0,
@@ -315,11 +345,11 @@ def main():
         save(args.out/'last.pt', model, state, optimizer, step=step,
              metadata=dict(protocol=protocol, cursor=cursor, epoch=epoch, elapsed=elapsed,
                            history=history, evaluations=evaluations, counts=counts,
-                           initial_updates=initial_updates, cycle=cycle.state_dict()))
+                           initial_updates=initial_updates, initial_targets=initial_targets, cycle=cycle.state_dict()))
         atomic_json(args.out/'results.json', summary(complete))
 
     def validate(full=False):
-        score = evaluate(model, validation, context=args.context, limit=None if full else 8192, span_metrics=True)
+        score = evaluate(model, validation, context=args.eval_context, limit=None if full else 8192, span_metrics=True)
         row = dict(updates=step, full=full, **score)
         if full:
             row['baselines'] = count_baselines(counts, validation)
@@ -356,7 +386,7 @@ def main():
             # The first milestone must establish observation conditioning.
             # Fail closed at 256 instead of spending the remaining 768 updates.
             if step == 256:
-                swapped = evaluate(model, validation, context=args.context, intervention='input')
+                swapped = evaluate(model, validation, context=args.eval_context, intervention='input')
                 record['input_swap'] = swapped
                 record['gate_passed'] = (record['nll'] < record['baselines']['unigram']['nll']-.05 and
                                          swapped['nll'] > record['nll']+.01)
@@ -371,17 +401,17 @@ def main():
     final = summary(True)
     final['baselines'] = count_baselines(counts, validation)
     final['input_swap'] = (evaluations[-1].get('input_swap') or
-                           evaluate(model, validation, context=args.context, intervention='input'))
+                           evaluate(model, validation, context=args.eval_context, intervention='input'))
     if not model.cfg.local_only:
-        final['upper_swap'] = evaluate(model, validation, context=args.context, intervention='upper')
+        final['upper_swap'] = evaluate(model, validation, context=args.eval_context, intervention='upper')
         final['upper_swap_delta_nll'] = final['upper_swap']['nll']-evaluations[-1]['nll']
-        final['upper_all_swap'] = evaluate(model, validation, context=args.context, intervention='upper_all')
+        final['upper_all_swap'] = evaluate(model, validation, context=args.eval_context, intervention='upper_all')
         final['upper_all_swap_delta_nll'] = final['upper_all_swap']['nll']-evaluations[-1]['nll']
     if args.continuity:
         raw = torch.frombuffer(bytearray(args.continuity.read_bytes()), dtype=torch.uint8).long()
         if raw.numel() < 4050:
             raise ValueError('Continuity slice requires the original 50 streams of 81 bytes.')
-        final['continuity_4k'] = evaluate(model, list(raw[:4050].reshape(50, 81)), context=args.context)
+        final['continuity_4k'] = evaluate(model, list(raw[:4050].reshape(50, 81)), context=args.eval_context)
     final['samples'] = [sample(model, prompt) for prompt in ('The ', 'In the ')]
     final['routing'] = routing_diagnostic(model, validation)
     if source_digest() != digest:

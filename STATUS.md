@@ -1,6 +1,41 @@
 # SHoEbox handoff
 
-## Current: regional cycle tested; joint AdamW remains preferred
+## Current: fresh-data joint phase reaches one million target exposures
+
+Continued the stronger joint checkpoint for **256 updates / 524,288 new byte
+targets**, one pass through **195 previously unused FineWeb documents**. Joint
+AdamW stays at 0.001; the credit window grows from B8/T128 to **B8/T256**, spanning
+16 L3 updates. Weights and Adam moments/ages are retained; recurrent state and
+the cursor restart for the new streams. No freeze/thaw or attenuation is used.
+
+On the unchanged **65,536 held-out targets / 23 documents**, NLL improves
+**2.392272 -> 2.236783 (6.50%)**, and accuracy **32.45% -> 36.02%**.
+Four-byte NLL improves **3.043644 -> 2.979965**; sixteen-byte NLL
+**3.209371 -> 3.182433**. Combined upper decoder/feedback swapping now adds
+**0.004213 nats/byte**, versus **0.001448** at the seed; decoder-only swapping
+remains negligible (**-0.000055**). Keep joint training with fresh data and the
+longer credit window as the preferred continuation; monitoring loss is still
+falling at the endpoint (**2.551090 -> 2.415936** on the fixed 8,192-target subset).
+
+The model reaches **768 lifetime updates / 1,048,576 lifetime exposures**, with
+**718,848 distinct target positions** across phases. Exposure accounting now
+preserves the actual earlier window sizes. `--new-stream` explicitly permits a
+corpus/horizon change, while `--eval-context 128` keeps evaluation comparable.
+
+**62 checks pass**, plus exact CLI transition/resume and exact full checkpoint
+score reproduction. All 464 Adam state entries reach age 768; pair counts total
+1,048,576. Training takes **42.72 minutes** at **204.57 bytes/s**, one CPU thread,
+with **1,257 MiB** peak RSS. Runtime source digest:
+`5e89dca3ac52f1d1c0b6e5e4dd7f74ccb7dbf0c1f1314736a3dde99a8fa375d8`.
+
+See [policy and commands](docs/fresh_joint_training.md),
+[report](docs/fresh_joint_training_report.md), and
+[machine-readable results](docs/fresh_joint_training_results.json).
+Endpoint: `artifacts/joint_fresh256/last.pt`; seed: `artifacts/joint_seed512/last.pt`.
+The checkpoint bundle includes both, exact corpus bytes, raw source responses,
+manifests, full histories and verification records.
+
+## Previous: regional cycle tested; joint AdamW remains preferred
 
 Implemented optional 32-update upper / 32-update lower / 64-update joint training
 with regional AdamW groups, per-objective readiness, half-rate fast groups during

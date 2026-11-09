@@ -30,12 +30,13 @@ def main():
     _, docs, manifest = load_data(args.data)
     if manifest['files']['validation']['sha256'] != result['protocol']['validation_sha256']:
         raise ValueError('Validation corpus mismatch.')
-    score = evaluate(model, docs, context=result['protocol']['context'], span_metrics=True)
+    context = result['protocol'].get('eval_context', result['protocol']['context'])
+    score = evaluate(model, docs, context=context, span_metrics=True)
     expected = result['evaluation'][-1]
     for field in ('nll', 'accuracy', 'targets', 'span_nll', 'span_targets'):
         if score[field] != expected[field]:
             raise ValueError(f'Checkpoint does not exactly reproduce {field}.')
-    monitoring = evaluate(model, docs, context=result['protocol']['context'], limit=8192, span_metrics=True)
+    monitoring = evaluate(model, docs, context=context, limit=8192, span_metrics=True)
     audit = dict(exact_score_reproduction=True, finite_parameters=True, finite_state=True,
                  checkpoint_step=checkpoint['step'], evaluation=score,
                  monitoring_endpoint=dict(updates=result['updates'], full=False, **monitoring))

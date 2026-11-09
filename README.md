@@ -26,6 +26,11 @@ The optional [regional training cycle](docs/regional_training.md) alternates
 upper development, lower alignment and joint learning, preserving recurrent
 execution and gradients through frozen regions. Joint AdamW remains the default. See the
 [matched continuation results](docs/regional_training_report.md).
+The [fresh-data continuation](docs/fresh_joint_training.md) starts from the
+stronger joint checkpoint, doubles the credit window to B8/T256, and trains
+once through 524,288 targets from previously unused FineWeb documents.
+It reaches 1,048,576 lifetime targets and improves full held-out NLL from
+2.392272 to 2.236783; see the [completed phase report](docs/fresh_joint_training_report.md).
 The native CPU backend reuses the AVX512 MinKron and sparse expert kernels;
 `set_execution_backend('optimized')` selects portable PyTorch.
 
