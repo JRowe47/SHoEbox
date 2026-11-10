@@ -1,9 +1,30 @@
 # SHoEbox
 
+## Current online CPU runtime
+
+The latest CPU-first 18-region implementation is in
+[experiments/online_cpu](experiments/online_cpu/README.md). It includes the selected
+centered routing and decoder policy, learned byte state, temporal lace credit,
+the EC/hippocampus interface, exact SIMD optimizations, and asynchronous
+validation/checkpoint snapshots.
+
+The architecture-preserving profile improved training from **14,238 to 19,721
+bytes/s** for the 1M model and **12,606 to 19,180 bytes/s** for the 5M model.
+A second core for snapshot work reduced measured end-to-end elapsed time by
+**33–37%**. See the [full report](experiments/online_cpu/reports/SHoEbox_CPU_Profile_Report.md)
+for protocols and exact-equivalence results.
+
+```bash
+python -m pip install -r experiments/online_cpu/requirements.txt
+SHOEBOX_EXPERTS=12 python experiments/online_cpu/check_packaging.py
+SHOEBOX_EXPERTS=64 python experiments/online_cpu/check_packaging.py
+```
+
+## Earlier PyTorch implementation
 **18 ordinary HAT-SHoE regions, four parallel cortical pathways, and one shared
 hippocampus accessed exclusively through two ordinary EC regions.**
 
-The active model implements the Cortical Input Map v2. Every region uses the
+The earlier PyTorch model implements the Cortical Input Map v2. Every region uses the
 same framed HAT, three sparse expert layers, and ordinary minKron state.
 Source sets, sequence spans, port widths and feedback connections define the
 intended specialization. Names do not select semantic algorithms.
@@ -110,3 +131,4 @@ The completed **100,000-byte CPU continuation** averages **61.54 training bytes/
 at B50/T32. Held-out NLL falls **4.434 -> 3.269**, remaining at unigram level
 (3.256 baseline; greedy predictions are spaces). See
 [training results and checkpoint audit](docs/cpu_training_results.json).
+

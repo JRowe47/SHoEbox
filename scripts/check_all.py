@@ -1,5 +1,6 @@
-"""Run the active cortical skeleton checks; --legacy includes archived studies."""
+"""Run cortical skeleton and online CPU checks; --legacy includes archived studies."""
 import argparse
+import os
 from pathlib import Path
 import subprocess
 import sys
@@ -17,6 +18,14 @@ def main():
                              'shoebox.test_sparse_cpu', 'shoebox.test_cpu_train'], cwd=ROOT)
     if result.returncode:
         return result.returncode
+    for experts in (12, 64):
+        env = dict(os.environ, SHOEBOX_EXPERTS=str(experts),
+                   OPENBLAS_NUM_THREADS='1', OMP_NUM_THREADS='1')
+        result = subprocess.run(
+            [sys.executable, 'experiments/online_cpu/check_packaging.py'],
+            cwd=ROOT, env=env)
+        if result.returncode:
+            return result.returncode
     if args.legacy:
         return subprocess.run([sys.executable, 'scripts/check_legacy.py'], cwd=ROOT).returncode
     return 0
@@ -24,3 +33,4 @@ def main():
 
 if __name__ == '__main__':
     raise SystemExit(main())
+

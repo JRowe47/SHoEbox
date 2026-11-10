@@ -1,0 +1,51 @@
+{
+  "baseline_source": "SHoEbox_scale_probe/capacity_comparison/hierarchy_lab/utility_probe/native.cpp",
+  "baseline_sha256": "c6ff65e89ae5847b4daa24eb719d37a64989da94d3284a10d8fe2e87b8cf41ad",
+  "architecture": "18 regions, D64, E12 or E64, one selected expert per active regional event",
+  "unchanged": [
+    "model topology and cadence",
+    "parameter counts",
+    "routing decisions and tie-breaking",
+    "activation functions",
+    "learning rules and rates",
+    "byte order and update order",
+    "checkpoint ABI version 16"
+  ],
+  "selected_policy": "centered Y plus split decoder normalization, centered 16-coordinate upper routing",
+  "quality_gate": "bitwise equality of trainable arrays and all checkpoint state across 100000 updates, both shapes; evaluate target-independence, save/reload and cold-start equivalence",
+  "timing": {
+    "stream_offset": 2000000,
+    "warmup": 4096,
+    "targets": 32768,
+    "repeats": 5,
+    "order": "rotated and reversed per repetition",
+    "load_compile_excluded": true,
+    "training_data": "Fixed replay segment for profiling; no new scientific training progress"
+  },
+  "cpu": {
+    "model": "x86_64",
+    "allowed_cpus": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8
+    ],
+    "quota": "800000 100000",
+    "cache_groups": [
+      "0-1",
+      "2-3",
+      "4-5",
+      "6-7",
+      "8"
+    ]
+  },
+  "compiler": "g++ (Ubuntu 13.3.0-6ubuntu2~24.04) 13.3.0",
+  "optimized_sha256": "0c02d2ed229f74c1756b5f1690b00aebd00bb77e7991f383cd1b592e80397464",
+  "default_runtime": "native",
+  "optimized_identical_to_measured_cached": true
+}

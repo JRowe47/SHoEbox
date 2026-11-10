@@ -1,5 +1,31 @@
 # SHoEbox handoff
 
+## 2026-11-10 — optimized online CPU runtime published
+
+The current native online model is now in `experiments/online_cpu/`. It preserves
+18 regions, D=64, the selected centered-routing / centered-Y / split-normalization
+policy, learned byte state, temporal lace credit, and version-16 checkpoints.
+The published defaults are 1,023,744 parameters (12 experts/region) and 4,990,720
+parameters (64 experts/region).
+
+The measured CPU changes improve training-only throughput by 38.5% / 52.1% to
+19,721 / 19,180 bytes/s. Bounded snapshot validation and checkpointing on another
+core reduces measured end-to-end elapsed time by 32.9% / 36.6%. The native trainer
+remains single-worker; internal expert threading was slower. Parameters and all
+checkpoint state match the preceding implementation exactly over the recorded
+100,000-update checks for each shape.
+
+See [runtime instructions](experiments/online_cpu/README.md),
+[profile report](experiments/online_cpu/reports/SHoEbox_CPU_Profile_Report.md), and
+[machine-readable results](experiments/online_cpu/reports/SHoEbox_CPU_Profile_Results.json).
+Fresh-checkout correctness checks require no trained model or external corpus.
+Original trained checkpoints and benchmark streams remain in the downloadable
+runtime archive; git includes their manifests and fixed initialization fixtures.
+These profiling continuations do not advance unique-data training progress.
+
+Earlier entries below describe the prior PyTorch implementation and development
+history.
+
 ## Current: 100,000-byte CPU training run complete
 
 Completed **100,000 additional FineWeb byte targets**, continuing the sparse
@@ -716,3 +742,4 @@ python scripts/check_all.py
 
 The archive includes runnable source, corpus, parent, selected/final checkpoints,
 optimizer/runtime/credit states, complete logs, causal query traces and hashes.
+

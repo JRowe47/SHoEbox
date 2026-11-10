@@ -1,0 +1,256 @@
+{
+  "size": "1m",
+  "kernel": "profile",
+  "threads": 1,
+  "targets": 65536,
+  "warmup": 2048,
+  "median_bytes_per_second": 13667.621196982936,
+  "samples": [
+    {
+      "seconds": 4.828635863996169,
+      "cpu_seconds": 4.825337451999999,
+      "bytes_per_second": 13572.363260741418,
+      "nll": 2.0617121251086545
+    },
+    {
+      "seconds": 4.761794343001384,
+      "cpu_seconds": 4.761240349,
+      "bytes_per_second": 13762.879133224455,
+      "nll": 2.0617121251086545
+    }
+  ],
+  "profiles": [
+    {
+      "bytes": 65536,
+      "sampled": 946,
+      "stages": {
+        "byte overhead": {
+          "ns": 267045,
+          "calls": 946,
+          "share": 0.003494360254730743
+        },
+        "source assembly": {
+          "ns": 2007714,
+          "calls": 8052,
+          "share": 0.026271512308661385
+        },
+        "memory lookup/write": {
+          "ns": 2963846,
+          "calls": 8052,
+          "share": 0.038782773178837625
+        },
+        "credit dispatch": {
+          "ns": 2241187,
+          "calls": 7319,
+          "share": 0.029326573334903218
+        },
+        "local teacher": {
+          "ns": 1418792,
+          "calls": 7319,
+          "share": 0.018565299385983412
+        },
+        "state input": {
+          "ns": 2057480,
+          "calls": 7319,
+          "share": 0.02692271466196113
+        },
+        "routing": {
+          "ns": 3162740,
+          "calls": 7319,
+          "share": 0.04138535809338168
+        },
+        "expert forward": {
+          "ns": 18735224,
+          "calls": 7319,
+          "share": 0.24515576816295956
+        },
+        "publication": {
+          "ns": 1719859,
+          "calls": 7319,
+          "share": 0.02250484724799551
+        },
+        "prototype updates": {
+          "ns": 2017721,
+          "calls": 9211,
+          "share": 0.026402456767719185
+        },
+        "predictor forward": {
+          "ns": 3230935,
+          "calls": 7319,
+          "share": 0.04227770918616141
+        },
+        "decoder forward": {
+          "ns": 1341964,
+          "calls": 946,
+          "share": 0.01755998301739215
+        },
+        "task teaching": {
+          "ns": 611987,
+          "calls": 946,
+          "share": 0.00800802504900636
+        },
+        "readout update": {
+          "ns": 1127326,
+          "calls": 946,
+          "share": 0.01475138335682971
+        },
+        "expert weight update": {
+          "ns": 7136974,
+          "calls": 12043,
+          "share": 0.0933893474307577
+        },
+        "credit Jacobian": {
+          "ns": 2420039,
+          "calls": 11160,
+          "share": 0.031666902943317914
+        },
+        "bottom state learning": {
+          "ns": 1661149,
+          "calls": 12043,
+          "share": 0.021736610094874344
+        },
+        "router task update": {
+          "ns": 1909646,
+          "calls": 12043,
+          "share": 0.024988264461066653
+        },
+        "bottom router task": {
+          "ns": 573760,
+          "calls": 2236,
+          "share": 0.007507813813231145
+        },
+        "feature mask": {
+          "ns": 15965395,
+          "calls": 16530,
+          "share": 0.20891176295784206
+        },
+        "state publication": {
+          "ns": 3196329,
+          "calls": 7319,
+          "share": 0.04182487977173608
+        },
+        "key materialization": {
+          "ns": 654602,
+          "calls": 6364,
+          "share": 0.008565654520651028
+        }
+      }
+    },
+    {
+      "bytes": 65536,
+      "sampled": 946,
+      "stages": {
+        "byte overhead": {
+          "ns": 295297,
+          "calls": 946,
+          "share": 0.0039515047357117665
+        },
+        "source assembly": {
+          "ns": 1798737,
+          "calls": 8052,
+          "share": 0.024069725645028482
+        },
+        "memory lookup/write": {
+          "ns": 3120408,
+          "calls": 8052,
+          "share": 0.04175561211035968
+        },
+        "credit dispatch": {
+          "ns": 2273695,
+          "calls": 7319,
+          "share": 0.030425356708886866
+        },
+        "local teacher": {
+          "ns": 1271711,
+          "calls": 7319,
+          "share": 0.017017348767365555
+        },
+        "state input": {
+          "ns": 2019461,
+          "calls": 7319,
+          "share": 0.027023334829291253
+        },
+        "routing": {
+          "ns": 3328508,
+          "calls": 7319,
+          "share": 0.04454029375460807
+        },
+        "expert forward": {
+          "ns": 17955459,
+          "calls": 7319,
+          "share": 0.24027024070809544
+        },
+        "publication": {
+          "ns": 1836336,
+          "calls": 7319,
+          "share": 0.024572855126730044
+        },
+        "prototype updates": {
+          "ns": 1807721,
+          "calls": 9211,
+          "share": 0.024189944673821982
+        },
+        "predictor forward": {
+          "ns": 3137802,
+          "calls": 7319,
+          "share": 0.041988369210408
+        },
+        "decoder forward": {
+          "ns": 1281152,
+          "calls": 946,
+          "share": 0.017143683122979918
+        },
+        "task teaching": {
+          "ns": 631993,
+          "calls": 946,
+          "share": 0.00845698849780623
+        },
+        "readout update": {
+          "ns": 1263421,
+          "calls": 946,
+          "share": 0.016906416471205922
+        },
+        "expert weight update": {
+          "ns": 6500889,
+          "calls": 12043,
+          "share": 0.08699138044015527
+        },
+        "credit Jacobian": {
+          "ns": 2369447,
+          "calls": 11160,
+          "share": 0.03170665818317842
+        },
+        "bottom state learning": {
+          "ns": 1482866,
+          "calls": 12043,
+          "share": 0.019842910769245756
+        },
+        "router task update": {
+          "ns": 2107156,
+          "calls": 12043,
+          "share": 0.02819682188739968
+        },
+        "bottom router task": {
+          "ns": 694373,
+          "calls": 2236,
+          "share": 0.009291723918124419
+        },
+        "feature mask": {
+          "ns": 15607234,
+          "calls": 16530,
+          "share": 0.20884756385050202
+        },
+        "state publication": {
+          "ns": 3280257,
+          "calls": 7319,
+          "share": 0.043894624970289814
+        },
+        "key materialization": {
+          "ns": 666343,
+          "calls": 6364,
+          "share": 0.008916641618805425
+        }
+      }
+    }
+  ]
+}
