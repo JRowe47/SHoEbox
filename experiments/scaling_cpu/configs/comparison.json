@@ -1,0 +1,26 @@
+{
+  "name": "SHoEbox width versus expert count: 25M bytes",
+  "seeds": [1, 2],
+  "targets": 25000000,
+  "chunk_targets": 50000,
+  "validation_interval": 1000000,
+  "diagnostic_targets": 32768,
+  "pilot_targets": 500000,
+  "pilot_seed": 0,
+  "pilot_validation_targets": 131072,
+  "lr_candidates": [0.002, 0.004, 0.008],
+  "warmup_fraction": 0.04,
+  "maturation_start_fraction": 0.2,
+  "cooldown_start_fraction": 0.8,
+  "cooldown_floor": 0.1,
+  "local_lr_ratio": 0.3333333333333333,
+  "arms": {
+    "control_5m": {"width": 64, "experts": 64, "parameters": 4990720},
+    "experts_20m": {"width": 64, "experts": 256, "parameters": 19638016},
+    "width_20m": {"width": 128, "experts": 64, "parameters": 19565824}
+  },
+  "primary_comparison": "Mean validation at 23M, 24M and 25M, then paired seed mean; also report each 25M endpoint and elapsed training seconds.",
+  "checkpoint_selection": "Minimum shared validation within each run; endpoint retained independently.",
+  "test_policy": "Test remains sealed during calibration and the six 25M runs. No test-based arm or checkpoint selection.",
+  "stop_policy": "Complete all 25M byte targets. Stop and preserve the last checkpoint on nonfinite values or integrity failure; no validation-based early stopping."
+}

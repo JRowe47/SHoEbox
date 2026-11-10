@@ -1,5 +1,25 @@
 # SHoEbox handoff
 
+## 2026-11-10 - width scaling and matched 25M comparison published
+
+`experiments/scaling_cpu/` now contains the width-64/128/256 native runtime,
+packed regional banks, multiword coordinate masks, version-20 checkpoints and
+an exact-resume comparison harness. The archived 1M and 5M checkpoints each
+replay 50K training targets bit for bit against their original runtime. The
+publication suite passes eleven tests, including data restoration and resume.
+
+The 5M control, 20M bank and 20M width arms each have seeds 1 and 2 scheduled for
+25M targets. Rate calibration selects 0.008 for all three. The complete six runs
+have not started. A separate 99.73M model has passed its initial smoke check.
+
+A matched 250K-target single-core benchmark measures 20,526 / 18,756 / 6,426 /
+1,887 training bytes/s for the 5M / 20M bank / 20M width / 99.73M models on the
+AMD EPYC 9V74 host. Warmup is 16,384 targets; initialization, validation and
+checkpointing are outside the timed interval. Raw data and reproduction are
+linked from the [runtime README](experiments/scaling_cpu/README.md).
+
+The original fixed-width runtime and existing history remain available.
+
 ## 2026-11-10 — optimized online CPU runtime published
 
 The current native online model is now in `experiments/online_cpu/`. It preserves
@@ -742,4 +762,5 @@ python scripts/check_all.py
 
 The archive includes runnable source, corpus, parent, selected/final checkpoints,
 optimizer/runtime/credit states, complete logs, causal query traces and hashes.
+
 

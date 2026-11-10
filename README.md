@@ -1,8 +1,49 @@
 # SHoEbox
 
-## Current online CPU runtime
+## Current scalable online CPU runtime
 
-The latest CPU-first 18-region implementation is in
+The width-aware native runtime and matched 25M-byte comparison are in
+[experiments/scaling_cpu](experiments/scaling_cpu/README.md). It supports widths
+64, 128 and 256, packed per-region expert banks, multiword feature masks, exact
+legacy checkpoint replay, version-20 checkpoints, and guarded resume.
+
+The three comparison arms are fresh 4.99M / 19.64M / 19.57M models, two seeds
+each on identical data. Nine 500K-byte rate pilots selected peak LR **0.008**;
+the six full 25M runs have not started. The proposed **99,727,616-parameter**
+configuration is implemented and smoke-tested. Eleven publication checks pass.
+
+Measured single-core FP32 training on an AMD EPYC 9V74, with 16,384 warmup
+and 250,000 timed byte targets per model, sequentially on one pinned CPU:
+
+| Model | Parameters | Training bytes/s | Projected 25M training time |
+|---|---:|---:|---:|
+| 5M control (D=64, E=64) | 4,990,720 | 20,526 | 20.3 min |
+| 20M bank (D=64, E=256) | 19,638,016 | 18,756 | 22.2 min |
+| 20M width (D=128, E=64) | 19,565,824 | 6,426 | 64.8 min |
+| 99.73M (D=256, regional banks) | 99,727,616 | 1,887 | 220.8 min |
+
+Timing excludes initialization, compilation, validation and checkpointing.
+The 25M times are projections, not completed runs. See the
+[raw benchmark](experiments/scaling_cpu/reports/throughput.json) and
+[reproduction command](experiments/scaling_cpu/README.md#throughput).
+
+```bash
+cd experiments/scaling_cpu
+python -m pip install -r requirements-data.txt
+python restore_data.py
+export OPENBLAS_NUM_THREADS=1 OMP_NUM_THREADS=1
+python comparison.py launch --dry-run
+python comparison.py launch --workers 3
+```
+
+The repository includes source, tests, fixed fixtures, calibrated settings and
+a compressed manifest for exact data restoration. Trained checkpoints and raw
+corpus binaries stay in run artifacts. Resume with `--resume`; run the synthetic
+checks with `python -m unittest discover -s tests -v` from this directory.
+
+## Previous fixed-width online CPU runtime
+
+The preceding fixed-width CPU-first 18-region implementation is in
 [experiments/online_cpu](experiments/online_cpu/README.md). It includes the selected
 centered routing and decoder policy, learned byte state, temporal lace credit,
 the EC/hippocampus interface, exact SIMD optimizations, and asynchronous
@@ -131,4 +172,5 @@ The completed **100,000-byte CPU continuation** averages **61.54 training bytes/
 at B50/T32. Held-out NLL falls **4.434 -> 3.269**, remaining at unigram level
 (3.256 baseline; greedy predictions are spaces). See
 [training results and checkpoint audit](docs/cpu_training_results.json).
+
 

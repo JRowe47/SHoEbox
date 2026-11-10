@@ -1,5 +1,9 @@
 # SHoEbox online CPU runtime
 
+The width-aware successor and matched 25M comparison are in
+[`../scaling_cpu/`](../scaling_cpu/README.md). This directory retains the original
+fixed-width implementation and its profiling history.
+
 This is the current 18-region, 64-coordinate CPU implementation, with the selected
 centered-routing and centered-Y/split-normalization policy. It includes learned
 byte state, temporal lace credit, the EC/hippocampus interface, and the optimized
@@ -118,3 +122,4 @@ OPENBLAS_NUM_THREADS=1 OMP_NUM_THREADS=1 SHOEBOX_EXPERTS=64 python experiments/o
 Recorded benchmark continuations replay an existing segment. They measure runtime
 performance and equivalence; they are not additional unique-data training progress.
 Original report paths identify the downloadable archive layout.
+

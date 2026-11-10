@@ -1,0 +1,406 @@
+{
+  "cpu_model": "AMD EPYC 9V74 80-Core Processor",
+  "cpu": 0,
+  "workers_per_model": 1,
+  "concurrent_trainers": 1,
+  "precision": "float32",
+  "seed": 3,
+  "warmup_targets": 16384,
+  "measured_targets": 250000,
+  "chunk_targets": 25000,
+  "mode": "periodic",
+  "lr": 0.008,
+  "local_lr": 0.0026666666666666666,
+  "route_lr": 0.002,
+  "actual_update_observer": true,
+  "data_sha256": "96b6aba2e9d6b8db045ce246bdb9fae4ac7bb8c4140ddc6e26afc936880b9d07",
+  "runtime_sha256": "a320fc70125eae6533cf5c9676ea3c91aec6f8c264c560f76799c60878866f5d",
+  "python": "3.12.14",
+  "numpy": "2.3.5",
+  "excluded_time": [
+    "initialization",
+    "native compilation",
+    "validation",
+    "checkpointing",
+    "data I/O"
+  ],
+  "method": "Sequential fresh models on one pinned CPU; continuous warmup then non-overlapping measured chunks. Training only; no model-selection claim.",
+  "arms": [
+    {
+      "arm": "control_5m",
+      "architecture": {
+        "width": 64,
+        "experts": [
+          64,
+          64,
+          64,
+          64,
+          64,
+          64,
+          64,
+          64,
+          64,
+          64,
+          64,
+          64,
+          64,
+          64,
+          64,
+          64,
+          64,
+          64
+        ]
+      },
+      "parameters": 4990720,
+      "training_seconds": 12.17993554702116,
+      "bytes_per_second": 20525.560175163846,
+      "median_chunk_bytes_per_second": 20798.194381600268,
+      "projected_25m_training_seconds": 1217.993554702116,
+      "finite_parameters": true,
+      "chunks": [
+        {
+          "targets": 25000,
+          "seconds": 1.2084059019980486,
+          "nll": 3.0666120771432297,
+          "bytes_per_second": 20688.412692013128
+        },
+        {
+          "targets": 25000,
+          "seconds": 1.1949344240056234,
+          "nll": 2.9002302225892085,
+          "bytes_per_second": 20921.65017407043
+        },
+        {
+          "targets": 25000,
+          "seconds": 1.135348714000429,
+          "nll": 2.8865140955405657,
+          "bytes_per_second": 22019.666461691657
+        },
+        {
+          "targets": 25000,
+          "seconds": 1.206826630004798,
+          "nll": 2.8104399970697878,
+          "bytes_per_second": 20715.485868836524
+        },
+        {
+          "targets": 25000,
+          "seconds": 1.384430838006665,
+          "nll": 2.7336512658768415,
+          "bytes_per_second": 18057.962386908086
+        },
+        {
+          "targets": 25000,
+          "seconds": 1.2776768940020702,
+          "nll": 2.8320508055330964,
+          "bytes_per_second": 19566.762236493487
+        },
+        {
+          "targets": 25000,
+          "seconds": 1.200246557003993,
+          "nll": 2.6962068943739017,
+          "bytes_per_second": 20829.053709101227
+        },
+        {
+          "targets": 25000,
+          "seconds": 1.1741503060038667,
+          "nll": 2.6211374100829694,
+          "bytes_per_second": 21291.992917913245
+        },
+        {
+          "targets": 25000,
+          "seconds": 1.2038135819966556,
+          "nll": 2.6120301188726747,
+          "bytes_per_second": 20767.335054099312
+        },
+        {
+          "targets": 25000,
+          "seconds": 1.1941016999990097,
+          "nll": 2.6025867014287085,
+          "bytes_per_second": 20936.240187934356
+        }
+      ]
+    },
+    {
+      "arm": "experts_20m",
+      "architecture": {
+        "width": 64,
+        "experts": [
+          256,
+          256,
+          256,
+          256,
+          256,
+          256,
+          256,
+          256,
+          256,
+          256,
+          256,
+          256,
+          256,
+          256,
+          256,
+          256,
+          256,
+          256
+        ]
+      },
+      "parameters": 19638016,
+      "training_seconds": 13.329064733014093,
+      "bytes_per_second": 18756.004641555046,
+      "median_chunk_bytes_per_second": 19016.699581153713,
+      "projected_25m_training_seconds": 1332.9064733014093,
+      "finite_parameters": true,
+      "chunks": [
+        {
+          "targets": 25000,
+          "seconds": 1.4418784040026367,
+          "nll": 3.0640956187862787,
+          "bytes_per_second": 17338.493960794687
+        },
+        {
+          "targets": 25000,
+          "seconds": 1.420654605004529,
+          "nll": 2.897584090492241,
+          "bytes_per_second": 17597.521531224193
+        },
+        {
+          "targets": 25000,
+          "seconds": 1.3580795830057468,
+          "nll": 2.8943709501157175,
+          "bytes_per_second": 18408.34683978473
+        },
+        {
+          "targets": 25000,
+          "seconds": 1.2857092439953703,
+          "nll": 2.809563659068557,
+          "bytes_per_second": 19444.520692961603
+        },
+        {
+          "targets": 25000,
+          "seconds": 1.302933156999643,
+          "nll": 2.7354020623706874,
+          "bytes_per_second": 19187.477013455766
+        },
+        {
+          "targets": 25000,
+          "seconds": 1.2755769770010374,
+          "nll": 2.8351132209812246,
+          "bytes_per_second": 19598.973994322623
+        },
+        {
+          "targets": 25000,
+          "seconds": 1.2974087769980542,
+          "nll": 2.6994796680440185,
+          "bytes_per_second": 19269.177489183498
+        },
+        {
+          "targets": 25000,
+          "seconds": 1.2734633580039372,
+          "nll": 2.6239261227187836,
+          "bytes_per_second": 19631.503209629616
+        },
+        {
+          "targets": 25000,
+          "seconds": 1.3468137070012745,
+          "nll": 2.6158534453384403,
+          "bytes_per_second": 18562.32964517664
+        },
+        {
+          "targets": 25000,
+          "seconds": 1.3265469210018637,
+          "nll": 2.608526289068224,
+          "bytes_per_second": 18845.922148851663
+        }
+      ]
+    },
+    {
+      "arm": "width_20m",
+      "architecture": {
+        "width": 128,
+        "experts": [
+          64,
+          64,
+          64,
+          64,
+          64,
+          64,
+          64,
+          64,
+          64,
+          64,
+          64,
+          64,
+          64,
+          64,
+          64,
+          64,
+          64,
+          64
+        ]
+      },
+      "parameters": 19565824,
+      "training_seconds": 38.906659009997384,
+      "bytes_per_second": 6425.63526042574,
+      "median_chunk_bytes_per_second": 6463.0625939832335,
+      "projected_25m_training_seconds": 3890.6659009997384,
+      "finite_parameters": true,
+      "chunks": [
+        {
+          "targets": 25000,
+          "seconds": 3.9830105129949516,
+          "nll": 3.0897703223435404,
+          "bytes_per_second": 6276.659305426164
+        },
+        {
+          "targets": 25000,
+          "seconds": 3.9821166879992234,
+          "nll": 2.9127730339109164,
+          "bytes_per_second": 6278.068162929955
+        },
+        {
+          "targets": 25000,
+          "seconds": 3.7095890540003893,
+          "nll": 2.9070886918481773,
+          "bytes_per_second": 6739.290966216383
+        },
+        {
+          "targets": 25000,
+          "seconds": 3.7997826680002618,
+          "nll": 2.826713285134391,
+          "bytes_per_second": 6579.3236572545675
+        },
+        {
+          "targets": 25000,
+          "seconds": 3.793438798005809,
+          "nll": 2.7386656618977367,
+          "bytes_per_second": 6590.3264376223415
+        },
+        {
+          "targets": 25000,
+          "seconds": 3.875091640999017,
+          "nll": 2.8472578661665415,
+          "bytes_per_second": 6451.460330769077
+        },
+        {
+          "targets": 25000,
+          "seconds": 3.8612037150014658,
+          "nll": 2.6949435586263513,
+          "bytes_per_second": 6474.664857197391
+        },
+        {
+          "targets": 25000,
+          "seconds": 3.77633811099804,
+          "nll": 2.6108548108195944,
+          "bytes_per_second": 6620.1699278968445
+        },
+        {
+          "targets": 25000,
+          "seconds": 4.159832691002521,
+          "nll": 2.612128447652602,
+          "bytes_per_second": 6009.857092106989
+        },
+        {
+          "targets": 25000,
+          "seconds": 3.9662551309957053,
+          "nll": 2.6091376088906078,
+          "bytes_per_second": 6303.174953277374
+        }
+      ]
+    },
+    {
+      "arm": "width_100m",
+      "architecture": {
+        "width": 256,
+        "experts": [
+          128,
+          128,
+          96,
+          96,
+          96,
+          96,
+          80,
+          80,
+          80,
+          80,
+          64,
+          64,
+          64,
+          64,
+          48,
+          64,
+          64,
+          96
+        ]
+      },
+      "parameters": 99727616,
+      "training_seconds": 132.46702032800385,
+      "bytes_per_second": 1887.2621984020682,
+      "median_chunk_bytes_per_second": 1905.7191554206515,
+      "projected_25m_training_seconds": 13246.702032800387,
+      "finite_parameters": true,
+      "chunks": [
+        {
+          "targets": 25000,
+          "seconds": 13.798640996006725,
+          "nll": 3.085374905340335,
+          "bytes_per_second": 1811.7726236398864
+        },
+        {
+          "targets": 25000,
+          "seconds": 14.192241053999169,
+          "nll": 2.921769415353254,
+          "bytes_per_second": 1761.5258862133942
+        },
+        {
+          "targets": 25000,
+          "seconds": 13.019303485001728,
+          "nll": 2.9184221645649,
+          "bytes_per_second": 1920.2256118232488
+        },
+        {
+          "targets": 25000,
+          "seconds": 13.30738413999643,
+          "nll": 2.839719703156728,
+          "bytes_per_second": 1878.6562210119462
+        },
+        {
+          "targets": 25000,
+          "seconds": 13.431354713000474,
+          "nll": 2.7624994273841903,
+          "bytes_per_second": 1861.3163403243313
+        },
+        {
+          "targets": 25000,
+          "seconds": 12.974004044997855,
+          "nll": 2.8646518317089695,
+          "bytes_per_second": 1926.9301838732495
+        },
+        {
+          "targets": 25000,
+          "seconds": 13.165916819001723,
+          "nll": 2.730772061739224,
+          "bytes_per_second": 1898.8423171501984
+        },
+        {
+          "targets": 25000,
+          "seconds": 13.071239343000343,
+          "nll": 2.6485947172840882,
+          "bytes_per_second": 1912.5959936911045
+        },
+        {
+          "targets": 25000,
+          "seconds": 12.55699663899577,
+          "nll": 2.6505623854427585,
+          "bytes_per_second": 1990.9219313129754
+        },
+        {
+          "targets": 25000,
+          "seconds": 12.94993909400364,
+          "nll": 2.644104376818527,
+          "bytes_per_second": 1930.5110100151776
+        }
+      ]
+    }
+  ]
+}
