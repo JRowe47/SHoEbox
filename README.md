@@ -1,5 +1,17 @@
 # SHoEbox
 
+## Completed constituents and recursive learned content
+
+The latest architectural repair is available as `fresh_model(kernel="completion")`
+in [experiments/identity_semantics](experiments/identity_semantics/README.md).
+It restores learned completion above L2 while preserving source-role binding,
+and makes exported constituent codes recursively depend on learned child content.
+Saved composition dependencies carry credit across multiple binding levels.
+Version-33 checkpoints preserve the new event state; an explicit converter accepts
+the previous relay and message checkpoints at a fresh stream boundary.
+
+[Implementation, tests and short-run measurements](experiments/identity_semantics/deliverables/SHoEbox_Completion_Fix.md).
+
 ## Learned-message and feedback repair
 
 The upper-region repair is available in

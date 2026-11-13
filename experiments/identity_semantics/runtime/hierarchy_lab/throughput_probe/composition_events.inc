@@ -8,6 +8,9 @@ inline ContentID content_pair(ContentID a,ContentID b,uint64_t role){
 #ifdef SHOEBOX_IDENTITY_SEMANTICS
 #include "semantics_events.inc"
 #endif
+#ifdef SHOEBOX_LEARNED_COMPLETION
+#include "completion_encoding.inc"
+#endif
 inline int content_coord(int j,int position){return (j+11*position+7)&63;}
 inline float content_sign(int j,int position){return ((j*13+position*17)%11)<5?-1.f:1.f;}
 inline uint32_t content_count(CountEntry*table,ContentID key,bool learn,double&evictions){
@@ -71,6 +74,9 @@ inline ContentEvent content_compose(Model&m,int r,const ContentEvent*children,in
   out.ref.id=id;
 #ifdef SHOEBOX_IDENTITY_SEMANTICS
   semantic_encode(m,r,out);
+#ifdef SHOEBOX_LEARNED_COMPLETION
+  constituent_encode(m,r,out,children,n,false);
+#endif
 #endif
   if(n==1&&kind==1){out.ref.id=children[0].ref.id;memcpy(out.code,children[0].code,sizeof(out.code));out.confidence=0;}
   else {
@@ -128,10 +134,17 @@ inline void content_passthrough(Model&m,int r,ContentEvent event,const ContentEv
 inline bool binding_prepare(Model&,int,bool,ContentEvent&,ContentEvent*,int&);
 inline void binding_bundle(Model&,int,const ContentEvent&,const ContentEvent*,int,float*,float*,float&,float&,LaceParent*,int&);
 #endif
+#ifdef SHOEBOX_LEARNED_COMPLETION
+inline bool completion_prepare(Model&,int,bool,ContentEvent&,ContentEvent*,int&);
+inline void completion_bundle(Model&,int,const ContentEvent&,const ContentEvent*,int,float*,float*,float&,float&,LaceParent*,int&);
+#endif
 inline bool content_prepare(Model&m,int r,bool learn,ContentEvent&event,ContentEvent*parts,int&n){
   auto&z=m.composition;auto&s=z.stream;n=0;
   if(r<2)return true;
 #ifdef SHOEBOX_MULTI_BINDING
+#ifdef SHOEBOX_LEARNED_COMPLETION
+  if(r>=3&&r<=14)return completion_prepare(m,r,learn,event,parts,n);
+#endif
   if(r>=3)return binding_prepare(m,r,learn,event,parts,n);
 #endif
   if(r<=14){
@@ -183,6 +196,9 @@ inline bool content_prepare(Model&m,int r,bool learn,ContentEvent&event,ContentE
 inline void content_bundle(Model&m,int r,const ContentEvent&event,const ContentEvent*parts,int n,
                            float*q,float*c,float&qw,float&cw,LaceParent*parents,int&nparents){
 #ifdef SHOEBOX_MULTI_BINDING
+#ifdef SHOEBOX_LEARNED_COMPLETION
+  if(r>=3&&r<=14){completion_bundle(m,r,event,parts,n,q,c,qw,cw,parents,nparents);return;}
+#endif
   if(r>=3){binding_bundle(m,r,event,parts,n,q,c,qw,cw,parents,nparents);return;}
 #endif
   if(n){memcpy(q,event.code,D*sizeof(float));qw=1;}
@@ -201,4 +217,7 @@ inline void content_bundle(Model&m,int r,const ContentEvent&event,const ContentE
 
 #ifdef SHOEBOX_MULTI_BINDING
 #include "binding_events.inc"
+#endif
+#ifdef SHOEBOX_LEARNED_COMPLETION
+#include "completion_events.inc"
 #endif

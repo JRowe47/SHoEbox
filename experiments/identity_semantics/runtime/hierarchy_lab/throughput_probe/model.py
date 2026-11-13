@@ -11,15 +11,16 @@ A1_FIELDS=['prototype_scale','follow_cooldown','reference_lr','decoder_scale']
 A1_DEFAULT=np.array([1.,0.,4e-5,1.],np.float32)
 KERNEL=os.environ.get('SHOEBOX_KERNEL','native')
 FLAGS=os.environ.get('SHOEBOX_CXX_FLAGS','').split()
-MESSAGE_KERNELS=('messages','message_checks')
-DIAGNOSTIC_KERNELS=('contributions','message_checks')
+COMPLETION_KERNELS=('completion','completion_checks')
+MESSAGE_KERNELS=('messages','message_checks',*COMPLETION_KERNELS)
+DIAGNOSTIC_KERNELS=('contributions','message_checks','completion_checks')
 RELAY_KERNELS=('relays','contributions',*MESSAGE_KERNELS)
 MESSAGE_DEFAULT=dict(payload_gain=1.,feedback_activation=.1,feedback_routing=.1,semantic_lr=1.)
 CONTRIBUTION_KINDS=('none','neural_output','content_descriptor','relay_context',
                     'retained_input','semantic_residual','whole_source','expert_transform','semantic_payload','feedback_channel')
 _CONSTRUCTION_LOCK=threading.RLock()
 def build():
-    source=ROOT/(KERNEL+'.cpp');digest=hashlib.sha256(source.read_bytes()+((ROOT/'composition.cpp').read_bytes() if KERNEL in ('binding','semantics','semantics_fixed',*RELAY_KERNELS) else b'')+((ROOT/'relays.cpp').read_bytes() if KERNEL in ('contributions',*MESSAGE_KERNELS) else b'')+((ROOT/'messages.cpp').read_bytes() if KERNEL=='message_checks' else b'')+b''.join(p.read_bytes() for p in sorted(ROOT.glob('*.inc')))+((ROOT/'e14.cpp').read_bytes() if KERNEL=='e14_fixture' else b'')+str(FLAGS).encode()).hexdigest()[:16]
+    source=ROOT/(KERNEL+'.cpp');digest=hashlib.sha256(source.read_bytes()+((ROOT/'composition.cpp').read_bytes() if KERNEL in ('binding','semantics','semantics_fixed',*RELAY_KERNELS) else b'')+((ROOT/'relays.cpp').read_bytes() if KERNEL in ('contributions',*MESSAGE_KERNELS) else b'')+((ROOT/'messages.cpp').read_bytes() if KERNEL in ('message_checks',*COMPLETION_KERNELS) else b'')+((ROOT/'completion.cpp').read_bytes() if KERNEL=='completion_checks' else b'')+b''.join(p.read_bytes() for p in sorted(ROOT.glob('*.inc')))+((ROOT/'e14.cpp').read_bytes() if KERNEL=='e14_fixture' else b'')+str(FLAGS).encode()).hexdigest()[:16]
     lib=ROOT/f'_{KERNEL}_e{core.E}_{digest}.so'
     with open(ROOT/f'.build_e{core.E}.lock','w') as lock:
         fcntl.flock(lock,fcntl.LOCK_EX)
@@ -100,6 +101,16 @@ class Model(parent.Model):
         self.lib.message_metrics(self.handle,a.ctypes.data)
         fields=('semantic_deliveries','semantic_gradient_norm','feedback_deliveries','missing_feedback_producers')
         return {name:dict(zip(fields,row.tolist())) for name,row in zip(core.NAMES,a)}
+    def completion_metrics(self):
+        if not hasattr(self.lib,'completion_metrics'):return {}
+        a=np.zeros((18,5),np.uint64);self.lib.completion_metrics.argtypes=[ct.c_void_p,ct.c_void_p]
+        self.lib.completion_metrics(self.handle,a.ctypes.data)
+        fields=('semantic_nodes','expired_semantic_handles','semantic_budget_omissions','completed_sequences','semantic_capacity_prunes')
+        return {name:dict(zip(fields,map(int,row))) for name,row in zip(core.NAMES,a)}
+    def completion_gates(self):
+        if not hasattr(self.lib,'completion_gates'):return np.zeros(0,np.float32)
+        a=np.zeros(16,np.float32);self.lib.completion_gates.argtypes=[ct.c_void_p,ct.c_void_p]
+        self.lib.completion_gates(self.handle,a.ctypes.data);return a
     def composition_state(self,fitted=False):
         if not hasattr(self.lib,'composition_state_size'):return np.zeros(0,np.uint8)
         self.lib.composition_state_size.restype=ct.c_size_t
@@ -200,7 +211,7 @@ class Model(parent.Model):
         if fresh:
             self.lib.e13_clear_cache.argtypes=[ct.c_void_p];self.lib.e13_clear_cache(self.handle)
     @property
-    def parameter_count(self):return super().parameter_count+(8192 if self.runtime_kernel.startswith("semantics") or self.runtime_kernel in RELAY_KERNELS else 0)+((core.E if self.runtime_kernel.startswith('r02') else 16*core.E) if self.gate_bias_policy()['enabled'] else 0)
+    def parameter_count(self):return super().parameter_count+(16 if self.runtime_kernel in COMPLETION_KERNELS else 0)+(8192 if self.runtime_kernel.startswith("semantics") or self.runtime_kernel in RELAY_KERNELS else 0)+((core.E if self.runtime_kernel.startswith('r02') else 16*core.E) if self.gate_bias_policy()['enabled'] else 0)
     def configure_gate_bias(self,gain=250.,limit=2.,step_limit=.01):
         if not hasattr(self.lib,'e14_configure'):raise ValueError('Gate bias requires e14 kernel')
         self.lib.e14_configure.argtypes=[ct.c_void_p,ct.c_float,ct.c_float,ct.c_float];self.lib.e14_configure.restype=ct.c_int
@@ -420,7 +431,7 @@ class Model(parent.Model):
             self.lib.utility_import(self.handle,clean.ctypes.data);self.lib.utility_observe(self.handle,0);self.lib.utility_ablate(self.handle,0)
     def frozen_copy(self,*,kernel=None):
         if self.runtime_kernel in DIAGNOSTIC_KERNELS:raise ValueError('Create independent contribution checks from the original model')
-        if kernel is not None and (self.runtime_kernel,kernel) not in (('relays','contributions'),('messages','message_checks')):
+        if kernel is not None and (self.runtime_kernel,kernel) not in (('relays','contributions'),('messages','message_checks'),('completion','completion_checks')):
             raise ValueError('Use the diagnostic kernel matching the production kernel')
         m=Model(config=self.config,params=self.params,fixed=self.fixed,lace=self.lace,state_config=self.state_config,extra=self.extra_flat,probe=self.probe,utility=self.utility,kernel=kernel or self.runtime_kernel,teaching=self.teaching,regional_gains=self.regional_gains,frozen_regions=self.frozen_regions,task_route_lr_scale=self.task_route_lr_scale,a1_learning=self.a1_learning,f3_task_route_gain=self.f3_task_route_gain,exploration=self.exploration,traffic=self.traffic,composition=self.composition,messages=self.messages)
         m.configure_path_prototypes(self.path_prototypes)
@@ -440,10 +451,10 @@ class Model(parent.Model):
         Query normalization and recurrent inference state still evolve in eval.
         Run this copy with mode='eval'. The historical frozen_copy() is cold_adaptive.
         """
-        if self.runtime_kernel not in ('relays','messages'):raise ValueError('Explicit memory evaluation requires a relay or message kernel')
+        if self.runtime_kernel not in ('relays','messages','completion'):raise ValueError('Explicit memory evaluation requires a relay or message kernel')
         if memory not in ('cold_adaptive','cold_frozen','warm_frozen','warm_adaptive'):
             raise ValueError('Unknown evaluation memory policy')
-        m=self.frozen_copy(kernel=('message_checks' if self.runtime_kernel=='messages' else 'contributions') if diagnostic else None)
+        m=self.frozen_copy(kernel=('completion_checks' if self.runtime_kernel=='completion' else 'message_checks' if self.runtime_kernel=='messages' else 'contributions') if diagnostic else None)
         if memory.startswith('warm'):
             m.lib.evaluation_copy_memory.argtypes=[ct.c_void_p,ct.c_void_p]
             m.lib.evaluation_copy_memory(m.handle,self.handle)
@@ -522,7 +533,7 @@ class Model(parent.Model):
     def save(self,path):
         if self.runtime_kernel in DIAGNOSTIC_KERNELS:raise ValueError('Evaluation interventions cannot be saved as training checkpoints')
         parent.legacy.base.atomic_checkpoint(path,flat=self.flat,extra=self.extra_flat,state=parent.legacy.base.state(self),lace_state=self.lace_state(),learned_state=self.learned_state(),probe_state=self.probe_state(),utility_state=self.utility_state(),
-            version=np.array([32 if self.runtime_kernel=="messages" else 31 if self.runtime_kernel=="relays" else 30 if self.runtime_kernel.startswith("semantics") else 29 if self.runtime_kernel=="binding" else 28 if self.runtime_kernel=="composition" else 27 if self.runtime_kernel.startswith("r05") else 26 if self.runtime_kernel.startswith("r04") else 25 if self.runtime_kernel.startswith("r03") else 24 if self.runtime_kernel.startswith("r02") and (self.activation_policy()["enabled"] or self.gate_bias_policy()["enabled"]) else 23 if self.gate_bias_policy()["enabled"] else 21 if self.traffic['enabled'] else (20 if self.retention_policy() else 19)],np.int32),experts=np.array([core.E],np.int32),config_json=np.array(json.dumps(self.config)),lace_json=np.array(json.dumps(self.lace)),state_config_json=np.array(json.dumps(self.state_config)),probe_json=np.array(json.dumps(self.probe)),utility_json=np.array(json.dumps(self.utility)),teaching_scales=self.teaching,regional_gains=self.regional_gains,frozen_regions=self.frozen_regions,task_route_lr_scale=np.array(self.task_route_lr_scale,np.float32),a1_learning_scales=self.a1_learning_array,f3_task_route_gain=np.array(self.f3_task_route_gain,np.float32),exploration_json=np.array(json.dumps(self.exploration)),traffic_json=np.array(json.dumps(self.traffic)),traffic_state=self.traffic_state(),
+            version=np.array([33 if self.runtime_kernel=="completion" else 32 if self.runtime_kernel=="messages" else 31 if self.runtime_kernel=="relays" else 30 if self.runtime_kernel.startswith("semantics") else 29 if self.runtime_kernel=="binding" else 28 if self.runtime_kernel=="composition" else 27 if self.runtime_kernel.startswith("r05") else 26 if self.runtime_kernel.startswith("r04") else 25 if self.runtime_kernel.startswith("r03") else 24 if self.runtime_kernel.startswith("r02") and (self.activation_policy()["enabled"] or self.gate_bias_policy()["enabled"]) else 23 if self.gate_bias_policy()["enabled"] else 21 if self.traffic['enabled'] else (20 if self.retention_policy() else 19)],np.int32),experts=np.array([core.E],np.int32),config_json=np.array(json.dumps(self.config)),lace_json=np.array(json.dumps(self.lace)),state_config_json=np.array(json.dumps(self.state_config)),probe_json=np.array(json.dumps(self.probe)),utility_json=np.array(json.dumps(self.utility)),teaching_scales=self.teaching,regional_gains=self.regional_gains,frozen_regions=self.frozen_regions,task_route_lr_scale=np.array(self.task_route_lr_scale,np.float32),a1_learning_scales=self.a1_learning_array,f3_task_route_gain=np.array(self.f3_task_route_gain,np.float32),exploration_json=np.array(json.dumps(self.exploration)),traffic_json=np.array(json.dumps(self.traffic)),traffic_state=self.traffic_state(),
             **({'gate_bias_state':self.gate_bias_state(),'gate_bias_kernel':np.array('r02' if self.runtime_kernel.startswith('r02') else 'e14_calibrated' if self.gate_bias_policy()['gain']>10000 else 'e14'),'gate_bias_json':np.array(json.dumps(self.gate_bias_policy()))} if self.gate_bias_policy()['enabled'] else {}),
             **({'activation_state':self.activation_state(),'activation_json':np.array(json.dumps(self.activation_policy())),'activation_kernel':np.array('r02' if self.runtime_kernel.startswith('r02') else 'e13')} if self.activation_policy()['enabled'] else {}),
             **({"path_prototypes":self.path_prototypes} if self.runtime_kernel.startswith("r03") else {}),
@@ -535,9 +546,11 @@ class Model(parent.Model):
     @classmethod
     def load(cls,path):
         with np.load(path,allow_pickle=False) as a:
+            if int(a['version'][0])==33 and ('messages_json' not in a or str(a['experiment_kernel'])!='completion'):
+                raise ValueError('Completion checkpoints require their saved policy and production kernel')
             if int(a['version'][0])==32 and ('messages_json' not in a or str(a['experiment_kernel'])!='messages'):
                 raise ValueError('Message checkpoints require their saved policy and production kernel')
-            assert int(a['version'][0]) in (16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32) and int(a['experts'][0])==core.E
+            assert int(a['version'][0]) in (16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,33) and int(a['experts'][0])==core.E
             m=cls(config=json.loads(str(a['config_json'])),params=core.unflatten(a['flat']),fixed={k[6:]:a[k] for k in a.files if k.startswith('fixed_')},lace=json.loads(str(a['lace_json'])),state_config=json.loads(str(a['state_config_json'])),extra=a['extra'],probe=json.loads(str(a['probe_json'])),utility=json.loads(str(a['utility_json'])),kernel=str(a['experiment_kernel']) if 'experiment_kernel' in a else str(a['r08_kernel']) if 'r08_kernel' in a else 'r05' if int(a['version'][0])==27 else 'r04' if int(a['version'][0])==26 else 'r03' if int(a['version'][0])==25 else 'r02' if int(a['version'][0])==24 else ('e14_calibrated' if 'gate_bias_kernel' in a and str(a['gate_bias_kernel'])=='e14_calibrated' else 'e14') if 'gate_bias_state' in a else 'e13' if 'activation_state' in a else ('credit' if 'retention_state' in a else None))
             if 'messages_json' in a:m.configure_messages(json.loads(str(a['messages_json'])))
             if 'gate_bias_state' in a:m.import_gate_bias(a['gate_bias_state'])

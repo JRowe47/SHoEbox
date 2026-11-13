@@ -9,6 +9,9 @@ struct ChildEvent {
   int64_t seq=0,begin=0,end=0,tick=0;
   int region=-1,index=-1,role=0,recognized=0;
 };
+#ifdef SHOEBOX_LEARNED_COMPLETION
+#include "completion_types.inc"
+#endif
 struct ContentEvent {
   ChildEvent ref{};
   ChildEvent origin{}; // Actual neural producer; identity relays keep this intact.
@@ -24,6 +27,12 @@ struct ContentEvent {
 #endif
   ChildEvent children[COMP_MAX]{};
   float code[D]{},context[D]{};
+#ifdef SHOEBOX_LEARNED_COMPLETION
+  SemanticRef semantic{};
+  int64_t clock_begin=0,clock_end=0;
+  int context_count=0;
+  LaceParent context_edges[COMP_MAX]{};
+#endif
 #ifdef SHOEBOX_IDENTITY_SEMANTICS
   // Immutable descriptor, distinct from the learned semantic code and context.
   // This prevents stale child embeddings from changing a parent's symbol meaning.
@@ -37,6 +46,9 @@ struct InputCredit {
   int64_t tick=0,previous_tick=0;
   int previous_index=-1;
   float retention=0;
+#ifdef SHOEBOX_LEARNED_COMPLETION
+  SemanticRef semantic{};
+#endif
 #ifdef SHOEBOX_IDENTITY_SEMANTICS
   float symbol_features[8]{},symbol_derivative[D]{},symbol_scale=0;
 #endif
@@ -58,6 +70,12 @@ struct PendingTeaching {
 struct CompositionStream {
   int64_t byte_position=0;
   uint32_t draining=0,reserved=0;
+#ifdef SHOEBOX_LEARNED_COMPLETION
+  uint64_t semantic_serial=0,semantic_cursor=0,frame_serial[N]{};
+  ConstituentRecord semantic_records[SEM_RING]{};
+  // visited nodes, expired handles, work-budget omissions, completed sequences
+  uint64_t completion_metrics[N][5]{}; // last: capacity prunes of live eligibility
+#endif
 #ifdef SHOEBOX_LEARNED_MESSAGES
   // Semantic deliveries, gradient norm, feedback deliveries, missing feedback.
   double message_metrics[N][4]{};
@@ -77,7 +95,9 @@ struct CompositionStream {
 #endif
 };
 struct CompositionRuntime {
-#ifdef SHOEBOX_LEARNED_MESSAGES
+#ifdef SHOEBOX_LEARNED_COMPLETION
+  uint32_t version=7,enabled=1;
+#elif defined(SHOEBOX_LEARNED_MESSAGES)
   uint32_t version=6,enabled=1;
 #elif defined(SHOEBOX_PRESERVE_RELAYS)
   uint32_t version=5,enabled=1;
@@ -95,6 +115,9 @@ struct CompositionRuntime {
   // Eight fixed features per local symbol; 8,192 learned coefficients total.
   float symbols[N-2][D][8]{};
   uint64_t symbol_updates[N-2]{};
+#endif
+#ifdef SHOEBOX_LEARNED_COMPLETION
+  float payload_gates[N-2]{}; // gain = 1 + 0.5*tanh(parameter)
 #endif
   CompositionStream stream{};
 };

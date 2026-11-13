@@ -9,6 +9,16 @@ int composition_configure(void*p,int enabled,float threshold,int count,int maxim
     for(int k=m.starts[r];k<m.starts[r+1];k++)if(!m.slots[4*k+2]){
       if(m.slots[4*k]<0||m.slots[4*k]>=r||m.slots[4*k+1]<0||m.slots[4*k+1]>1)return 0;
     }
+#ifdef SHOEBOX_LEARNED_COMPLETION
+    if(r<=14){
+      if(m.starts[r]==m.starts[r+1]||m.slots[4*m.starts[r]+2])return 0;
+      int driver=int(m.slots[4*m.starts[r]]),count=0,ages=0;
+      for(int k=m.starts[r];k<m.starts[r+1];k++)if(!m.slots[4*k+2]&&int(m.slots[4*k])==driver){
+        int bit=1<<int(m.slots[4*k+1]);if(ages&bit)return 0;ages|=bit;count++;
+      }
+      if(count<1||count>2||ages!=(1<<count)-1)return 0;
+    }
+#endif
   }
 #endif
   z.enabled=enabled;z.boundary_threshold=threshold;z.min_count=count;z.max_children=maximum;z.context_gain=context;return 1;
@@ -47,8 +57,13 @@ int composition_finish(void*p,int mode,float lr,float lp,float route){
     bool pending=false;
     for(int r=2;r<=14;r++){
 #ifdef SHOEBOX_MULTI_BINDING
+#ifdef SHOEBOX_LEARNED_COMPLETION
+      if(r>=3){pending|=completion_ready(m,r);continue;}
+#else
       if(r>=3){pending|=binding_ready(m,r);continue;}
 #endif
+#endif
+
       int driver=int(m.slots[4*m.starts[r]]);
 #ifdef SHOEBOX_CONTRIBUTION_CHECKS
       if(contribution_selected(m,CHECK_SOURCE,driver)){z.length[r]=0;z.seen[r]=z.history[driver][0].ref.seq;continue;}
@@ -150,5 +165,12 @@ int message_configure(void*p,const float*values){
   memcpy(m.message_config,values,sizeof(m.message_config));return 1;
 }
 void message_metrics(void*p,double*out){memcpy(out,static_cast<Model*>(p)->composition.stream.message_metrics,sizeof(CompositionStream::message_metrics));}
+}
+#endif
+
+#ifdef SHOEBOX_LEARNED_COMPLETION
+extern "C" {
+void completion_metrics(void*p,uint64_t*out){memcpy(out,static_cast<Model*>(p)->composition.stream.completion_metrics,sizeof(CompositionStream::completion_metrics));}
+void completion_gates(void*p,float*out){memcpy(out,static_cast<Model*>(p)->composition.payload_gates,sizeof(CompositionRuntime::payload_gates));}
 }
 #endif

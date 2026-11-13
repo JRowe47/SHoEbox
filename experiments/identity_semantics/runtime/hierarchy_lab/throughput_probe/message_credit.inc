@@ -1,7 +1,13 @@
 inline LaceRecord* find_lace(Model&,int,int64_t,int);
 inline int content_coord(int,int);
 inline float content_sign(int,int);
-inline bool message_enabled(const Model&m){return m.message_config[0]!=0||m.message_config[1]!=0||m.message_config[2]!=0;}
+inline bool message_enabled(const Model&m){
+#ifdef SHOEBOX_LEARNED_COMPLETION
+  return true; // The exported code itself is now the learned input channel.
+#else
+  return m.message_config[0]!=0||m.message_config[1]!=0||m.message_config[2]!=0;
+#endif
+}
 inline bool message_feedback_enabled(const Model&m){return m.message_config[1]!=0||m.message_config[2]!=0;}
 inline int message_coord(const Model&m,int slot,int j){return slot<=-100?content_coord(j,-100-slot):m.perm[slot*D+j];}
 inline float message_sign(const Model&m,int slot,int j){return slot<=-100?content_sign(j,-100-slot):m.signs[slot*D+j];}
@@ -11,6 +17,9 @@ inline float message_sign(const Model&m,int slot,int j){return slot<=-100?conten
 // never rebrands an inherited vector as its own adapter output. No recursive
 // context or hidden uncredited chain is embedded in a semantic publication.
 inline void message_payload(Model&m,int r,const ContentEvent*parts,int n,float*q,MessageInput&saved){
+#ifdef SHOEBOX_LEARNED_COMPLETION
+  return; // Already transformed into the exported constituent; do not add twice.
+#endif
   if(!n||m.message_config[0]==0)return;
   float weight_sum=0;
   if(r>=3)for(int k=m.starts[r];k<m.starts[r+1];k++)if(!m.slots[4*k+2])weight_sum+=m.slots[4*k+3]*m.slots[4*k+3];
@@ -49,6 +58,9 @@ inline void message_route_gradient(Model&m,int r,LaceRecord&v,const float*g,floa
 }
 inline void message_semantic_update(Model&m,int r,LaceRecord&v,InputCredit&input,
                                     const float*du,const float*dcue,float rate){
+#ifdef SHOEBOX_LEARNED_COMPLETION
+  completion_semantic_update(m,r,v,input,du,dcue,rate);return;
+#endif
   const auto&saved=input.message;float dq[D];
   for(int j=0;j<D;j++)dq[j]=saved.qa*(saved.alpha*du[j]+(dcue?dcue[j]:0.f));
   float scale=rate*m.message_config[3]/norm(v.u);

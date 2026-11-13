@@ -1,4 +1,60 @@
-# SHoEbox: learned constituent messages and credited feedback
+# SHoEbox: completed constituents and recursive learned content
+
+The latest repair is `fresh_model(kernel="completion")`. S2 through G5 now
+admit non-overlapping primary-source occurrences, preserve every declared
+immediate source role in bound frames, and learn when a sequence of frames is
+complete. Side-source updates alone do not commit a new upper unit. Familiar
+frames can propose a new combination; unfamiliar combinations remain explicit
+provisional units. End-of-document draining preserves an odd primary tail.
+L2 retains its sequence detector; EC and Y retain their fusion/output roles.
+
+An upper expert executes when its unit completes. Frame admission and semantic
+encoding run independently before that commitment. Y still executes every byte.
+The next-content teacher consumes the next completed target exactly once.
+
+The exported code now recursively depends on child learned content:
+
+```text
+payload = tanh(normalized role transforms of (child.code - child.structure))
+gain = payload_gain * (1 + 0.5 * tanh(regional_gate_parameter))
+code = structure + 0.25 * tanh(local_adapter * structural_features + gain * payload)
+```
+
+Sequence composition uses distinct temporal transforms; source binding uses the
+original recipe transforms and weights. Exact IDs and structural descriptors
+remain independent of neural values and surrounding recurrent context. The
+payload is part of the exported code and is not added a second time to input.
+
+Each encoding saves its actual dependencies and derivatives. A bounded pool of
+16,384 semantic records is collected from live histories, pending frames and
+neural eligibility. Reverse-order credit accumulates duplicate paths before
+updating the actual producer. Relays preserve the same semantic handle. The
+pool never redirects expired credit to a newer producer; `completion_metrics()`
+reports capacity pruning and expired handles. The completion kernel has 64
+neural eligibility entries per region and up to 72 context links to accommodate
+completed frames; earlier kernels keep their original layouts. This adds 16
+learned scalar payload gates, for **1,031,952 parameters** at 12 experts.
+
+Version **33 / composition ABI 7** saves pending frames, learned gates, all
+semantic dependencies and neural eligibility for exact continuation. Old
+checkpoints retain their original kernels. Explicit conversion starts a fresh
+stream while preserving fitted weights and dictionaries:
+
+```bash
+python src/convert_to_completion.py old_messages_or_relays.npz new_completion.npz
+python -m unittest discover -s tests -v
+python tests/run_completion_sanitizer.py
+python src/run_completion_study.py --data /path/to/restored/data
+```
+
+The new kernel implements the missing mechanisms. The matched 50,000-target
+smoke comparison, including throughput and task contributions, is documented in
+[the completion report](deliverables/SHoEbox_Completion_Fix.md). It does not
+supersede the earlier million-target quality comparison or change the historical
+`fresh_model()` default; select the new kernel explicitly. Test models and corpus
+bytes are excluded from delivery.
+
+## Previous learned-message runtime
 
 The `messages` kernel implements the upper-region message repair. It retains the
 `relays` comparator, stable content IDs, immutable structural descriptors,

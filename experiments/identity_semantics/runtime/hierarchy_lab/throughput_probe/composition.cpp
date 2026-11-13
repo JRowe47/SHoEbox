@@ -1,5 +1,6 @@
-// Streaming local updates. No autograd, temporal tape, dense optimizer moments,
-// second graph sweep, or hidden label input. All mutation is after publication.
+// Streaming local updates without autograd or dense optimizer moments.
+// Completion adds bounded semantic DAG eligibility, not a global temporal tape.
+// No hidden label input. Neural parameter mutation follows computation.
 #include <cmath>
 #include <cstring>
 #include <algorithm>
@@ -11,7 +12,12 @@
 constexpr int D=64,E=SHOEBOX_EXPERTS,N=18,V=256,CAP=512,PCAP=8192;
 // Bounded publication eligibility. Structural route identity and feature SDRs
 // are separate fields. A saved expert index is never treated as semantic data.
-constexpr int LACE_RING=16,LACE_LINKS=16,LACE_DEPTH=3;
+constexpr int LACE_DEPTH=3;
+#ifdef SHOEBOX_LEARNED_COMPLETION
+constexpr int LACE_RING=64,LACE_LINKS=72; // Completed frames outlive rolling frames.
+#else
+constexpr int LACE_RING=16,LACE_LINKS=16;
+#endif
 // `index` occupies former structure padding. Legacy records remain readable:
 // every fast lookup validates the immutable tick and falls back to a scan.
 struct LaceParent { int region=-1,slot=-1; int64_t tick=0; float coefficient=0; int index=-1; };
@@ -98,6 +104,12 @@ struct UtilityRuntime {
 #include "composition_types.inc"
 struct Model {
   CompositionRuntime composition;
+#ifdef SHOEBOX_LEARNED_COMPLETION
+  // Transient workspace, excluded from checkpoint state and model parameters.
+  uint64_t semantic_mark[SEM_RING]{},semantic_work_serial=0;
+  float semantic_gradient[SEM_RING][D]{};
+  SemanticRef semantic_inflight{};
+#endif
 #ifdef SHOEBOX_LEARNED_MESSAGES
   // Payload, feedback activation, feedback routing, semantic learning scale.
   float message_config[4]{1.f,.1f,.1f,1.f};
@@ -256,6 +268,9 @@ inline bool valid_bottom_publication(Model&,int,LaceRecord*);
 inline void learn_bottom_state(Model&,int,LaceRecord*,const float*,float);
 inline void bottom_task_update(Model&,int,LaceRecord&,const float*,float);
 inline float norm(const float*x){float z=1.f;for(int i=0;i<D;i++)z+=x[i]*x[i];return z;}
+#ifdef SHOEBOX_LEARNED_COMPLETION
+#include "completion_credit.inc"
+#endif
 #ifdef SHOEBOX_LEARNED_MESSAGES
 #include "message_credit.inc"
 #endif
@@ -777,7 +792,11 @@ double run(void*p,const unsigned char*x,const unsigned char*y,int length,int mod
       int nparts=0;
       bool composition_learning=mode!=0&&mode!=4&&!m.frozen_region[r];
       if(m.composition.enabled&&r>=2&&!content_prepare(m,r,composition_learning,composed,parts,nparts))continue;
-      if(m.composition.enabled&&r>=2&&r<=14&&nparts==1){
+      if(m.composition.enabled&&r>=2&&r<=14&&nparts==1
+#ifdef SHOEBOX_LEARNED_COMPLETION
+         &&composed.relayed
+#endif
+         ){
         if(mode)flush_credit(m,r,lr);
 #ifdef SHOEBOX_PRESERVE_RELAYS
         relay_teach(m,r,composed.code,mode,lp,true);
@@ -1021,6 +1040,9 @@ double run(void*p,const unsigned char*x,const unsigned char*y,int length,int mod
         if(m.composition.enabled){auto&state=m.composition.stream.input[r][cursor];
           for(int d=0;d<LACE_DEPTH;d++)m.composition.stream.metrics[r][11]+=state.uses[d];
           state=InputCredit{};state.tick=s.tick;
+#ifdef SHOEBOX_LEARNED_COMPLETION
+          if(r>=2&&nparts)state.semantic=composed.semantic;
+#endif
 #ifdef SHOEBOX_IDENTITY_SEMANTICS
           if(r>=2&&nparts){
             memcpy(state.symbol_features,composed.symbol_features,sizeof(state.symbol_features));
