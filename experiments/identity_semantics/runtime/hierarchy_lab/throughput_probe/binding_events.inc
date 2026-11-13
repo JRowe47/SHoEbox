@@ -18,6 +18,9 @@ inline bool binding_ready(Model&m,int r){
 }
 inline ContentEvent binding_compose(Model&m,int r,const ContentEvent*children,int n,bool learn,uint32_t fresh_mask){
   ContentEvent out{};out.kind=4;out.count=n;out.ref.region=r;out.fresh_mask=fresh_mask;
+#ifdef SHOEBOX_PRESERVE_RELAYS
+  out.local_arity=n;
+#endif
   out.ref.begin=children[0].ref.begin;out.ref.end=children[0].ref.end;
   for(int i=1;i<n;i++){out.ref.begin=std::min(out.ref.begin,children[i].ref.begin);out.ref.end=std::max(out.ref.end,children[i].ref.end);}
   ContentID id{content_mix(uint64_t(r)+0x62696e64),content_mix(0x726f6c657631)};

@@ -1,4 +1,4 @@
-// Composition ABI v2 (legacy) / v3 (role binding): fixed-capacity learned dictionaries and causal events.
+// Composition ABI: v2 legacy, v3 role binding, v4 semantics, v5 relay preservation.
 // Pattern identity is independent of compute expert, stream position and context.
 constexpr int COMP_TABLE=2048, COMP_WAYS=4, COMP_MAX=8, COMP_METRICS=20;
 struct ContentID { uint64_t a=0,b=0; };
@@ -12,8 +12,13 @@ struct ChildEvent {
 struct ContentEvent {
   ChildEvent ref{};
   ChildEvent origin{}; // Actual neural producer; identity relays keep this intact.
-  int count=0,kind=0; // 0 atom, 1 sequential compound, 2 fusion, 3 unresolved singleton
+  int count=0,kind=0; // 0 atom, 1 sequence, 2 fusion, 3 legacy singleton, 4 role binding
   float confidence=0;
+#ifdef SHOEBOX_PRESERVE_RELAYS
+  // count/kind/children describe the content itself, including through relays.
+  // These fields describe only what this receiving region did on this event.
+  int local_arity=0,relayed=0;
+#endif
 #ifdef SHOEBOX_MULTI_BINDING
   uint32_t present_mask=0,fresh_mask=0;
 #endif
@@ -35,6 +40,15 @@ struct InputCredit {
   float gradient[LACE_DEPTH][D]{};
   int uses[LACE_DEPTH]{};
 };
+#ifdef SHOEBOX_PRESERVE_RELAYS
+struct PendingTeaching {
+  // Relays never advance this region's eligibility ring. Consume at the next
+  // content event, before a neural execution can overwrite the saved producer.
+  int64_t tick=0;
+  int index=-1;
+  float prediction[D]{},input[D]{};
+};
+#endif
 struct CompositionStream {
   int64_t byte_position=0;
   uint32_t draining=0,reserved=0;
@@ -45,9 +59,17 @@ struct CompositionStream {
   int memory_index[N]{};
   InputCredit input[N][LACE_RING]{};
   double metrics[N][COMP_METRICS]{};
+#ifdef SHOEBOX_PRESERVE_RELAYS
+  PendingTeaching teaching[N]{};
+  // scheduled, neural targets, relay targets, nonlearning targets,
+  // expired provenance, duplicate schedules (must stay zero).
+  uint64_t teaching_metrics[N][6]{};
+#endif
 };
 struct CompositionRuntime {
-#ifdef SHOEBOX_IDENTITY_SEMANTICS
+#ifdef SHOEBOX_PRESERVE_RELAYS
+  uint32_t version=5,enabled=1;
+#elif defined(SHOEBOX_IDENTITY_SEMANTICS)
   uint32_t version=4,enabled=1;
 #elif defined(SHOEBOX_MULTI_BINDING)
   uint32_t version=3,enabled=1;

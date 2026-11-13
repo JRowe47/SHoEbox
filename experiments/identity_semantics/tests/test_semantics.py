@@ -8,8 +8,8 @@ from test_binding import BindingTests
 class SemanticsBindingTests(BindingTests):
  @classmethod
  def setUpClass(cls):
-  cls.path=ROOT/'results/semantics_fixture.so'
-  subprocess.run(['g++','-O2','-march=native','-std=c++17','-shared','-fPIC',str(ROOT/'tests/semantics_fixture.cpp'),'-o',str(cls.path)],check=True)
+  cls.path=ROOT/'results'/getattr(cls,'fixture_name','semantics_fixture.so')
+  subprocess.run(['g++','-O2','-march=native','-std=c++17','-shared','-fPIC',str(ROOT/'tests'/getattr(cls,'fixture_source','semantics_fixture.cpp')),'-o',str(cls.path)],check=True)
   cls.fx=ct.CDLL(str(cls.path));f=cls.fx
   f.fixture_stage.argtypes=[ct.c_void_p,ct.c_int,ct.c_int,ct.c_int,ct.c_int64,ct.c_int64,ct.c_int64,ct.c_float]
   f.fixture_prepare.argtypes=[ct.c_void_p,ct.c_int,ct.c_int,ct.c_void_p,ct.c_void_p];f.fixture_prepare.restype=ct.c_int
@@ -25,8 +25,8 @@ class SemanticsBindingTests(BindingTests):
   f.semantic_fixture_saved_gradient.argtypes=[ct.c_void_p,ct.c_int,ct.c_void_p,ct.c_float]
   f.semantic_fixture_clear_dictionary.argtypes=[ct.c_void_p]
   f.semantic_fixture_q.argtypes=[ct.c_void_p,ct.c_int,ct.c_void_p]
- def make(self,kernel='semantics'):
-  m=fresh_model(kernel=kernel);self.addCleanup(m.close);return m
+ def make(self,kernel=None):
+  m=fresh_model(kernel=kernel or getattr(self,'kernel','semantics'));self.addCleanup(m.close);return m
  def stage(self,m,r,offset=0,change=None,context=0):
   slots=super().stage(m,r,offset,change,context)
   for _,src,age in slots:self.fx.semantic_fixture_structure(m.handle,src,age)

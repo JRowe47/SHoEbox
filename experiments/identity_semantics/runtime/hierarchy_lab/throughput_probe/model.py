@@ -13,7 +13,7 @@ KERNEL=os.environ.get('SHOEBOX_KERNEL','native')
 FLAGS=os.environ.get('SHOEBOX_CXX_FLAGS','').split()
 _CONSTRUCTION_LOCK=threading.RLock()
 def build():
-    source=ROOT/(KERNEL+'.cpp');digest=hashlib.sha256(source.read_bytes()+((ROOT/'composition.cpp').read_bytes() if KERNEL in ('binding','semantics','semantics_fixed') else b'')+b''.join(p.read_bytes() for p in sorted(ROOT.glob('*.inc')))+((ROOT/'e14.cpp').read_bytes() if KERNEL=='e14_fixture' else b'')+str(FLAGS).encode()).hexdigest()[:16]
+    source=ROOT/(KERNEL+'.cpp');digest=hashlib.sha256(source.read_bytes()+((ROOT/'composition.cpp').read_bytes() if KERNEL in ('binding','semantics','semantics_fixed','relays') else b'')+b''.join(p.read_bytes() for p in sorted(ROOT.glob('*.inc')))+((ROOT/'e14.cpp').read_bytes() if KERNEL=='e14_fixture' else b'')+str(FLAGS).encode()).hexdigest()[:16]
     lib=ROOT/f'_{KERNEL}_e{core.E}_{digest}.so'
     with open(ROOT/f'.build_e{core.E}.lock','w') as lock:
         fcntl.flock(lock,fcntl.LOCK_EX)
@@ -60,7 +60,7 @@ class Model(parent.Model):
         self.lib.utility_configure(self.handle,cfg.ctypes.data_as(fp))
         self._utility_ready=True
     def configure_composition(self,policy=None):
-        cfg=dict(enabled=self.runtime_kernel in ('composition','binding','semantics','semantics_fixed'),threshold=.35,min_count=3,max_children=8,context_gain=.2)
+        cfg=dict(enabled=self.runtime_kernel in ('composition','binding','semantics','semantics_fixed','relays'),threshold=.35,min_count=3,max_children=8,context_gain=.2)
         if policy is not None:
             if set(policy)-set(cfg):raise ValueError('Unknown composition policy field')
             cfg.update(policy)
@@ -109,6 +109,22 @@ class Model(parent.Model):
         a=np.zeros((16,64,8),np.float32)
         self.lib.semantic_parameters.argtypes=[ct.c_void_p,ct.c_void_p]
         self.lib.semantic_parameters(self.handle,a.ctypes.data);return a
+    def relay_teaching_status(self):
+        if not hasattr(self.lib,'relay_teaching_status'):return {}
+        a=np.zeros((18,8),np.float64)
+        self.lib.relay_teaching_status.argtypes=[ct.c_void_p,ct.c_void_p]
+        self.lib.relay_teaching_status(self.handle,a.ctypes.data)
+        names=('scheduled','neural_targets','relay_targets','nonlearning_targets','expired_producers','duplicate_schedules','pending_tick','pending_index')
+        return {name:dict(zip(names,map(int,a[r]))) for r,name in enumerate(core.NAMES)}
+    def relay_event_status(self):
+        if not hasattr(self.lib,'relay_event_status'):return {}
+        a=np.zeros((18,8),np.uint64);confidence=np.zeros(18,np.float32)
+        self.lib.relay_event_status.argtypes=[ct.c_void_p,ct.c_void_p,ct.c_void_p]
+        self.lib.relay_event_status(self.handle,a.ctypes.data,confidence.ctypes.data)
+        def signed(v):return int(v) if v<2**63 else int(v)-2**64
+        return {name:dict(local_arity=int(a[r,0]),relayed=bool(a[r,1]),confidence=float(confidence[r]),
+                         origin=dict(region=signed(a[r,2]),tick=int(a[r,3]),index=signed(a[r,4]),
+                                     seq=int(a[r,5]),id=(int(a[r,6]),int(a[r,7])))) for r,name in enumerate(core.NAMES)}
     def semantic_updates(self):
         if not hasattr(self.lib,'semantic_updates'):return {}
         a=np.zeros(16,np.uint64);self.lib.semantic_updates.argtypes=[ct.c_void_p,ct.c_void_p]
@@ -152,7 +168,7 @@ class Model(parent.Model):
         if fresh:
             self.lib.e13_clear_cache.argtypes=[ct.c_void_p];self.lib.e13_clear_cache(self.handle)
     @property
-    def parameter_count(self):return super().parameter_count+(8192 if self.runtime_kernel.startswith("semantics") else 0)+((core.E if self.runtime_kernel.startswith('r02') else 16*core.E) if self.gate_bias_policy()['enabled'] else 0)
+    def parameter_count(self):return super().parameter_count+(8192 if self.runtime_kernel.startswith("semantics") or self.runtime_kernel=="relays" else 0)+((core.E if self.runtime_kernel.startswith('r02') else 16*core.E) if self.gate_bias_policy()['enabled'] else 0)
     def configure_gate_bias(self,gain=250.,limit=2.,step_limit=.01):
         if not hasattr(self.lib,'e14_configure'):raise ValueError('Gate bias requires e14 kernel')
         self.lib.e14_configure.argtypes=[ct.c_void_p,ct.c_float,ct.c_float,ct.c_float];self.lib.e14_configure.restype=ct.c_int
@@ -419,7 +435,7 @@ class Model(parent.Model):
         return digest
     def save(self,path):
         parent.legacy.base.atomic_checkpoint(path,flat=self.flat,extra=self.extra_flat,state=parent.legacy.base.state(self),lace_state=self.lace_state(),learned_state=self.learned_state(),probe_state=self.probe_state(),utility_state=self.utility_state(),
-            version=np.array([30 if self.runtime_kernel.startswith("semantics") else 29 if self.runtime_kernel=="binding" else 28 if self.runtime_kernel=="composition" else 27 if self.runtime_kernel.startswith("r05") else 26 if self.runtime_kernel.startswith("r04") else 25 if self.runtime_kernel.startswith("r03") else 24 if self.runtime_kernel.startswith("r02") and (self.activation_policy()["enabled"] or self.gate_bias_policy()["enabled"]) else 23 if self.gate_bias_policy()["enabled"] else 21 if self.traffic['enabled'] else (20 if self.retention_policy() else 19)],np.int32),experts=np.array([core.E],np.int32),config_json=np.array(json.dumps(self.config)),lace_json=np.array(json.dumps(self.lace)),state_config_json=np.array(json.dumps(self.state_config)),probe_json=np.array(json.dumps(self.probe)),utility_json=np.array(json.dumps(self.utility)),teaching_scales=self.teaching,regional_gains=self.regional_gains,frozen_regions=self.frozen_regions,task_route_lr_scale=np.array(self.task_route_lr_scale,np.float32),a1_learning_scales=self.a1_learning_array,f3_task_route_gain=np.array(self.f3_task_route_gain,np.float32),exploration_json=np.array(json.dumps(self.exploration)),traffic_json=np.array(json.dumps(self.traffic)),traffic_state=self.traffic_state(),
+            version=np.array([31 if self.runtime_kernel=="relays" else 30 if self.runtime_kernel.startswith("semantics") else 29 if self.runtime_kernel=="binding" else 28 if self.runtime_kernel=="composition" else 27 if self.runtime_kernel.startswith("r05") else 26 if self.runtime_kernel.startswith("r04") else 25 if self.runtime_kernel.startswith("r03") else 24 if self.runtime_kernel.startswith("r02") and (self.activation_policy()["enabled"] or self.gate_bias_policy()["enabled"]) else 23 if self.gate_bias_policy()["enabled"] else 21 if self.traffic['enabled'] else (20 if self.retention_policy() else 19)],np.int32),experts=np.array([core.E],np.int32),config_json=np.array(json.dumps(self.config)),lace_json=np.array(json.dumps(self.lace)),state_config_json=np.array(json.dumps(self.state_config)),probe_json=np.array(json.dumps(self.probe)),utility_json=np.array(json.dumps(self.utility)),teaching_scales=self.teaching,regional_gains=self.regional_gains,frozen_regions=self.frozen_regions,task_route_lr_scale=np.array(self.task_route_lr_scale,np.float32),a1_learning_scales=self.a1_learning_array,f3_task_route_gain=np.array(self.f3_task_route_gain,np.float32),exploration_json=np.array(json.dumps(self.exploration)),traffic_json=np.array(json.dumps(self.traffic)),traffic_state=self.traffic_state(),
             **({'gate_bias_state':self.gate_bias_state(),'gate_bias_kernel':np.array('r02' if self.runtime_kernel.startswith('r02') else 'e14_calibrated' if self.gate_bias_policy()['gain']>10000 else 'e14'),'gate_bias_json':np.array(json.dumps(self.gate_bias_policy()))} if self.gate_bias_policy()['enabled'] else {}),
             **({'activation_state':self.activation_state(),'activation_json':np.array(json.dumps(self.activation_policy())),'activation_kernel':np.array('r02' if self.runtime_kernel.startswith('r02') else 'e13')} if self.activation_policy()['enabled'] else {}),
             **({"path_prototypes":self.path_prototypes} if self.runtime_kernel.startswith("r03") else {}),
@@ -431,7 +447,7 @@ class Model(parent.Model):
     @classmethod
     def load(cls,path):
         with np.load(path,allow_pickle=False) as a:
-            assert int(a['version'][0]) in (16,17,18,19,20,21,22,23,24,25,26,27,28,29,30) and int(a['experts'][0])==core.E
+            assert int(a['version'][0]) in (16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31) and int(a['experts'][0])==core.E
             m=cls(config=json.loads(str(a['config_json'])),params=core.unflatten(a['flat']),fixed={k[6:]:a[k] for k in a.files if k.startswith('fixed_')},lace=json.loads(str(a['lace_json'])),state_config=json.loads(str(a['state_config_json'])),extra=a['extra'],probe=json.loads(str(a['probe_json'])),utility=json.loads(str(a['utility_json'])),kernel=str(a['experiment_kernel']) if 'experiment_kernel' in a else str(a['r08_kernel']) if 'r08_kernel' in a else 'r05' if int(a['version'][0])==27 else 'r04' if int(a['version'][0])==26 else 'r03' if int(a['version'][0])==25 else 'r02' if int(a['version'][0])==24 else ('e14_calibrated' if 'gate_bias_kernel' in a and str(a['gate_bias_kernel'])=='e14_calibrated' else 'e14') if 'gate_bias_state' in a else 'e13' if 'activation_state' in a else ('credit' if 'retention_state' in a else None))
             if 'gate_bias_state' in a:m.import_gate_bias(a['gate_bias_state'])
             if 'activation_state' in a:m.import_activation(a['activation_state'])

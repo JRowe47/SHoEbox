@@ -36,13 +36,20 @@ inline ContentEvent content_compose(Model&m,int r,const ContentEvent*children,in
 #ifdef SHOEBOX_IDENTITY_SEMANTICS
   if(n==1&&kind==1){
     ContentEvent out=children[0];out.ref.region=r;out.ref.seq=0;
+#ifdef SHOEBOX_PRESERVE_RELAYS
+    out.local_arity=1;out.relayed=1;
+#else
     out.children[0]=children[0].ref;out.children[0].role=0;
     out.count=1;out.kind=3;out.confidence=0;out.ref.recognized=0;
     // Preserve vector/identity exactly. Relay recognition/teaching is step 3.
+#endif
     return out;
   }
 #endif
   ContentEvent out{};out.count=n;out.kind=n==1&&kind==1?3:kind;
+#ifdef SHOEBOX_PRESERVE_RELAYS
+  out.local_arity=n;
+#endif
   out.ref.region=r;out.ref.begin=children[0].ref.begin;out.ref.end=children[0].ref.end;
   ContentID id{content_mix(uint64_t(r)+0x636f6d70),content_mix(uint64_t(kind)+0x726f6c65)};
   float scale=1.f/std::sqrt(float(n));
@@ -78,8 +85,12 @@ inline void content_publish(Model&m,int r,ContentEvent event,bool relay=false){
   if(!relay)event.origin=event.ref;
   memcpy(event.context,m.s.h[r],sizeof(event.context));
   z.history[r][1]=z.history[r][0];z.history[r][0]=event;
-  auto&d=z.metrics[r];d[1]++;d[2]+=event.count>=2;d[3]+=event.count>=2&&event.ref.recognized;
-  d[4]+=event.count>=2&&!event.ref.recognized;d[7]+=event.ref.end-event.ref.begin;
+  bool formed=event.count>=2;
+#ifdef SHOEBOX_PRESERVE_RELAYS
+  formed=!relay&&event.local_arity>=2;
+#endif
+  auto&d=z.metrics[r];d[1]++;d[2]+=formed;d[3]+=formed&&event.ref.recognized;
+  d[4]+=formed&&!event.ref.recognized;d[7]+=event.ref.end-event.ref.begin;
 }
 inline void content_atom(Model&m,int r,int byte){
   ContentEvent event{};event.ref.id={content_mix(uint64_t(byte)+1),content_mix(uint64_t(byte)+257)};
@@ -92,9 +103,12 @@ inline void content_atom(Model&m,int r,int byte){
 }
 inline void content_passthrough(Model&m,int r,ContentEvent event,const ContentEvent&child){
   auto&s=m.s;auto&z=m.composition.stream;
-  // No recognition winner, learned transform or recurrent-state update for an
-  // unresolved singleton. The exact child output and its gradient pass through.
-  memcpy(s.h[r],child.context,D*sizeof(float));s.pending[r]=0;
+  // No new recognition decision, transform or recurrent input update. Public
+  // output changes, but the producer's eligibility and teaching stay separate.
+  memcpy(s.h[r],child.context,D*sizeof(float));
+#ifndef SHOEBOX_PRESERVE_RELAYS
+  s.pending[r]=0;
+#endif
   memcpy(s.hist[r][1],s.hist[r][0],D*sizeof(float));memcpy(s.hist[r][0],s.h[r],D*sizeof(float));s.valid[r]++;
   // A relay is not a neural execution. Keeping the actual producer avoids
   // both false expert teaching and eviction of useful recurrent eligibility.

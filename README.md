@@ -1,8 +1,30 @@
 # SHoEbox
 
-## Current multi-source binding and identity/vector runtime
+## Current relay teaching and recognition runtime
 
-The current tested repair is in
+Use `fresh_model(kernel="relays")` from
+[experiments/identity_semantics](experiments/identity_semantics/README.md).
+A singleton can teach the pending forecast without canceling it or teaching
+against the relayed public activation. Updates use the saved actual producer.
+Relays preserve recognition, confidence, intrinsic structure and provenance;
+separate metadata identifies the receiver's transport action.
+
+All 100 package checks and ASan/UBSan pass. In matched two-seed million-byte
+runs, mean test NLL improves **1.946529 -> 1.940301**. Training throughput is
+**5,243 -> 5,142 bytes/s** (1.9% lower).
+
+The 1M configuration remains 1,031,936 parameters. Version-31 / ABI-5
+checkpoints preserve pending teaching exactly. Explicit fitted conversion from
+version-30 semantics is available at a fresh stream boundary. Earlier kernels
+remain available, and the historical default remains `composition`.
+
+[Relay report](experiments/identity_semantics/deliverables/SHoEbox_Relay_Preservation_Report.md) |
+[PDF](experiments/identity_semantics/deliverables/SHoEbox_Relay_Preservation_Report.pdf) |
+[Measurements](experiments/identity_semantics/deliverables/SHoEbox_Relay_Preservation_Results.json).
+
+## Previous multi-source binding and identity/vector study
+
+The preceding binding/semantics repair is in
 [experiments/identity_semantics](experiments/identity_semantics/README.md).
 It includes explicit multi-source constituent roles, consistent structural IDs
 and descriptors, and learned regional semantic residuals. Required distinctions
@@ -31,8 +53,8 @@ All **62 checks** and ASan/UBSan pass. Data and trained checkpoints have
 [PDF](experiments/identity_semantics/deliverables/SHoEbox_Identity_Semantics_Report.pdf) |
 [Curves](experiments/identity_semantics/deliverables/SHoEbox_Identity_Semantics_Curves.png).
 
-Next: preserve pending teaching and recognition through singleton relays, then
-check regional neural contributions with content and relay transport intact.
+The relay teaching/recognition repair is now available above. Next are regional
+neural contribution checks with content and relay transport intact.
 The audit narrowed the earlier L3 lesion interpretation: whole-source removal
 measured transport as well as learned computation.
 

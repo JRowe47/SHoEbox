@@ -88,3 +88,24 @@ void semantic_parameters(void*p,float*out){memcpy(out,static_cast<Model*>(p)->co
 void semantic_updates(void*p,uint64_t*out){memcpy(out,static_cast<Model*>(p)->composition.symbol_updates,sizeof(CompositionRuntime::symbol_updates));}
 }
 #endif
+
+#ifdef SHOEBOX_PRESERVE_RELAYS
+extern "C" {
+void relay_teaching_status(void*p,double*out){
+ auto&z=static_cast<Model*>(p)->composition.stream;
+ for(int r=0;r<N;r++){
+  for(int k=0;k<6;k++)out[r*8+k]=double(z.teaching_metrics[r][k]);
+  out[r*8+6]=double(z.teaching[r].tick);out[r*8+7]=z.teaching[r].index;
+ }
+}
+void relay_event_status(void*p,uint64_t*out,float*confidence){
+ auto&z=static_cast<Model*>(p)->composition.stream;
+ for(int r=0;r<N;r++){
+  const auto&e=z.history[r][0];auto*v=out+r*8;
+  v[0]=e.local_arity;v[1]=e.relayed;v[2]=e.origin.region;v[3]=e.origin.tick;
+  v[4]=e.origin.index;v[5]=e.origin.seq;v[6]=e.origin.id.a;v[7]=e.origin.id.b;
+  confidence[r]=e.confidence;
+ }
+}
+}
+#endif

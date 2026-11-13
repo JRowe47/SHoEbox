@@ -370,6 +370,9 @@ inline void route_task_update(Model&m,int r,LaceRecord&v,const float*g,float rat
 }
 inline int content_coord(int,int);
 inline float content_sign(int,int);
+#ifdef SHOEBOX_PRESERVE_RELAYS
+#include "relay_teaching.inc"
+#endif
 inline void deliver_input_credit(Model&m,int r,LaceRecord&v,const float*du,int depth){
   if(depth>=int(m.lcfg[0]))return;
   for(int k=0;k<v.nparents;k++){
@@ -737,6 +740,9 @@ double run(void*p,const unsigned char*x,const unsigned char*y,int length,int mod
       if(m.composition.enabled&&r>=2&&!content_prepare(m,r,composition_learning,composed,parts,nparts))continue;
       if(m.composition.enabled&&r>=2&&r<=14&&nparts==1){
         if(mode)flush_credit(m,r,lr);
+#ifdef SHOEBOX_PRESERVE_RELAYS
+        relay_teach(m,r,composed.code,mode,lp,true);
+#endif
         content_passthrough(m,r,composed,parts[0]);continue;
       }
       bool scheduled=m.composition.enabled||s.tick%m.cadence[r]==0;
@@ -827,6 +833,10 @@ double run(void*p,const unsigned char*x,const unsigned char*y,int length,int mod
       if(mode&&m.lcfg[11])flush_credit(m,r,lr);
       // A future observed bottom-up bundle teaches the previous publication.
       // Context/recall are excluded from the teacher; they still condition u.
+#ifdef SHOEBOX_PRESERVE_RELAYS
+      if(m.composition.enabled&&r>=2)relay_teach(m,r,q,mode,lp,false);
+      else
+#endif
       if((mode==1||mode==3||mode==6)&&s.pending[r]&&!(m.cfg[10]&&(r==15||r==16))&&
          (r<2||m.utility.config[3]>0)){
         float err[D],g[D]{};double mse=0;
@@ -948,6 +958,12 @@ double run(void*p,const unsigned char*x,const unsigned char*y,int length,int mod
         for(int j=0;j<D;j++){float cue=(routing_mask&(uint64_t(1)<<j))?routing[j]/n:0;k[j]+=(cue-k[j])*route;kn+=k[j]*k[j];}
         kn=1.f/std::sqrt(kn+1e-9f);for(int j=0;j<D;j++)k[j]*=kn;m.refresh_key(r,best);
       }
+#ifdef SHOEBOX_PRESERVE_RELAYS
+      if(m.composition.enabled&&r>=2){
+        if((mode==1||mode==3||mode==6)&&(mode!=6||s.exec[r]%4==0)&&
+           !m.frozen_region[r]&&m.utility.config[3]>0&&!(m.cfg[10]&&(r==15||r==16)))relay_schedule(m,r,q);
+      }else
+#endif
       if((mode==1||mode==3||mode==6)&&(mode!=6||s.exec[r]%4==0)&&!(m.cfg[10]&&(r==15||r==16))){for(int i=0;i<D;i++){float z=m.pbias[r*D+i];for(int j=0;j<D;j++)z+=m.P[(r*D+i)*D+j]*s.h[r][j];s.pred[r][i]=z;}s.pending[r]=1;}
       else if(mode==6)s.pending[r]=0;
     }

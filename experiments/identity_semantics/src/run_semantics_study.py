@@ -28,7 +28,7 @@ def worker(a):
    val=evaluate(m,validation);r['validation'].append(dict(tokens=pos+n,nll=val));write(folder/'training.json',r);print(a.kernel,a.seed,a.peak,pos+n,round(val,6),flush=True)
  if a.tokens==1000000:
   r['test_nll']=evaluate(m,test);r['full_heldout_nll']=evaluate(m,held);r['stats']=m.stats();r['composition_metrics']=m.composition_metrics();r['lace_metrics']=m.lace_metrics();m.save(folder/'last.npz')
- r['semantic_updates']=m.semantic_updates();r['semantic_norm']=float(np.linalg.norm(m.semantic_parameters()));r['status']='complete';write(folder/'training.json',r);m.close()
+ r['semantic_updates']=m.semantic_updates();r['semantic_norm']=float(np.linalg.norm(m.semantic_parameters()));r['relay_teaching']=m.relay_teaching_status();r['status']='complete';write(folder/'training.json',r);m.close()
 def launch(jobs,max_workers):
  pending=list(jobs);active=[]
  while pending or active:

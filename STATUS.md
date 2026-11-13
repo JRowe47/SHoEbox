@@ -1,5 +1,33 @@
 # SHoEbox handoff
 
+## 2026-11-13 - relay teaching and recognition repaired
+
+Current kernel: `fresh_model(kernel="relays")` in
+`experiments/identity_semantics/`. New checkpoints use version 31 / ABI 5.
+Pending forecasts reference the actual saved producer and consume the next
+observed regional content input, including singleton relays. Recognition,
+confidence, intrinsic arity/kind, children and provenance survive transport.
+Local relay metadata is separate from inherited content. Unknown new relations
+remain provisional.
+
+All 100 package tests pass; the full repository check passes 167 unit tests and
+12/64-expert packaging checks. ASan/UBSan pass. Every forecast is accounted for
+in both one-million-byte training runs, with 19,016 L2 relay teaching targets
+consumed per seed and zero expired producers or duplicate schedules.
+
+The previous semantics baseline reproduces its published test losses exactly.
+Two-seed mean reserved-test NLL improves 1.946529 -> 1.940301 (0.32%); seed 1
+changes +0.000125 and seed 2 -0.012582. Same-core training throughput is
+5,243 -> 5,142 bytes/s (1.9% lower). Parameters stay at 1,031,936; composition
+state grows by 11,808 bytes.
+
+Use `src/convert_to_relays.py` for explicit fitted conversion from version-30
+learned semantics, with fresh stream/eligibility/episodic state. Earlier kernels
+and their checkpoint formats remain available. Source, tests, compact results,
+Markdown and PDF reports are included; test models and intermediate runs are
+excluded. Next: regional neural contribution checks preserving content and
+relay transport.
+
 ## 2026-11-12 - multi-source binding and identity/vector repairs published
 
 Current package: `experiments/identity_semantics/`. Select
