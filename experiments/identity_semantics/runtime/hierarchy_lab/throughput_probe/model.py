@@ -27,7 +27,7 @@ def build():
         fcntl.flock(lock,fcntl.LOCK_EX)
         if not lib.exists():
             tmp=lib.with_suffix(f'.{os.getpid()}.tmp')
-            subprocess.run(['g++','-O3','-march=native','-std=c++17',f'-DSHOEBOX_EXPERTS={core.E}',*FLAGS,'-shared','-fPIC',str(source),'-o',str(tmp)],check=True)
+            subprocess.run(['g++','-O3','-march=native','-std=c++17','-pthread',f'-DSHOEBOX_EXPERTS={core.E}',*FLAGS,'-shared','-fPIC',str(source),'-o',str(tmp)],check=True)
             os.replace(tmp,lib)
     return lib
 class Model(parent.Model):
@@ -206,6 +206,26 @@ class Model(parent.Model):
         fields=('objectives','neural_deliveries','feedback_deliveries','input_deliveries',
                 'neural_updates','input_updates','relay_hops','missing_producers')
         return {name:dict(zip(fields,map(int,row))) for name,row in zip(core.NAMES,out)}
+    def configure_content_workers(self,count=1,cpus=None):
+        """Transient CPU execution setting; checkpoints keep the learning policy."""
+        if isinstance(count,(bool,np.bool_)) or int(count)!=count or not 1<=count<=32:
+            raise ValueError('count must be an integer from 1 to 32')
+        if not hasattr(self.lib,'content_workers_configure'):
+            if count!=1:raise ValueError('Content workers require the completion runtime')
+            return
+        values=None
+        if cpus is not None:
+            cpus=list(cpus)
+            if len(cpus)!=count or any(isinstance(x,(bool,np.bool_)) or int(x)!=x for x in cpus):
+                raise ValueError('cpus must contain one integer CPU ID per worker')
+            if len(set(cpus))!=count or not set(cpus)<=set(os.sched_getaffinity(0)):
+                raise ValueError('cpus must be distinct and available to this process')
+            values=np.array(cpus,dtype=np.int32)
+        self.lib.content_workers_configure.argtypes=[ct.c_void_p,ct.c_int,ct.c_void_p]
+        self.lib.content_workers_configure.restype=ct.c_int
+        if not self.lib.content_workers_configure(self.handle,int(count),None if values is None else values.ctypes.data):
+            raise ValueError('Invalid content worker configuration')
+
     def configure_content_experts(self,enabled=True):
         if not isinstance(enabled,(bool,np.bool_)):raise ValueError('content_experts must be boolean')
         if hasattr(self.lib,'content_expert_configure'):

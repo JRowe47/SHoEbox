@@ -45,6 +45,7 @@ int neural_import(void*p,const void*data,size_t size){
     }
   }
   for(int r=0;r<N;r++)m.neural_archive[r].swap(archives[r]);
+  neural_invalidate(m);
   memcpy(m.neural_metrics,header.metrics,sizeof(m.neural_metrics));return 1;
 }
 void neural_metrics(void*p,uint64_t*out){

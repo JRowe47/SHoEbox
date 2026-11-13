@@ -112,6 +112,49 @@ recognition behavior. Run `src/validate_pattern_classes.py` for the matched cost
 frozen class-removal intervention and held-out generation checks. See
 [the fourth-fix report](deliverables/SHoEbox_Pattern_Classes.md).
 
+### Reference CPU optimizations
+
+The default reference runtime reuses a semantic free-slot inventory, indexes
+pending neural/input credit by region, tick and depth, and directly indexes
+retained producer ticks. Generation-checked input norms and bounded immutable
+DAG schedules avoid repeated reconstruction. Gradient banks and local-credit
+map storage persist between objectives.
+
+Content reverse work batches independent ready VJPs by expert bank and tiles
+weight-gradient requests in their original per-element order. Clipping, reuse
+normalization, teaching rates, reverse traversal, bank flush order and online
+mutation boundaries remain unchanged. Checkpoints remain v39 / composition
+ABI 10; derived caches rebuild on import and reset. Allocation reuse can change
+physical slot indices and full-state fingerprints relative to the old runtime;
+logits and fitted parameters must remain bitwise equal. Continuation within the
+optimized runtime remains bitwise exact, including chunking and save/load.
+
+Serial execution is the default. A persistent row team is available for ready
+gradient tiles with at least 32 requests, without parallel parameter mutation:
+
+```python
+import os
+cpus = sorted(os.sched_getaffinity(0))
+model.configure_content_workers(2, cpus[:2])
+# Return to serial execution; this is a transient execution setting.
+model.configure_content_workers(1)
+```
+
+Compare actual baseline-checkpoint continuations on your CPU:
+
+```bash
+python experiments/identity_semantics/src/compare_optimized_runtime.py \
+  --baseline-runtime /path/to/base/experiments/identity_semantics/runtime \
+  --worker-counts 1 2 4 --repeats 3 --output /tmp/shoebox-comparison.json
+python -m unittest discover -s experiments/identity_semantics/tests \
+  -p test_optimizations.py -v
+python experiments/identity_semantics/tests/run_optimization_sanitizer.py
+```
+
+The comparison checks logits, NLL, all fitted parameter groups and missing-credit
+diagnostics. Timings exclude compilation, initialization, checkpoint I/O and
+fingerprinting. See [implementation and measurements](deliverables/SHoEbox_Optimizations.md).
+
 ### Reference acceptance (sixth fix)
 
 From the repository root:

@@ -9,7 +9,9 @@
 #include <array>
 #include <vector>
 #include <map>
+#include <unordered_map>
 #include <memory>
+#include <memory_resource>
 #include <immintrin.h>
 #ifndef SHOEBOX_EXPERTS
 #define SHOEBOX_EXPERTS 12
@@ -111,6 +113,7 @@ struct UtilityRuntime {
 #include "pattern_types.inc"
 #include "paired_memory_types.inc"
 #include "acceptance_types.inc"
+#include "thread_pool.inc"
 struct RetainedNeural {
   LaceRecord lace{};
   InputCredit input{};
@@ -130,9 +133,21 @@ struct Model {
   std::vector<uint64_t> semantic_overflow_mark;
   std::vector<std::array<float,D>> semantic_overflow_gradient;
   SemanticRef semantic_inflight{};
+  // Derived inventories are rebuilt on import; none changes the saved ABI.
+  std::vector<int> semantic_free;
+  bool semantic_free_valid=false;
+  struct ConstituentPlan {SemanticRef root{};std::vector<SemanticRef> nodes;};
+  std::array<ConstituentPlan,64> constituent_plans;
+  std::vector<SemanticRef> constituent_work;
+  struct ConstituentRole {bool valid=false;int coord[D]{};float sign[D]{};};
+  std::vector<ConstituentRole> constituent_roles;
+  std::pmr::unsynchronized_pool_resource local_credit_pool;
   // The handle is (region, immutable execution tick); ring index is only a hint.
   // std::map preserves addresses while delayed updates insert other records.
   std::map<int64_t,RetainedNeural> neural_archive[N];
+  std::unordered_map<int64_t,LaceRecord*> neural_index[N];
+  std::map<int64_t,unsigned> pending_neural[N],pending_input[N];
+  bool neural_index_valid=false;
   uint64_t neural_metrics[N][4]{}; // archived, reclaimed, archive peak, missing live dependency
   bool local_neural_credit=true;
   // Read-only per-objective diagnostics, not recurrent/checkpoint state.
@@ -144,7 +159,22 @@ struct Model {
   // Scoped, transient accumulation keeps every shared-bank Jacobian ahead of
   // parameter mutation, including a local objective's multiple semantic roots.
   int content_credit_depth=0;
-  std::map<std::pair<int,int>,ContentExpertGradient> content_gradients;
+  struct ContentWeightRequest {
+    SemanticRef ref{};
+    uint64_t mask=0;
+    float factor[D]{};
+  };
+  struct ContentBankWorkspace {
+    ContentExpertGradient gradient{};
+    std::vector<ContentWeightRequest> requests;
+    bool active=false;
+  };
+  std::array<std::unique_ptr<ContentBankWorkspace>,N*E> content_banks;
+  std::vector<int> content_dirty;
+  std::unique_ptr<RowWorkers> content_workers;
+  int content_worker_depth=0;
+  struct ContentInputCache {uint64_t serial=0;float norm=0;};
+  std::vector<ContentInputCache> content_input_cache;
   uint64_t content_expert_metrics[N][6]{}; // encodes, updates, local, task, routes, missing
 #endif
 #ifdef SHOEBOX_LEARNED_MESSAGES
@@ -451,15 +481,17 @@ inline LaceRecord* current_lace(Model&m,int r){
 inline LaceRecord* find_lace(Model&m,int r,int64_t tick,int index=-1){
   if(!tick||r<0||r>=N)return nullptr;
   if(index>=0&&index<LACE_RING&&m.laces.records[r][index].tick==tick)return &m.laces.records[r][index];
+#ifdef SHOEBOX_LEARNED_COMPLETION
+  neural_ensure_index(m);
+  auto found=m.neural_index[r].find(tick);
+  return found!=m.neural_index[r].end()&&found->second->tick==tick?found->second:nullptr;
+#else
   for(int a=0;a<LACE_RING;a++){
     auto&v=m.laces.records[r][(m.laces.cursor[r]-a)&(LACE_RING-1)];
     if(v.tick==tick)return &v;
   }
-#ifdef SHOEBOX_LEARNED_COMPLETION
-  auto found=m.neural_archive[r].find(tick);
-  if(found!=m.neural_archive[r].end()&&found->second.lace.tick==tick)return &found->second.lace;
-#endif
   return nullptr;
+#endif
 }
 inline void route_task_update(Model&m,int r,LaceRecord&v,const float*g,float rate){
   if(m.frozen_region[r])return;
@@ -503,6 +535,9 @@ inline void deliver_input_credit(Model&m,int r,LaceRecord&v,const float*du,int d
     }else if(edge.slot<0){for(int j=0;j<D;j++)p->credit[depth][j]+=edge.coefficient*du[j];}
     else for(int j=0;j<D;j++)p->credit[depth][m.perm[edge.slot*D+j]]+=edge.coefficient*m.signs[edge.slot*D+j]*du[j];
     p->uses[depth]++;m.laces.metrics[edge.region][1]++;m.laces.metrics[edge.region][8+depth]++;
+#ifdef SHOEBOX_LEARNED_COMPLETION
+    neural_pending(m,edge.region,p->tick,depth);
+#endif
   }
   if(m.composition.enabled&&r>=2){
     auto&z=m.composition.stream;auto*saved=lace_input(m,r,v);if(!saved)return;
@@ -515,6 +550,9 @@ inline void deliver_input_credit(Model&m,int r,LaceRecord&v,const float*du,int d
     auto&target=*saved_target;
     for(int j=0;j<D;j++)target.gradient[depth][j]+=state.retention*du[j];
     target.uses[depth]++;z.metrics[r][8]++;
+#ifdef SHOEBOX_LEARNED_COMPLETION
+    neural_pending(m,r,previous->tick,depth,true);
+#endif
   }
 }
 inline void neural_input_gradient(Model&m,int r,const LaceRecord&v,const float*g,float*du){
@@ -564,36 +602,39 @@ inline void distribute_credit(Model&m,int r,LaceRecord&v,const float*g,int depth
 // this is bounded delayed local credit, not an exact temporal gradient.
 inline void flush_credit(Model&m,int r,float lr){
   if(!m.lcfg[0])return;
+#ifdef SHOEBOX_LEARNED_COMPLETION
+  neural_ensure_index(m);
+#else
   auto records=lace_records(m,r);
-  if(m.composition.enabled&&r>=2){
-    auto&z=m.composition.stream;
-    // Newest to oldest: a bounded depth budget, no spatial expert update for
-    // input-only state dependence, and no gradient through a fictitious h edge.
-    for(auto it=records.rbegin();it!=records.rend();++it){
-      auto&v=**it;auto*saved=lace_input(m,r,v);if(!saved)continue;
-      auto&state=*saved;
-      if(!v.tick||state.tick!=v.tick)continue;
-      for(int d=0;d<int(m.lcfg[0]);d++)if(state.uses[d]){
-        float gradient[D];float scale=1.f/std::pow(float(state.uses[d]),m.lcfg[5]);
-        for(int j=0;j<D;j++)gradient[j]=state.gradient[d][j]*scale;
-        memset(state.gradient[d],0,D*sizeof(float));state.uses[d]=0;
-#ifdef SHOEBOX_IDENTITY_SEMANTICS
-        semantic_input_update(m,r,v,gradient,lr*m.lcfg[1]*m.teaching_scale[r][0]);
 #endif
-        deliver_input_credit(m,r,v,gradient,d+1);z.metrics[r][9]++;
-      }
+  auto input_update=[&](LaceRecord&v){
+    auto&z=m.composition.stream;auto*saved=lace_input(m,r,v);if(!saved)return;
+    auto&state=*saved;if(!v.tick||state.tick!=v.tick)return;
+    for(int d=0;d<int(m.lcfg[0]);d++)if(state.uses[d]){
+      float gradient[D];float scale=1.f/std::pow(float(state.uses[d]),m.lcfg[5]);
+      for(int j=0;j<D;j++)gradient[j]=state.gradient[d][j]*scale;
+      memset(state.gradient[d],0,D*sizeof(float));state.uses[d]=0;
+#ifdef SHOEBOX_LEARNED_COMPLETION
+      neural_consumed(m,r,v.tick,d,true);
+#endif
+#ifdef SHOEBOX_IDENTITY_SEMANTICS
+      semantic_input_update(m,r,v,gradient,lr*m.lcfg[1]*m.teaching_scale[r][0]);
+#endif
+      deliver_input_credit(m,r,v,gradient,d+1);z.metrics[r][9]++;
     }
-  }
-  for(auto*record:records){
-    auto&v=*record;
-    if(!v.tick)continue;
+  };
+  auto neural_update=[&](LaceRecord&v){
+    if(!v.tick)return;
     float total[D]{};bool any=false;
     for(int d=0;d<int(m.lcfg[0]);d++)if(v.uses[d]){
       float mean[D],scale=1.f/std::pow(float(v.uses[d]),m.lcfg[5]);
       for(int j=0;j<D;j++){mean[j]=v.credit[d][j]/v.uses[d];total[j]+=v.credit[d][j]*scale;}
-      // Clear before propagation so delayed cycles cannot consume new credit
-      // recursively in this same depth or bypass the explicit depth budget.
+      // Clear before propagation. Credit arriving at a visited depth/tick must
+      // remain pending, while later depths/ticks still participate this flush.
       memset(v.credit[d],0,D*sizeof(float));v.uses[d]=0;
+#ifdef SHOEBOX_LEARNED_COMPLETION
+      neural_consumed(m,r,v.tick,d);
+#endif
       distribute_credit(m,r,v,mean,d+1);any=true;
     }
     if(any){
@@ -601,7 +642,28 @@ inline void flush_credit(Model&m,int r,float lr){
       m.laces.metrics[r][2]++;m.laces.metrics[r][5]+=std::sqrt(normg);
       expert_update(m,r,total,lr*m.lcfg[1],&v);
     }
+  };
+#ifdef SHOEBOX_LEARNED_COMPLETION
+  // The cursor is a tick, never an iterator retained across delivery. Dynamic
+  // insertion ahead of it is visited exactly as in the original full scan.
+  if(m.composition.enabled&&r>=2){
+    auto&pending=m.pending_input[r];auto it=pending.end();
+    while(it!=pending.begin()){
+      --it;int64_t tick=it->first;
+      if(auto*v=find_lace(m,r,tick))input_update(*v);
+      it=pending.lower_bound(tick);
+    }
   }
+  auto&pending=m.pending_neural[r];auto it=pending.begin();
+  while(it!=pending.end()){
+    int64_t tick=it->first;
+    if(auto*v=find_lace(m,r,tick))neural_update(*v);
+    it=pending.upper_bound(tick);
+  }
+#else
+  if(m.composition.enabled&&r>=2)for(auto it=records.rbegin();it!=records.rend();++it)input_update(**it);
+  for(auto*v:records)neural_update(*v);
+#endif
 }
 
 inline float* state_parameter(Model&m,int r,int field){return m.state_parameters+(r*3+field)*D;}
@@ -833,7 +895,8 @@ constituent_resize(m,0);
 for(auto&archive:m.neural_archive)archive.clear();
 memset(m.neural_metrics,0,sizeof(m.neural_metrics));
 memset(m.local_credit_metrics,0,sizeof(m.local_credit_metrics));
-m.content_records.clear();memset(m.content_expert_metrics,0,sizeof(m.content_expert_metrics));
+constituent_invalidate(m);
+  neural_invalidate(m);m.content_input_cache.clear();m.content_records.clear();memset(m.content_expert_metrics,0,sizeof(m.content_expert_metrics));
 pattern_reset_stream(m);
 #endif
 memset(&m.composition.stream,0,sizeof(m.composition.stream));m.laces=LaceState{};auto&s=m.s;memset(&s,0,sizeof(s));s.rng=7131587;s.recall_slot[0]=s.recall_slot[1]=-1;initialize_learned(m);}
@@ -848,7 +911,11 @@ void set_reference(void*p,float*v){memcpy(static_cast<Model*>(p)->reference,v,2*
 void configure(void*p,float*cfg){memcpy(static_cast<Model*>(p)->cfg,cfg,24*sizeof(float));}
 size_t lace_state_size(){return sizeof(LaceState);}
 void export_laces(void*p,void*out){memcpy(out,&static_cast<Model*>(p)->laces,sizeof(LaceState));}
-void import_laces(void*p,void*in){memcpy(&static_cast<Model*>(p)->laces,in,sizeof(LaceState));}
+void import_laces(void*p,void*in){auto&m=*static_cast<Model*>(p);memcpy(&m.laces,in,sizeof(LaceState));
+#ifdef SHOEBOX_LEARNED_COMPLETION
+neural_invalidate(m);
+#endif
+}
 void configure_laces(void*p,float*cfg){memcpy(static_cast<Model*>(p)->lcfg,cfg,12*sizeof(float));}
 void lace_metrics(void*p,double*out){memcpy(out,static_cast<Model*>(p)->laces.metrics,N*12*sizeof(double));}
 void lace_codes(void*p,uint64_t*out){auto&m=*static_cast<Model*>(p);for(int r=0;r<N;r++){auto*v=current_lace(m,r);out[3*r]=v?v->input_mask:0;out[3*r+1]=v?v->feature_mask:0;out[3*r+2]=v?v->expert:0;}}
@@ -873,7 +940,8 @@ constituent_resize(m,0);
 for(auto&archive:m.neural_archive)archive.clear();
 memset(m.neural_metrics,0,sizeof(m.neural_metrics));
 memset(m.local_credit_metrics,0,sizeof(m.local_credit_metrics));
-m.content_records.clear();memset(m.content_expert_metrics,0,sizeof(m.content_expert_metrics));
+constituent_invalidate(m);
+  neural_invalidate(m);m.content_input_cache.clear();m.content_records.clear();memset(m.content_expert_metrics,0,sizeof(m.content_expert_metrics));
 pattern_reset_stream(m);
 #endif
 memset(&m.composition.stream,0,sizeof(m.composition.stream));m.laces=LaceState{};auto&s=m.s;
@@ -896,6 +964,9 @@ double run(void*p,const unsigned char*x,const unsigned char*y,int length,int mod
      static_cast<Model*>(p)->s.ablation||static_cast<Model*>(p)->utility_ablation)return NAN;
 #endif
   Model&m=*static_cast<Model*>(p);State&s=m.s;double loss=0;ContentEvent composed{},parts[COMP_MAX]{};m.refresh_keys();m.cached_read_valid[0]=m.cached_read_valid[1]=false;
+#ifdef SHOEBOX_LEARNED_COMPLETION
+  ContentWorkerScope worker_scope(m);
+#endif
   for(int t=0;t<length;t++){
 #ifdef SHOEBOX_LEARNED_COMPLETION
     // Collect only between byte steps: stack-held snapshots/parts stay owned
@@ -1204,6 +1275,9 @@ double run(void*p,const unsigned char*x,const unsigned char*y,int length,int mod
         for(int d=0;d<LACE_DEPTH;d++)if(v.uses[d])m.laces.metrics[r][11]+=v.uses[d];
 #endif
         v=LaceRecord{};v.tick=s.tick;v.expert=best;v.runner=runner;v.gate=gate;v.gate_derivative=gate_derivative;
+#ifdef SHOEBOX_LEARNED_COMPLETION
+        m.neural_index[r][v.tick]=&v;
+#endif
         v.input_mask=routing_mask;v.feature_mask=feature_mask(s.h[r],16);v.nparents=nparents;
         memcpy(v.u,s.u[r],D*sizeof(float));memcpy(v.h,s.h[r],D*sizeof(float));memcpy(v.residual,residual,D*sizeof(float));
         memcpy(m.probe.cues[r][cursor],routing,D*sizeof(float));m.probe.ticks[r][cursor]=v.tick;

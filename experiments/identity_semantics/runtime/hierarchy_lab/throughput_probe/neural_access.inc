@@ -1,3 +1,39 @@
+#ifdef SHOEBOX_LEARNED_COMPLETION
+inline void neural_invalidate(Model&m){
+  m.neural_index_valid=false;
+  for(int r=0;r<N;r++){
+    m.neural_index[r].clear();m.pending_neural[r].clear();m.pending_input[r].clear();
+  }
+}
+inline void neural_ensure_index(Model&m){
+  if(m.neural_index_valid)return;
+  for(int r=0;r<N;r++){
+    auto&index=m.neural_index[r];index.clear();
+    m.pending_neural[r].clear();m.pending_input[r].clear();
+    index.reserve(m.neural_archive[r].size()+LACE_RING);
+    auto add=[&](LaceRecord&v,const InputCredit&input){
+      if(!v.tick)return;
+      index[v.tick]=&v;
+      for(int d=0;d<LACE_DEPTH;d++){
+        if(v.uses[d])m.pending_neural[r][v.tick]|=1u<<d;
+        if(input.tick==v.tick&&input.uses[d])m.pending_input[r][v.tick]|=1u<<d;
+      }
+    };
+    for(auto&entry:m.neural_archive[r])add(entry.second.lace,entry.second.input);
+    for(int k=0;k<LACE_RING;k++)add(m.laces.records[r][k],m.composition.stream.input[r][k]);
+  }
+  m.neural_index_valid=true;
+}
+inline void neural_pending(Model&m,int r,int64_t tick,int depth,bool input=false){
+  neural_ensure_index(m);
+  (input?m.pending_input[r]:m.pending_neural[r])[tick]|=1u<<depth;
+}
+inline void neural_consumed(Model&m,int r,int64_t tick,int depth,bool input=false){
+  auto&pending=input?m.pending_input[r]:m.pending_neural[r];
+  auto it=pending.find(tick);if(it==pending.end())return;
+  it->second&=~(1u<<depth);if(!it->second)pending.erase(it);
+}
+#endif
 // Locate a cache entry without subtracting pointers from unrelated allocations.
 inline int lace_cache_index(Model&m,int r,const LaceRecord&v){
   uintptr_t address=reinterpret_cast<uintptr_t>(&v),base=reinterpret_cast<uintptr_t>(&m.laces.records[r][0]);

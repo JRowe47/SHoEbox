@@ -50,7 +50,7 @@ void local_fixture_pending(void*p,uint64_t*out){
 }
 void local_fixture_freeze(void*p,int r){static_cast<Model*>(p)->frozen_region[r]=1;}
 void local_fixture_task_credit(void*p){
-  auto&m=*static_cast<Model*>(p);auto*v=find_lace(m,3,101);v->uses[0]=2;
+  auto&m=*static_cast<Model*>(p);auto*v=find_lace(m,3,101);v->uses[0]=2;neural_pending(m,3,v->tick,0);
   for(int j=0;j<D;j++)v->credit[0][j]=.01f*(j+1);
 }
 void local_fixture_task_status(void*p,float*out){

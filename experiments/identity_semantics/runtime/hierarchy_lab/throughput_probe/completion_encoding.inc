@@ -3,8 +3,20 @@
 // is excluded. The learned gate is bounded in [0.5,1.5].
 inline int constituent_allocate(Model&m,int r,const ContentEvent*parts,int n){
   auto&s=m.composition.stream;int capacity=constituent_capacity(m);
-  int start=int(s.semantic_cursor++%capacity);
-  if(!constituent_slot(m,start).ref.serial)return start;
+  int start=int(s.semantic_cursor%capacity);
+  if(!m.semantic_free_valid){
+    m.semantic_free.clear();m.semantic_free.reserve(capacity);
+    for(int k=capacity-1;k>=0;k--){int index=(start+k)%capacity;
+      if(!constituent_slot(m,index).ref.serial)m.semantic_free.push_back(index);
+    }
+    m.semantic_free_valid=true;
+  }
+  // Consume the previous collection's inventory in O(1), including after
+  // import. Cached handles do not count as owners and never keep nodes alive.
+  while(!m.semantic_free.empty()){
+    int index=m.semantic_free.back();m.semantic_free.pop_back();
+    if(!constituent_slot(m,index).ref.serial){s.semantic_cursor=index+1;return index;}
+  }
   // Mark from actual owners before recycling. Long held completed units must
   // not lose eligibility just because a faster child has published again.
   uint64_t mark=++m.semantic_work_serial;std::vector<SemanticRef> work;work.reserve(capacity);
@@ -28,12 +40,16 @@ inline int constituent_allocate(Model&m,int r,const ContentEvent*parts,int n){
     if(size_t(k)<m.content_records.size())m.content_records[k].ref=SemanticRef{};
     if(size_t(k)<m.pattern.assignments.size())m.pattern.assignments[k]=PatternAssignment{};
   }
-  for(int k=0;k<capacity;k++){
+  for(int k=capacity-1;k>=0;k--){
     int index=(start+k)%capacity;
-    if(constituent_mark(m,index)!=mark){s.semantic_cursor=index+1;return index;}
+    if(constituent_mark(m,index)!=mark)m.semantic_free.push_back(index);
+  }
+  if(!m.semantic_free.empty()){
+    int index=m.semantic_free.back();m.semantic_free.pop_back();s.semantic_cursor=index+1;return index;
   }
   // Every slot is live. Grow the reference pool instead of severing credit.
   constituent_resize(m,size_t(capacity)*2-SEM_RING);
+  for(int index=2*capacity-1;index>capacity;--index)m.semantic_free.push_back(index);
   s.semantic_cursor=capacity+1;return capacity;
 }
 inline void constituent_encode(Model&m,int r,ContentEvent&out,const ContentEvent*parts,int n,bool binding){

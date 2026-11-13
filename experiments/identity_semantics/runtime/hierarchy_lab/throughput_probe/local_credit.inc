@@ -8,7 +8,11 @@ struct LocalSignal {
   int neural_uses=0,input_uses=0;
 };
 struct LocalCredit {
-  std::map<LocalKey,LocalSignal> pending[LACE_DEPTH],updates;
+  using Map=std::pmr::map<LocalKey,LocalSignal>;
+  Map pending[LACE_DEPTH],updates;
+  explicit LocalCredit(std::pmr::memory_resource*pool):pending{Map{pool},Map{pool},Map{pool}},updates(pool){
+    static_assert(LACE_DEPTH==3);
+  }
 };
 inline void local_deliver_input(Model&,int,LaceRecord&,const float*,const float*,int,LocalCredit&);
 inline void local_transform(Model&m,const LaceParent&edge,const float*gradient,float*out){
@@ -78,7 +82,7 @@ inline void local_prediction_update(Model&m,int r,LaceRecord&v,const float*g,flo
   if(rate==0||issuer_scale==0||m.frozen_region[r])return;
   ContentCreditScope content_scope(m);
   m.local_credit_metrics[r][0]++;
-  LocalCredit work;float upstream[D];
+  LocalCredit work(&m.local_credit_pool);float upstream[D];
   for(int j=0;j<D;j++)upstream[j]=issuer_scale*g[j];
   local_distribute(m,r,v,upstream,0,work);
   // Match lace reuse policy: mean derivative for onward neural propagation,

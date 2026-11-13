@@ -1,5 +1,13 @@
 struct ContentExpertHeader {uint64_t version=1,count=0;};
 extern "C" {
+int content_workers_configure(void*p,int count,const int*cpus){
+  auto&m=*static_cast<Model*>(p);
+  if(count<1||count>32||m.content_worker_depth||m.content_credit_depth)return 0;
+  if(cpus)for(int i=0;i<count;i++)if(cpus[i]<0||cpus[i]>=CPU_SETSIZE)return 0;
+  m.content_workers.reset();
+  if(count>1)m.content_workers=std::make_unique<RowWorkers>(count,cpus);
+  return 1;
+}
 void content_expert_configure(void*p,int enabled){static_cast<Model*>(p)->content_experts=enabled!=0;}
 void content_expert_status(void*p,uint64_t*out){memcpy(out,static_cast<Model*>(p)->content_expert_metrics,sizeof(Model::content_expert_metrics));}
 size_t content_expert_state_size(void*p){
@@ -35,7 +43,7 @@ int content_expert_import(void*p,const void*data,size_t size){
       for(int j=0;j<D;j++)if(!std::isfinite(values[j]))return 0;
     previous=record.ref.index;records[record.ref.index]=record;
   }
-  m.content_records.swap(records);return 1;
+  m.content_records.swap(records);m.content_input_cache.clear();return 1;
 }
 // v9 used these bytes only as padding. Import the original event values and
 // mark every historical encoder as legacy; no fitted values or clocks change.

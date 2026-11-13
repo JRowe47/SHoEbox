@@ -103,6 +103,9 @@ inline void message_feedback_credit(Model&m,int r,LaceRecord&v,const float*du,co
     bool existing=false;
     for(int k=0;k<v.nparents;k++){const auto&e=v.parents[k];existing|=e.region==source.region&&e.tick==source.tick&&e.slot==source.slot;}
     if(!existing){p->uses[depth]++;m.laces.metrics[source.region][1]++;m.laces.metrics[source.region][8+depth]++;}
+#ifdef SHOEBOX_LEARNED_COMPLETION
+    neural_pending(m,source.region,p->tick,depth);
+#endif
     m.composition.stream.message_metrics[source.region][2]++;
   }
 }

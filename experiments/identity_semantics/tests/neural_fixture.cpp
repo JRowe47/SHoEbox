@@ -13,7 +13,7 @@ inline void fixture_execute(Model&m,int r,int expert){
   if(r<2)m.prepare_read(r);
   publish_state(m,r,1.1f,(expert+1)%E);
   m.laces.cursor[r]=index;auto&v=m.laces.records[r][index];v=LaceRecord{};
-  v.tick=m.s.tick;v.expert=expert;v.runner=(expert+1)%E;v.gate=1.1f;v.gate_derivative=.3f;
+  v.tick=m.s.tick;m.neural_index[r][v.tick]=&v;v.expert=expert;v.runner=(expert+1)%E;v.gate=1.1f;v.gate_derivative=.3f;
   v.input_mask=~uint64_t(0);memcpy(v.u,m.s.u[r],sizeof(v.u));memcpy(v.h,m.s.h[r],sizeof(v.h));
   for(int j=0;j<D;j++)v.residual[j]=.02f*(1+j%5);
   auto&input=m.composition.stream.input[r][index];input=InputCredit{};input.tick=v.tick;
@@ -36,7 +36,7 @@ void neural_fixture_setup(void*p,int source,int owner){
     for(int k=0;k<2;k++)event.context_edges[k]={source,-1,held.origin.tick,.5f,held.origin.index};
     m.composition.stream.length[14]=1;
   }else if(owner==2){ // outstanding credit, independent of any publication
-    auto*v=current_lace(m,source);v->uses[0]=1;
+    auto*v=current_lace(m,source);v->uses[0]=1;neural_pending(m,source,v->tick,0);
     for(int j=0;j<D;j++)v->credit[0][j]=.1f;
   }else if(owner==3){ // pending local forecast, not a public content owner
     float cue[D]{};relay_schedule(m,source,cue);
@@ -87,7 +87,7 @@ void neural_fixture_release(void*p){
   for(auto&region:m.laces.records)for(auto&v:region){v.nparents=0;memset(v.uses,0,sizeof(v.uses));}
   for(auto&region:s.input)for(auto&input:region)input=InputCredit{};
   for(auto&archive:m.neural_archive)for(auto&entry:archive){memset(entry.second.lace.uses,0,sizeof(entry.second.lace.uses));memset(entry.second.input.uses,0,sizeof(entry.second.input.uses));}
-  neural_collect(m);
+  neural_invalidate(m);neural_collect(m);
 }
 void neural_fixture_depth(void*p,uint64_t*out){
   auto&m=*static_cast<Model*>(p);reset_context(p);m.s.tick=100;m.lcfg[0]=1;
@@ -99,7 +99,7 @@ void neural_fixture_depth(void*p,uint64_t*out){
   neural_collect(m);
   out[0]=find_lace(m,4,103,1)!=nullptr;out[1]=find_lace(m,3,102,1)!=nullptr;out[2]=find_lace(m,2,101,1)!=nullptr;
   // The out-of-budget grandparent must not be accessed by depth-1 propagation.
-  auto*child=find_lace(m,3,102,1);child->uses[0]=1;child->credit[0][0]=.1f;flush_credit(m,3,.01f);
+  auto*child=find_lace(m,3,102,1);child->uses[0]=1;neural_pending(m,3,child->tick,0);child->credit[0][0]=.1f;flush_credit(m,3,.01f);
   out[3]=m.laces.metrics[3][3];
 }
 }

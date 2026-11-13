@@ -2,11 +2,13 @@ inline LaceRecord* find_lace(Model&,int,int64_t,int);
 // Eviction from the hot cache never destroys a producer. Copy all eligibility
 // before publish_state can overwrite its matching bottom temporal record.
 inline void neural_archive_slot(Model&m,int r,int index){
+  neural_ensure_index(m);
   auto&v=m.laces.records[r][index];if(!v.tick)return;
   auto&saved=m.neural_archive[r][v.tick];
   saved.lace=v;saved.input=m.composition.stream.input[r][index];
   if(saved.input.tick!=v.tick){saved.input=InputCredit{};saved.input.tick=v.tick;}
   memcpy(saved.cue,m.probe.cues[r][index],sizeof(saved.cue));
+  m.neural_index[r][v.tick]=&saved.lace;
   if(r<2){const auto&temporal=m.learned.records[r][v.tick&(TEMP_RING-1)];
     if(temporal.tick==v.tick)saved.temporal=temporal;
   }
@@ -17,6 +19,7 @@ inline void neural_archive_slot(Model&m,int r,int index){
 // neural credit depth. This retains held events indefinitely without turning
 // retained recurrent input into an unbounded temporal tape.
 inline void neural_collect(Model&m){
+  neural_ensure_index(m);
   struct Work {int region;int64_t tick;int budget;};
   std::vector<Work> work;
   std::map<int64_t,int> marks[N];
@@ -74,7 +77,11 @@ inline void neural_collect(Model&m){
     }
   }
   for(int r=0;r<N;r++)for(auto it=m.neural_archive[r].begin();it!=m.neural_archive[r].end();){
-    if(!marks[r].count(it->first)){it=m.neural_archive[r].erase(it);m.neural_metrics[r][1]++;}
+    if(!marks[r].count(it->first)){
+      m.neural_index[r].erase(it->first);
+      m.pending_neural[r].erase(it->first);m.pending_input[r].erase(it->first);
+      it=m.neural_archive[r].erase(it);m.neural_metrics[r][1]++;
+    }
     else ++it;
   }
 }

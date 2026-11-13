@@ -61,7 +61,8 @@ int composition_import(void*p,const void*in,size_t size,int fitted){
   }
   auto&m=*static_cast<Model*>(p);constituent_resize(m,overflow);
   m.acceptance=AcceptanceObservations{};
-  m.content_records.clear();memset(m.content_expert_metrics,0,sizeof(m.content_expert_metrics));
+  constituent_invalidate(m);
+  neural_invalidate(m);m.content_input_cache.clear();m.content_records.clear();memset(m.content_expert_metrics,0,sizeof(m.content_expert_metrics));
   pattern_reset_stream(m);
   memcpy(&target,in,fitted?size:sizeof(CompositionRuntime));
   if(overflow)memcpy(m.semantic_overflow.data(),static_cast<const unsigned char*>(in)+sizeof(CompositionRuntime),overflow*sizeof(ConstituentRecord));
