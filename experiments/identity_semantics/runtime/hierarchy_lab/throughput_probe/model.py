@@ -11,12 +11,15 @@ A1_FIELDS=['prototype_scale','follow_cooldown','reference_lr','decoder_scale']
 A1_DEFAULT=np.array([1.,0.,4e-5,1.],np.float32)
 KERNEL=os.environ.get('SHOEBOX_KERNEL','native')
 FLAGS=os.environ.get('SHOEBOX_CXX_FLAGS','').split()
-RELAY_KERNELS=('relays','contributions')
+MESSAGE_KERNELS=('messages','message_checks')
+DIAGNOSTIC_KERNELS=('contributions','message_checks')
+RELAY_KERNELS=('relays','contributions',*MESSAGE_KERNELS)
+MESSAGE_DEFAULT=dict(payload_gain=1.,feedback_activation=.1,feedback_routing=.1,semantic_lr=1.)
 CONTRIBUTION_KINDS=('none','neural_output','content_descriptor','relay_context',
-                    'retained_input','semantic_residual','whole_source','expert_transform')
+                    'retained_input','semantic_residual','whole_source','expert_transform','semantic_payload','feedback_channel')
 _CONSTRUCTION_LOCK=threading.RLock()
 def build():
-    source=ROOT/(KERNEL+'.cpp');digest=hashlib.sha256(source.read_bytes()+((ROOT/'composition.cpp').read_bytes() if KERNEL in ('binding','semantics','semantics_fixed',*RELAY_KERNELS) else b'')+((ROOT/'relays.cpp').read_bytes() if KERNEL=='contributions' else b'')+b''.join(p.read_bytes() for p in sorted(ROOT.glob('*.inc')))+((ROOT/'e14.cpp').read_bytes() if KERNEL=='e14_fixture' else b'')+str(FLAGS).encode()).hexdigest()[:16]
+    source=ROOT/(KERNEL+'.cpp');digest=hashlib.sha256(source.read_bytes()+((ROOT/'composition.cpp').read_bytes() if KERNEL in ('binding','semantics','semantics_fixed',*RELAY_KERNELS) else b'')+((ROOT/'relays.cpp').read_bytes() if KERNEL in ('contributions',*MESSAGE_KERNELS) else b'')+((ROOT/'messages.cpp').read_bytes() if KERNEL=='message_checks' else b'')+b''.join(p.read_bytes() for p in sorted(ROOT.glob('*.inc')))+((ROOT/'e14.cpp').read_bytes() if KERNEL=='e14_fixture' else b'')+str(FLAGS).encode()).hexdigest()[:16]
     lib=ROOT/f'_{KERNEL}_e{core.E}_{digest}.so'
     with open(ROOT/f'.build_e{core.E}.lock','w') as lock:
         fcntl.flock(lock,fcntl.LOCK_EX)
@@ -26,7 +29,7 @@ def build():
             os.replace(tmp,lib)
     return lib
 class Model(parent.Model):
-    def __init__(self,*args,utility=None,kernel=None,teaching=None,regional_gains=None,frozen_regions=None,task_route_lr_scale=1.,a1_learning=None,f3_task_route_gain=1.,exploration=None,traffic=None,composition=None,**kwargs):
+    def __init__(self,*args,utility=None,kernel=None,teaching=None,regional_gains=None,frozen_regions=None,task_route_lr_scale=1.,a1_learning=None,f3_task_route_gain=1.,exploration=None,traffic=None,composition=None,messages=None,**kwargs):
         global KERNEL
         with _CONSTRUCTION_LOCK:
             previous=KERNEL
@@ -44,6 +47,7 @@ class Model(parent.Model):
                 self.configure_exploration(exploration)
                 self.configure_traffic(traffic)
                 self.configure_composition(composition)
+                self.configure_messages(messages)
             finally:KERNEL=previous
     def _initialize(self,*args,utility=None,**kwargs):
         self.runtime_kernel=KERNEL
@@ -77,6 +81,25 @@ class Model(parent.Model):
             if not self.lib.composition_configure(self.handle,int(cfg['enabled']),cfg['threshold'],int(cfg['min_count']),int(cfg['max_children']),cfg['context_gain']):raise ValueError('Invalid composition policy')
         elif cfg['enabled']:raise ValueError('Composition kernel required')
         self.composition=cfg
+    def configure_messages(self,policy=None):
+        cfg=dict(MESSAGE_DEFAULT if self.runtime_kernel in MESSAGE_KERNELS else dict.fromkeys(MESSAGE_DEFAULT,0.))
+        if policy is not None:
+            if set(policy)-set(cfg):raise ValueError('Unknown learned-message policy field')
+            cfg.update(policy)
+        values=np.array(list(cfg.values()),np.float32)
+        if not np.isfinite(values).all() or np.any(values<0) or np.any(values[:3]>1) or values[3]>8:
+            raise ValueError('Message gains must be in [0,1], semantic_lr in [0,8]')
+        if hasattr(self.lib,'message_configure'):
+            self.lib.message_configure.argtypes=[ct.c_void_p,ct.c_void_p];self.lib.message_configure.restype=ct.c_int
+            if not self.lib.message_configure(self.handle,values.ctypes.data):raise ValueError('Message policy requires a fresh stream')
+        elif np.any(values):raise ValueError('Learned-message kernel required')
+        self.messages=cfg
+    def message_metrics(self):
+        if not hasattr(self.lib,'message_metrics'):return {}
+        a=np.zeros((18,4),np.float64);self.lib.message_metrics.argtypes=[ct.c_void_p,ct.c_void_p]
+        self.lib.message_metrics(self.handle,a.ctypes.data)
+        fields=('semantic_deliveries','semantic_gradient_norm','feedback_deliveries','missing_feedback_producers')
+        return {name:dict(zip(fields,row.tolist())) for name,row in zip(core.NAMES,a)}
     def composition_state(self,fitted=False):
         if not hasattr(self.lib,'composition_state_size'):return np.zeros(0,np.uint8)
         self.lib.composition_state_size.restype=ct.c_size_t
@@ -140,7 +163,7 @@ class Model(parent.Model):
         self.lib.binding_role_status(self.handle,a.ctypes.data)
         return {name:dict(present=int(a[r,0]),fresh=int(a[r,1]),kind=int(a[r,2])) for r,name in enumerate(core.NAMES)}
     def finish_document(self,mode='eval',lr=.12,lp=.04,route=.002,reset=False):
-        if self.runtime_kernel=='contributions' and mode!='eval':raise ValueError('Contribution checks cannot train at document boundaries')
+        if self.runtime_kernel in DIAGNOSTIC_KERNELS and mode!='eval':raise ValueError('Contribution checks cannot train at document boundaries')
         if self.composition['enabled']:
             if mode not in core.MODES or mode=='spatial':raise ValueError('Unsupported composition training mode')
             self.lib.composition_finish.argtypes=[ct.c_void_p,ct.c_int,ct.c_float,ct.c_float,ct.c_float]
@@ -148,10 +171,10 @@ class Model(parent.Model):
             if not self.lib.composition_finish(self.handle,core.MODES[mode],lr,lp,route):raise RuntimeError('Pending composition events did not drain')
         if reset:self.lib.reset_context(self.handle)
     def ablate(self,value=0):
-        if self.runtime_kernel=='contributions' and value!=0:raise ValueError('Use configure_contribution on a fresh diagnostic copy')
+        if self.runtime_kernel in DIAGNOSTIC_KERNELS and value!=0:raise ValueError('Use configure_contribution on a fresh diagnostic copy')
         return super().ablate(value)
     def run(self,x,y=None,mode='eval',lr=.12,lp=.04,route=.002,logits=False):
-        if self.runtime_kernel=='contributions' and (mode!='eval' or not self.composition['enabled']):
+        if self.runtime_kernel in DIAGNOSTIC_KERNELS and (mode!='eval' or not self.composition['enabled']):
             raise ValueError('Contribution checks require evaluation with composition enabled')
         if self.composition['enabled'] and mode=='spatial':raise ValueError('Legacy spatial mode has no event/state credit; use periodic or hybrid')
         return super().run(x,y,mode=mode,lr=lr,lp=lp,route=route,logits=logits)
@@ -396,10 +419,10 @@ class Model(parent.Model):
             saved=self.utility_state();clean=np.zeros_like(saved);stop=(8+64)*4;clean[:stop]=saved[:stop]
             self.lib.utility_import(self.handle,clean.ctypes.data);self.lib.utility_observe(self.handle,0);self.lib.utility_ablate(self.handle,0)
     def frozen_copy(self,*,kernel=None):
-        if self.runtime_kernel=='contributions':raise ValueError('Create independent contribution checks from the original model')
-        if kernel is not None and (self.runtime_kernel!='relays' or kernel!='contributions'):
-            raise ValueError('Only relays -> contributions is a compatible diagnostic copy')
-        m=Model(config=self.config,params=self.params,fixed=self.fixed,lace=self.lace,state_config=self.state_config,extra=self.extra_flat,probe=self.probe,utility=self.utility,kernel=kernel or self.runtime_kernel,teaching=self.teaching,regional_gains=self.regional_gains,frozen_regions=self.frozen_regions,task_route_lr_scale=self.task_route_lr_scale,a1_learning=self.a1_learning,f3_task_route_gain=self.f3_task_route_gain,exploration=self.exploration,traffic=self.traffic,composition=self.composition)
+        if self.runtime_kernel in DIAGNOSTIC_KERNELS:raise ValueError('Create independent contribution checks from the original model')
+        if kernel is not None and (self.runtime_kernel,kernel) not in (('relays','contributions'),('messages','message_checks')):
+            raise ValueError('Use the diagnostic kernel matching the production kernel')
+        m=Model(config=self.config,params=self.params,fixed=self.fixed,lace=self.lace,state_config=self.state_config,extra=self.extra_flat,probe=self.probe,utility=self.utility,kernel=kernel or self.runtime_kernel,teaching=self.teaching,regional_gains=self.regional_gains,frozen_regions=self.frozen_regions,task_route_lr_scale=self.task_route_lr_scale,a1_learning=self.a1_learning,f3_task_route_gain=self.f3_task_route_gain,exploration=self.exploration,traffic=self.traffic,composition=self.composition,messages=self.messages)
         m.configure_path_prototypes(self.path_prototypes)
         m.configure_boundaries(self.boundary_policy)
         m.configure_precision(self.precision_policy)
@@ -417,10 +440,10 @@ class Model(parent.Model):
         Query normalization and recurrent inference state still evolve in eval.
         Run this copy with mode='eval'. The historical frozen_copy() is cold_adaptive.
         """
-        if self.runtime_kernel!='relays':raise ValueError('Explicit memory evaluation requires the relays kernel')
+        if self.runtime_kernel not in ('relays','messages'):raise ValueError('Explicit memory evaluation requires a relay or message kernel')
         if memory not in ('cold_adaptive','cold_frozen','warm_frozen','warm_adaptive'):
             raise ValueError('Unknown evaluation memory policy')
-        m=self.frozen_copy(kernel='contributions' if diagnostic else None)
+        m=self.frozen_copy(kernel=('message_checks' if self.runtime_kernel=='messages' else 'contributions') if diagnostic else None)
         if memory.startswith('warm'):
             m.lib.evaluation_copy_memory.argtypes=[ct.c_void_p,ct.c_void_p]
             m.lib.evaluation_copy_memory(m.handle,self.handle)
@@ -435,7 +458,7 @@ class Model(parent.Model):
                     frozen=bool(a[3]),clock=int(a[4]))
     def configure_contribution(self,kind='none',region=None):
         """Select one intervention before evaluating a fresh diagnostic copy."""
-        if self.runtime_kernel!='contributions':raise ValueError('Use evaluation_copy(diagnostic=True)')
+        if self.runtime_kernel not in DIAGNOSTIC_KERNELS:raise ValueError('Use evaluation_copy(diagnostic=True)')
         if kind not in CONTRIBUTION_KINDS:raise ValueError('Unknown contribution intervention')
         if isinstance(region,str):
             if region not in core.NAMES:raise ValueError('Unknown region')
@@ -452,16 +475,16 @@ class Model(parent.Model):
         if not self.lib.contribution_configure(self.handle,CONTRIBUTION_KINDS.index(kind),r):
             raise ValueError('Intervention requires a fresh, unablated stream; semantic residuals exist only at L2 and above')
     def contribution_metrics(self):
-        if self.runtime_kernel!='contributions':raise ValueError('Diagnostic kernel required')
+        if self.runtime_kernel not in DIAGNOSTIC_KERNELS:raise ValueError('Diagnostic kernel required')
         a=np.zeros((18,5),np.uint64);h=np.zeros(18,np.uint64)
         self.lib.contribution_metrics.argtypes=[ct.c_void_p,ct.c_void_p,ct.c_void_p]
         self.lib.contribution_metrics(self.handle,a.ctypes.data,h.ctypes.data)
         names=('publications','neural_executions','span_sum','max_span','intervention_applications')
         return {name:{**dict(zip(names,map(int,a[r]))),'event_hash':f'{int(h[r]):016x}'} for r,name in enumerate(core.NAMES)}
     def snapshot_copy(self):
-        if self.runtime_kernel=='contributions':raise ValueError('Diagnostic copies cannot be resumed; start from the original checkpoint')
+        if self.runtime_kernel in DIAGNOSTIC_KERNELS:raise ValueError('Diagnostic copies cannot be resumed; start from the original checkpoint')
         # Own every mutable array before dispatching an immutable snapshot.
-        m=Model(config=self.config,params=core.unflatten(self.flat.copy()),fixed={k:v.copy() for k,v in self.fixed.items()},lace=self.lace,state_config=self.state_config,extra=self.extra_flat.copy(),probe=self.probe,utility=self.utility,kernel=self.runtime_kernel,teaching=self.teaching,regional_gains=self.regional_gains,frozen_regions=self.frozen_regions,task_route_lr_scale=self.task_route_lr_scale,a1_learning=self.a1_learning,f3_task_route_gain=self.f3_task_route_gain,exploration=self.exploration,traffic=self.traffic,composition=self.composition)
+        m=Model(config=self.config,params=core.unflatten(self.flat.copy()),fixed={k:v.copy() for k,v in self.fixed.items()},lace=self.lace,state_config=self.state_config,extra=self.extra_flat.copy(),probe=self.probe,utility=self.utility,kernel=self.runtime_kernel,teaching=self.teaching,regional_gains=self.regional_gains,frozen_regions=self.frozen_regions,task_route_lr_scale=self.task_route_lr_scale,a1_learning=self.a1_learning,f3_task_route_gain=self.f3_task_route_gain,exploration=self.exploration,traffic=self.traffic,composition=self.composition,messages=self.messages)
         for arr,method in [(parent.legacy.base.state(self),'import_state'),(self.lace_state(),'import_laces'),(self.learned_state(),'import_learned'),(self.probe_state(),'probe_import'),(self.utility_state(),'utility_import')]:
             getattr(m.lib,method)(m.handle,arr.ctypes.data)
         m.configure_path_prototypes(self.path_prototypes)
@@ -484,6 +507,7 @@ class Model(parent.Model):
         return digest
     def fingerprint(self):
         digest=self.base_fingerprint()
+        if self.runtime_kernel in MESSAGE_KERNELS:digest=hashlib.sha256(digest.encode()+json.dumps(self.messages,sort_keys=True).encode()).hexdigest()
         if self.composition_state().size:digest=hashlib.sha256(digest.encode()+self.composition_state().tobytes()).hexdigest()
         if not np.array_equal(self.boundary_policy,[0,1,0,1]):digest=hashlib.sha256(digest.encode()+self.boundary_policy.tobytes()+self.boundary_metrics().tobytes()).hexdigest()
         if self.precision_policy[0] or self.precision_policy[3]!=1: digest=hashlib.sha256(digest.encode()+self.precision_policy.tobytes()+self.precision_state().tobytes()).hexdigest()
@@ -496,22 +520,26 @@ class Model(parent.Model):
         if self.retention_policy():digest=hashlib.sha256(digest.encode()+self.retention_state().tobytes()).hexdigest()
         return digest
     def save(self,path):
-        if self.runtime_kernel=='contributions':raise ValueError('Evaluation interventions cannot be saved as training checkpoints')
+        if self.runtime_kernel in DIAGNOSTIC_KERNELS:raise ValueError('Evaluation interventions cannot be saved as training checkpoints')
         parent.legacy.base.atomic_checkpoint(path,flat=self.flat,extra=self.extra_flat,state=parent.legacy.base.state(self),lace_state=self.lace_state(),learned_state=self.learned_state(),probe_state=self.probe_state(),utility_state=self.utility_state(),
-            version=np.array([31 if self.runtime_kernel=="relays" else 30 if self.runtime_kernel.startswith("semantics") else 29 if self.runtime_kernel=="binding" else 28 if self.runtime_kernel=="composition" else 27 if self.runtime_kernel.startswith("r05") else 26 if self.runtime_kernel.startswith("r04") else 25 if self.runtime_kernel.startswith("r03") else 24 if self.runtime_kernel.startswith("r02") and (self.activation_policy()["enabled"] or self.gate_bias_policy()["enabled"]) else 23 if self.gate_bias_policy()["enabled"] else 21 if self.traffic['enabled'] else (20 if self.retention_policy() else 19)],np.int32),experts=np.array([core.E],np.int32),config_json=np.array(json.dumps(self.config)),lace_json=np.array(json.dumps(self.lace)),state_config_json=np.array(json.dumps(self.state_config)),probe_json=np.array(json.dumps(self.probe)),utility_json=np.array(json.dumps(self.utility)),teaching_scales=self.teaching,regional_gains=self.regional_gains,frozen_regions=self.frozen_regions,task_route_lr_scale=np.array(self.task_route_lr_scale,np.float32),a1_learning_scales=self.a1_learning_array,f3_task_route_gain=np.array(self.f3_task_route_gain,np.float32),exploration_json=np.array(json.dumps(self.exploration)),traffic_json=np.array(json.dumps(self.traffic)),traffic_state=self.traffic_state(),
+            version=np.array([32 if self.runtime_kernel=="messages" else 31 if self.runtime_kernel=="relays" else 30 if self.runtime_kernel.startswith("semantics") else 29 if self.runtime_kernel=="binding" else 28 if self.runtime_kernel=="composition" else 27 if self.runtime_kernel.startswith("r05") else 26 if self.runtime_kernel.startswith("r04") else 25 if self.runtime_kernel.startswith("r03") else 24 if self.runtime_kernel.startswith("r02") and (self.activation_policy()["enabled"] or self.gate_bias_policy()["enabled"]) else 23 if self.gate_bias_policy()["enabled"] else 21 if self.traffic['enabled'] else (20 if self.retention_policy() else 19)],np.int32),experts=np.array([core.E],np.int32),config_json=np.array(json.dumps(self.config)),lace_json=np.array(json.dumps(self.lace)),state_config_json=np.array(json.dumps(self.state_config)),probe_json=np.array(json.dumps(self.probe)),utility_json=np.array(json.dumps(self.utility)),teaching_scales=self.teaching,regional_gains=self.regional_gains,frozen_regions=self.frozen_regions,task_route_lr_scale=np.array(self.task_route_lr_scale,np.float32),a1_learning_scales=self.a1_learning_array,f3_task_route_gain=np.array(self.f3_task_route_gain,np.float32),exploration_json=np.array(json.dumps(self.exploration)),traffic_json=np.array(json.dumps(self.traffic)),traffic_state=self.traffic_state(),
             **({'gate_bias_state':self.gate_bias_state(),'gate_bias_kernel':np.array('r02' if self.runtime_kernel.startswith('r02') else 'e14_calibrated' if self.gate_bias_policy()['gain']>10000 else 'e14'),'gate_bias_json':np.array(json.dumps(self.gate_bias_policy()))} if self.gate_bias_policy()['enabled'] else {}),
             **({'activation_state':self.activation_state(),'activation_json':np.array(json.dumps(self.activation_policy())),'activation_kernel':np.array('r02' if self.runtime_kernel.startswith('r02') else 'e13')} if self.activation_policy()['enabled'] else {}),
             **({"path_prototypes":self.path_prototypes} if self.runtime_kernel.startswith("r03") else {}),
             **({"precision_policy":self.precision_policy,"precision_state":self.precision_state()} if self.runtime_kernel.startswith(("r04","r05")) else {}),
             **({"boundary_policy":self.boundary_policy,"boundary_metrics":self.boundary_metrics()} if self.runtime_kernel.startswith("r05") else {}),
             **({'r08_kernel':np.array('r04_credit')} if self.runtime_kernel.startswith('r04_credit') else {}),
+            **({'messages_json':np.array(json.dumps(self.messages))} if self.runtime_kernel in MESSAGE_KERNELS else {}),
             composition_state=self.composition_state(),composition_json=np.array(json.dumps(self.composition)),experiment_kernel=np.array(self.runtime_kernel),
             kernel_sha256=np.array(hashlib.sha256((ROOT/(self.runtime_kernel+'.cpp')).read_bytes()).hexdigest()),**({'retention_state':self.retention_state(),'retention_version':np.array([1],np.int32)} if self.retention_policy() else {}),**{'fixed_'+k:v for k,v in self.fixed.items()})
     @classmethod
     def load(cls,path):
         with np.load(path,allow_pickle=False) as a:
-            assert int(a['version'][0]) in (16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31) and int(a['experts'][0])==core.E
+            if int(a['version'][0])==32 and ('messages_json' not in a or str(a['experiment_kernel'])!='messages'):
+                raise ValueError('Message checkpoints require their saved policy and production kernel')
+            assert int(a['version'][0]) in (16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32) and int(a['experts'][0])==core.E
             m=cls(config=json.loads(str(a['config_json'])),params=core.unflatten(a['flat']),fixed={k[6:]:a[k] for k in a.files if k.startswith('fixed_')},lace=json.loads(str(a['lace_json'])),state_config=json.loads(str(a['state_config_json'])),extra=a['extra'],probe=json.loads(str(a['probe_json'])),utility=json.loads(str(a['utility_json'])),kernel=str(a['experiment_kernel']) if 'experiment_kernel' in a else str(a['r08_kernel']) if 'r08_kernel' in a else 'r05' if int(a['version'][0])==27 else 'r04' if int(a['version'][0])==26 else 'r03' if int(a['version'][0])==25 else 'r02' if int(a['version'][0])==24 else ('e14_calibrated' if 'gate_bias_kernel' in a and str(a['gate_bias_kernel'])=='e14_calibrated' else 'e14') if 'gate_bias_state' in a else 'e13' if 'activation_state' in a else ('credit' if 'retention_state' in a else None))
+            if 'messages_json' in a:m.configure_messages(json.loads(str(a['messages_json'])))
             if 'gate_bias_state' in a:m.import_gate_bias(a['gate_bias_state'])
             if 'activation_state' in a:m.import_activation(a['activation_state'])
             if 'traffic_json' in a:

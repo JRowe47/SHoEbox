@@ -98,6 +98,10 @@ struct UtilityRuntime {
 #include "composition_types.inc"
 struct Model {
   CompositionRuntime composition;
+#ifdef SHOEBOX_LEARNED_MESSAGES
+  // Payload, feedback activation, feedback routing, semantic learning scale.
+  float message_config[4]{1.f,.1f,.1f,1.f};
+#endif
   float *W,*bias,*keys,*P,*pbias,*readout,*rbias;
   const float *emb,*feedback,*slots,*signs,*fsign;
   const int *starts,*perm,*fperm,*cadence;
@@ -252,8 +256,11 @@ inline bool valid_bottom_publication(Model&,int,LaceRecord*);
 inline void learn_bottom_state(Model&,int,LaceRecord*,const float*,float);
 inline void bottom_task_update(Model&,int,LaceRecord&,const float*,float);
 inline float norm(const float*x){float z=1.f;for(int i=0;i<D;i++)z+=x[i]*x[i];return z;}
+#ifdef SHOEBOX_LEARNED_MESSAGES
+#include "message_credit.inc"
+#endif
 #ifdef SHOEBOX_IDENTITY_SEMANTICS
-inline void semantic_input_update(Model&m,int r,LaceRecord&v,const float*du,float rate){
+inline void semantic_input_update(Model&m,int r,LaceRecord&v,const float*du,float rate,const float*dcue=nullptr){
 #ifdef SHOEBOX_FIXED_SEMANTICS
   return;
 #endif
@@ -261,6 +268,13 @@ inline void semantic_input_update(Model&m,int r,LaceRecord&v,const float*du,floa
   int index=int(&v-&m.laces.records[r][0]);if(index<0||index>=LACE_RING)return;
   auto&state=m.composition.stream.input[r][index];
   if(state.tick!=v.tick||state.symbol_scale==0)return;
+#ifdef SHOEBOX_LEARNED_MESSAGES
+  if(message_enabled(m)){
+    message_semantic_update(m,r,v,state,du,dcue,rate);
+    return;
+  }
+  rate*=m.message_config[3];if(rate==0)return;
+#endif
   float scale=rate*state.symbol_scale/norm(v.u);
   for(int j=0;j<D;j++){
     float g=std::clamp(du[j],-2.f,2.f)*state.symbol_derivative[j]*scale;
@@ -273,7 +287,12 @@ inline void semantic_expert_update(Model&m,int r,LaceRecord*v,const float*g,floa
   float du[D]{},pre[D];float*w=m.W+(r*E+v->expert)*D*D;
   for(int j=0;j<D;j++)du[j]=pre[j]=g[j]*(1-v->h[j]*v->h[j]);
   for(int i=0;i<D;i++)for(int j=0;j<D;j++)du[j]+=v->gate*w[i*D+j]*pre[i];
+#ifdef SHOEBOX_LEARNED_MESSAGES
+  alignas(64) float dcue[D]{};message_route_gradient(m,r,*v,g,dcue);
+  semantic_input_update(m,r,*v,du,rate,dcue);
+#else
   semantic_input_update(m,r,*v,du,rate);
+#endif
 }
 #endif
 inline void expert_update(Model&m,int r,const float*g,float rate,LaceRecord*record=nullptr,int teaching=0){
@@ -381,8 +400,11 @@ inline float content_sign(int,int);
 #ifdef SHOEBOX_PRESERVE_RELAYS
 #include "relay_teaching.inc"
 #endif
-inline void deliver_input_credit(Model&m,int r,LaceRecord&v,const float*du,int depth){
+inline void deliver_input_credit(Model&m,int r,LaceRecord&v,const float*du,int depth,const float*dcue=nullptr){
   if(depth>=int(m.lcfg[0]))return;
+#ifdef SHOEBOX_LEARNED_MESSAGES
+  message_feedback_credit(m,r,v,du,dcue,depth);
+#endif
   for(int k=0;k<v.nparents;k++){
     const auto&edge=v.parents[k];
     if(edge.region==0&&!m.composition.enabled)continue;
@@ -440,7 +462,12 @@ inline void distribute_credit(Model&m,int r,LaceRecord&v,const float*g,int depth
     for(int i=0;i<D;i++)if(pre[i]!=0)for(int a=0;a<count;a++){int j=ids[a];du[j]+=v.gate*w[i*D+j]*pre[i];}
 #endif
   }else for(int i=0;i<D;i++)for(int j=0;j<D;j++)du[j]+=v.gate*w[i*D+j]*pre[i];
+#ifdef SHOEBOX_LEARNED_MESSAGES
+  alignas(64) float dcue[D]{};message_route_gradient(m,r,v,g,dcue);
+  deliver_input_credit(m,r,v,du,depth,dcue);
+#else
   deliver_input_credit(m,r,v,du,depth);
+#endif
 }
 // Apply accumulated downstream teaching only when this region next runs.
 // Local Jacobians use current weights and saved publication activations:
@@ -764,8 +791,14 @@ double run(void*p,const unsigned char*x,const unsigned char*y,int length,int mod
       if(mode&&!m.lcfg[11])flush_credit(m,r,lr);
       LaceParent parents[LACE_LINKS];int nparents=0;
       float q[D]{},c[D]{},portcue[D]{};float qw=0,cw=0;
+#ifdef SHOEBOX_LEARNED_MESSAGES
+      MessageInput message{};float feedback_input[D]{},feedback_value[D]{},feedback_weight=0;
+#endif
       if(r<2){memcpy(q,m.emb+x[t]*D,D*sizeof(float));qw=1;}
       if(m.composition.enabled&&r>=2)content_bundle(m,r,composed,parts,nparts,q,c,qw,cw,parents,nparents);
+#ifdef SHOEBOX_LEARNED_MESSAGES
+      if(m.composition.enabled&&r>=2)message_payload(m,r,parts,nparts,q,message);
+#endif
       for(int k=m.starts[r];k<m.starts[r+1];k++){
         const float*slot=m.slots+4*k;int src=int(slot[0]),age=int(slot[1]),delay=int(slot[2]);float w=slot[3];
         bool contextual=m.composition.enabled&&r>=2;
@@ -786,6 +819,23 @@ double run(void*p,const unsigned char*x,const unsigned char*y,int length,int mod
         const float*v=delay?snapshot[src]:s.hist[src][age];float*dest=delay?c:q;
         float gain=m.regional_gain[src],effective_w=gain==1.f?w:w*gain;
         for(int j=0;j<D;j++)dest[j]+=effective_w*m.signs[k*D+j]*v[m.perm[k*D+j]];
+#ifdef SHOEBOX_LEARNED_MESSAGES
+        // Only declared delayed feedback uses this channel. Legacy context is
+        // retained as a separate path so zero new gains are bitwise compatible.
+        if(contextual&&slot[2]&&message_feedback_enabled(m)){
+          // Normalize by the same available recipe even when a diagnostic
+          // mutes one source; removing it must not amplify the other sources.
+          feedback_weight+=w*w;
+#ifdef SHOEBOX_CONTRIBUTION_CHECKS
+          if(!contribution_apply(m,CHECK_FEEDBACK,src))
+#endif
+          {
+            for(int j=0;j<D;j++)feedback_input[j]+=effective_w*m.signs[k*D+j]*v[m.perm[k*D+j]];
+            if(effective_w&&message.feedback_count<COMP_MAX)
+              message.feedback[message.feedback_count++]={snapshot_region[src],k,snapshot_tick[src],effective_w,snapshot_index[src]};
+          }
+        }
+#endif
         // Keep structural normalization fixed; attenuation must not amplify
         // the other sources or cancel itself by renormalizing the bundle.
         if(delay)cw+=w*w;else qw+=w*w;
@@ -808,6 +858,12 @@ double run(void*p,const unsigned char*x,const unsigned char*y,int length,int mod
       for(int k=0;k<nparents;k++)parents[k].coefficient*=parents[k].coefficient<0?-ca:qa;
       if(tracing&&!m.composition.enabled&&(r==15||r==16)&&m.cfg[11]){auto*v=current_lace(m,0);parents[nparents++]={0,-1,v?v->tick:0,qa*m.cfg[11],m.laces.cursor[0]};}
       for(int j=0;j<D;j++){q[j]*=qa;c[j]*=ca;}
+#ifdef SHOEBOX_LEARNED_MESSAGES
+      if(message_feedback_enabled(m)&&r>=2&&m.composition.enabled){
+        message_feedback(m,feedback_input,feedback_weight,feedback_value,message);
+        if(m.message_config[1]!=0)for(int j=0;j<D;j++)c[j]+=m.message_config[1]*feedback_value[j];
+      }
+#endif
       if(r==15||r==16){
         int a=r-15;
         for(int j=0;j<D;j++){
@@ -893,6 +949,10 @@ double run(void*p,const unsigned char*x,const unsigned char*y,int length,int mod
         }
       }
       if(m.composition.enabled&&r>=2)memcpy(routing,q,D*sizeof(float));
+#ifdef SHOEBOX_LEARNED_MESSAGES
+      if(m.composition.enabled&&r>=2&&m.message_config[2]!=0)
+        for(int j=0;j<D;j++)routing[j]+=m.message_config[2]*feedback_value[j];
+#endif
       int best=0,runner=0;float score=-1e30f,second=-1e30f;
       int sparse_k=r>=int(m.lcfg[8])?int(m.lcfg[2]):D;
       bool task_route=(m.lcfg[3]>0&&r>=int(m.lcfg[8]))||(r<2&&m.scfg[8]>0);
@@ -966,6 +1026,14 @@ double run(void*p,const unsigned char*x,const unsigned char*y,int length,int mod
             memcpy(state.symbol_features,composed.symbol_features,sizeof(state.symbol_features));
             memcpy(state.symbol_derivative,composed.symbol_derivative,sizeof(state.symbol_derivative));
             state.symbol_scale=alpha*qa;
+          }
+#endif
+#ifdef SHOEBOX_LEARNED_MESSAGES
+          if(m.composition.enabled&&r>=2&&message_enabled(m)){
+            message.qa=qa;message.alpha=alpha;
+            if(gate_derivative!=0)for(int j=0;j<D;j++)if(routing_mask&(uint64_t(1)<<j))
+              message.route_derivative[j]=gate_derivative*(m.keys[(r*E+best)*D+j]-m.keys[(r*E+runner)*D+j]);
+            state.message=message;
           }
 #endif
           if(r>=2){auto&z=m.composition.stream;state.previous_tick=z.memory_tick[r];state.previous_index=z.memory_index[r];state.retention=1-alpha;z.memory_tick[r]=s.tick;z.memory_index[r]=cursor;}

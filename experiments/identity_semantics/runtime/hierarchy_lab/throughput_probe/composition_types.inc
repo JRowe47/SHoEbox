@@ -30,12 +30,18 @@ struct ContentEvent {
   float structure[D]{},symbol_features[8]{},symbol_derivative[D]{};
 #endif
 };
+#ifdef SHOEBOX_LEARNED_MESSAGES
+#include "message_types.inc"
+#endif
 struct InputCredit {
   int64_t tick=0,previous_tick=0;
   int previous_index=-1;
   float retention=0;
 #ifdef SHOEBOX_IDENTITY_SEMANTICS
   float symbol_features[8]{},symbol_derivative[D]{},symbol_scale=0;
+#endif
+#ifdef SHOEBOX_LEARNED_MESSAGES
+  MessageInput message{};
 #endif
   float gradient[LACE_DEPTH][D]{};
   int uses[LACE_DEPTH]{};
@@ -52,6 +58,10 @@ struct PendingTeaching {
 struct CompositionStream {
   int64_t byte_position=0;
   uint32_t draining=0,reserved=0;
+#ifdef SHOEBOX_LEARNED_MESSAGES
+  // Semantic deliveries, gradient norm, feedback deliveries, missing feedback.
+  double message_metrics[N][4]{};
+#endif
   ContentEvent history[N][2]{},pending[N][COMP_MAX]{};
   int length[N]{};
   int64_t seen[N]{},fusion_seen[N][COMP_MAX]{};
@@ -67,7 +77,9 @@ struct CompositionStream {
 #endif
 };
 struct CompositionRuntime {
-#ifdef SHOEBOX_PRESERVE_RELAYS
+#ifdef SHOEBOX_LEARNED_MESSAGES
+  uint32_t version=6,enabled=1;
+#elif defined(SHOEBOX_PRESERVE_RELAYS)
   uint32_t version=5,enabled=1;
 #elif defined(SHOEBOX_IDENTITY_SEMANTICS)
   uint32_t version=4,enabled=1;

@@ -1,6 +1,91 @@
-# SHoEbox: contribution checks and repaired composition
+# SHoEbox: learned constituent messages and credited feedback
 
-This package implements multi-source binding, consistent identity/vector semantics, preserved teaching/recognition through relays, and separated regional contribution checks. `relays` remains the production kernel. The evaluation-only `contributions` kernel compiles optional interventions and event tracing into the same source; production execution compiles every intervention hook out.
+The `messages` kernel implements the upper-region message repair. It retains the
+`relays` comparator, stable content IDs, immutable structural descriptors,
+occurrence/role binding, and the separate next-content forecast record.
+
+```python
+import sys
+sys.path.insert(0, "runtime")
+from runtime import fresh_model, Model
+model = fresh_model(seed=1, kernel="messages")
+# Validation-selected controls; configure only before stream activity.
+model.configure_messages(dict(payload_gain=1.0, feedback_activation=0.1,
+                              feedback_routing=0.1, semantic_lr=1.0))
+```
+
+A child's exported code remains its structural descriptor plus **that child's
+local semantic adapter**. The parent assembles `child.code - child.structure`
+with the existing source/occurrence transforms, normalizes by the declared
+recipe weights, bounds it with `tanh`, and adds it to the parent's neural
+content input. The received bundle is not republished as if it came from the
+parent's adapter. The parent's own learned code is the representation it
+exports; its contextual expert response remains a separate channel.
+
+Declared delayed feedback receives its own normalized, bounded branch, with
+independent activation and routing gains. The existing context branch remains,
+so setting all three new channel gains to zero with `semantic_lr=1` exactly reproduces `relays`,
+including training. For an upper region, the active equations are:
+
+```text
+payload = tanh(normalized role transforms of child local semantic residuals)
+q = content_normalizer * (local_code + payload_gain * payload + observed_byte_if_Y)
+f = tanh(normalized declared delayed neural feedback)
+u = 0.5 * previous_input + 0.5 * (q + legacy_context + feedback_activation * f)
+routing_cue = q + feedback_routing * f
+h = tanh(u + response_gate * W_selected * u + bias + optional_EC_recall)
+```
+
+Payload credit uses the saved source occurrence, role, actual adapter region,
+features and derivatives. It updates that adapter directly, even when the
+publication was held or transparently relayed; it never updates an expert for
+an adapter-produced vector. Feedback credit uses the actual delayed neural
+producer and saved gate Jacobian. The selected expert, runner, sparse mask and
+routing cue are retained. The smooth response gate has a derivative; the hard
+choice and mask boundaries do not. Two feedback Jacobian terms belonging to
+one consumed occurrence count as one use for reuse normalization.
+
+`message_metrics()` separates semantic deliveries/gradient norms from feedback
+deliveries/missing producers. `relay_teaching_status()` and the existing lace
+metrics retain their original meanings. Channel gains are bounded to [0, 1];
+the semantic learning multiplier is in [0, 8]. Neural parameter count remains
+1,031,936 for the 12-expert fixture. Saved eligibility increases runtime state,
+not neural parameter count.
+
+`evaluation_copy(diagnostic=True)` selects `message_checks` for a message model.
+In addition to the controls below, `semantic_payload` removes only a source's
+transferred semantic residual at its consumers, and `feedback_channel` removes
+only its new bounded feedback branch. Both preserve content events. Routing
+changes caused by these interventions are intentional, not parity failures.
+A disabled diagnostic must still exactly reproduce production inference.
+
+New checkpoints use **version 32 / composition ABI 6** and save all channel
+controls and eligibility. Old version-31 relay checkpoints still load in the
+unchanged relay kernel. Explicit fresh-stream conversion preserves learned
+weights, dictionaries, fixed transforms and preprocessing means, while resetting
+stream/teaching/eligibility and associative memory:
+
+```bash
+python src/convert_to_messages.py old_relays.npz new_messages.npz
+python -m unittest discover -s tests -v
+python tests/run_messages_sanitizer.py
+python src/run_messages_study.py pilots
+python src/run_messages_study.py full
+python src/check_messages_results.py interventions
+python src/check_messages_results.py timing
+```
+
+The study uses six validation-only candidates on seed 3, then two fresh seeds
+with one million byte targets per runtime. Test targets are disjoint from the
+validation segment. Timing alternates both runtimes on one CPU core after
+warmup. [Implementation and results](deliverables/SHoEbox_Learned_Message_Fix.md).
+Test checkpoints and intermediate runs are excluded from Git.
+
+---
+
+## Previous contribution and relay runtime
+
+This package implements multi-source binding, consistent identity/vector semantics, preserved teaching/recognition through relays, and separated regional contribution checks. `relays` remains the unchanged comparison kernel. The evaluation-only `contributions` kernel compiles optional interventions and event tracing into the same source; production execution compiles every intervention hook out.
 
 ## Regional contribution checks
 
@@ -31,7 +116,7 @@ model.close()
 
 Positive delta NLL means removing that path damaged prediction. These conditional interventions are not additive percentages of learned knowledge. Only `expert_transform` directly isolates the expert matrix/bias contribution; `neural_output` measures dependence on the complete published neural response.
 
-Every publication is hashed over its ID, span, occurrence, intrinsic structure, recognition, source roles and actual producer. All interventions other than `whole_source` must preserve the complete event sequence and execution counts. Tests also cover channel isolation, memory writes, independent controls, chunking, and exact disabled parity.
+Every publication is hashed over its ID, span, occurrence, intrinsic structure, recognition, source roles and actual producer. All interventions other than `whole_source` must preserve the complete content event sequence and execution counts. In the message kernel, neural interventions may intentionally change routing. Tests also cover channel isolation, memory writes, independent controls, chunking, and exact disabled parity.
 
 Memory policy is explicit: `cold_adaptive` starts empty and admits causal associations from the test prefix; `cold_frozen` starts empty and blocks writes; `warm_frozen` retains the checkpoint store and blocks writes; `warm_adaptive` retains it and admits new associations. All use fresh recurrent/event state and frozen neural parameters/dictionaries in eval. Warm policies also preserve the store's coordinate centers and clock for meaningful timestamps. Query-normalization state still evolves during inference. The historical `frozen_copy()` remains equivalent to `cold_adaptive`.
 
@@ -57,7 +142,7 @@ m = fresh_model(kernel="relays")
 # m = Model.load("my_relay_checkpoint.npz")
 ```
 
-Available kernels: `relays` (current relay repair), `semantics` (previous learned representation), `semantics_fixed` (new structural encoding with its learned residual held at zero), `binding` (prior repair), `composition` (earlier comparator), and `native` (legacy numerical kernel). The runtime's historical default remains `composition`; explicitly select `relays`.
+Available kernels: `messages` (learned message repair), `relays` (relay comparator), `semantics` (previous learned representation), `semantics_fixed` (new structural encoding with its learned residual held at zero), `binding` (prior repair), `composition` (earlier comparator), and `native` (legacy numerical kernel). The runtime's historical default remains `composition`; explicitly select `relays`.
 
 ## Contract
 

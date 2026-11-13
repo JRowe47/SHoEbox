@@ -139,3 +139,16 @@ void relay_event_status(void*p,uint64_t*out,float*confidence){
 #ifdef SHOEBOX_CONTRIBUTION_CHECKS
 #include "contribution_api.inc"
 #endif
+
+#ifdef SHOEBOX_LEARNED_MESSAGES
+extern "C" {
+int message_configure(void*p,const float*values){
+  for(int i=0;i<4;i++)if(!std::isfinite(values[i])||values[i]<0||values[i]>(i==3?8.f:1.f))return 0;
+  auto&m=*static_cast<Model*>(p);
+  // Saved derivatives belong to this policy; only change at a stream boundary.
+  for(int r=0;r<N;r++)if(m.composition.stream.history[r][0].ref.seq)return 0;
+  memcpy(m.message_config,values,sizeof(m.message_config));return 1;
+}
+void message_metrics(void*p,double*out){memcpy(out,static_cast<Model*>(p)->composition.stream.message_metrics,sizeof(CompositionStream::message_metrics));}
+}
+#endif

@@ -1,5 +1,29 @@
 # SHoEbox
 
+## Learned-message and feedback repair
+
+The upper-region repair is available in
+[experiments/identity_semantics](experiments/identity_semantics/README.md) as
+`fresh_model(kernel="messages")`. Parents consume learned constituent residuals;
+bounded delayed feedback influences activation and sparse expert selection.
+Semantic adapters and neural experts receive credit through separate saved
+producer records. IDs, binding and relay forecasts remain intact.
+
+199 repository checks, 17 additional checks at 64 experts, and native
+ASan/UBSan pass. Two matched 1M-target runs produce mean reserved-test NLL
+**1.944734**, compared with **1.940301** for `relays`. The repair removes the
+mechanical restrictions but does not improve average test loss in this study;
+`relays` remains the production recommendation. The new runtime is selectable
+for continued message/credit work, with version-32 / ABI-6 checkpoints and an
+explicit fresh-stream converter.
+
+Same-core median training throughput is **3,275 -> 2,215 bytes/s** (32.4%
+lower). All 120 regional interventions complete; the 100 controls requiring
+stable content events preserve exact identity/provenance traces.
+
+[Implementation and measurements](experiments/identity_semantics/deliverables/SHoEbox_Learned_Message_Fix.md) |
+[PDF](experiments/identity_semantics/deliverables/SHoEbox_Learned_Message_Fix.pdf).
+
 ## Regional contribution checks
 
 The fourth composition-repair step is implemented in

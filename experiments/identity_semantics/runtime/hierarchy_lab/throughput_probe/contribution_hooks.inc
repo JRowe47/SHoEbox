@@ -3,7 +3,7 @@
 // every intervention except the explicitly destructive whole-source control.
 enum ContributionKind { CHECK_NONE, CHECK_NEURAL, CHECK_DESCRIPTOR,
                         CHECK_RELAY, CHECK_RETAINED, CHECK_SEMANTIC, CHECK_SOURCE,
-                        CHECK_EXPERT };
+                        CHECK_EXPERT, CHECK_PAYLOAD, CHECK_FEEDBACK };
 inline bool contribution_selected(const Model&m,int kind,int r){
   return m.contribution_kind==kind&&m.contribution_region==r;
 }
