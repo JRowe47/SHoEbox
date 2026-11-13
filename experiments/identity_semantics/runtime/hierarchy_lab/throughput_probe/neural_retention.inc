@@ -10,7 +10,7 @@ inline void neural_archive_slot(Model&m,int r,int index){
   memcpy(saved.cue,m.probe.cues[r][index],sizeof(saved.cue));
   m.neural_index[r][v.tick]=&saved.lace;
   if(r<2){const auto&temporal=m.learned.records[r][v.tick&(TEMP_RING-1)];
-    if(temporal.tick==v.tick)saved.temporal=temporal;
+    if(temporal.tick==v.tick)m.neural_temporal[r][v.tick]=temporal;
   }
   auto&metrics=m.neural_metrics[r];metrics[0]++;
   metrics[2]=std::max(metrics[2],uint64_t(m.neural_archive[r].size()));
@@ -80,6 +80,7 @@ inline void neural_collect(Model&m){
     if(!marks[r].count(it->first)){
       m.neural_index[r].erase(it->first);
       m.pending_neural[r].erase(it->first);m.pending_input[r].erase(it->first);
+      if(r<STATE_REGIONS)m.neural_temporal[r].erase(it->first);
       it=m.neural_archive[r].erase(it);m.neural_metrics[r][1]++;
     }
     else ++it;

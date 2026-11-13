@@ -20,7 +20,11 @@ void semantic_fixture_gradient(void*p,int r,const float*g,float rate){
  auto&m=*static_cast<Model*>(p);ContentEvent parts[2]{m.composition.stream.history[0][1],m.composition.stream.history[0][0]};
  auto e=content_compose(m,r,parts,2,1,false);auto&v=m.laces.records[r][0];v=LaceRecord{};v.tick=713;
  auto&s=m.composition.stream.input[r][0];s=InputCredit{};s.tick=v.tick;s.symbol_scale=1;
+#ifdef SHOEBOX_LEARNED_COMPLETION
+ s.semantic=e.semantic;
+#else
  memcpy(s.symbol_features,e.symbol_features,sizeof(s.symbol_features));memcpy(s.symbol_derivative,e.symbol_derivative,sizeof(s.symbol_derivative));
+#endif
  semantic_input_update(m,r,v,g,rate);
 }
 void semantic_fixture_saved_gradient(void*p,int r,const float*g,float rate){

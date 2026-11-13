@@ -1,6 +1,6 @@
 // A full-ID anchor makes region, roles, order, presence and geometry visible.
 // IDs remain exact structural keys; floating vectors are similarity features.
-inline void semantic_encode(Model&m,int r,ContentEvent&e){
+inline void semantic_descriptor(ContentEvent&e){
   uint64_t bits[2]{content_mix(e.ref.id.a^content_mix(e.ref.id.b)),content_mix(e.ref.id.b+content_mix(e.ref.id.a))};
   for(int j=0;j<D;j++){
     unsigned v=unsigned((bits[j/32]>>(2*(j%32)))&3);
@@ -11,6 +11,9 @@ inline void semantic_encode(Model&m,int r,ContentEvent&e){
     for(int j=0;j<D;j++)value+=((__builtin_parity(unsigned(j)&unsigned(k+1)))?-1.f:1.f)*e.structure[j];
     e.symbol_features[k]=std::tanh(value*.125f);
   }
+}
+inline void semantic_encode(Model&m,int r,ContentEvent&e){
+  semantic_descriptor(e);
   for(int j=0;j<D;j++){
     float value=0;for(int k=0;k<8;k++)value+=m.composition.symbols[r-2][j][k]*e.symbol_features[k];
     float residual=std::tanh(value);
@@ -20,6 +23,14 @@ inline void semantic_encode(Model&m,int r,ContentEvent&e){
     e.code[j]=e.structure[j]+.25f*residual;
     e.symbol_derivative[j]=.25f*(1-residual*residual);
   }
+#ifdef SHOEBOX_CONTRIBUTION_CHECKS
+  contribution_apply(m,CHECK_SEMANTIC,r);
+#endif
+}
+// Completion's final encoder evaluates the adapter together with its learned
+// payload and content expert. Keep the diagnostic hit at its original point.
+inline void semantic_prepare_constituent(Model&m,int r,ContentEvent&e){
+  semantic_descriptor(e);
 #ifdef SHOEBOX_CONTRIBUTION_CHECKS
   contribution_apply(m,CHECK_SEMANTIC,r);
 #endif

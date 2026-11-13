@@ -19,7 +19,7 @@ inline float message_sign(const Model&m,int slot,int j){return slot<=-100?conten
 inline void message_payload(Model&m,int r,const ContentEvent*parts,int n,float*q,MessageInput&saved){
 #ifdef SHOEBOX_LEARNED_COMPLETION
   return; // Already transformed into the exported constituent; do not add twice.
-#endif
+#else
   if(!n||m.message_config[0]==0)return;
   float weight_sum=0;
   if(r>=3)for(int k=m.starts[r];k<m.starts[r+1];k++)if(!m.slots[4*k+2])weight_sum+=m.slots[4*k+3]*m.slots[4*k+3];
@@ -42,6 +42,7 @@ inline void message_payload(Model&m,int r,const ContentEvent*parts,int n,float*q
     float value=std::tanh(raw[j]);q[j]+=m.message_config[0]*value;
     saved.payload_derivative[j]=m.message_config[0]*(1-value*value);
   }
+#endif
 }
 inline void message_feedback(Model&m,const float*raw,float squared,float*out,MessageInput&saved){
   float scale=1.f/std::sqrt(std::max(1.f,squared));
@@ -60,7 +61,7 @@ inline void message_semantic_update(Model&m,int r,LaceRecord&v,InputCredit&input
                                     const float*du,const float*dcue,float rate,int teaching=0){
 #ifdef SHOEBOX_LEARNED_COMPLETION
   completion_semantic_update(m,r,v,input,du,dcue,rate,teaching);return;
-#endif
+#else
   const auto&saved=input.message;float dq[D];
   for(int j=0;j<D;j++)dq[j]=saved.qa*(saved.alpha*du[j]+(dcue?dcue[j]:0.f));
   float scale=rate*m.message_config[3]/norm(v.u);
@@ -84,6 +85,7 @@ inline void message_semantic_update(Model&m,int r,LaceRecord&v,InputCredit&input
     m.composition.symbol_updates[producer-2]++;
     auto&metric=m.composition.stream.message_metrics[producer];metric[0]++;metric[1]+=std::sqrt(norm2);
   }
+#endif
 }
 inline void message_feedback_credit(Model&m,int r,LaceRecord&v,const float*du,const float*dcue,int depth){
   if(r<2||!m.composition.enabled||!message_feedback_enabled(m))return;

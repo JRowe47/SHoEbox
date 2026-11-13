@@ -29,34 +29,37 @@ int composition_configure(void*p,int enabled,float threshold,int count,int maxim
 }
 size_t composition_state_size(void*p=nullptr){
 #ifdef SHOEBOX_LEARNED_COMPLETION
-  if(p)return sizeof(CompositionRuntime)+static_cast<Model*>(p)->semantic_overflow.size()*sizeof(ConstituentRecord);
+  if(p)return sizeof(CompositionCheckpoint)+static_cast<Model*>(p)->semantic_overflow.size()*sizeof(ConstituentRecord);
 #endif
-  return sizeof(CompositionRuntime);
+  return sizeof(CompositionCheckpoint);
 }
 size_t composition_fitted_size(){return offsetof(CompositionRuntime,stream);}
 void composition_export(void*p,void*out){
-  auto&m=*static_cast<Model*>(p);memcpy(out,&m.composition,sizeof(CompositionRuntime));
+  auto&m=*static_cast<Model*>(p);
 #ifdef SHOEBOX_LEARNED_COMPLETION
-  if(!m.semantic_overflow.empty())memcpy(static_cast<unsigned char*>(out)+sizeof(CompositionRuntime),
+  completion_export_storage(m.composition,out);
+  if(!m.semantic_overflow.empty())memcpy(static_cast<unsigned char*>(out)+sizeof(CompositionCheckpoint),
     m.semantic_overflow.data(),m.semantic_overflow.size()*sizeof(ConstituentRecord));
+#else
+  memcpy(out,&m.composition,sizeof(CompositionRuntime));
 #endif
 }
 int composition_import(void*p,const void*in,size_t size,int fitted){
 #ifdef SHOEBOX_LEARNED_COMPLETION
-  if(fitted?size!=offsetof(CompositionRuntime,stream):size<sizeof(CompositionRuntime))return 0;
-  size_t overflow=fitted?0:(size-sizeof(CompositionRuntime))/sizeof(ConstituentRecord);
-  if(!fitted&&size!=sizeof(CompositionRuntime)+overflow*sizeof(ConstituentRecord))return 0;
+  if(fitted?size!=offsetof(CompositionCheckpoint,stream):size<sizeof(CompositionCheckpoint))return 0;
+  size_t overflow=fitted?0:(size-sizeof(CompositionCheckpoint))/sizeof(ConstituentRecord);
+  if(!fitted&&size!=sizeof(CompositionCheckpoint)+overflow*sizeof(ConstituentRecord))return 0;
 #else
   if(size!=(fitted?offsetof(CompositionRuntime,stream):sizeof(CompositionRuntime)))return 0;
 #endif
-  const auto*z=static_cast<const CompositionRuntime*>(in);
+  const auto*z=static_cast<const CompositionCheckpoint*>(in);
   if(z->version!=static_cast<Model*>(p)->composition.version||z->enabled>1||!std::isfinite(z->boundary_threshold)||z->boundary_threshold<=0||z->boundary_threshold>=1||z->min_count<1||z->min_count>1000000||z->max_children<2||z->max_children>COMP_MAX||!std::isfinite(z->context_gain)||z->context_gain<0||z->context_gain>1)return 0;
   auto&target=static_cast<Model*>(p)->composition;
 #ifdef SHOEBOX_LEARNED_COMPLETION
   if(!fitted&&z->stream.reserved!=overflow)return 0;
   if(!fitted){
     for(int i=0;i<SEM_RING;i++)if(z->stream.semantic_records[i].ref.serial&&z->stream.semantic_records[i].encoder>1)return 0;
-    const auto*extra=reinterpret_cast<const ConstituentRecord*>(static_cast<const unsigned char*>(in)+sizeof(CompositionRuntime));
+    const auto*extra=reinterpret_cast<const ConstituentRecord*>(static_cast<const unsigned char*>(in)+sizeof(CompositionCheckpoint));
     for(size_t i=0;i<overflow;i++)if(extra[i].ref.serial&&extra[i].encoder>1)return 0;
   }
   auto&m=*static_cast<Model*>(p);constituent_resize(m,overflow);
@@ -64,8 +67,8 @@ int composition_import(void*p,const void*in,size_t size,int fitted){
   constituent_invalidate(m);
   neural_invalidate(m);m.content_input_cache.clear();m.content_records.clear();memset(m.content_expert_metrics,0,sizeof(m.content_expert_metrics));
   pattern_reset_stream(m);
-  memcpy(&target,in,fitted?size:sizeof(CompositionRuntime));
-  if(overflow)memcpy(m.semantic_overflow.data(),static_cast<const unsigned char*>(in)+sizeof(CompositionRuntime),overflow*sizeof(ConstituentRecord));
+  if(fitted)memcpy(&target,in,size);else completion_import_storage(target,*z);
+  if(overflow)memcpy(m.semantic_overflow.data(),static_cast<const unsigned char*>(in)+sizeof(CompositionCheckpoint),overflow*sizeof(ConstituentRecord));
 #else
   memcpy(&target,in,size);
 #endif
@@ -73,6 +76,7 @@ int composition_import(void*p,const void*in,size_t size,int fitted){
     memset(&target.stream,0,sizeof(target.stream));
 #ifdef SHOEBOX_LEARNED_COMPLETION
     for(auto&archive:m.neural_archive)archive.clear();
+    for(auto&archive:m.neural_temporal)archive.clear();
     memset(m.neural_metrics,0,sizeof(m.neural_metrics));
     memset(m.local_credit_metrics,0,sizeof(m.local_credit_metrics));
 #endif

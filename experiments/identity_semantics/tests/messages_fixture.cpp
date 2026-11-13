@@ -22,7 +22,11 @@ void message_fixture_payload(void*p,int r,int src,int coordinate,float delta,int
  MessageInput msg{};message_payload(m,r,parts,n,q,msg);msg.qa=1;msg.alpha=1;
  auto&v=m.laces.records[r][m.laces.cursor[r]];v.u[0]=0;memset(v.u,0,sizeof(v.u));
  auto&state=m.composition.stream.input[r][m.laces.cursor[r]];state.tick=v.tick;state.symbol_scale=1;state.message=msg;
+#ifdef SHOEBOX_LEARNED_COMPLETION
+ state.semantic=event.semantic;
+#else
  memcpy(state.symbol_features,event.symbol_features,sizeof(state.symbol_features));memcpy(state.symbol_derivative,event.symbol_derivative,sizeof(state.symbol_derivative));
+#endif
  memcpy(out,q,D*sizeof(float));memcpy(out+D,event.structure,D*sizeof(float));memcpy(out+2*D,c,D*sizeof(float));ids[0]=event.ref.id.a;ids[1]=event.ref.id.b;
 }
 void message_fixture_semantic_credit(void*p,int r,const float*g,float rate){

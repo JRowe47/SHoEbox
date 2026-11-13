@@ -85,6 +85,7 @@ int main(int argc,char**argv){
   reset_context(p);
   assert(paired_occupied(m)>0&&!m.paired.stream.latest[0].stream&&!m.paired.stream.latest[1].stream);
   for(auto&archive:m.neural_archive)assert(archive.empty());
+  for(auto&archive:m.neural_temporal)assert(archive.empty());
   std::cerr<<"Growing live constituent DAG\n";
   ContentEvent child{};child.ref.region=3;semantic_encode(m,3,child);
   constituent_encode(m,3,child,nullptr,0,false);m.composition.stream.history[3][0]=child;

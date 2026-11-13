@@ -62,9 +62,11 @@ inline ContentEvent binding_compose(Model&m,int r,const ContentEvent*children,in
   // The present-role mask distinguishes a missing role from a shifted role.
   out.ref.id=content_pair(id,{out.present_mask,0x70726573656e74},0x62696e64);
 #ifdef SHOEBOX_IDENTITY_SEMANTICS
-  semantic_encode(m,r,out);
 #ifdef SHOEBOX_LEARNED_COMPLETION
+  semantic_prepare_constituent(m,r,out);
   constituent_encode(m,r,out,children,n,true);
+#else
+  semantic_encode(m,r,out);
 #endif
 #endif
   uint32_t count=content_count(m.composition.patterns[r],out.ref.id,learn,m.composition.stream.metrics[r][6]);

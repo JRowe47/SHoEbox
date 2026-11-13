@@ -3,6 +3,7 @@ import argparse
 import hashlib
 import json
 import os
+import resource
 from pathlib import Path
 import statistics
 import subprocess
@@ -44,11 +45,18 @@ def worker(a):
     row=dict(experts=core.E,parameters=m.parameter_count,workers=a.workers,targets=a.targets,
              seconds=seconds,cpu_seconds=cpu_seconds,bytes_per_second=a.targets/seconds,
              nll=float(nll),logits_sha256=digest(logits.tobytes()),fingerprint=m.fingerprint(),
+             base_fingerprint=m.base_fingerprint(),routes_sha256=digest(m.codes().tobytes()),
+             content_state_sha256=digest(m.content_expert_state().tobytes()),
+             paired_state_sha256=digest(m.paired_memory_state().tobytes()),
+             pattern_state_sha256=digest(m.pattern_state().tobytes()),
              main_sha256=digest(m.flat.tobytes()),extra_sha256=digest(m.extra_flat.tobytes()),
              composition_sha256=digest(m.composition_state(fitted=True).tobytes()),
              patterns_sha256=digest(m.pattern_state(fitted=True).tobytes()),
              data_sha256=digest(raw),capabilities=m.capabilities())
     check_integrity(collect(m));row['credit_integrity']=True
+    row['peak_rss_kib']=resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
+    if hasattr(m,'completion_storage'):row['storage']=m.completion_storage()
+    if a.save_after:m.save(a.save_after)
     m.close();a.output.write_text(json.dumps(row,indent=2)+'\n')
 
 
@@ -71,6 +79,7 @@ def main():
     p.add_argument('--output',type=Path,required=True)
     p.add_argument('--worker',action='store_true');p.add_argument('--initialize',action='store_true')
     p.add_argument('--checkpoint',type=Path);p.add_argument('--workers',type=int,default=1)
+    p.add_argument('--save-after',type=Path,help='Worker-only checkpoint for cross-runtime continuation checks')
     a=p.parse_args()
     if a.worker:return worker(a)
     if a.baseline_runtime is None:p.error('--baseline-runtime is required')
@@ -93,7 +102,8 @@ def main():
                 print(name,i+1,round(row['bytes_per_second'],2),flush=True)
                 a.output.write_text(json.dumps(result,indent=2)+'\n')
     rows=[row for group in result['runs'].values() for row in group]
-    for key in ('nll','logits_sha256','main_sha256','extra_sha256','composition_sha256','patterns_sha256','data_sha256'):
+    for key in ('nll','logits_sha256','main_sha256','extra_sha256','composition_sha256','patterns_sha256','data_sha256',
+                'base_fingerprint','routes_sha256','content_state_sha256','paired_state_sha256','pattern_state_sha256'):
         if len({row[key] for row in rows})!=1:raise AssertionError('Continuation mismatch: '+key)
     result['bitwise_logits_and_fitted_state']=True
     result['physical_state_identical']=len({row['fingerprint'] for row in rows})==1

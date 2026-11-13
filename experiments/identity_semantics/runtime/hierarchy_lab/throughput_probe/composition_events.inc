@@ -81,9 +81,11 @@ inline ContentEvent content_compose(Model&m,int r,const ContentEvent*children,in
   }
   out.ref.id=id;
 #ifdef SHOEBOX_IDENTITY_SEMANTICS
-  semantic_encode(m,r,out);
 #ifdef SHOEBOX_LEARNED_COMPLETION
+  semantic_prepare_constituent(m,r,out);
   constituent_encode(m,r,out,children,n,false);
+#else
+  semantic_encode(m,r,out);
 #endif
 #endif
   if(n==1&&kind==1){out.ref.id=children[0].ref.id;memcpy(out.code,children[0].code,sizeof(out.code));out.confidence=0;}

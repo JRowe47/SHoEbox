@@ -118,7 +118,6 @@ struct RetainedNeural {
   LaceRecord lace{};
   InputCredit input{};
   float cue[D]{};
-  TemporalRecord temporal{};
 };
 #endif
 struct Model {
@@ -145,6 +144,8 @@ struct Model {
   // The handle is (region, immutable execution tick); ring index is only a hint.
   // std::map preserves addresses while delayed updates insert other records.
   std::map<int64_t,RetainedNeural> neural_archive[N];
+  // Only A1/B1 have temporal Jacobians. Upper records allocate none.
+  std::map<int64_t,TemporalRecord> neural_temporal[STATE_REGIONS];
   std::unordered_map<int64_t,LaceRecord*> neural_index[N];
   std::map<int64_t,unsigned> pending_neural[N],pending_input[N];
   bool neural_index_valid=false;
@@ -362,6 +363,9 @@ inline void semantic_input_update(Model&m,int r,LaceRecord&v,const float*du,floa
   auto*saved=lace_input(m,r,v);if(!saved)return;
   auto&state=*saved;
   if(state.tick!=v.tick||state.symbol_scale==0)return;
+#ifdef SHOEBOX_LEARNED_COMPLETION
+  message_semantic_update(m,r,v,state,du,dcue,rate,teaching);
+#else
 #ifdef SHOEBOX_LEARNED_MESSAGES
   if(message_enabled(m)){
     message_semantic_update(m,r,v,state,du,dcue,rate,teaching);
@@ -375,6 +379,7 @@ inline void semantic_input_update(Model&m,int r,LaceRecord&v,const float*du,floa
     for(int k=0;k<8;k++)m.composition.symbols[r-2][j][k]-=g*state.symbol_features[k];
   }
   m.composition.symbol_updates[r-2]++;
+#endif
 }
 inline void semantic_expert_update(Model&m,int r,LaceRecord*v,const float*g,float rate,int teaching=0){
   if(!v||r<2||!m.composition.enabled)return;
@@ -670,11 +675,11 @@ inline float* state_parameter(Model&m,int r,int field){return m.state_parameters
 inline float* prototype(Model&m,int r,int e){return m.state_parameters+6*D+(r*E+e)*D;}
 inline float* task_offset(Model&m,int r,int e){return m.state_parameters+6*D+2*E*D+(r*E+e)*D;}
 inline TemporalRecord* temporal_record(Model&m,int r,int64_t tick){
-  if(tick<=0)return nullptr;
+  if(r<0||r>=STATE_REGIONS||tick<=0)return nullptr;
   auto&v=m.learned.records[r][tick&(TEMP_RING-1)];if(v.tick==tick)return &v;
 #ifdef SHOEBOX_LEARNED_COMPLETION
-  auto found=m.neural_archive[r].find(tick);
-  if(found!=m.neural_archive[r].end()&&found->second.temporal.tick==tick)return &found->second.temporal;
+  auto found=m.neural_temporal[r].find(tick);
+  if(found!=m.neural_temporal[r].end())return &found->second;
 #endif
   return nullptr;
 }
@@ -893,6 +898,7 @@ m.acceptance=AcceptanceObservations{};
 paired_clear(m);
 constituent_resize(m,0);
 for(auto&archive:m.neural_archive)archive.clear();
+for(auto&archive:m.neural_temporal)archive.clear();
 memset(m.neural_metrics,0,sizeof(m.neural_metrics));
 memset(m.local_credit_metrics,0,sizeof(m.local_credit_metrics));
 constituent_invalidate(m);
@@ -938,6 +944,7 @@ m.acceptance=AcceptanceObservations{};
 paired_reset_stream(m);memset(m.s.return_birth,0,sizeof(m.s.return_birth));
 constituent_resize(m,0);
 for(auto&archive:m.neural_archive)archive.clear();
+for(auto&archive:m.neural_temporal)archive.clear();
 memset(m.neural_metrics,0,sizeof(m.neural_metrics));
 memset(m.local_credit_metrics,0,sizeof(m.local_credit_metrics));
 constituent_invalidate(m);
@@ -1256,8 +1263,10 @@ double run(void*p,const unsigned char*x,const unsigned char*y,int length,int mod
 #endif
 #ifdef SHOEBOX_IDENTITY_SEMANTICS
           if(r>=2&&nparts){
+#ifndef SHOEBOX_LEARNED_COMPLETION
             memcpy(state.symbol_features,composed.symbol_features,sizeof(state.symbol_features));
             memcpy(state.symbol_derivative,composed.symbol_derivative,sizeof(state.symbol_derivative));
+#endif
             state.symbol_scale=alpha*qa;
           }
 #endif

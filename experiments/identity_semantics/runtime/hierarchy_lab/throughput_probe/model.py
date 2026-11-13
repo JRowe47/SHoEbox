@@ -172,6 +172,17 @@ class Model(parent.Model):
         if not hasattr(self.lib,'acceptance_reset'):raise ValueError('Completion kernel required')
         self.lib.acceptance_reset.argtypes=[ct.c_void_p]
         self.lib.acceptance_reset(self.handle)
+    def completion_storage(self):
+        """Live record payload bytes, excluding allocator and scratch overhead."""
+        if not hasattr(self.lib,'completion_storage_status'):return {}
+        self.lib.completion_storage_status.argtypes=[ct.c_void_p,ct.c_void_p]
+        out=np.zeros(10,np.uint64)
+        self.lib.completion_storage_status(self.handle,out.ctypes.data)
+        names=('input_bytes','legacy_input_bytes','upper_record_bytes','legacy_record_bytes',
+               'composition_bytes','legacy_composition_bytes','archived_records',
+               'temporal_records','archive_payload_bytes','legacy_archive_payload_bytes')
+        return dict(zip(names,map(int,out)))
+
     def neural_state(self):
         if not hasattr(self.lib,'neural_state_size'):return np.zeros(0,np.uint8)
         self.lib.neural_state_size.argtypes=[ct.c_void_p];self.lib.neural_state_size.restype=ct.c_size_t

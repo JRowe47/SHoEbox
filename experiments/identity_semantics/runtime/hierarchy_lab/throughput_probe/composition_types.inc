@@ -50,7 +50,10 @@ struct InputCredit {
   SemanticRef semantic{};
 #endif
 #ifdef SHOEBOX_IDENTITY_SEMANTICS
-  float symbol_features[8]{},symbol_derivative[D]{},symbol_scale=0;
+#ifndef SHOEBOX_LEARNED_COMPLETION
+  float symbol_features[8]{},symbol_derivative[D]{};
+#endif
+  float symbol_scale=0; // Keep the saved eligibility gate, including old imports.
 #endif
 #ifdef SHOEBOX_LEARNED_MESSAGES
   MessageInput message{};
@@ -67,7 +70,9 @@ struct PendingTeaching {
   float prediction[D]{},input[D]{};
 };
 #endif
-struct CompositionStream {
+// Only the input layout differs between runtime and historical wire storage.
+// All other fields retain their original order, types and representation.
+template<class Credit> struct CompositionStreamLayout {
   int64_t byte_position=0;
   uint32_t draining=0,reserved=0;
 #ifdef SHOEBOX_LEARNED_COMPLETION
@@ -85,7 +90,7 @@ struct CompositionStream {
   int64_t seen[N]{},fusion_seen[N][COMP_MAX]{};
   int64_t memory_tick[N]{},event_serial[N]{};
   int memory_index[N]{};
-  InputCredit input[N][LACE_RING]{};
+  Credit input[N][LACE_RING]{};
   double metrics[N][COMP_METRICS]{};
 #ifdef SHOEBOX_PRESERVE_RELAYS
   PendingTeaching teaching[N]{};
@@ -94,7 +99,7 @@ struct CompositionStream {
   uint64_t teaching_metrics[N][6]{};
 #endif
 };
-struct CompositionRuntime {
+template<class Credit> struct CompositionRuntimeLayout {
 #ifdef SHOEBOX_LEARNED_COMPLETION
   uint32_t version=10,enabled=1; // Explicit content encoder tags; v9 live import is lossless.
 #elif defined(SHOEBOX_LEARNED_MESSAGES)
@@ -119,5 +124,12 @@ struct CompositionRuntime {
 #ifdef SHOEBOX_LEARNED_COMPLETION
   float payload_gates[N-2]{}; // gain = 1 + 0.5*tanh(parameter)
 #endif
-  CompositionStream stream{};
+  CompositionStreamLayout<Credit> stream{};
 };
+using CompositionStream=CompositionStreamLayout<InputCredit>;
+using CompositionRuntime=CompositionRuntimeLayout<InputCredit>;
+#ifdef SHOEBOX_LEARNED_COMPLETION
+#include "completion_storage.inc"
+#else
+using CompositionCheckpoint=CompositionRuntime;
+#endif

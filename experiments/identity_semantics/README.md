@@ -112,6 +112,34 @@ recognition behavior. Run `src/validate_pattern_classes.py` for the matched cost
 frozen class-removal intervention and held-out generation checks. See
 [the fourth-fix report](deliverables/SHoEbox_Pattern_Classes.md).
 
+### Structural optimization stage 1
+
+The completion runtime now builds each structural descriptor once and evaluates
+its semantic adapter only in the final constituent encoder. Its input-credit
+records omit unused legacy semantic edges and duplicated adapter derivatives;
+bottom temporal eligibility is allocated only for A1/B1 archived producers.
+All learning scopes, publication identities and reference defaults are retained.
+
+`model.completion_storage()` reports the compact record sizes and live archive
+payload alongside their historical equivalents. Checkpoint v39, composition
+ABI 10 (including the explicit ABI 9 reader) and neural archive ABI 1 keep their
+wire layouts through conversion at import/export. Unused legacy bytes are
+canonicalized to zero, so serialized fingerprints can differ from old-runtime
+fingerprints while actual continuation remains exact.
+
+See [the stage 1 report](deliverables/SHoEbox_Structural_Optimization_Stage1.md).
+Focused checks and cross-runtime continuation:
+
+```bash
+python -m unittest discover -s experiments/identity_semantics/tests \
+  -p test_storage_cleanup.py -v
+python experiments/identity_semantics/src/check_storage_compatibility.py \
+  --baseline-runtime /path/to/8030a1e/experiments/identity_semantics/runtime \
+  --output /tmp/storage_compatibility.json
+```
+
+Add `--bridge-mode eval` to verify evaluation followed by resumed training.
+
 ### Reference CPU optimizations
 
 The default reference runtime reuses a semantic free-slot inventory, indexes

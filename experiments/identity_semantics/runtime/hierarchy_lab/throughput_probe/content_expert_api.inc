@@ -48,13 +48,13 @@ int content_expert_import(void*p,const void*data,size_t size){
 // v9 used these bytes only as padding. Import the original event values and
 // mark every historical encoder as legacy; no fitted values or clocks change.
 int composition_import_v9(void*p,const void*data,size_t size){
-  if(size<sizeof(CompositionRuntime)||(size-sizeof(CompositionRuntime))%sizeof(ConstituentRecord))return 0;
+  if(size<sizeof(CompositionCheckpoint)||(size-sizeof(CompositionCheckpoint))%sizeof(ConstituentRecord))return 0;
   uint32_t version;memcpy(&version,data,sizeof(version));if(version!=9)return 0;
   std::vector<unsigned char> converted(size);memcpy(converted.data(),data,size);
-  auto*state=reinterpret_cast<CompositionRuntime*>(converted.data());state->version=10;
+  auto*state=reinterpret_cast<CompositionCheckpoint*>(converted.data());state->version=10;
   for(auto&node:state->stream.semantic_records)node.encoder=0;
-  auto*overflow=reinterpret_cast<ConstituentRecord*>(converted.data()+sizeof(CompositionRuntime));
-  for(size_t i=0;i<(size-sizeof(CompositionRuntime))/sizeof(ConstituentRecord);i++)overflow[i].encoder=0;
+  auto*overflow=reinterpret_cast<ConstituentRecord*>(converted.data()+sizeof(CompositionCheckpoint));
+  for(size_t i=0;i<(size-sizeof(CompositionCheckpoint))/sizeof(ConstituentRecord);i++)overflow[i].encoder=0;
   return composition_import(p,converted.data(),size,0);
 }
 }
