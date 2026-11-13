@@ -1,0 +1,1340 @@
+diff --git a/README.md b/README.md
+index 0b7ee45..6f99e2d 100644
+--- a/README.md
++++ b/README.md
+@@ -1,6 +1,30 @@
+ # SHoEbox
+ 
+-## Current relay teaching and recognition runtime
++## Regional contribution checks
++
++The fourth composition-repair step is implemented in
++[experiments/identity_semantics](experiments/identity_semantics/README.md).
++Seven independent evaluation controls separate neural publication, learned
++expert transform, content descriptor, singleton relay context, retained input,
++local semantic residual, and whole-source removal. Memory evaluation explicitly
++selects cold/warm stores and frozen/adaptive admission.
++
++Two existing 1M-parameter checkpoints reproduce their published losses exactly.
++226 full-test interventions and eight production-parity comparisons complete.
++All 190 interventions that should preserve content events preserve their full
++identity/provenance traces and execution counts. Removing learned expert
++transforms increases mean NLL by **0.038686 for L3** and **0.023036 for F4**;
++E4/V4/G5 remain weak despite realized teaching and credit.
++
++Production remains `fresh_model(kernel="relays")`; the optional diagnostic
++kernel compiles its hooks out of production. Neural parameters and checkpoint
++version 31 / ABI 5 are unchanged. Test models and intermediate runs are excluded.
++
++[Contribution report](experiments/identity_semantics/deliverables/SHoEbox_Contribution_Checks_Report.md) |
++[PDF](experiments/identity_semantics/deliverables/SHoEbox_Contribution_Checks_Report.pdf) |
++[Full regional measurements](experiments/identity_semantics/deliverables/SHoEbox_Contribution_Checks.csv).
++
++## Production relay teaching and recognition runtime
+ 
+ Use `fresh_model(kernel="relays")` from
+ [experiments/identity_semantics](experiments/identity_semantics/README.md).
+@@ -53,8 +77,8 @@ All **62 checks** and ASan/UBSan pass. Data and trained checkpoints have
+ [PDF](experiments/identity_semantics/deliverables/SHoEbox_Identity_Semantics_Report.pdf) |
+ [Curves](experiments/identity_semantics/deliverables/SHoEbox_Identity_Semantics_Curves.png).
+ 
+-The relay teaching/recognition repair is now available above. Next are regional
+-neural contribution checks with content and relay transport intact.
++The relay teaching/recognition repair and regional contribution checks are now
++available above, with content and relay transport separated from local learning.
+ The audit narrowed the earlier L3 lesion interpretation: whole-source removal
+ measured transport as well as learned computation.
+ 
+diff --git a/STATUS.md b/STATUS.md
+index 0d47c2a..c5c34ab 100644
+--- a/STATUS.md
++++ b/STATUS.md
+@@ -1,5 +1,28 @@
+ # SHoEbox handoff
+ 
++## 2026-11-13 - separated regional contribution checks
++
++The fourth repair is complete in `experiments/identity_semantics`. Production
++stays `relays` with version-31 / ABI-5 checkpoints. Use
++`model.evaluation_copy(memory="cold_adaptive", diagnostic=True)` followed by
++`configure_contribution(kind, region)` for one independent evaluation condition.
++The diagnostic kernel cannot train or serialize a checkpoint.
++
++Seven controls distinguish neural output, expert transform, outgoing descriptor,
++relay context, retained input, semantic residual and whole-source removal. Exact
++event/provenance tracing, explicit cold/warm and frozen/adaptive memory policies,
++baseline parity, frozen fitted-state verification and realized-credit reporting
++provide acceptance checks. Full source, tests, measurements, Markdown and PDF
++reports are included. Test models and intermediate runs are excluded.
++
++The two existing 1M models reproduce test NLL 1.951268496 and 1.929332613.
++226 interventions on 78,771 reserved targets plus eight production comparisons
++finish successfully; all 190 non-whole-source traces preserve content events.
++L3/F4 expert transforms contribute +0.038686/+0.023036 mean delta NLL when
++removed. E4/V4/G5 remain near zero despite local teaching and downstream credit.
++The next architectural question is how their learned messages acquire useful
++task influence, rather than another repair to canceled teaching or identity.
++
+ ## 2026-11-13 - relay teaching and recognition repaired
+ 
+ Current kernel: `fresh_model(kernel="relays")` in
+diff --git a/experiments/identity_semantics/.gitignore b/experiments/identity_semantics/.gitignore
+index b86886c..4b2b277 100644
+--- a/experiments/identity_semantics/.gitignore
++++ b/experiments/identity_semantics/.gitignore
+@@ -6,8 +6,9 @@ __pycache__/
+ !runtime/configs/*_fixed.npz
+ results/fixture.bin
+ results/sanitize*
+-data/
++data
+ qa/
+ deliverables/*.zip
+-results/relay_full_*/
+-results/relay_pilot_*/
++results/relay_full_*
++results/relay_pilot_*
++results/contribution_tmp/
+diff --git a/experiments/identity_semantics/README.md b/experiments/identity_semantics/README.md
+index 2a9835b..151f29d 100644
+--- a/experiments/identity_semantics/README.md
++++ b/experiments/identity_semantics/README.md
+@@ -1,6 +1,48 @@
+-# SHoEbox: relay teaching, recognition and identity semantics
++# SHoEbox: contribution checks and repaired composition
+ 
+-This package now implements the first three repairs: multi-source binding, consistent identity/vector semantics, and preserved teaching/recognition through relays. Regional neural contribution checks are next. The `relays` kernel shares the tested runtime with the earlier comparison kernels.
++This package implements multi-source binding, consistent identity/vector semantics, preserved teaching/recognition through relays, and separated regional contribution checks. `relays` remains the production kernel. The evaluation-only `contributions` kernel compiles optional interventions and event tracing into the same source; production execution compiles every intervention hook out.
++
++## Regional contribution checks
++
++Use a new diagnostic copy for each condition. Controls belong to individual models, not shared global variables. Diagnostic models reject training and checkpoint serialization. A disabled diagnostic must exactly match ordinary evaluation before its measurements are accepted.
++
++```python
++model = Model.load("my_relay_checkpoint.npz")
++control = model.evaluation_copy(memory="cold_adaptive", diagnostic=True)
++probe = model.evaluation_copy(memory="cold_adaptive", diagnostic=True)
++probe.configure_contribution("neural_output", "L3")
++baseline_nll = control.run(inputs, targets)
++delta_nll = probe.run(inputs, targets) - baseline_nll
++print(probe.contribution_metrics())
++control.close()
++probe.close()
++model.close()
++```
++
++| Intervention | What changes |
++| --- | --- |
++| `neural_output` | Zero a region's neural publication after its private memory update. Singleton relays keep their incoming context; content descriptors/codes and event metadata are preserved. This publication includes the input skip and EC recall as well as the expert response. |
++| `expert_transform` | Remove the selected region's learned expert matrix/bias term before the activation. Keep its input skip, EC recall, routing decisions and relay handling. Subsequent recurrent consequences remain live. |
++| `content_descriptor` | Zero the selected region's outgoing descriptor and code on every publication, including relays. Preserve IDs, event timing, recognition, context and provenance. Parent ID anchors remain, so this is a descriptor-path intervention, not deletion of all symbol information. |
++| `relay_context` | Zero only singleton relay context at the selected receiving region. Preserve the relayed descriptor/code and intrinsic structure; locally executed neural publications are untouched. |
++| `retained_input` | Suppress the previous-input carry term at each selected regional execution while retaining the current input's original coefficient. Bottom learned-memory reads remain separate. |
++| `semantic_residual` | Suppress the learned symbol residual when a local code is encoded. Preserve its structural descriptor. Available at L2 and above; transparent relays retain inherited codes. |
++| `whole_source` | Remove a selected source from constituent/context consumers and, for A1/Y, its direct decoder feature block. This control deliberately changes the event stream and combines transport with computation. |
++
++Positive delta NLL means removing that path damaged prediction. These conditional interventions are not additive percentages of learned knowledge. Only `expert_transform` directly isolates the expert matrix/bias contribution; `neural_output` measures dependence on the complete published neural response.
++
++Every publication is hashed over its ID, span, occurrence, intrinsic structure, recognition, source roles and actual producer. All interventions other than `whole_source` must preserve the complete event sequence and execution counts. Tests also cover channel isolation, memory writes, independent controls, chunking, and exact disabled parity.
++
++Memory policy is explicit: `cold_adaptive` starts empty and admits causal associations from the test prefix; `cold_frozen` starts empty and blocks writes; `warm_frozen` retains the checkpoint store and blocks writes; `warm_adaptive` retains it and admits new associations. All use fresh recurrent/event state and frozen neural parameters/dictionaries in eval. Warm policies also preserve the store's coordinate centers and clock for meaningful timestamps. Query-normalization state still evolves during inference. The historical `frozen_copy()` remains equivalent to `cold_adaptive`.
++
++```bash
++python src/run_contribution_checks.py --workers 6
++python src/contribution_credit_audit.py
++python tests/run_contribution_sanitizer.py
++python src/contribution_performance.py --baseline-runtime /path/to/f9eeb8a/runtime
++```
++
++The checks use the two existing relay-repair 1M-parameter checkpoints, each trained for one million byte targets, and all 78,771 reserved test targets. Restore or reproduce those test checkpoints with the preceding relay study when needed. Compact results, the [report](deliverables/SHoEbox_Contribution_Checks_Report.md), and its PDF are published; test checkpoints and intermediate evaluations are excluded.
+ 
+ ## Run
+ 
+diff --git a/experiments/identity_semantics/runtime/hierarchy_lab/throughput_probe/binding_events.inc b/experiments/identity_semantics/runtime/hierarchy_lab/throughput_probe/binding_events.inc
+index 90eeb7c..0b3cdde 100644
+--- a/experiments/identity_semantics/runtime/hierarchy_lab/throughput_probe/binding_events.inc
++++ b/experiments/identity_semantics/runtime/hierarchy_lab/throughput_probe/binding_events.inc
+@@ -2,6 +2,9 @@
+ // Temporal slots refer to distinct completed producer occurrences. A fresh
+ // occurrence is admitted once per role; unchanged roles are explicitly held.
+ inline bool binding_source_removed(Model&m,int src){
++#ifdef SHOEBOX_CONTRIBUTION_CHECKS
++  if(contribution_apply(m,CHECK_SOURCE,src))return true;
++#endif
+   return (m.s.ablation==1&&src>=2&&src!=17)||(m.s.ablation>=10&&src==m.s.ablation-10);
+ }
+ inline bool binding_ready(Model&m,int r){
+diff --git a/experiments/identity_semantics/runtime/hierarchy_lab/throughput_probe/composition.cpp b/experiments/identity_semantics/runtime/hierarchy_lab/throughput_probe/composition.cpp
+index 4ac86d2..c16da46 100644
+--- a/experiments/identity_semantics/runtime/hierarchy_lab/throughput_probe/composition.cpp
++++ b/experiments/identity_semantics/runtime/hierarchy_lab/throughput_probe/composition.cpp
+@@ -147,6 +147,11 @@ struct Model {
+   // Derived layout only: no new model parameters or checkpoint state.
+   alignas(64) float transposed_keys[N][D][E];
+   float cached_read[2][D]{};bool cached_read_valid[2]{};
++#ifdef SHOEBOX_CONTRIBUTION_CHECKS
++  // Append-only diagnostic fields: the production Model prefix is unchanged.
++  int contribution_kind=0,contribution_region=-1;
++  uint64_t contribution_counts[N][5]{},contribution_hashes[N]{};
++#endif
+   void prepare_read(int r){
+     if(cached_read_valid[r])return;
+     for(int j=0;j<D;j++)cached_read[r][j]=std::tanh(state_parameters[(r*3)*D+j]);
+@@ -162,6 +167,9 @@ struct Model {
+     W=p;p+=N*E*D*D;bias=p;p+=N*E*D;keys=p;p+=N*E*D;P=p;p+=N*D*D;pbias=p;p+=N*D;readout=p;p+=V*2*D;rbias=p;
+   }
+ };
++#ifdef SHOEBOX_CONTRIBUTION_CHECKS
++#include "contribution_hooks.inc"
++#endif
+ inline float dot64(const float*a,const float*b){
+ #ifdef __AVX2__
+   __m256 v=_mm256_setzero_ps(),w=_mm256_setzero_ps();
+@@ -723,6 +731,10 @@ int draw(void*p,float temp,float*uniform){
+ }
+ void info(void*p,float*out){auto&s=static_cast<Model*>(p)->s;for(int r=0;r<N;r++){out[r]=s.exec[r];out[N+r]=s.exec[r]>1?s.mse[r]/(s.exec[r]-1):0;for(int e=0;e<E;e++)out[2*N+r*E+e]=s.counts[r][e];}int i=N*(E+2);out[i]=s.reads;out[i+1]=s.writes;out[i+2]=s.correct;out[i+3]=s.tick;out[i+4]=sizeof(State);}
+ double run(void*p,const unsigned char*x,const unsigned char*y,int length,int mode,float lr,float lp,float route,int emit,float*out){
++#ifdef SHOEBOX_CONTRIBUTION_CHECKS
++  if(mode||!static_cast<Model*>(p)->composition.enabled||
++     static_cast<Model*>(p)->s.ablation||static_cast<Model*>(p)->utility_ablation)return NAN;
++#endif
+   Model&m=*static_cast<Model*>(p);State&s=m.s;double loss=0;ContentEvent composed{},parts[COMP_MAX]{};m.refresh_keys();m.cached_read_valid[0]=m.cached_read_valid[1]=false;
+   for(int t=0;t<length;t++){
+     s.tick++;if(!m.composition.stream.draining)m.composition.stream.byte_position++;float snapshot[N][D];int valid[N];int64_t snapshot_tick[N]{};int snapshot_index[N]{},snapshot_region[N]{};
+@@ -768,6 +780,9 @@ double run(void*p,const unsigned char*x,const unsigned char*y,int length,int mod
+         }
+         if((delay?valid[src]:s.valid[src])<=age)continue;
+         if((s.ablation==1&&src>=2&&src!=17)||(s.ablation>=10&&src==s.ablation-10))continue;
++#ifdef SHOEBOX_CONTRIBUTION_CHECKS
++        if(contribution_apply(m,CHECK_SOURCE,src))continue;
++#endif
+         const float*v=delay?snapshot[src]:s.hist[src][age];float*dest=delay?c:q;
+         float gain=m.regional_gain[src],effective_w=gain==1.f?w:w*gain;
+         for(int j=0;j<D;j++)dest[j]+=effective_w*m.signs[k*D+j]*v[m.perm[k*D+j]];
+@@ -855,6 +870,9 @@ double run(void*p,const unsigned char*x,const unsigned char*y,int length,int mod
+       if(mode&&m.utility.config[4]>0){memcpy(m.utility.previous_q[r],q,D*sizeof(float));m.utility.have_q[r]=1;}
+       float alpha=r==1?.125f:.5f;
+       for(int j=0;j<D;j++){s.u[r][j]=(1-alpha)*s.mem[r][j]+alpha*(q[j]+c[j]);s.mem[r][j]=s.u[r][j];}
++#ifdef SHOEBOX_CONTRIBUTION_CHECKS
++      if(contribution_apply(m,CHECK_RETAINED,r))for(int j=0;j<D;j++)s.mem[r][j]=s.u[r][j]=alpha*(q[j]+c[j]);
++#endif
+       if(r<2&&m.scfg[0]>0)m.prepare_read(r);
+       if(r<2&&m.scfg[0]>0)for(int j=0;j<D;j++){
+         float read=m.scfg[2]*m.cached_read[r][j];
+@@ -901,6 +919,9 @@ double run(void*p,const unsigned char*x,const unsigned char*y,int length,int mod
+         float z=s.u[r][i]+b[i];
+         if(!task_route){for(int j=0;j<D;j++)z+=w[i*D+j]*s.u[r][j];residual[i]=0;}
+         else {residual[i]=dot64(w+i*D,s.u[r]);z+=gate*residual[i];}
++#ifdef SHOEBOX_CONTRIBUTION_CHECKS
++        if(contribution_selected(m,CHECK_EXPERT,r))z=s.u[r][i];
++#endif
+         if(m.cfg[10]&&(r==15||r==16)){
+           float recall=0;
+           if(int(m.cfg[10])==2)recall=m.P[(r*D+i)*D+i]*s.returned[r-15][i];
+@@ -909,6 +930,10 @@ double run(void*p,const unsigned char*x,const unsigned char*y,int length,int mod
+         }
+         s.h[r][i]=std::tanh(z);
+       }
++#ifdef SHOEBOX_CONTRIBUTION_CHECKS
++      m.contribution_counts[r][1]++;
++      contribution_apply(m,CHECK_EXPERT,r);
++#endif
+       if(m.diag.enabled&&s.exec[r]%16==0){
+         auto &d=m.diag;d.n[r]++;
+         const float* vectors[4]{q,c,s.u[r],s.h[r]};
+@@ -924,6 +949,11 @@ double run(void*p,const unsigned char*x,const unsigned char*y,int length,int mod
+         }
+       }
+       publish_state(m,r,gate,runner);
++#ifdef SHOEBOX_CONTRIBUTION_CHECKS
++      // Keep the producer's private bottom memory update. Mute the publication
++      // after that update, not the computation that maintains its own state.
++      if(contribution_apply(m,CHECK_NEURAL,r))memset(s.h[r],0,sizeof(s.h[r]));
++#endif
+       if(tracing){
+         auto*previous=current_lace(m,r);uint64_t prior=previous?previous->feature_mask:0;
+         int cursor=(m.laces.cursor[r]+1)&(LACE_RING-1);m.laces.cursor[r]=cursor;
+@@ -970,6 +1000,9 @@ double run(void*p,const unsigned char*x,const unsigned char*y,int length,int mod
+     if(m.composition.stream.draining)continue;
+     float features[2*D],logits[V],prob[V],maxlog=-1e30f;int selected[V],nout=V;
+     for(int j=0;j<D;j++){features[j]=s.h[0][j];features[D+j]=m.utility.config[6]>0?0.f:(m.utility_ablation?m.utility.ymean[j]:s.h[17][j])-m.utility.config[0]*m.utility.ymean[j];}
++#ifdef SHOEBOX_CONTRIBUTION_CHECKS
++    for(int r:{0,17})if(contribution_apply(m,CHECK_SOURCE,r))memset(features+(r?D:0),0,D*sizeof(float));
++#endif
+     int guess=0;
+     double denom=0;
+     if(m.head==0){
+diff --git a/experiments/identity_semantics/runtime/hierarchy_lab/throughput_probe/composition_api.inc b/experiments/identity_semantics/runtime/hierarchy_lab/throughput_probe/composition_api.inc
+index 3186b0b..6872e40 100644
+--- a/experiments/identity_semantics/runtime/hierarchy_lab/throughput_probe/composition_api.inc
++++ b/experiments/identity_semantics/runtime/hierarchy_lab/throughput_probe/composition_api.inc
+@@ -36,6 +36,9 @@ void composition_events(void*p,uint64_t*out,float*code){
+   }
+ }
+ int composition_finish(void*p,int mode,float lr,float lp,float route){
++#ifdef SHOEBOX_CONTRIBUTION_CHECKS
++  if(mode)return 0;
++#endif
+   auto&m=*static_cast<Model*>(p);if(!m.composition.enabled)return 1;
+   if(mode<0||mode>6||mode==5)return 0;
+   auto&z=m.composition.stream;z.draining=1;unsigned char byte=0;float unused=0;
+@@ -47,6 +50,9 @@ int composition_finish(void*p,int mode,float lr,float lp,float route){
+       if(r>=3){pending|=binding_ready(m,r);continue;}
+ #endif
+       int driver=int(m.slots[4*m.starts[r]]);
++#ifdef SHOEBOX_CONTRIBUTION_CHECKS
++      if(contribution_selected(m,CHECK_SOURCE,driver)){z.length[r]=0;z.seen[r]=z.history[driver][0].ref.seq;continue;}
++#endif
+       if((m.s.ablation==1&&driver>=2&&driver!=17)||(m.s.ablation>=10&&driver==m.s.ablation-10)){z.length[r]=0;z.seen[r]=z.history[driver][0].ref.seq;continue;}
+       pending|=z.length[r]>0||z.seen[r]!=z.history[driver][0].ref.seq;
+     }
+@@ -91,6 +97,26 @@ void semantic_updates(void*p,uint64_t*out){memcpy(out,static_cast<Model*>(p)->co
+ 
+ #ifdef SHOEBOX_PRESERVE_RELAYS
+ extern "C" {
++// Fresh-stream evaluation may retain the associative store without retaining
++// forecasts, recurrent state, routing counts, or eligibility. Preserve memory
++// coordinate centers and its clock so stored timestamps keep their meaning.
++void evaluation_copy_memory(void*target,const void*source){
++  auto&d=static_cast<Model*>(target)->s;const auto&s=static_cast<const Model*>(source)->s;
++  memcpy(d.pk,s.pk,sizeof(d.pk));memcpy(d.pv,s.pv,sizeof(d.pv));
++  memcpy(d.priority,s.priority,sizeof(d.priority));memcpy(d.utility,s.utility,sizeof(d.utility));
++  memcpy(d.born,s.born,sizeof(d.born));memcpy(d.updated,s.updated,sizeof(d.updated));
++  memcpy(d.qmean,s.qmean,sizeof(d.qmean));memcpy(d.vmean,s.vmean,sizeof(d.vmean));
++  d.used=s.used;d.tick=s.tick;
++}
++void evaluation_memory_info(void*p,uint64_t*out){
++  auto&s=static_cast<Model*>(p)->s;out[0]=out[1]=0;
++  for(int a=0;a<2;a++)for(int i=0;i<PCAP;i++)out[a]+=s.born[a][i]!=0;
++  uint64_t hash=14695981039346656037ULL;
++  auto add=[&](const void*p,size_t n){auto*b=static_cast<const unsigned char*>(p);for(size_t i=0;i<n;i++){hash^=b[i];hash*=1099511628211ULL;}};
++  add(s.pk,sizeof(s.pk));add(s.pv,sizeof(s.pv));add(s.priority,sizeof(s.priority));
++  add(s.utility,sizeof(s.utility));add(s.born,sizeof(s.born));add(s.updated,sizeof(s.updated));
++  out[2]=hash;out[3]=s.freeze_writes;out[4]=s.tick;
++}
+ void relay_teaching_status(void*p,double*out){
+  auto&z=static_cast<Model*>(p)->composition.stream;
+  for(int r=0;r<N;r++){
+@@ -109,3 +135,7 @@ void relay_event_status(void*p,uint64_t*out,float*confidence){
+ }
+ }
+ #endif
++
++#ifdef SHOEBOX_CONTRIBUTION_CHECKS
++#include "contribution_api.inc"
++#endif
+diff --git a/experiments/identity_semantics/runtime/hierarchy_lab/throughput_probe/composition_events.inc b/experiments/identity_semantics/runtime/hierarchy_lab/throughput_probe/composition_events.inc
+index 2a7f220..18d9ee4 100644
+--- a/experiments/identity_semantics/runtime/hierarchy_lab/throughput_probe/composition_events.inc
++++ b/experiments/identity_semantics/runtime/hierarchy_lab/throughput_probe/composition_events.inc
+@@ -84,6 +84,12 @@ inline void content_publish(Model&m,int r,ContentEvent event,bool relay=false){
+   event.ref.tick=m.s.tick;event.ref.index=m.laces.cursor[r];
+   if(!relay)event.origin=event.ref;
+   memcpy(event.context,m.s.h[r],sizeof(event.context));
++#ifdef SHOEBOX_CONTRIBUTION_CHECKS
++  if(contribution_apply(m,CHECK_DESCRIPTOR,r)){
++    memset(event.code,0,sizeof(event.code));memset(event.structure,0,sizeof(event.structure));
++  }
++  contribution_event(m,r,event);
++#endif
+   z.history[r][1]=z.history[r][0];z.history[r][0]=event;
+   bool formed=event.count>=2;
+ #ifdef SHOEBOX_PRESERVE_RELAYS
+@@ -106,6 +112,9 @@ inline void content_passthrough(Model&m,int r,ContentEvent event,const ContentEv
+   // No new recognition decision, transform or recurrent input update. Public
+   // output changes, but the producer's eligibility and teaching stay separate.
+   memcpy(s.h[r],child.context,D*sizeof(float));
++#ifdef SHOEBOX_CONTRIBUTION_CHECKS
++  if(contribution_apply(m,CHECK_RELAY,r))memset(s.h[r],0,sizeof(s.h[r]));
++#endif
+ #ifndef SHOEBOX_PRESERVE_RELAYS
+   s.pending[r]=0;
+ #endif
+@@ -128,6 +137,9 @@ inline bool content_prepare(Model&m,int r,bool learn,ContentEvent&event,ContentE
+   if(r<=14){
+     int driver=int(m.slots[4*m.starts[r]]);const auto&next=s.history[driver][0];
+     if((m.s.ablation==1&&driver>=2&&driver!=17)||(m.s.ablation>=10&&driver==m.s.ablation-10))return false;
++#ifdef SHOEBOX_CONTRIBUTION_CHECKS
++    if(contribution_apply(m,CHECK_SOURCE,driver))return false;
++#endif
+     if(!next.ref.seq||next.ref.seq==s.seen[r]){
+       if(s.draining&&s.length[r]){
+         n=s.length[r];for(int i=0;i<n;i++)parts[i]=s.pending[r][i];s.length[r]=0;
+diff --git a/experiments/identity_semantics/runtime/hierarchy_lab/throughput_probe/contribution_api.inc b/experiments/identity_semantics/runtime/hierarchy_lab/throughput_probe/contribution_api.inc
+new file mode 100644
+index 0000000..a3e3f16
+--- /dev/null
++++ b/experiments/identity_semantics/runtime/hierarchy_lab/throughput_probe/contribution_api.inc
+@@ -0,0 +1,19 @@
++extern "C" {
++int contribution_configure(void*p,int kind,int region){
++  auto&m=*static_cast<Model*>(p);
++  if(!m.composition.enabled||kind<CHECK_NONE||kind>CHECK_EXPERT||
++     (kind==CHECK_NONE?region!=-1:region<0||region>=N)||
++     (kind==CHECK_SEMANTIC&&region<2)||m.composition.stream.byte_position||
++     m.s.ablation||m.utility_ablation)return 0;
++  for(int r=0;r<N;r++)if(m.contribution_counts[r][0])return 0;
++  m.contribution_kind=kind;m.contribution_region=region;return 1;
++}
++void contribution_status(void*p,int*out){
++  auto&m=*static_cast<Model*>(p);out[0]=m.contribution_kind;out[1]=m.contribution_region;
++}
++void contribution_metrics(void*p,uint64_t*out,uint64_t*hashes){
++  auto&m=*static_cast<Model*>(p);
++  memcpy(out,m.contribution_counts,sizeof(m.contribution_counts));
++  memcpy(hashes,m.contribution_hashes,sizeof(m.contribution_hashes));
++}
++}
+diff --git a/experiments/identity_semantics/runtime/hierarchy_lab/throughput_probe/contribution_hooks.inc b/experiments/identity_semantics/runtime/hierarchy_lab/throughput_probe/contribution_hooks.inc
+new file mode 100644
+index 0000000..57e8e26
+--- /dev/null
++++ b/experiments/identity_semantics/runtime/hierarchy_lab/throughput_probe/contribution_hooks.inc
+@@ -0,0 +1,28 @@
++// Per-instance controls, outside every serialized state. All interventions are
++// evaluation-only. Exact IDs, boundaries, recognition and provenance survive
++// every intervention except the explicitly destructive whole-source control.
++enum ContributionKind { CHECK_NONE, CHECK_NEURAL, CHECK_DESCRIPTOR,
++                        CHECK_RELAY, CHECK_RETAINED, CHECK_SEMANTIC, CHECK_SOURCE,
++                        CHECK_EXPERT };
++inline bool contribution_selected(const Model&m,int kind,int r){
++  return m.contribution_kind==kind&&m.contribution_region==r;
++}
++inline bool contribution_apply(Model&m,int kind,int r){
++  if(!contribution_selected(m,kind,r))return false;
++  m.contribution_counts[r][4]++;return true;
++}
++inline uint64_t contribution_hash(uint64_t h,uint64_t value){
++  for(int i=0;i<8;i++){h^=value&255;h*=1099511628211ULL;value>>=8;}return h;
++}
++inline void contribution_event(Model&m,int r,const ContentEvent&e){
++  auto&v=m.contribution_counts[r];v[0]++;
++  const uint64_t span=e.ref.end-e.ref.begin;v[2]+=span;v[3]=std::max(v[3],span);
++  uint64_t h=m.contribution_hashes[r];
++  auto add=[&](uint64_t x){h=contribution_hash(h,x);};
++  auto ref=[&](const ChildEvent&x){add(x.id.a);add(x.id.b);add(x.seq);add(x.begin);add(x.end);
++    add(x.tick);add(x.region);add(x.role);add(x.recognized);add(x.index);};
++  ref(e.ref);ref(e.origin);add(e.count);add(e.kind);add(e.local_arity);add(e.relayed);
++  add(e.present_mask);add(e.fresh_mask);
++  for(int i=0;i<e.count;i++)ref(e.children[i]);
++  m.contribution_hashes[r]=h;
++}
+diff --git a/experiments/identity_semantics/runtime/hierarchy_lab/throughput_probe/contributions.cpp b/experiments/identity_semantics/runtime/hierarchy_lab/throughput_probe/contributions.cpp
+new file mode 100644
+index 0000000..5f9cec6
+--- /dev/null
++++ b/experiments/identity_semantics/runtime/hierarchy_lab/throughput_probe/contributions.cpp
+@@ -0,0 +1,3 @@
++// Evaluation-only interventions. Production relays compile out every hook.
++#define SHOEBOX_CONTRIBUTION_CHECKS 1
++#include "relays.cpp"
+diff --git a/experiments/identity_semantics/runtime/hierarchy_lab/throughput_probe/model.py b/experiments/identity_semantics/runtime/hierarchy_lab/throughput_probe/model.py
+index 2b61707..f9d3dbe 100644
+--- a/experiments/identity_semantics/runtime/hierarchy_lab/throughput_probe/model.py
++++ b/experiments/identity_semantics/runtime/hierarchy_lab/throughput_probe/model.py
+@@ -11,9 +11,12 @@ A1_FIELDS=['prototype_scale','follow_cooldown','reference_lr','decoder_scale']
+ A1_DEFAULT=np.array([1.,0.,4e-5,1.],np.float32)
+ KERNEL=os.environ.get('SHOEBOX_KERNEL','native')
+ FLAGS=os.environ.get('SHOEBOX_CXX_FLAGS','').split()
++RELAY_KERNELS=('relays','contributions')
++CONTRIBUTION_KINDS=('none','neural_output','content_descriptor','relay_context',
++                    'retained_input','semantic_residual','whole_source','expert_transform')
+ _CONSTRUCTION_LOCK=threading.RLock()
+ def build():
+-    source=ROOT/(KERNEL+'.cpp');digest=hashlib.sha256(source.read_bytes()+((ROOT/'composition.cpp').read_bytes() if KERNEL in ('binding','semantics','semantics_fixed','relays') else b'')+b''.join(p.read_bytes() for p in sorted(ROOT.glob('*.inc')))+((ROOT/'e14.cpp').read_bytes() if KERNEL=='e14_fixture' else b'')+str(FLAGS).encode()).hexdigest()[:16]
++    source=ROOT/(KERNEL+'.cpp');digest=hashlib.sha256(source.read_bytes()+((ROOT/'composition.cpp').read_bytes() if KERNEL in ('binding','semantics','semantics_fixed',*RELAY_KERNELS) else b'')+((ROOT/'relays.cpp').read_bytes() if KERNEL=='contributions' else b'')+b''.join(p.read_bytes() for p in sorted(ROOT.glob('*.inc')))+((ROOT/'e14.cpp').read_bytes() if KERNEL=='e14_fixture' else b'')+str(FLAGS).encode()).hexdigest()[:16]
+     lib=ROOT/f'_{KERNEL}_e{core.E}_{digest}.so'
+     with open(ROOT/f'.build_e{core.E}.lock','w') as lock:
+         fcntl.flock(lock,fcntl.LOCK_EX)
+@@ -60,7 +63,7 @@ class Model(parent.Model):
+         self.lib.utility_configure(self.handle,cfg.ctypes.data_as(fp))
+         self._utility_ready=True
+     def configure_composition(self,policy=None):
+-        cfg=dict(enabled=self.runtime_kernel in ('composition','binding','semantics','semantics_fixed','relays'),threshold=.35,min_count=3,max_children=8,context_gain=.2)
++        cfg=dict(enabled=self.runtime_kernel in ('composition','binding','semantics','semantics_fixed',*RELAY_KERNELS),threshold=.35,min_count=3,max_children=8,context_gain=.2)
+         if policy is not None:
+             if set(policy)-set(cfg):raise ValueError('Unknown composition policy field')
+             cfg.update(policy)
+@@ -137,13 +140,19 @@ class Model(parent.Model):
+         self.lib.binding_role_status(self.handle,a.ctypes.data)
+         return {name:dict(present=int(a[r,0]),fresh=int(a[r,1]),kind=int(a[r,2])) for r,name in enumerate(core.NAMES)}
+     def finish_document(self,mode='eval',lr=.12,lp=.04,route=.002,reset=False):
++        if self.runtime_kernel=='contributions' and mode!='eval':raise ValueError('Contribution checks cannot train at document boundaries')
+         if self.composition['enabled']:
+             if mode not in core.MODES or mode=='spatial':raise ValueError('Unsupported composition training mode')
+             self.lib.composition_finish.argtypes=[ct.c_void_p,ct.c_int,ct.c_float,ct.c_float,ct.c_float]
+             self.lib.composition_finish.restype=ct.c_int
+             if not self.lib.composition_finish(self.handle,core.MODES[mode],lr,lp,route):raise RuntimeError('Pending composition events did not drain')
+         if reset:self.lib.reset_context(self.handle)
++    def ablate(self,value=0):
++        if self.runtime_kernel=='contributions' and value!=0:raise ValueError('Use configure_contribution on a fresh diagnostic copy')
++        return super().ablate(value)
+     def run(self,x,y=None,mode='eval',lr=.12,lp=.04,route=.002,logits=False):
++        if self.runtime_kernel=='contributions' and (mode!='eval' or not self.composition['enabled']):
++            raise ValueError('Contribution checks require evaluation with composition enabled')
+         if self.composition['enabled'] and mode=='spatial':raise ValueError('Legacy spatial mode has no event/state credit; use periodic or hybrid')
+         return super().run(x,y,mode=mode,lr=lr,lp=lp,route=route,logits=logits)
+     def configure_activation(self,width,scale,ramp=131072):
+@@ -168,7 +177,7 @@ class Model(parent.Model):
+         if fresh:
+             self.lib.e13_clear_cache.argtypes=[ct.c_void_p];self.lib.e13_clear_cache(self.handle)
+     @property
+-    def parameter_count(self):return super().parameter_count+(8192 if self.runtime_kernel.startswith("semantics") or self.runtime_kernel=="relays" else 0)+((core.E if self.runtime_kernel.startswith('r02') else 16*core.E) if self.gate_bias_policy()['enabled'] else 0)
++    def parameter_count(self):return super().parameter_count+(8192 if self.runtime_kernel.startswith("semantics") or self.runtime_kernel in RELAY_KERNELS else 0)+((core.E if self.runtime_kernel.startswith('r02') else 16*core.E) if self.gate_bias_policy()['enabled'] else 0)
+     def configure_gate_bias(self,gain=250.,limit=2.,step_limit=.01):
+         if not hasattr(self.lib,'e14_configure'):raise ValueError('Gate bias requires e14 kernel')
+         self.lib.e14_configure.argtypes=[ct.c_void_p,ct.c_float,ct.c_float,ct.c_float];self.lib.e14_configure.restype=ct.c_int
+@@ -386,8 +395,11 @@ class Model(parent.Model):
+         if getattr(self,'_utility_ready',False):
+             saved=self.utility_state();clean=np.zeros_like(saved);stop=(8+64)*4;clean[:stop]=saved[:stop]
+             self.lib.utility_import(self.handle,clean.ctypes.data);self.lib.utility_observe(self.handle,0);self.lib.utility_ablate(self.handle,0)
+-    def frozen_copy(self):
+-        m=Model(config=self.config,params=self.params,fixed=self.fixed,lace=self.lace,state_config=self.state_config,extra=self.extra_flat,probe=self.probe,utility=self.utility,kernel=self.runtime_kernel,teaching=self.teaching,regional_gains=self.regional_gains,frozen_regions=self.frozen_regions,task_route_lr_scale=self.task_route_lr_scale,a1_learning=self.a1_learning,f3_task_route_gain=self.f3_task_route_gain,exploration=self.exploration,traffic=self.traffic,composition=self.composition)
++    def frozen_copy(self,*,kernel=None):
++        if self.runtime_kernel=='contributions':raise ValueError('Create independent contribution checks from the original model')
++        if kernel is not None and (self.runtime_kernel!='relays' or kernel!='contributions'):
++            raise ValueError('Only relays -> contributions is a compatible diagnostic copy')
++        m=Model(config=self.config,params=self.params,fixed=self.fixed,lace=self.lace,state_config=self.state_config,extra=self.extra_flat,probe=self.probe,utility=self.utility,kernel=kernel or self.runtime_kernel,teaching=self.teaching,regional_gains=self.regional_gains,frozen_regions=self.frozen_regions,task_route_lr_scale=self.task_route_lr_scale,a1_learning=self.a1_learning,f3_task_route_gain=self.f3_task_route_gain,exploration=self.exploration,traffic=self.traffic,composition=self.composition)
+         m.configure_path_prototypes(self.path_prototypes)
+         m.configure_boundaries(self.boundary_policy)
+         m.configure_precision(self.precision_policy)
+@@ -397,7 +409,57 @@ class Model(parent.Model):
+         m.import_activation(self.activation_state(),fresh=True)
+         m.import_composition(self.composition_state(fitted=True),fitted=True)
+         a=self.means();m.lib.probe_set_means(m.handle,a.ctypes.data_as(ct.POINTER(ct.c_float)));m.set_ymean(self.ymean());return m
++    def evaluation_copy(self,*,memory='cold_adaptive',diagnostic=False):
++        """Fresh stream, frozen neural/dictionary evaluation, explicit memory.
++
++        cold: empty store; warm: checkpoint store, coordinate centers and clock.
++        adaptive: causal admission from the observed prefix; frozen: no writes.
++        Query normalization and recurrent inference state still evolve in eval.
++        Run this copy with mode='eval'. The historical frozen_copy() is cold_adaptive.
++        """
++        if self.runtime_kernel!='relays':raise ValueError('Explicit memory evaluation requires the relays kernel')
++        if memory not in ('cold_adaptive','cold_frozen','warm_frozen','warm_adaptive'):
++            raise ValueError('Unknown evaluation memory policy')
++        m=self.frozen_copy(kernel='contributions' if diagnostic else None)
++        if memory.startswith('warm'):
++            m.lib.evaluation_copy_memory.argtypes=[ct.c_void_p,ct.c_void_p]
++            m.lib.evaluation_copy_memory(m.handle,self.handle)
++        m.freeze_writes(memory.endswith('frozen'))
++        return m
++    def evaluation_memory_info(self):
++        if not hasattr(self.lib,'evaluation_memory_info'):raise ValueError('Relay memory diagnostics required')
++        a=np.zeros(5,np.uint64)
++        self.lib.evaluation_memory_info.argtypes=[ct.c_void_p,ct.c_void_p]
++        self.lib.evaluation_memory_info(self.handle,a.ctypes.data)
++        return dict(occupied=tuple(map(int,a[:2])),store_digest=f'{int(a[2]):016x}',
++                    frozen=bool(a[3]),clock=int(a[4]))
++    def configure_contribution(self,kind='none',region=None):
++        """Select one intervention before evaluating a fresh diagnostic copy."""
++        if self.runtime_kernel!='contributions':raise ValueError('Use evaluation_copy(diagnostic=True)')
++        if kind not in CONTRIBUTION_KINDS:raise ValueError('Unknown contribution intervention')
++        if isinstance(region,str):
++            if region not in core.NAMES:raise ValueError('Unknown region')
++            region=core.NAMES.index(region)
++        if kind=='none':
++            if region is not None:raise ValueError('The disabled control has no region')
++            r=-1
++        else:
++            if isinstance(region,(bool,np.bool_)) or not isinstance(region,(int,np.integer)) or not 0<=region<18:
++                raise ValueError('Expected a region name or integer in [0, 17]')
++            r=int(region)
++        self.lib.contribution_configure.argtypes=[ct.c_void_p,ct.c_int,ct.c_int]
++        self.lib.contribution_configure.restype=ct.c_int
++        if not self.lib.contribution_configure(self.handle,CONTRIBUTION_KINDS.index(kind),r):
++            raise ValueError('Intervention requires a fresh, unablated stream; semantic residuals exist only at L2 and above')
++    def contribution_metrics(self):
++        if self.runtime_kernel!='contributions':raise ValueError('Diagnostic kernel required')
++        a=np.zeros((18,5),np.uint64);h=np.zeros(18,np.uint64)
++        self.lib.contribution_metrics.argtypes=[ct.c_void_p,ct.c_void_p,ct.c_void_p]
++        self.lib.contribution_metrics(self.handle,a.ctypes.data,h.ctypes.data)
++        names=('publications','neural_executions','span_sum','max_span','intervention_applications')
++        return {name:{**dict(zip(names,map(int,a[r]))),'event_hash':f'{int(h[r]):016x}'} for r,name in enumerate(core.NAMES)}
+     def snapshot_copy(self):
++        if self.runtime_kernel=='contributions':raise ValueError('Diagnostic copies cannot be resumed; start from the original checkpoint')
+         # Own every mutable array before dispatching an immutable snapshot.
+         m=Model(config=self.config,params=core.unflatten(self.flat.copy()),fixed={k:v.copy() for k,v in self.fixed.items()},lace=self.lace,state_config=self.state_config,extra=self.extra_flat.copy(),probe=self.probe,utility=self.utility,kernel=self.runtime_kernel,teaching=self.teaching,regional_gains=self.regional_gains,frozen_regions=self.frozen_regions,task_route_lr_scale=self.task_route_lr_scale,a1_learning=self.a1_learning,f3_task_route_gain=self.f3_task_route_gain,exploration=self.exploration,traffic=self.traffic,composition=self.composition)
+         for arr,method in [(parent.legacy.base.state(self),'import_state'),(self.lace_state(),'import_laces'),(self.learned_state(),'import_learned'),(self.probe_state(),'probe_import'),(self.utility_state(),'utility_import')]:
+@@ -434,6 +496,7 @@ class Model(parent.Model):
+         if self.retention_policy():digest=hashlib.sha256(digest.encode()+self.retention_state().tobytes()).hexdigest()
+         return digest
+     def save(self,path):
++        if self.runtime_kernel=='contributions':raise ValueError('Evaluation interventions cannot be saved as training checkpoints')
+         parent.legacy.base.atomic_checkpoint(path,flat=self.flat,extra=self.extra_flat,state=parent.legacy.base.state(self),lace_state=self.lace_state(),learned_state=self.learned_state(),probe_state=self.probe_state(),utility_state=self.utility_state(),
+             version=np.array([31 if self.runtime_kernel=="relays" else 30 if self.runtime_kernel.startswith("semantics") else 29 if self.runtime_kernel=="binding" else 28 if self.runtime_kernel=="composition" else 27 if self.runtime_kernel.startswith("r05") else 26 if self.runtime_kernel.startswith("r04") else 25 if self.runtime_kernel.startswith("r03") else 24 if self.runtime_kernel.startswith("r02") and (self.activation_policy()["enabled"] or self.gate_bias_policy()["enabled"]) else 23 if self.gate_bias_policy()["enabled"] else 21 if self.traffic['enabled'] else (20 if self.retention_policy() else 19)],np.int32),experts=np.array([core.E],np.int32),config_json=np.array(json.dumps(self.config)),lace_json=np.array(json.dumps(self.lace)),state_config_json=np.array(json.dumps(self.state_config)),probe_json=np.array(json.dumps(self.probe)),utility_json=np.array(json.dumps(self.utility)),teaching_scales=self.teaching,regional_gains=self.regional_gains,frozen_regions=self.frozen_regions,task_route_lr_scale=np.array(self.task_route_lr_scale,np.float32),a1_learning_scales=self.a1_learning_array,f3_task_route_gain=np.array(self.f3_task_route_gain,np.float32),exploration_json=np.array(json.dumps(self.exploration)),traffic_json=np.array(json.dumps(self.traffic)),traffic_state=self.traffic_state(),
+             **({'gate_bias_state':self.gate_bias_state(),'gate_bias_kernel':np.array('r02' if self.runtime_kernel.startswith('r02') else 'e14_calibrated' if self.gate_bias_policy()['gain']>10000 else 'e14'),'gate_bias_json':np.array(json.dumps(self.gate_bias_policy()))} if self.gate_bias_policy()['enabled'] else {}),
+diff --git a/experiments/identity_semantics/runtime/hierarchy_lab/throughput_probe/semantics_events.inc b/experiments/identity_semantics/runtime/hierarchy_lab/throughput_probe/semantics_events.inc
+index 7f2891a..91c94d3 100644
+--- a/experiments/identity_semantics/runtime/hierarchy_lab/throughput_probe/semantics_events.inc
++++ b/experiments/identity_semantics/runtime/hierarchy_lab/throughput_probe/semantics_events.inc
+@@ -14,7 +14,13 @@ inline void semantic_encode(Model&m,int r,ContentEvent&e){
+   for(int j=0;j<D;j++){
+     float value=0;for(int k=0;k<8;k++)value+=m.composition.symbols[r-2][j][k]*e.symbol_features[k];
+     float residual=std::tanh(value);
++#ifdef SHOEBOX_CONTRIBUTION_CHECKS
++    if(contribution_selected(m,CHECK_SEMANTIC,r))residual=0;
++#endif
+     e.code[j]=e.structure[j]+.25f*residual;
+     e.symbol_derivative[j]=.25f*(1-residual*residual);
+   }
++#ifdef SHOEBOX_CONTRIBUTION_CHECKS
++  contribution_apply(m,CHECK_SEMANTIC,r);
++#endif
+ }
+diff --git a/experiments/identity_semantics/src/contribution_credit_audit.py b/experiments/identity_semantics/src/contribution_credit_audit.py
+new file mode 100644
+index 0000000..98b651c
+--- /dev/null
++++ b/experiments/identity_semantics/src/contribution_credit_audit.py
+@@ -0,0 +1,37 @@
++"""Read realized teaching and eligibility delivery from the tested checkpoints."""
++import argparse
++import hashlib
++import json
++from pathlib import Path
++import sys
++
++ROOT=Path(__file__).resolve().parents[1]
++sys.path.insert(0,str(ROOT/'runtime'))
++from runtime import Model,core
++
++
++def main():
++    p=argparse.ArgumentParser(description=__doc__)
++    p.add_argument('--checkpoints',type=Path,nargs='+',default=[ROOT/f'results/relay_full_relays_seed{s}/last.npz' for s in (1,2)])
++    a=p.parse_args();rows=[]
++    for seed,path in enumerate(a.checkpoints,1):
++        m=Model.load(path);teaching=m.relay_teaching_status();lace=m.lace_metrics()
++        composition=m.composition_metrics();stats=m.stats()
++        for r,name in enumerate(core.NAMES):
++            t=teaching[name]
++            assert t['scheduled']==sum(t[k] for k in ('neural_targets','relay_targets','nonlearning_targets','expired_producers'))+int(t['pending_tick']>0)
++            assert t['duplicate_schedules']==0 and t['expired_producers']==0
++            rows.append(dict(seed=seed,region=name,neural_executions=int(stats['executions'][r]),
++                             teaching=t,lace=lace[name],composition=composition[name]))
++        m.close()
++    result=dict(checkpoint_sha256=[hashlib.sha256(p.read_bytes()).hexdigest() for p in a.checkpoints],
++                note='Saved training counters; no extra training. A1/B1 use their original local teacher and do not populate relay forecast counters.',regions=rows)
++    (ROOT/'results/contribution_credit.json').write_text(json.dumps(result,indent=2)+'\n')
++    for row in rows:
++        if row['seed']==1 and row['region'] in ('L2','L3','E4','F4','V4','G5','EC-C','Y'):
++            print(row['region'],'local targets',row['teaching']['neural_targets']+row['teaching']['relay_targets'],
++                  'credit edges',row['lace']['credit_edges'],'missing parents',row['lace']['missing_parent'],
++                  'expired input edges',row['composition']['expired_input_edges'])
++
++
++if __name__=='__main__':main()
+diff --git a/experiments/identity_semantics/src/contribution_performance.py b/experiments/identity_semantics/src/contribution_performance.py
+new file mode 100644
+index 0000000..5aca3ee
+--- /dev/null
++++ b/experiments/identity_semantics/src/contribution_performance.py
+@@ -0,0 +1,71 @@
++"""Alternating same-core old/new production timing and diagnostic overhead."""
++import argparse
++import json
++import os
++from pathlib import Path
++import statistics
++import subprocess
++import sys
++
++ROOT=Path(__file__).resolve().parents[1]
++
++
++def worker(a):
++    os.environ.update(OPENBLAS_NUM_THREADS='1',OMP_NUM_THREADS='1')
++    os.sched_setaffinity(0,{a.core})
++    sys.path.insert(0,str(a.runtime))
++    import numpy as np
++    import time
++    from runtime import Model
++    original=Model.load(a.checkpoint)
++    if a.condition=='diagnostic':m=original.evaluation_copy(diagnostic=True)
++    elif a.mode=='periodic':m=original.snapshot_copy()
++    else:m=original.frozen_copy()
++    data=np.fromfile(a.data,np.uint8)[:17409]
++    m.run(data[:1024],data[1:1025],mode=a.mode,lr=.008,lp=.008/3,route=.002)
++    begin=time.perf_counter()
++    nll=m.run(data[1024:-1],data[1025:],mode=a.mode,lr=.008,lp=.008/3,route=.002)
++    seconds=time.perf_counter()-begin
++    print(json.dumps(dict(condition=a.condition,mode=a.mode,targets=16384,seconds=seconds,bytes_per_second=16384/seconds,nll=nll)))
++    m.close();original.close()
++
++
++def main():
++    p=argparse.ArgumentParser(description=__doc__)
++    p.add_argument('--baseline-runtime',type=Path)
++    p.add_argument('--checkpoint',type=Path,default=ROOT/'results/relay_full_relays_seed1/last.npz')
++    p.add_argument('--data',type=Path,default=ROOT/'data/train_segment.txt')
++    p.add_argument('--core',type=int,default=min(os.sched_getaffinity(0)))
++    p.add_argument('--worker',action='store_true')
++    p.add_argument('--runtime',type=Path)
++    p.add_argument('--condition',choices=['before','after','diagnostic'])
++    p.add_argument('--mode',choices=['eval','periodic'])
++    a=p.parse_args()
++    if a.worker:return worker(a)
++    if a.baseline_runtime is None:p.error('--baseline-runtime must point to the unchanged f9eeb8a runtime')
++    conditions=[('before','periodic'),('after','periodic'),('before','eval'),('after','eval'),('diagnostic','eval')]
++    rows=[]
++    for trial in range(6):
++        for condition,mode in conditions if trial%2==0 else reversed(conditions):
++            runtime=a.baseline_runtime if condition=='before' else ROOT/'runtime'
++            command=[sys.executable,str(Path(__file__).resolve()),'--worker','--runtime',str(runtime.resolve()),
++                     '--checkpoint',str(a.checkpoint.resolve()),'--data',str(a.data.resolve()),
++                     '--condition',condition,'--mode',mode,'--core',str(a.core)]
++            result=subprocess.run(command,check=True,text=True,capture_output=True)
++            row=json.loads(result.stdout);row['trial']=trial;rows.append(row)
++            print(condition,mode,trial,round(row['bytes_per_second']),flush=True)
++    medians={f'{condition}_{mode}':statistics.median(r['bytes_per_second'] for r in rows if r['condition']==condition and r['mode']==mode)
++             for condition,mode in conditions}
++    for mode in ('periodic','eval'):
++        losses=[r['nll'] for r in rows if r['mode']==mode]
++        assert max(losses)==min(losses),'Production/disabled-diagnostic numerical drift'
++    result=dict(core=a.core,trials=rows,median_bytes_per_second=medians,
++                production_training_ratio=medians['after_periodic']/medians['before_periodic'],
++                production_evaluation_ratio=medians['after_eval']/medians['before_eval'],
++                diagnostic_evaluation_ratio=medians['diagnostic_eval']/medians['after_eval'],
++                includes='end-to-end execution; training also includes dictionaries, memory, and neural updates',
++                excludes='compilation, load/copy, warmup, checkpoint I/O')
++    (ROOT/'results/contribution_throughput.json').write_text(json.dumps(result,indent=2)+'\n')
++
++
++if __name__=='__main__':main()
+diff --git a/experiments/identity_semantics/src/report_contributions.py b/experiments/identity_semantics/src/report_contributions.py
+new file mode 100644
+index 0000000..a4e868c
+--- /dev/null
++++ b/experiments/identity_semantics/src/report_contributions.py
+@@ -0,0 +1,161 @@
++"""Render the contribution contract, complete regional comparison and evidence."""
++import csv
++import json
++from pathlib import Path
++import statistics
++from report_relays import render_pdf
++
++ROOT=Path(__file__).resolve().parents[1]
++NAMES=('A1','B1','L2','S2','R2','F2','L3','S3','R3','F3','E4','F4','V4','M4','G5','EC-C','EC-X','Y')
++
++
++def number(value):
++    if value==0:return '0'
++    return f'{value:+.5f}' if abs(value)>=.0001 else f'{value:+.2e}'
++
++
++def main():
++    checks=json.loads((ROOT/'results/contribution_checks.json').read_text())
++    credit=json.loads((ROOT/'results/contribution_credit.json').read_text())
++    speed=json.loads((ROOT/'results/contribution_throughput.json').read_text())
++    verification=json.loads((ROOT/'results/contribution_verification.json').read_text())
++    base={(r['seed'],r['memory']):r for r in checks['baselines']}
++    rows={(r['seed'],r['kind'],r['name']):r for r in checks['interventions'] if r['memory']=='cold_adaptive'}
++    mean=lambda kind,name:statistics.mean(rows[s,kind,name]['delta_nll'] for s in (1,2))
++    table='\n'.join('| '+name+' | '+' | '.join(number(mean(k,name)) for k in ('neural_output','expert_transform','content_descriptor','retained_input'))+' |' for name in NAMES)
++    memories='\n'.join(f"| {policy} | {base[1,policy]['nll']:.6f} | {base[2,policy]['nll']:.6f} | {statistics.mean(base[s,policy]['nll'] for s in (1,2)):.6f} |" for policy in ('cold_adaptive','cold_frozen','warm_frozen','warm_adaptive'))
++    teaching=[]
++    for name in ('L2','L3','E4','F4','V4','G5'):
++        r=next(r for r in credit['regions'] if r['seed']==1 and r['region']==name)
++        t=r['teaching'];c=r['lace']
++        teaching.append(f"| {name} | {r['neural_executions']:,} | {t['neural_targets']+t['relay_targets']:,} | {int(c['credit_edges']):,} | {int(c['missing_parent']):,} |")
++    spans=[]
++    for name in ('L2','L3','E4','F4','G5','Y'):
++        events=[base[s,'cold_adaptive']['trace'][name] for s in (1,2)]
++        avg=sum(e['span_sum'] for e in events)/sum(e['publications'] for e in events)
++        spans.append(f"| {name} | {avg:.2f} | {max(e['max_span'] for e in events)} |")
++    med=speed['median_bytes_per_second']
++    perf='\n'.join(f"| {label} | {med[before]:,.0f} | {med[after]:,.0f} | {100*(med[after]/med[before]-1):+.1f}% |" for label,before,after in (
++        ('Production training','before_periodic','after_periodic'),
++        ('Production evaluation','before_eval','after_eval'),
++        ('Diagnostic evaluation vs production','after_eval','diagnostic_eval')))
++    assert all(b['production_parity'] for b in checks['baselines'])
++    assert all(r['event_stream_preserved'] for r in checks['interventions'] if r['kind']!='whole_source')
++    assert all(r['fitted_state_unchanged'] and r['source_state_unchanged'] for r in checks['interventions'])
++    out=ROOT/'deliverables';out.mkdir(exist_ok=True)
++    with (out/'SHoEbox_Contribution_Checks.csv').open('w',newline='') as f:
++        fields=['seed','memory','kind','name','baseline_nll','nll','delta_nll','targets','event_stream_preserved','intervention_applications']
++        writer=csv.DictWriter(f,fieldnames=fields,lineterminator='\n');writer.writeheader()
++        writer.writerows({k:r[k] for k in fields} for r in checks['interventions'])
++    text=f'''# SHoEbox: regional contribution checks
++
++13 November 2026 | Fourth step of the composition repair | 1,031,936 parameters
++
++## Result
++
++Contribution checks now distinguish local learned computation from content transport, relay context and retained inputs. They are supported per-model evaluation controls, replacing the need for global selectors or source-text substitutions. Production remains the relays kernel, with unchanged learning behavior and version-31 / ABI-5 checkpoints.
++
++The two existing million-byte-trained models reproduce their published reserved-test losses: **{base[1,'cold_adaptive']['nll']:.6f}** and **{base[2,'cold_adaptive']['nll']:.6f}**. We completed **{len(checks['interventions'])} interventions**, each over all **78,771 test targets**, plus eight baseline comparisons against production. Neural parameters, semantic weights, dictionaries and source checkpoints remain unchanged.
++
++The learned expert transforms in **L3** and **F4** contribute measurably: removing them increases mean NLL by **{mean('expert_transform','L3'):.6f}** and **{mean('expert_transform','F4'):.6f}** nats/byte. E4, V4 and G5 remain weak on this test despite substantial realized teaching and credit. This completes the measurement repair; it identifies where prediction still makes little use of the upper regions.
++
++## What each intervention measures
++
++| Control | Contract |
++| --- | --- |
++| Neural output | Zero only neural publications, after the producer's private memory update. Preserve singleton relays and content. This includes the input skip and EC recall in the removed output. |
++| Expert transform | Remove only the learned matrix/bias term. Keep input skip, recall, routing and relay handling. |
++| Content descriptor | Zero outgoing descriptor/code, including relays. Preserve exact IDs, recognition, timing, context and provenance. Parent ID anchors still carry identity information. |
++| Relay context | Zero context only on singleton relay publications at the receiving region. Preserve code, descriptor and intrinsic structure. |
++| Retained input | Suppress previous-input carry; retain the current input coefficient. Bottom learned-memory reads are separate. |
++| Semantic residual | Remove the local learned residual when a symbol is encoded; retain the structural descriptor and inherited relay codes. |
++| Whole source | Remove source inputs and direct A1/Y decoder features. This intentionally conflates transport with computation and can change event activity. |
++
++Positive delta NLL means the intervention damaged prediction. Effects are conditional and non-additive. The current task measures use of the learned paths on held-out text; it is not a retraining comparison or a claim that every upper region now has a useful abstraction.
++
++<!-- pagebreak -->
++
++## Complete regional comparison
++
++Mean delta NLL across seeds 1 and 2, under cold memory with causal admission. Neural and expert columns retain constituent descriptors and relay context. Very small effects are shown explicitly rather than ranked as improvements.
++
++| Region | Neural output | Expert transform | Descriptor | Retained input |
++| --- | ---: | ---: | ---: | ---: |
++{table}
++
++The distinction changes interpretation. For L3, whole-source removal changes mean NLL by **{mean('whole_source','L3'):+.6f}**, compared with **{mean('neural_output','L3'):+.6f}** for its neural publication alone. Whole-source removal includes the fixed content transported through L3.
++
++Descriptor effects at G5, EC-X and Y are zero because their outgoing descriptors have no immediate constituent consumers in this graph; their neural context is a different path. These zeros do not diagnose the usefulness of their local input codes. Parent descriptors deliberately use child structural descriptors, not child learned residuals.
++
++The learned local symbol residual is most consequential at Y: removing it changes mean NLL by **{mean('semantic_residual','Y'):+.6f}**. At L3 it changes NLL by **{mean('semantic_residual','L3'):+.6f}**, and at F4 by **{mean('semantic_residual','F4'):+.6f}**. The CSV and JSON include every semantic-residual and whole-source result.
++
++L2 is the only region publishing ordinary singleton relays in this test. Muting only that relay context changes mean NLL by **{mean('relay_context','L2'):+.6f}**. The other 34 seed/region relay cases are explicitly marked inactive, not reported as measured zero effects.
++
++<!-- pagebreak -->
++
++## Teaching, credit and event scale
++
++Saved seed-1 training counters, read without additional training. Both seeds account for every forecast with zero expired producers or duplicate schedules. EC-C/EC-X use their memory-port teaching path and intentionally do not schedule this local relay teacher.
++
++| Region | Neural executions | Local targets | Credit edges | Missing parents |
++| --- | ---: | ---: | ---: | ---: |
++{chr(10).join(teaching)}
++
++Credit counts establish delivery, not benefit. E4/V4/G5 are no longer explained by the earlier canceled forecasts or near-total relay execution. Their weak expert-transform effects point to low task use of these learned responses. The next useful architectural investigation is how their learned messages reach prediction and what target makes them distinct from the stronger lower paths.
++
++Completed publication spans in the reserved test, pooled over both seeds:
++
++| Region | Mean span, bytes | Largest span, bytes |
++| --- | ---: | ---: |
++{chr(10).join(spans)}
++
++These are explicit event spans, not bounds on recurrent memory or measures of conceptual abstraction. Fixed recipe names and nominal cadences alone cannot establish the realized event scale.
++
++## Explicit memory evaluation
++
++| Memory policy | Seed 1 NLL | Seed 2 NLL | Mean NLL |
++| --- | ---: | ---: | ---: |
++{memories}
++
++Cold starts with an empty associative store; warm retains the checkpoint store, its coordinate centers and timestamp clock. Frozen blocks store writes; adaptive admits causal associations from the observed test prefix. Every mode starts fresh recurrent/event state and freezes neural parameters and dictionaries. Query normalization still evolves during inference. The historical frozen_copy behavior remains cold_adaptive. EC-C/Y neural interventions are also evaluated under every alternative memory policy in the JSON/CSV.
++
++<!-- pagebreak -->
++
++## Verification and performance
++
++All **{verification['package_tests']} package tests** pass, including {verification['contribution_tests']} contribution tests. Across the repository and final package checks, **{verification['repository_unit_tests']} unit tests** pass, plus 12/64-expert packaging checks. ASan/UBSan pass for both the ordinary relay runtime and every diagnostic intervention/region. Tests cover independent selectors, invalid modes, unsavable diagnostic models, channel isolation, exact chunking, source preservation, explicit memory lifecycles, document draining and complete disabled-control parity.
++
++The diagnostic hashes every publication's identity, span, source roles, occurrence, intrinsic structure, recognition and producer provenance. Every non-whole-source intervention preserves that full trace and execution counts in all measured runs. Frozen store fingerprints are unchanged; fitted neural, semantic and dictionary states are unchanged for every intervention.
++
++Six alternating same-core trials per condition, after other workers finished. Each uses 1,024 warmup and 16,384 timed targets. Comparison source is the unchanged preceding commit f9eeb8a. Compilation, loading, snapshots and checkpoint I/O are excluded.
++
++| Execution | Before, bytes/s | After, bytes/s | Change |
++| --- | ---: | ---: | ---: |
++{perf}
++
++All timed production losses and disabled-diagnostic losses match exactly within their respective training/evaluation modes. Diagnostic tracing adds evaluation work; production compiles out its controls and counters. No neural parameters or serialized recurrent-state fields were added.
++
++## Reproduce
++
++Use the two relay-repair checkpoints, or regenerate them with the preceding study. The corpus split and checkpoint SHA-256 values are recorded in results/contribution_checks.json. No test models or intermediate run snapshots accompany this publication.
++
++```bash
++python -m unittest discover -s tests -v
++python tests/run_contribution_sanitizer.py
++python tests/run_relays_sanitizer.py
++python src/run_contribution_checks.py --workers 6
++python src/contribution_credit_audit.py
++python src/contribution_performance.py \\
++  --baseline-runtime /path/to/f9eeb8a/runtime
++python src/report_contributions.py
++```
++
++Source base: https://github.com/JRowe47/SHoEbox/commit/{checks['base_commit']}
++'''
++    md=out/'SHoEbox_Contribution_Checks_Report.md';md.write_text(text)
++    render_pdf(md,md.with_suffix('.pdf'),title='SHoEbox: regional contribution checks',
++               header='SHoEbox / Regional contribution checks / 1M model')
++    print(json.dumps(dict(interventions=len(checks['interventions']),L3_expert_delta=mean('expert_transform','L3'),F4_expert_delta=mean('expert_transform','F4'))))
++
++
++if __name__=='__main__':main()
+diff --git a/experiments/identity_semantics/src/report_relays.py b/experiments/identity_semantics/src/report_relays.py
+index 3a6409a..1529553 100644
+--- a/experiments/identity_semantics/src/report_relays.py
++++ b/experiments/identity_semantics/src/report_relays.py
+@@ -5,7 +5,7 @@ from pathlib import Path
+ ROOT=Path(__file__).resolve().parents[1]
+ OUT=ROOT/'deliverables'
+ 
+-def render_pdf(md,pdf):
++def render_pdf(md,pdf,*,title='SHoEbox: teaching and recognition through relays',header='SHoEbox / Relay teaching and recognition / 1M model'):
+  from reportlab.platypus import SimpleDocTemplate,Paragraph,Spacer,Table,TableStyle,PageBreak,KeepTogether
+  from reportlab.lib import colors
+  from reportlab.lib.styles import getSampleStyleSheet,ParagraphStyle
+@@ -49,11 +49,11 @@ def render_pdf(md,pdf):
+   story.append(Paragraph(markup(line),styles['BodyR']))
+  def page(canvas,doc):
+   canvas.saveState();canvas.setFont('Sans',7.3);canvas.setFillColor(colors.HexColor('#536b7c'))
+-  canvas.drawString(52,815,'SHoEbox / Relay teaching and recognition / 1M model')
++  canvas.drawString(52,815,header)
+   canvas.drawString(52,26,'13 November 2026 | Tested source and measured results')
+   canvas.drawRightString(544,26,str(doc.page));canvas.restoreState()
+  SimpleDocTemplate(str(pdf),pagesize=(596,842),leftMargin=52,rightMargin=52,topMargin=48,bottomMargin=48,
+-                   title='SHoEbox: teaching and recognition through relays').build(story,onFirstPage=page,onLaterPages=page)
++                   title=title).build(story,onFirstPage=page,onLaterPages=page)
+ 
+ def main():
+  runs={(k,s):json.loads((ROOT/f'results/relay_full_{k}_seed{s}/training.json').read_text()) for k in ('semantics','relays') for s in (1,2)}
+diff --git a/experiments/identity_semantics/src/run_contribution_checks.py b/experiments/identity_semantics/src/run_contribution_checks.py
+new file mode 100644
+index 0000000..cd4b559
+--- /dev/null
++++ b/experiments/identity_semantics/src/run_contribution_checks.py
+@@ -0,0 +1,148 @@
++"""Separated regional interventions on fixed checkpoints and a reserved split."""
++import argparse
++from concurrent.futures import ProcessPoolExecutor, as_completed
++import hashlib
++import json
++import multiprocessing
++import os
++from pathlib import Path
++import sys
++import time
++
++os.environ.update(OPENBLAS_NUM_THREADS='1',OMP_NUM_THREADS='1')
++ROOT=Path(__file__).resolve().parents[1]
++sys.path.insert(0,str(ROOT/'runtime'))
++import numpy as np
++from runtime import Model,core
++
++BASE_COMMIT='f9eeb8a2c2fe6eb31a4e36954f2705904a893ecf'
++KINDS=('neural_output','content_descriptor','relay_context','retained_input',
++       'semantic_residual','whole_source','expert_transform')
++MEMORY=('cold_adaptive','cold_frozen','warm_frozen','warm_adaptive')
++TRACE_KEYS=('event_hash','publications','neural_executions','span_sum','max_span')
++
++
++def sha(path):return hashlib.sha256(Path(path).read_bytes()).hexdigest()
++
++
++def write(path,value):
++    path=Path(path);path.parent.mkdir(parents=True,exist_ok=True)
++    temporary=path.with_suffix('.tmp')
++    temporary.write_text(json.dumps(value,indent=2)+'\n');temporary.replace(path)
++
++
++def score(m,data):
++    blocks=[];start=time.perf_counter()
++    for i in range(0,len(data)-1,4096):
++        n=min(4096,len(data)-1-i)
++        nll=m.run(data[i:i+n],data[i+1:i+n+1])
++        if not np.isfinite(nll):raise RuntimeError('Nonfinite intervention loss')
++        blocks.append(dict(start=i,targets=n,nll=nll))
++    return sum(b['targets']*b['nll'] for b in blocks)/(len(data)-1),blocks,time.perf_counter()-start
++
++
++def measure(job):
++    os.sched_setaffinity(0,{job['core']})
++    data=np.fromfile(job['heldout'],np.uint8)[32768:]
++    original=Model.load(job['checkpoint']);source=original.fingerprint()
++    m=original.evaluation_copy(memory=job['memory'],diagnostic=True)
++    m.configure_contribution(job['kind'],job['region'])
++    fitted=m.composition_state(fitted=True).copy();flat=m.flat.copy();extra=m.extra_flat.copy()
++    before=m.evaluation_memory_info()
++    nll,blocks,seconds=score(m,data)
++    after=m.evaluation_memory_info()
++    assert np.array_equal(fitted,m.composition_state(fitted=True)), 'Fitted dictionary/semantic mutation'
++    assert np.array_equal(flat,m.flat) and np.array_equal(extra,m.extra_flat), 'Neural parameter mutation'
++    assert original.fingerprint()==source, 'Source checkpoint state mutated'
++    if job['memory'].endswith('frozen'):assert before['store_digest']==after['store_digest']
++    row={k:job[k] for k in ('seed','kind','region','memory')}
++    row.update(nll=nll,targets=len(data)-1,blocks=blocks,seconds=seconds,
++               trace=m.contribution_metrics(),memory_before=before,memory_after=after,
++               persistent=m.persistent_metrics(),composition=m.composition_metrics(),
++               fitted_state_unchanged=True,source_state_unchanged=True)
++    if job['kind']=='none':
++        production=original.evaluation_copy(memory=job['memory'])
++        standard,_,_=score(production,data)
++        assert nll==standard, (nll,standard)
++        assert production.fingerprint()==m.fingerprint(), 'Disabled control state mismatch'
++        row['production_nll']=standard;row['production_parity']=True
++        production.close()
++    m.close();original.close()
++    return row
++
++
++def execute(jobs,workers,work):
++    rows=[]
++    with ProcessPoolExecutor(max_workers=workers,mp_context=multiprocessing.get_context('spawn')) as pool:
++        futures={pool.submit(measure,job):job for job in jobs}
++        for future in as_completed(futures):
++            row=future.result();rows.append(row)
++            name=f"s{row['seed']}_{row['memory']}_{row['kind']}_{row['region']}"
++            write(work/(name+'.json'),row)
++            print(f"{len(rows)}/{len(jobs)} {name} NLL={row['nll']:.9f} {row['seconds']:.1f}s",flush=True)
++    return rows
++
++
++def main():
++    p=argparse.ArgumentParser(description=__doc__)
++    p.add_argument('--checkpoints',type=Path,nargs='+',default=[ROOT/f'results/relay_full_relays_seed{s}/last.npz' for s in (1,2)])
++    p.add_argument('--heldout',type=Path,default=ROOT/'data/heldout.bin')
++    p.add_argument('--workers',type=int,default=6)
++    p.add_argument('--output',type=Path,default=ROOT/'results/contribution_checks.json')
++    p.add_argument('--work',type=Path,default=ROOT/'results/contribution_tmp')
++    a=p.parse_args();cpus=sorted(os.sched_getaffinity(0))
++    if a.workers<1:p.error('--workers must be positive')
++    workers=min(a.workers,len(cpus));manifest=json.loads((ROOT/'DATA_MANIFEST.json').read_text())
++    assert sha(a.heldout)==manifest['heldout_sha256'],'Wrong heldout split'
++    sources=[];baseline_jobs=[]
++    for seed,path in enumerate(a.checkpoints,1):
++        path=path.resolve();sources.append(dict(seed=seed,checkpoint_sha256=sha(path)))
++        for memory in MEMORY:
++            baseline_jobs.append(dict(seed=seed,checkpoint=str(path),heldout=str(a.heldout.resolve()),
++                                      memory=memory,kind='none',region=None,core=cpus[len(baseline_jobs)%workers]))
++    baselines=execute(baseline_jobs,workers,a.work)
++    lookup={(r['seed'],r['memory']):r for r in baselines}
++    for seed,path in enumerate(a.checkpoints,1):
++        record=path.with_name('training.json')
++        if record.exists():
++            trained=json.loads(record.read_text())
++            expected=trained['test_nll']
++            assert abs(lookup[seed,'cold_adaptive']['nll']-expected)<2e-12
++            sources[seed-1].update(expected_test_nll=expected,training_targets=trained['tokens'],parameters=trained['parameters'])
++    jobs=[];skipped=[]
++    for seed,path in enumerate(a.checkpoints,1):
++        base=lookup[seed,'cold_adaptive']
++        for kind in KINDS:
++            for region,name in enumerate(core.NAMES):
++                if kind=='semantic_residual' and region<2:continue
++                if kind=='relay_context' and base['composition'][name]['singleton_relays']==0:
++                    skipped.append(dict(seed=seed,kind=kind,region=region,reason='No relay publications in this stream'));continue
++                jobs.append(dict(seed=seed,checkpoint=str(path.resolve()),heldout=str(a.heldout.resolve()),
++                                 memory='cold_adaptive',kind=kind,region=region,core=cpus[len(jobs)%workers]))
++        # Memory-sensitive output paths under each alternative memory contract.
++        for memory in MEMORY[1:]:
++            for region in (15,17):
++                jobs.append(dict(seed=seed,checkpoint=str(path.resolve()),heldout=str(a.heldout.resolve()),
++                                 memory=memory,kind='neural_output',region=region,core=cpus[len(jobs)%workers]))
++    measured=execute(jobs,workers,a.work)
++    compact=[]
++    for row in sorted(measured,key=lambda r:(r['seed'],r['memory'],r['kind'],r['region'])):
++        base=lookup[row['seed'],row['memory']]
++        changed=[name for name in core.NAMES if any(row['trace'][name][key]!=base['trace'][name][key] for key in TRACE_KEYS)]
++        if row['kind']!='whole_source':assert not changed, (row['kind'],changed)
++        r=row['region'];name=core.NAMES[r]
++        compact.append({k:row[k] for k in ('seed','memory','kind','region','nll','targets','seconds','fitted_state_unchanged','source_state_unchanged','memory_before','memory_after')}|
++                       dict(name=name,baseline_nll=base['nll'],delta_nll=row['nll']-base['nll'],
++                            event_stream_preserved=not changed,changed_event_regions=changed,
++                            intervention_applications=row['trace'][name]['intervention_applications'],
++                            block_delta_nll=[b['nll']-c['nll'] for b,c in zip(row['blocks'],base['blocks'])]))
++    for source,path in zip(sources,a.checkpoints):assert sha(path)==source['checkpoint_sha256']
++    result=dict(base_commit=BASE_COMMIT,parameters=1031936,heldout_sha256=sha(a.heldout),
++                validation_offset=32768,test_targets=78771,sources=sources,
++                protocol='Frozen neural/semantic parameters and dictionaries; fresh stream; one intervention per copy; no retraining',
++                baselines=sorted(baselines,key=lambda r:(r['seed'],r['memory'])),interventions=compact,skipped=skipped)
++    write(a.output,result)
++    print(f"Completed {len(compact)} interventions and {len(baselines)} baseline parity checks: {a.output}",flush=True)
++
++
++if __name__=='__main__':main()
+diff --git a/experiments/identity_semantics/tests/contribution_fixture.cpp b/experiments/identity_semantics/tests/contribution_fixture.cpp
+new file mode 100644
+index 0000000..6d0d1e8
+--- /dev/null
++++ b/experiments/identity_semantics/tests/contribution_fixture.cpp
+@@ -0,0 +1,28 @@
++#include "../runtime/hierarchy_lab/throughput_probe/contributions.cpp"
++extern "C" {
++void check_fixture_zero_expert(void*p,int r){
++  auto&m=*static_cast<Model*>(p);
++  memset(m.W+r*E*D*D,0,E*D*D*sizeof(float));memset(m.bias+r*E*D,0,E*D*sizeof(float));
++}
++void check_fixture_memory(void*p,int r,float value){
++  auto&m=*static_cast<Model*>(p);for(float&x:m.s.mem[r])x=value;
++}
++void check_fixture_vectors(void*p,int r,float*out){
++  auto&m=*static_cast<Model*>(p);auto&e=m.composition.stream.history[r][0];
++  memcpy(out,m.s.mem[r],D*sizeof(float));memcpy(out+D,m.s.h[r],D*sizeof(float));
++  memcpy(out+2*D,e.structure,D*sizeof(float));memcpy(out+3*D,e.context,D*sizeof(float));
++  memcpy(out+4*D,m.learned.memory[r<2?r:0],D*sizeof(float));
++}
++void check_fixture_relay(void*p,int source,int receiver){
++  auto&m=*static_cast<Model*>(p);auto child=m.composition.stream.history[source][0];
++  auto event=content_compose(m,receiver,&child,1,1,false);
++  content_passthrough(m,receiver,event,child);
++}
++void check_fixture_symbol(void*p,int r){
++  auto&m=*static_cast<Model*>(p);for(auto&row:m.composition.symbols[r-2])for(float&v:row)v=.25f;
++}
++void check_fixture_atom(void*p,int r,int byte){
++  auto&m=*static_cast<Model*>(p);m.s.tick=1;m.composition.stream.byte_position=1;
++  for(float&v:m.s.h[r])v=.75f;content_atom(m,r,byte);
++}
++}
+diff --git a/experiments/identity_semantics/tests/run_contribution_sanitizer.py b/experiments/identity_semantics/tests/run_contribution_sanitizer.py
+new file mode 100644
+index 0000000..1f1a460
+--- /dev/null
++++ b/experiments/identity_semantics/tests/run_contribution_sanitizer.py
+@@ -0,0 +1,22 @@
++"""Exercise every diagnostic selector and the memory transfer under sanitizers."""
++from pathlib import Path
++import os
++import struct
++import subprocess
++import sys
++
++ROOT=Path(__file__).resolve().parents[1]
++sys.path.insert(0,str(ROOT/'runtime'))
++from runtime import core
++
++(ROOT/'results').mkdir(exist_ok=True)
++p,f=core.initialize(41)
++arrays=[core.flat_parameters(p)]+[f[k] for k in ['embedding','feedback','slots','starts','perm','signs','fperm','fsign','cadence']]
++fixture=ROOT/'results/fixture.bin'
++with fixture.open('wb') as output:
++    for a in arrays:output.write(struct.pack('<q',a.size));output.write(a.tobytes())
++binary=ROOT/'results/sanitize_contributions'
++subprocess.run(['g++','-O1','-g','-march=native','-std=c++17',f'-DSHOEBOX_EXPERTS={core.E}',
++                '-fsanitize=address,undefined','-fno-omit-frame-pointer',
++                str(ROOT/'tests/sanitize_contributions.cpp'),'-o',str(binary)],check=True)
++subprocess.run([str(binary),str(fixture)],env={**os.environ,'ASAN_OPTIONS':'detect_leaks=0'},check=True)
+diff --git a/experiments/identity_semantics/tests/sanitize_contributions.cpp b/experiments/identity_semantics/tests/sanitize_contributions.cpp
+new file mode 100644
+index 0000000..b18e445
+--- /dev/null
++++ b/experiments/identity_semantics/tests/sanitize_contributions.cpp
+@@ -0,0 +1,32 @@
++#include <vector>
++#include <fstream>
++#include <iostream>
++#include <cassert>
++#include "../runtime/hierarchy_lab/throughput_probe/contributions.cpp"
++template<class T> std::vector<T> read_array(std::ifstream&f){
++  int64_t size;f.read(reinterpret_cast<char*>(&size),8);assert(size>=0&&size<10000000);
++  std::vector<T> v(size);f.read(reinterpret_cast<char*>(v.data()),size*sizeof(T));assert(f.good());return v;
++}
++int main(int argc,char**argv){
++  assert(argc==2);std::ifstream f(argv[1],std::ios::binary);assert(f.good());
++  auto parameters=read_array<float>(f),embedding=read_array<float>(f),feedback=read_array<float>(f),slots=read_array<float>(f);
++  auto starts=read_array<int>(f),perm=read_array<int>(f);auto signs=read_array<float>(f);auto fperm=read_array<int>(f);auto fsign=read_array<float>(f);auto cadence=read_array<int>(f);
++  auto make=[&](){return create(parameters.data(),embedding.data(),feedback.data(),slots.data(),starts.data(),perm.data(),signs.data(),fperm.data(),fsign.data(),cadence.data(),1);};
++  void*source=make();std::vector<unsigned char>x(96),y(96);for(int i=0;i<96;i++)x[i]=y[i]=i;
++  float out=0;assert(std::isfinite(run(source,x.data(),y.data(),x.size(),0,0,0,0,0,&out)));
++  for(int kind=CHECK_NONE;kind<=CHECK_EXPERT;kind++)for(int r=0;r<N;r++){
++    if(kind==CHECK_SEMANTIC&&r<2)continue;
++    void*p=make();evaluation_copy_memory(p,source);freeze_writes(p,1);
++    assert(contribution_configure(p,kind,kind==CHECK_NONE?-1:r));
++    uint64_t before[5],after[5];evaluation_memory_info(p,before);
++    assert(std::isnan(run(p,x.data(),y.data(),x.size(),6,.01,.003,.002,0,&out)));
++    assert(std::isfinite(run(p,x.data(),y.data(),x.size(),0,0,0,0,0,&out)));
++    assert(!composition_finish(p,6,.01,.003,.002));
++    assert(composition_finish(p,0,0,0,0));
++    evaluation_memory_info(p,after);assert(before[2]==after[2]);
++    uint64_t counts[N][5],hashes[N];contribution_metrics(p,&counts[0][0],hashes);
++    assert(counts[0][1]==x.size());assert(!contribution_configure(p,1,0));
++    destroy(p);
++  }
++  destroy(source);std::cout<<"ASan/UBSan passed: every intervention/region, warm frozen memory, evaluation guards\n";
++}
+diff --git a/experiments/identity_semantics/tests/test_contributions.py b/experiments/identity_semantics/tests/test_contributions.py
+new file mode 100644
+index 0000000..de9c548
+--- /dev/null
++++ b/experiments/identity_semantics/tests/test_contributions.py
+@@ -0,0 +1,182 @@
++"""Causal channel isolation, production parity, and explicit memory policies."""
++import ctypes as ct
++from pathlib import Path
++import subprocess
++import sys
++import tempfile
++import unittest
++import numpy as np
++
++ROOT=Path(__file__).resolve().parents[1]
++sys.path.insert(0,str(ROOT/'runtime'))
++from runtime import fresh_model,core
++
++
++class ContributionTests(unittest.TestCase):
++    @classmethod
++    def setUpClass(cls):
++        (ROOT/'results').mkdir(exist_ok=True)
++        path=ROOT/'results/contribution_fixture.so'
++        subprocess.run(['g++','-O2','-march=native','-std=c++17','-shared','-fPIC',
++                        str(ROOT/'tests/contribution_fixture.cpp'),'-o',str(path)],check=True)
++        cls.fx=ct.CDLL(str(path))
++        for name,args in {
++            'check_fixture_memory':[ct.c_void_p,ct.c_int,ct.c_float],
++            'check_fixture_vectors':[ct.c_void_p,ct.c_int,ct.c_void_p],
++            'check_fixture_relay':[ct.c_void_p,ct.c_int,ct.c_int],
++            'check_fixture_atom':[ct.c_void_p,ct.c_int,ct.c_int],
++            'check_fixture_symbol':[ct.c_void_p,ct.c_int],
++            'check_fixture_zero_expert':[ct.c_void_p,ct.c_int],
++        }.items():getattr(cls.fx,name).argtypes=args
++        cls.original=fresh_model(kernel='relays')
++        cls.text=np.frombuffer(b'To be, or not to be: that is the question. '*16,np.uint8).copy()
++        cls.original.run(cls.text,mode='periodic',lr=.04,lp=.013,route=.002)
++
++    @classmethod
++    def tearDownClass(cls):cls.original.close()
++
++    def make(self,kind='none',region=None,memory='cold_adaptive',diagnostic=True):
++        m=self.original.evaluation_copy(memory=memory,diagnostic=diagnostic)
++        self.addCleanup(m.close)
++        if diagnostic:m.configure_contribution(kind,region)
++        return m
++
++    def vectors(self,m,r):
++        a=np.zeros((5,64),np.float32);self.fx.check_fixture_vectors(m.handle,r,a.ctypes.data);return a
++
++    def test_01_disabled_checks_match_production_exactly(self):
++        source=self.original.fingerprint()
++        for memory in ('cold_adaptive','cold_frozen','warm_frozen','warm_adaptive'):
++            a=self.make(memory=memory,diagnostic=False);b=self.make(memory=memory)
++            la,za=a.run(self.text,logits=True);lb,zb=b.run(self.text,logits=True)
++            self.assertEqual(la,lb);np.testing.assert_array_equal(za,zb)
++            self.assertEqual(a.fingerprint(),b.fingerprint())
++            self.assertEqual(a.evaluation_memory_info(),b.evaluation_memory_info())
++        self.assertEqual(source,self.original.fingerprint())
++
++    def test_02_channel_checks_preserve_entire_event_stream(self):
++        base=self.make();base.run(self.text);events=base.contribution_metrics()
++        for kind,r in [('neural_output',6),('content_descriptor',6),('relay_context',2),
++                       ('retained_input',10),('semantic_residual',6),('expert_transform',6)]:
++            with self.subTest(kind=kind):
++                m=self.make(kind,r);before=m.composition_state(fitted=True).copy()
++                flat=m.flat.copy();extra=m.extra_flat.copy();m.run(self.text)
++                for name,row in m.contribution_metrics().items():
++                    for key in ('event_hash','publications','neural_executions','span_sum','max_span'):
++                        self.assertEqual(row[key],events[name][key],(kind,name,key))
++                self.assertGreater(m.contribution_metrics()[core.NAMES[r]]['intervention_applications'],0)
++                np.testing.assert_array_equal(before,m.composition_state(fitted=True))
++                np.testing.assert_array_equal(flat,m.flat);np.testing.assert_array_equal(extra,m.extra_flat)
++
++    def test_03_neural_mute_preserves_inherited_relay_context(self):
++        a=self.make();b=self.make('neural_output',2)
++        for m in (a,b):
++            self.fx.check_fixture_atom(m.handle,0,65)
++            self.fx.check_fixture_relay(m.handle,0,2)
++        np.testing.assert_array_equal(self.vectors(a,2),self.vectors(b,2))
++        self.assertEqual(b.contribution_metrics()['L2']['intervention_applications'],0)
++
++    def test_04_relay_mute_preserves_code_recognition_origin_and_memory(self):
++        a=self.make();b=self.make('relay_context',2)
++        for m in (a,b):
++            self.fx.check_fixture_memory(m.handle,2,.375)
++            self.fx.check_fixture_atom(m.handle,0,65)
++            self.fx.check_fixture_relay(m.handle,0,2)
++        va,vb=self.vectors(a,2),self.vectors(b,2)
++        for i in (0,2,4):np.testing.assert_array_equal(va[i],vb[i])
++        self.assertGreater(np.linalg.norm(va[3]),0);self.assertEqual(np.linalg.norm(vb[3]),0)
++        np.testing.assert_array_equal(a.content_events()['L2']['code'],b.content_events()['L2']['code'])
++        self.assertEqual(a.relay_event_status()['L2'],b.relay_event_status()['L2'])
++        self.assertEqual(a.contribution_metrics()['L2']['event_hash'],b.contribution_metrics()['L2']['event_hash'])
++
++    def test_05_descriptor_mute_leaves_context_and_metadata(self):
++        a=self.make();b=self.make('content_descriptor',0)
++        for m in (a,b):self.fx.check_fixture_atom(m.handle,0,65)
++        va,vb=self.vectors(a,0),self.vectors(b,0)
++        np.testing.assert_array_equal(va[3],vb[3]);self.assertGreater(np.linalg.norm(va[2]),0)
++        self.assertEqual(np.linalg.norm(vb[2]),0);self.assertEqual(np.linalg.norm(b.content_events()['A1']['code']),0)
++        self.assertEqual(a.contribution_metrics()['A1']['event_hash'],b.contribution_metrics()['A1']['event_hash'])
++
++    def test_06_retained_filter_preserves_incoming_scale(self):
++        a=self.make();b=self.make('retained_input',0)
++        self.fx.check_fixture_memory(b.handle,0,3.)
++        x=np.array([65],np.uint8)
++        np.testing.assert_array_equal(a.run(x,logits=True)[1],b.run(x,logits=True)[1])
++        np.testing.assert_array_equal(self.vectors(a,0),self.vectors(b,0))
++
++    def test_07_neural_mute_preserves_private_bottom_memory(self):
++        a=self.make();b=self.make('neural_output',0);x=np.array([65],np.uint8)
++        a.run(x);b.run(x);va,vb=self.vectors(a,0),self.vectors(b,0)
++        for i in (0,2,4):np.testing.assert_array_equal(va[i],vb[i])
++        self.assertGreater(np.linalg.norm(va[1]),0);self.assertEqual(np.linalg.norm(vb[1]),0)
++
++    def test_08_semantic_residual_mute_preserves_descriptor(self):
++        a=self.make();b=self.make('semantic_residual',6)
++        for m in (a,b):self.fx.check_fixture_symbol(m.handle,6);m.run(self.text)
++        np.testing.assert_array_equal(self.vectors(a,6)[2],self.vectors(b,6)[2])
++        np.testing.assert_array_equal(b.content_events()['L3']['code'],self.vectors(b,6)[2])
++        self.assertGreater(np.linalg.norm(a.content_events()['L3']['code']-self.vectors(a,6)[2]),0)
++
++    def test_09_all_regions_and_control_types_are_isolated_per_instance(self):
++        for region in core.NAMES:
++            a=self.make('neural_output',region);b=self.make()
++            a.run(self.text[:24]);b.run(self.text[:24])
++            self.assertTrue(all(r['intervention_applications']==0 for r in b.contribution_metrics().values()))
++            a.close();b.close()
++
++    def test_10_chunking_is_exact_with_an_intervention(self):
++        a=self.make('neural_output','L3');b=self.make('neural_output','L3')
++        za=a.run(self.text,logits=True)[1]
++        zb=np.concatenate([b.run(x,logits=True)[1] for x in np.array_split(self.text,7)])
++        np.testing.assert_array_equal(za,zb);self.assertEqual(a.fingerprint(),b.fingerprint())
++        self.assertEqual(a.contribution_metrics(),b.contribution_metrics())
++
++    def test_11_memory_policies_preserve_or_clear_store_without_stream_leakage(self):
++        source=self.original.evaluation_memory_info();self.assertGreater(sum(source['occupied']),0)
++        for policy in ('cold_adaptive','cold_frozen','warm_frozen','warm_adaptive'):
++            m=self.make(memory=policy);before=m.evaluation_memory_info()
++            self.assertTrue(all(e['seq']==0 for e in m.content_events().values()))
++            self.assertTrue(all(t['pending_tick']==0 for t in m.relay_teaching_status().values()))
++            if policy.startswith('warm'):
++                self.assertEqual(before['store_digest'],source['store_digest']);self.assertEqual(before['clock'],source['clock'])
++            else:self.assertEqual(sum(before['occupied']),0);self.assertEqual(before['clock'],0)
++            m.run(self.text);after=m.evaluation_memory_info()
++            if policy.endswith('frozen'):self.assertEqual(before['store_digest'],after['store_digest'])
++            else:self.assertGreater(m.persistent_metrics()['write_considered'],0)
++
++    def test_12_whole_source_removes_direct_decoder_paths(self):
++        base=self.make();z=base.run(self.text[:20],logits=True)[1]
++        for r in (0,17):
++            m=self.make('whole_source',r);self.assertGreater(np.max(np.abs(z-m.run(self.text[:20],logits=True)[1])),1e-5)
++
++    def test_13_reject_bad_controls_training_and_serialization(self):
++        m=self.make()
++        for kind,region in [('bad',2),('none',2),('neural_output',True),('neural_output',1.2),
++                            ('neural_output',-1),('neural_output',18),('neural_output','bad'),('semantic_residual',0)]:
++            with self.assertRaises(ValueError):m.configure_contribution(kind,region)
++        with self.assertRaises(ValueError):m.run(self.text,mode='periodic')
++        with self.assertRaises(ValueError):m.finish_document(mode='periodic')
++        with self.assertRaises(ValueError):m.ablate(16)
++        with self.assertRaises(ValueError):m.snapshot_copy()
++        with self.assertRaises(ValueError):m.frozen_copy()
++        with tempfile.TemporaryDirectory() as tmp:
++            with self.assertRaises(ValueError):m.save(Path(tmp)/'bad.npz')
++        m.run(self.text[:2])
++        with self.assertRaises(ValueError):m.configure_contribution('neural_output','L3')
++        with self.assertRaises(ValueError):self.original.evaluation_copy(memory='unknown')
++
++    def test_14_expert_transform_control_keeps_skip_and_recall(self):
++        for r in (0,6,15,17):
++            a=self.make();b=self.make('expert_transform',r)
++            self.fx.check_fixture_zero_expert(a.handle,r)
++            np.testing.assert_array_equal(a.run(self.text,logits=True)[1],b.run(self.text,logits=True)[1])
++
++    def test_15_document_drain_handles_removed_sources(self):
++        for kind,r in [('none',None),('whole_source',0),('whole_source',2),('neural_output',6)]:
++            m=self.make(kind,r);flat=m.flat.copy();fitted=m.composition_state(fitted=True).copy()
++            m.run(self.text);m.finish_document(reset=True)
++            self.assertTrue(all(e['seq']==0 for e in m.content_events().values()))
++            np.testing.assert_array_equal(flat,m.flat);np.testing.assert_array_equal(fitted,m.composition_state(fitted=True))
++
++
++if __name__=='__main__':unittest.main()

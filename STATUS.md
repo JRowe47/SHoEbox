@@ -1,5 +1,28 @@
 # SHoEbox handoff
 
+## 2026-11-13 - separated regional contribution checks
+
+The fourth repair is complete in `experiments/identity_semantics`. Production
+stays `relays` with version-31 / ABI-5 checkpoints. Use
+`model.evaluation_copy(memory="cold_adaptive", diagnostic=True)` followed by
+`configure_contribution(kind, region)` for one independent evaluation condition.
+The diagnostic kernel cannot train or serialize a checkpoint.
+
+Seven controls distinguish neural output, expert transform, outgoing descriptor,
+relay context, retained input, semantic residual and whole-source removal. Exact
+event/provenance tracing, explicit cold/warm and frozen/adaptive memory policies,
+baseline parity, frozen fitted-state verification and realized-credit reporting
+provide acceptance checks. Full source, tests, measurements, Markdown and PDF
+reports are included. Test models and intermediate runs are excluded.
+
+The two existing 1M models reproduce test NLL 1.951268496 and 1.929332613.
+226 interventions on 78,771 reserved targets plus eight production comparisons
+finish successfully; all 190 non-whole-source traces preserve content events.
+L3/F4 expert transforms contribute +0.038686/+0.023036 mean delta NLL when
+removed. E4/V4/G5 remain near zero despite local teaching and downstream credit.
+The next architectural question is how their learned messages acquire useful
+task influence, rather than another repair to canceled teaching or identity.
+
 ## 2026-11-13 - relay teaching and recognition repaired
 
 Current kernel: `fresh_model(kernel="relays")` in

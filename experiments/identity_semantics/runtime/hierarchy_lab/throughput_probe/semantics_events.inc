@@ -14,7 +14,13 @@ inline void semantic_encode(Model&m,int r,ContentEvent&e){
   for(int j=0;j<D;j++){
     float value=0;for(int k=0;k<8;k++)value+=m.composition.symbols[r-2][j][k]*e.symbol_features[k];
     float residual=std::tanh(value);
+#ifdef SHOEBOX_CONTRIBUTION_CHECKS
+    if(contribution_selected(m,CHECK_SEMANTIC,r))residual=0;
+#endif
     e.code[j]=e.structure[j]+.25f*residual;
     e.symbol_derivative[j]=.25f*(1-residual*residual);
   }
+#ifdef SHOEBOX_CONTRIBUTION_CHECKS
+  contribution_apply(m,CHECK_SEMANTIC,r);
+#endif
 }

@@ -1,6 +1,30 @@
 # SHoEbox
 
-## Current relay teaching and recognition runtime
+## Regional contribution checks
+
+The fourth composition-repair step is implemented in
+[experiments/identity_semantics](experiments/identity_semantics/README.md).
+Seven independent evaluation controls separate neural publication, learned
+expert transform, content descriptor, singleton relay context, retained input,
+local semantic residual, and whole-source removal. Memory evaluation explicitly
+selects cold/warm stores and frozen/adaptive admission.
+
+Two existing 1M-parameter checkpoints reproduce their published losses exactly.
+226 full-test interventions and eight production-parity comparisons complete.
+All 190 interventions that should preserve content events preserve their full
+identity/provenance traces and execution counts. Removing learned expert
+transforms increases mean NLL by **0.038686 for L3** and **0.023036 for F4**;
+E4/V4/G5 remain weak despite realized teaching and credit.
+
+Production remains `fresh_model(kernel="relays")`; the optional diagnostic
+kernel compiles its hooks out of production. Neural parameters and checkpoint
+version 31 / ABI 5 are unchanged. Test models and intermediate runs are excluded.
+
+[Contribution report](experiments/identity_semantics/deliverables/SHoEbox_Contribution_Checks_Report.md) |
+[PDF](experiments/identity_semantics/deliverables/SHoEbox_Contribution_Checks_Report.pdf) |
+[Full regional measurements](experiments/identity_semantics/deliverables/SHoEbox_Contribution_Checks.csv).
+
+## Production relay teaching and recognition runtime
 
 Use `fresh_model(kernel="relays")` from
 [experiments/identity_semantics](experiments/identity_semantics/README.md).
@@ -53,8 +77,8 @@ All **62 checks** and ASan/UBSan pass. Data and trained checkpoints have
 [PDF](experiments/identity_semantics/deliverables/SHoEbox_Identity_Semantics_Report.pdf) |
 [Curves](experiments/identity_semantics/deliverables/SHoEbox_Identity_Semantics_Curves.png).
 
-The relay teaching/recognition repair is now available above. Next are regional
-neural contribution checks with content and relay transport intact.
+The relay teaching/recognition repair and regional contribution checks are now
+available above, with content and relay transport separated from local learning.
 The audit narrowed the earlier L3 lesion interpretation: whole-source removal
 measured transport as well as learned computation.
 

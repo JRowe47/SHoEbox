@@ -2,6 +2,9 @@
 // Temporal slots refer to distinct completed producer occurrences. A fresh
 // occurrence is admitted once per role; unchanged roles are explicitly held.
 inline bool binding_source_removed(Model&m,int src){
+#ifdef SHOEBOX_CONTRIBUTION_CHECKS
+  if(contribution_apply(m,CHECK_SOURCE,src))return true;
+#endif
   return (m.s.ablation==1&&src>=2&&src!=17)||(m.s.ablation>=10&&src==m.s.ablation-10);
 }
 inline bool binding_ready(Model&m,int r){

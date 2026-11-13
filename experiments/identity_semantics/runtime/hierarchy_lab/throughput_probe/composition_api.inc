@@ -36,6 +36,9 @@ void composition_events(void*p,uint64_t*out,float*code){
   }
 }
 int composition_finish(void*p,int mode,float lr,float lp,float route){
+#ifdef SHOEBOX_CONTRIBUTION_CHECKS
+  if(mode)return 0;
+#endif
   auto&m=*static_cast<Model*>(p);if(!m.composition.enabled)return 1;
   if(mode<0||mode>6||mode==5)return 0;
   auto&z=m.composition.stream;z.draining=1;unsigned char byte=0;float unused=0;
@@ -47,6 +50,9 @@ int composition_finish(void*p,int mode,float lr,float lp,float route){
       if(r>=3){pending|=binding_ready(m,r);continue;}
 #endif
       int driver=int(m.slots[4*m.starts[r]]);
+#ifdef SHOEBOX_CONTRIBUTION_CHECKS
+      if(contribution_selected(m,CHECK_SOURCE,driver)){z.length[r]=0;z.seen[r]=z.history[driver][0].ref.seq;continue;}
+#endif
       if((m.s.ablation==1&&driver>=2&&driver!=17)||(m.s.ablation>=10&&driver==m.s.ablation-10)){z.length[r]=0;z.seen[r]=z.history[driver][0].ref.seq;continue;}
       pending|=z.length[r]>0||z.seen[r]!=z.history[driver][0].ref.seq;
     }
@@ -91,6 +97,26 @@ void semantic_updates(void*p,uint64_t*out){memcpy(out,static_cast<Model*>(p)->co
 
 #ifdef SHOEBOX_PRESERVE_RELAYS
 extern "C" {
+// Fresh-stream evaluation may retain the associative store without retaining
+// forecasts, recurrent state, routing counts, or eligibility. Preserve memory
+// coordinate centers and its clock so stored timestamps keep their meaning.
+void evaluation_copy_memory(void*target,const void*source){
+  auto&d=static_cast<Model*>(target)->s;const auto&s=static_cast<const Model*>(source)->s;
+  memcpy(d.pk,s.pk,sizeof(d.pk));memcpy(d.pv,s.pv,sizeof(d.pv));
+  memcpy(d.priority,s.priority,sizeof(d.priority));memcpy(d.utility,s.utility,sizeof(d.utility));
+  memcpy(d.born,s.born,sizeof(d.born));memcpy(d.updated,s.updated,sizeof(d.updated));
+  memcpy(d.qmean,s.qmean,sizeof(d.qmean));memcpy(d.vmean,s.vmean,sizeof(d.vmean));
+  d.used=s.used;d.tick=s.tick;
+}
+void evaluation_memory_info(void*p,uint64_t*out){
+  auto&s=static_cast<Model*>(p)->s;out[0]=out[1]=0;
+  for(int a=0;a<2;a++)for(int i=0;i<PCAP;i++)out[a]+=s.born[a][i]!=0;
+  uint64_t hash=14695981039346656037ULL;
+  auto add=[&](const void*p,size_t n){auto*b=static_cast<const unsigned char*>(p);for(size_t i=0;i<n;i++){hash^=b[i];hash*=1099511628211ULL;}};
+  add(s.pk,sizeof(s.pk));add(s.pv,sizeof(s.pv));add(s.priority,sizeof(s.priority));
+  add(s.utility,sizeof(s.utility));add(s.born,sizeof(s.born));add(s.updated,sizeof(s.updated));
+  out[2]=hash;out[3]=s.freeze_writes;out[4]=s.tick;
+}
 void relay_teaching_status(void*p,double*out){
  auto&z=static_cast<Model*>(p)->composition.stream;
  for(int r=0;r<N;r++){
@@ -108,4 +134,8 @@ void relay_event_status(void*p,uint64_t*out,float*confidence){
  }
 }
 }
+#endif
+
+#ifdef SHOEBOX_CONTRIBUTION_CHECKS
+#include "contribution_api.inc"
 #endif

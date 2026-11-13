@@ -147,6 +147,11 @@ struct Model {
   // Derived layout only: no new model parameters or checkpoint state.
   alignas(64) float transposed_keys[N][D][E];
   float cached_read[2][D]{};bool cached_read_valid[2]{};
+#ifdef SHOEBOX_CONTRIBUTION_CHECKS
+  // Append-only diagnostic fields: the production Model prefix is unchanged.
+  int contribution_kind=0,contribution_region=-1;
+  uint64_t contribution_counts[N][5]{},contribution_hashes[N]{};
+#endif
   void prepare_read(int r){
     if(cached_read_valid[r])return;
     for(int j=0;j<D;j++)cached_read[r][j]=std::tanh(state_parameters[(r*3)*D+j]);
@@ -162,6 +167,9 @@ struct Model {
     W=p;p+=N*E*D*D;bias=p;p+=N*E*D;keys=p;p+=N*E*D;P=p;p+=N*D*D;pbias=p;p+=N*D;readout=p;p+=V*2*D;rbias=p;
   }
 };
+#ifdef SHOEBOX_CONTRIBUTION_CHECKS
+#include "contribution_hooks.inc"
+#endif
 inline float dot64(const float*a,const float*b){
 #ifdef __AVX2__
   __m256 v=_mm256_setzero_ps(),w=_mm256_setzero_ps();
@@ -723,6 +731,10 @@ int draw(void*p,float temp,float*uniform){
 }
 void info(void*p,float*out){auto&s=static_cast<Model*>(p)->s;for(int r=0;r<N;r++){out[r]=s.exec[r];out[N+r]=s.exec[r]>1?s.mse[r]/(s.exec[r]-1):0;for(int e=0;e<E;e++)out[2*N+r*E+e]=s.counts[r][e];}int i=N*(E+2);out[i]=s.reads;out[i+1]=s.writes;out[i+2]=s.correct;out[i+3]=s.tick;out[i+4]=sizeof(State);}
 double run(void*p,const unsigned char*x,const unsigned char*y,int length,int mode,float lr,float lp,float route,int emit,float*out){
+#ifdef SHOEBOX_CONTRIBUTION_CHECKS
+  if(mode||!static_cast<Model*>(p)->composition.enabled||
+     static_cast<Model*>(p)->s.ablation||static_cast<Model*>(p)->utility_ablation)return NAN;
+#endif
   Model&m=*static_cast<Model*>(p);State&s=m.s;double loss=0;ContentEvent composed{},parts[COMP_MAX]{};m.refresh_keys();m.cached_read_valid[0]=m.cached_read_valid[1]=false;
   for(int t=0;t<length;t++){
     s.tick++;if(!m.composition.stream.draining)m.composition.stream.byte_position++;float snapshot[N][D];int valid[N];int64_t snapshot_tick[N]{};int snapshot_index[N]{},snapshot_region[N]{};
@@ -768,6 +780,9 @@ double run(void*p,const unsigned char*x,const unsigned char*y,int length,int mod
         }
         if((delay?valid[src]:s.valid[src])<=age)continue;
         if((s.ablation==1&&src>=2&&src!=17)||(s.ablation>=10&&src==s.ablation-10))continue;
+#ifdef SHOEBOX_CONTRIBUTION_CHECKS
+        if(contribution_apply(m,CHECK_SOURCE,src))continue;
+#endif
         const float*v=delay?snapshot[src]:s.hist[src][age];float*dest=delay?c:q;
         float gain=m.regional_gain[src],effective_w=gain==1.f?w:w*gain;
         for(int j=0;j<D;j++)dest[j]+=effective_w*m.signs[k*D+j]*v[m.perm[k*D+j]];
@@ -855,6 +870,9 @@ double run(void*p,const unsigned char*x,const unsigned char*y,int length,int mod
       if(mode&&m.utility.config[4]>0){memcpy(m.utility.previous_q[r],q,D*sizeof(float));m.utility.have_q[r]=1;}
       float alpha=r==1?.125f:.5f;
       for(int j=0;j<D;j++){s.u[r][j]=(1-alpha)*s.mem[r][j]+alpha*(q[j]+c[j]);s.mem[r][j]=s.u[r][j];}
+#ifdef SHOEBOX_CONTRIBUTION_CHECKS
+      if(contribution_apply(m,CHECK_RETAINED,r))for(int j=0;j<D;j++)s.mem[r][j]=s.u[r][j]=alpha*(q[j]+c[j]);
+#endif
       if(r<2&&m.scfg[0]>0)m.prepare_read(r);
       if(r<2&&m.scfg[0]>0)for(int j=0;j<D;j++){
         float read=m.scfg[2]*m.cached_read[r][j];
@@ -901,6 +919,9 @@ double run(void*p,const unsigned char*x,const unsigned char*y,int length,int mod
         float z=s.u[r][i]+b[i];
         if(!task_route){for(int j=0;j<D;j++)z+=w[i*D+j]*s.u[r][j];residual[i]=0;}
         else {residual[i]=dot64(w+i*D,s.u[r]);z+=gate*residual[i];}
+#ifdef SHOEBOX_CONTRIBUTION_CHECKS
+        if(contribution_selected(m,CHECK_EXPERT,r))z=s.u[r][i];
+#endif
         if(m.cfg[10]&&(r==15||r==16)){
           float recall=0;
           if(int(m.cfg[10])==2)recall=m.P[(r*D+i)*D+i]*s.returned[r-15][i];
@@ -909,6 +930,10 @@ double run(void*p,const unsigned char*x,const unsigned char*y,int length,int mod
         }
         s.h[r][i]=std::tanh(z);
       }
+#ifdef SHOEBOX_CONTRIBUTION_CHECKS
+      m.contribution_counts[r][1]++;
+      contribution_apply(m,CHECK_EXPERT,r);
+#endif
       if(m.diag.enabled&&s.exec[r]%16==0){
         auto &d=m.diag;d.n[r]++;
         const float* vectors[4]{q,c,s.u[r],s.h[r]};
@@ -924,6 +949,11 @@ double run(void*p,const unsigned char*x,const unsigned char*y,int length,int mod
         }
       }
       publish_state(m,r,gate,runner);
+#ifdef SHOEBOX_CONTRIBUTION_CHECKS
+      // Keep the producer's private bottom memory update. Mute the publication
+      // after that update, not the computation that maintains its own state.
+      if(contribution_apply(m,CHECK_NEURAL,r))memset(s.h[r],0,sizeof(s.h[r]));
+#endif
       if(tracing){
         auto*previous=current_lace(m,r);uint64_t prior=previous?previous->feature_mask:0;
         int cursor=(m.laces.cursor[r]+1)&(LACE_RING-1);m.laces.cursor[r]=cursor;
@@ -970,6 +1000,9 @@ double run(void*p,const unsigned char*x,const unsigned char*y,int length,int mod
     if(m.composition.stream.draining)continue;
     float features[2*D],logits[V],prob[V],maxlog=-1e30f;int selected[V],nout=V;
     for(int j=0;j<D;j++){features[j]=s.h[0][j];features[D+j]=m.utility.config[6]>0?0.f:(m.utility_ablation?m.utility.ymean[j]:s.h[17][j])-m.utility.config[0]*m.utility.ymean[j];}
+#ifdef SHOEBOX_CONTRIBUTION_CHECKS
+    for(int r:{0,17})if(contribution_apply(m,CHECK_SOURCE,r))memset(features+(r?D:0),0,D*sizeof(float));
+#endif
     int guess=0;
     double denom=0;
     if(m.head==0){

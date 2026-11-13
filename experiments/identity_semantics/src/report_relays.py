@@ -5,7 +5,7 @@ from pathlib import Path
 ROOT=Path(__file__).resolve().parents[1]
 OUT=ROOT/'deliverables'
 
-def render_pdf(md,pdf):
+def render_pdf(md,pdf,*,title='SHoEbox: teaching and recognition through relays',header='SHoEbox / Relay teaching and recognition / 1M model'):
  from reportlab.platypus import SimpleDocTemplate,Paragraph,Spacer,Table,TableStyle,PageBreak,KeepTogether
  from reportlab.lib import colors
  from reportlab.lib.styles import getSampleStyleSheet,ParagraphStyle
@@ -49,11 +49,11 @@ def render_pdf(md,pdf):
   story.append(Paragraph(markup(line),styles['BodyR']))
  def page(canvas,doc):
   canvas.saveState();canvas.setFont('Sans',7.3);canvas.setFillColor(colors.HexColor('#536b7c'))
-  canvas.drawString(52,815,'SHoEbox / Relay teaching and recognition / 1M model')
+  canvas.drawString(52,815,header)
   canvas.drawString(52,26,'13 November 2026 | Tested source and measured results')
   canvas.drawRightString(544,26,str(doc.page));canvas.restoreState()
  SimpleDocTemplate(str(pdf),pagesize=(596,842),leftMargin=52,rightMargin=52,topMargin=48,bottomMargin=48,
-                   title='SHoEbox: teaching and recognition through relays').build(story,onFirstPage=page,onLaterPages=page)
+                   title=title).build(story,onFirstPage=page,onLaterPages=page)
 
 def main():
  runs={(k,s):json.loads((ROOT/f'results/relay_full_{k}_seed{s}/training.json').read_text()) for k in ('semantics','relays') for s in (1,2)}

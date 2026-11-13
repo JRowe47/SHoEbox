@@ -84,6 +84,12 @@ inline void content_publish(Model&m,int r,ContentEvent event,bool relay=false){
   event.ref.tick=m.s.tick;event.ref.index=m.laces.cursor[r];
   if(!relay)event.origin=event.ref;
   memcpy(event.context,m.s.h[r],sizeof(event.context));
+#ifdef SHOEBOX_CONTRIBUTION_CHECKS
+  if(contribution_apply(m,CHECK_DESCRIPTOR,r)){
+    memset(event.code,0,sizeof(event.code));memset(event.structure,0,sizeof(event.structure));
+  }
+  contribution_event(m,r,event);
+#endif
   z.history[r][1]=z.history[r][0];z.history[r][0]=event;
   bool formed=event.count>=2;
 #ifdef SHOEBOX_PRESERVE_RELAYS
@@ -106,6 +112,9 @@ inline void content_passthrough(Model&m,int r,ContentEvent event,const ContentEv
   // No new recognition decision, transform or recurrent input update. Public
   // output changes, but the producer's eligibility and teaching stay separate.
   memcpy(s.h[r],child.context,D*sizeof(float));
+#ifdef SHOEBOX_CONTRIBUTION_CHECKS
+  if(contribution_apply(m,CHECK_RELAY,r))memset(s.h[r],0,sizeof(s.h[r]));
+#endif
 #ifndef SHOEBOX_PRESERVE_RELAYS
   s.pending[r]=0;
 #endif
@@ -128,6 +137,9 @@ inline bool content_prepare(Model&m,int r,bool learn,ContentEvent&event,ContentE
   if(r<=14){
     int driver=int(m.slots[4*m.starts[r]]);const auto&next=s.history[driver][0];
     if((m.s.ablation==1&&driver>=2&&driver!=17)||(m.s.ablation>=10&&driver==m.s.ablation-10))return false;
+#ifdef SHOEBOX_CONTRIBUTION_CHECKS
+    if(contribution_apply(m,CHECK_SOURCE,driver))return false;
+#endif
     if(!next.ref.seq||next.ref.seq==s.seen[r]){
       if(s.draining&&s.length[r]){
         n=s.length[r];for(int i=0;i<n;i++)parts[i]=s.pending[r][i];s.length[r]=0;
