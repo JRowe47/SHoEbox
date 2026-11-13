@@ -1,6 +1,29 @@
-# SHoEbox: completed constituents and recursive learned content
+# SHoEbox: current CPU reference design
 
-The latest repair is `fresh_model(kernel="completion")`. S2 through G5 now
+`fresh_model()` and the low-level `Model()` now select `completion` and the full
+compatible reference policy. From the repository root, import them from
+`shoebox_reference`; from this package, use `runtime/runtime.py`.
+
+The default enables the produced architecture repairs plus key-trace mixing,
+DFA (gain 1), the A1 residual objective and local innovation targets. Temporal
+credit uses every byte and all 64 coordinates; third-hop credit is unsampled.
+Payload gain is 1, feedback activation/routing are 0.1, semantic LR multiplier
+is 1, and neural lace depth is 3. Learned bottom state, task routing, EMA/revival,
+retained-input credit and both EC recall channels remain enabled.
+
+`model.capabilities()` reports the effective feature switches and unavailable
+historical experiments. `port_mode`, `port_gain` and `balance` are not implemented
+in completion and nonzero values now raise an error. E05/E07/E08/E13/E14 and
+R03/R04/R05 experiment variants are not shipped in this current kernel; their
+old wrapper methods do not constitute implemented reference features.
+
+`fresh_model(kernel="relays")` explicitly selects that historical comparator.
+`fresh_model(profile="historical")` uses the new completion clock with the
+previous training policy for controlled ablations. Explicit parameter settings
+and saved checkpoint policies are preserved. All new development starts with
+the reference policy unless a comparison explicitly requests otherwise.
+
+The completed-constituent implementation works as follows. S2 through G5 now
 admit non-overlapping primary-source occurrences, preserve every declared
 immediate source role in bound frames, and learn when a sequence of frames is
 complete. Side-source updates alone do not commit a new upper unit. Familiar
@@ -25,23 +48,31 @@ original recipe transforms and weights. Exact IDs and structural descriptors
 remain independent of neural values and surrounding recurrent context. The
 payload is part of the exported code and is not added a second time to input.
 
-Each encoding saves its actual dependencies and derivatives. A bounded pool of
-16,384 semantic records is collected from live histories, pending frames and
-neural eligibility. Reverse-order credit accumulates duplicate paths before
+Each encoding saves its actual dependencies and derivatives. The pool starts
+with 16,384 semantic records and is collected from live histories, pending frames
+and neural eligibility. When every slot remains reachable, it grows instead of
+overwriting live ancestry. Reverse traversal also grows with the saved DAG. Reverse-order credit accumulates duplicate paths before
 updating the actual producer. Relays preserve the same semantic handle. The
-pool never redirects expired credit to a newer producer; `completion_metrics()`
-reports capacity pruning and expired handles. The completion kernel has 64
+pool never redirects expired credit to a newer producer. `completion_capacity()`
+reports its current allocation; `completion_metrics()` retains separate counters
+for expired handles, omitted work and capacity pruning, all expected to stay zero
+in the reference path. Overflow records are included in exact checkpoints and
+cleared on stream reset. The completion kernel has 64
 neural eligibility entries per region and up to 72 context links to accommodate
 completed frames; earlier kernels keep their original layouts. This adds 16
 learned scalar payload gates, for **1,031,952 parameters** at 12 experts.
 
-Version **33 / composition ABI 7** saves pending frames, learned gates, all
+Version **34 / composition ABI 8** saves pending frames, learned gates, all
 semantic dependencies and neural eligibility for exact continuation. Old
 checkpoints retain their original kernels. Explicit conversion starts a fresh
-stream while preserving fitted weights and dictionaries:
+stream while preserving fitted weights, dictionaries and preprocessing means.
+Version-33 completion state cannot resume under the corrected clock: convert it
+explicitly, preserving its fitted payload gates as well. Versions 31 and 32
+remain exactly loadable with their original kernels. The converter preserves
+saved training policies; fresh models use the current reference policy:
 
 ```bash
-python src/convert_to_completion.py old_messages_or_relays.npz new_completion.npz
+python src/convert_to_completion.py old_messages_relays_or_completion.npz new_completion.npz
 python -m unittest discover -s tests -v
 python tests/run_completion_sanitizer.py
 python src/run_completion_study.py --data /path/to/restored/data
@@ -50,9 +81,20 @@ python src/run_completion_study.py --data /path/to/restored/data
 The new kernel implements the missing mechanisms. The matched 50,000-target
 smoke comparison, including throughput and task contributions, is documented in
 [the completion report](deliverables/SHoEbox_Completion_Fix.md). It does not
-supersede the earlier million-target quality comparison or change the historical
-`fresh_model()` default; select the new kernel explicitly. Test models and corpus
-bytes are excluded from delivery.
+supersede the earlier million-target quality comparison. The default now selects
+the current reference design independently of those historical performance
+results. Test models and corpus bytes are excluded from delivery.
+
+Primary clocks start at bottom byte atoms, survive singleton relays, and compose
+from ordered primary occurrences. Content coverage still includes every held
+side role. `completion_clocks()` exposes the primary spans separately from
+`content_events()[region]['span']`. Confidence-1.0 transitions join adjacent
+primary events despite overlapping side coverage; real primary gaps or overlaps
+still force a boundary.
+
+Run `python src/reference_smoke.py` for a small, same-core synthetic training and
+throughput check. See [the current review](deliverables/SHoEbox_Reference_Defaults.md)
+for verification and the remaining design work identified by the audit.
 
 ## Previous learned-message runtime
 
@@ -198,7 +240,7 @@ m = fresh_model(kernel="relays")
 # m = Model.load("my_relay_checkpoint.npz")
 ```
 
-Available kernels: `messages` (learned message repair), `relays` (relay comparator), `semantics` (previous learned representation), `semantics_fixed` (new structural encoding with its learned residual held at zero), `binding` (prior repair), `composition` (earlier comparator), and `native` (legacy numerical kernel). The runtime's historical default remains `composition`; explicitly select `relays`.
+Available kernels: `completion` (current default reference), `messages` (learned message repair), `relays` (relay comparator), `semantics` (previous learned representation), `semantics_fixed` (new structural encoding with its learned residual held at zero), `binding` (prior repair), `composition` (earlier comparator), and `native` (legacy numerical kernel). The default is `completion`; select earlier kernels explicitly for comparisons.
 
 ## Contract
 

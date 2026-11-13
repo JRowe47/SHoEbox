@@ -23,15 +23,40 @@ int composition_configure(void*p,int enabled,float threshold,int count,int maxim
 #endif
   z.enabled=enabled;z.boundary_threshold=threshold;z.min_count=count;z.max_children=maximum;z.context_gain=context;return 1;
 }
-size_t composition_state_size(){return sizeof(CompositionRuntime);}
+size_t composition_state_size(void*p=nullptr){
+#ifdef SHOEBOX_LEARNED_COMPLETION
+  if(p)return sizeof(CompositionRuntime)+static_cast<Model*>(p)->semantic_overflow.size()*sizeof(ConstituentRecord);
+#endif
+  return sizeof(CompositionRuntime);
+}
 size_t composition_fitted_size(){return offsetof(CompositionRuntime,stream);}
-void composition_export(void*p,void*out){memcpy(out,&static_cast<Model*>(p)->composition,sizeof(CompositionRuntime));}
+void composition_export(void*p,void*out){
+  auto&m=*static_cast<Model*>(p);memcpy(out,&m.composition,sizeof(CompositionRuntime));
+#ifdef SHOEBOX_LEARNED_COMPLETION
+  if(!m.semantic_overflow.empty())memcpy(static_cast<unsigned char*>(out)+sizeof(CompositionRuntime),
+    m.semantic_overflow.data(),m.semantic_overflow.size()*sizeof(ConstituentRecord));
+#endif
+}
 int composition_import(void*p,const void*in,size_t size,int fitted){
+#ifdef SHOEBOX_LEARNED_COMPLETION
+  if(fitted?size!=offsetof(CompositionRuntime,stream):size<sizeof(CompositionRuntime))return 0;
+  size_t overflow=fitted?0:(size-sizeof(CompositionRuntime))/sizeof(ConstituentRecord);
+  if(!fitted&&size!=sizeof(CompositionRuntime)+overflow*sizeof(ConstituentRecord))return 0;
+#else
   if(size!=(fitted?offsetof(CompositionRuntime,stream):sizeof(CompositionRuntime)))return 0;
+#endif
   const auto*z=static_cast<const CompositionRuntime*>(in);
   if(z->version!=static_cast<Model*>(p)->composition.version||z->enabled>1||!std::isfinite(z->boundary_threshold)||z->boundary_threshold<=0||z->boundary_threshold>=1||z->min_count<1||z->min_count>1000000||z->max_children<2||z->max_children>COMP_MAX||!std::isfinite(z->context_gain)||z->context_gain<0||z->context_gain>1)return 0;
   auto&target=static_cast<Model*>(p)->composition;
-  memcpy(&target,in,size);if(fitted)memset(&target.stream,0,sizeof(target.stream));return 1;
+#ifdef SHOEBOX_LEARNED_COMPLETION
+  if(!fitted&&z->stream.reserved!=overflow)return 0;
+  auto&m=*static_cast<Model*>(p);constituent_resize(m,overflow);
+  memcpy(&target,in,fitted?size:sizeof(CompositionRuntime));
+  if(overflow)memcpy(m.semantic_overflow.data(),static_cast<const unsigned char*>(in)+sizeof(CompositionRuntime),overflow*sizeof(ConstituentRecord));
+#else
+  memcpy(&target,in,size);
+#endif
+  if(fitted)memset(&target.stream,0,sizeof(target.stream));return 1;
 }
 void composition_metrics(void*p,double*out){memcpy(out,static_cast<Model*>(p)->composition.stream.metrics,sizeof(CompositionStream::metrics));}
 void composition_events(void*p,uint64_t*out,float*code){
@@ -172,5 +197,10 @@ void message_metrics(void*p,double*out){memcpy(out,static_cast<Model*>(p)->compo
 extern "C" {
 void completion_metrics(void*p,uint64_t*out){memcpy(out,static_cast<Model*>(p)->composition.stream.completion_metrics,sizeof(CompositionStream::completion_metrics));}
 void completion_gates(void*p,float*out){memcpy(out,static_cast<Model*>(p)->composition.payload_gates,sizeof(CompositionRuntime::payload_gates));}
+size_t completion_capacity(void*p){return constituent_capacity(*static_cast<Model*>(p));}
+void completion_clocks(void*p,int64_t*out){
+  auto&s=static_cast<Model*>(p)->composition.stream;
+  for(int r=0;r<N;r++){out[2*r]=s.history[r][0].clock_begin;out[2*r+1]=s.history[r][0].clock_end;}
+}
 }
 #endif

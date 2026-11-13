@@ -33,7 +33,7 @@ class CompositionTests(unittest.TestCase):
     def setUpClass(cls):
         rng=np.random.default_rng(4)
         cls.words=[b'abcd',b'efgh',b'ijkl',b'mnop']
-        cls.grammar=fresh_model()
+        cls.grammar=fresh_model(kernel='composition')
         data=b''.join(bytes(rng.integers(160,240,size=rng.integers(1,6),dtype=np.uint8))+cls.words[int(rng.integers(4))] for _ in range(2000))
         feed(cls.grammar,data,True)
         cls.grammar.finish_document()
@@ -47,7 +47,7 @@ class CompositionTests(unittest.TestCase):
     @classmethod
     def tearDownClass(cls):cls.grammar.close()
     def make(self):
-        m=fresh_model();self.addCleanup(m.close);return m
+        m=fresh_model(kernel='composition');self.addCleanup(m.close);return m
     def frozen(self,m=None):
         c=(m or self.grammar).frozen_copy();self.addCleanup(c.close);return c
     def snapshot(self,m):

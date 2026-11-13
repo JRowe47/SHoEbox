@@ -1,16 +1,36 @@
 # SHoEbox
 
-## Completed constituents and recursive learned content
+## Current reference design
 
-The latest architectural repair is available as `fresh_model(kernel="completion")`
-in [experiments/identity_semantics](experiments/identity_semantics/README.md).
-It restores learned completion above L2 while preserving source-role binding,
-and makes exported constituent codes recursively depend on learned child content.
-Saved composition dependencies carry credit across multiple binding levels.
-Version-33 checkpoints preserve the new event state; an explicit converter accepts
-the previous relay and message checkpoints at a fresh stream boundary.
+The default CPU runtime now enables the implemented reference design, including
+all published composition, binding, semantic, relay, message and completion
+repairs. Architectural completeness is the development priority; performance
+optimization follows. Use the repository entry point:
 
-[Implementation, tests and short-run measurements](experiments/identity_semantics/deliverables/SHoEbox_Completion_Fix.md).
+```python
+from shoebox_reference import fresh_model, Model
+model = fresh_model()
+print(model.capabilities())
+```
+
+This selects `completion` with recursive learned exports, credited feedback,
+three-hop lace and retained-input credit, learned bottom state, task routing,
+EMA/revival, both EC recall channels, key-trace mixing, DFA, A1 residual and local
+innovation objectives. Temporal credit covers all 64 coordinates every byte;
+third-hop credit is unsampled. Historical kernels require an explicit selection.
+
+Primary occurrence clocks are now propagated separately from all-source content
+coverage. Held side context can no longer force an otherwise adjacent learned
+sequence to split. Semantic eligibility grows when all records remain live, so
+longer completed units do not lose ancestry to the old fixed pool limit. New
+checkpoints are version 34 / composition ABI 8.
+Version-33 completion checkpoints require explicit fresh-stream conversion;
+versions 31 and 32 retain their original kernels when loaded.
+
+[Current implementation and usage](experiments/identity_semantics/README.md) |
+[Review and verification](experiments/identity_semantics/deliverables/SHoEbox_Reference_Defaults.md).
+The sections below record earlier studies; their historical recommendations do
+not override the current default.
 
 ## Learned-message and feedback repair
 
@@ -25,7 +45,7 @@ producer records. IDs, binding and relay forecasts remain intact.
 ASan/UBSan pass. Two matched 1M-target runs produce mean reserved-test NLL
 **1.944734**, compared with **1.940301** for `relays`. The repair removes the
 mechanical restrictions but does not improve average test loss in this study;
-`relays` remains the production recommendation. The new runtime is selectable
+`relays` was the production recommendation for that study. The new runtime is selectable
 for continued message/credit work, with version-32 / ABI-6 checkpoints and an
 explicit fresh-stream converter.
 
@@ -52,7 +72,7 @@ identity/provenance traces and execution counts. Removing learned expert
 transforms increases mean NLL by **0.038686 for L3** and **0.023036 for F4**;
 E4/V4/G5 remain weak despite realized teaching and credit.
 
-Production remains `fresh_model(kernel="relays")`; the optional diagnostic
+That study used `fresh_model(kernel="relays")`; the optional diagnostic
 kernel compiles its hooks out of production. Neural parameters and checkpoint
 version 31 / ABI 5 are unchanged. Test models and intermediate runs are excluded.
 
@@ -76,7 +96,7 @@ runs, mean test NLL improves **1.946529 -> 1.940301**. Training throughput is
 The 1M configuration remains 1,031,936 parameters. Version-31 / ABI-5
 checkpoints preserve pending teaching exactly. Explicit fitted conversion from
 version-30 semantics is available at a fresh stream boundary. Earlier kernels
-remain available, and the historical default remains `composition`.
+remain available, and the historical default at that time was `composition`.
 
 [Relay report](experiments/identity_semantics/deliverables/SHoEbox_Relay_Preservation_Report.md) |
 [PDF](experiments/identity_semantics/deliverables/SHoEbox_Relay_Preservation_Report.pdf) |
@@ -105,7 +125,7 @@ python tests/run_semantics_sanitizer.py
 ```
 
 Select `fresh_model(kernel="semantics")`, or use `Model.load()` for a version-30
-/ ABI-4 checkpoint. The historical fresh-model default remains `composition`.
+/ ABI-4 checkpoint. The fresh-model default at that time was `composition`.
 All **62 checks** and ASan/UBSan pass. Data and trained checkpoints have
 [verified restoration instructions](experiments/identity_semantics/README.md#restore-data-and-trained-checkpoints).
 

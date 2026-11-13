@@ -54,6 +54,10 @@ inline ContentEvent content_compose(Model&m,int r,const ContentEvent*children,in
   out.local_arity=n;
 #endif
   out.ref.region=r;out.ref.begin=children[0].ref.begin;out.ref.end=children[0].ref.end;
+#ifdef SHOEBOX_LEARNED_COMPLETION
+  out.clock_begin=children[0].clock_begin;
+  out.clock_end=children[n-1].clock_end;
+#endif
   ContentID id{content_mix(uint64_t(r)+0x636f6d70),content_mix(uint64_t(kind)+0x726f6c65)};
   float scale=1.f/std::sqrt(float(n));
   for(int i=0;i<n;i++){
@@ -107,6 +111,9 @@ inline void content_publish(Model&m,int r,ContentEvent event,bool relay=false){
 inline void content_atom(Model&m,int r,int byte){
   ContentEvent event{};event.ref.id={content_mix(uint64_t(byte)+1),content_mix(uint64_t(byte)+257)};
   event.ref.region=r;event.ref.begin=m.composition.stream.byte_position-1;event.ref.end=m.composition.stream.byte_position;event.ref.recognized=1;
+#ifdef SHOEBOX_LEARNED_COMPLETION
+  event.clock_begin=event.ref.begin;event.clock_end=event.ref.end;
+#endif
   memcpy(event.code,m.emb+byte*D,sizeof(event.code));
 #ifdef SHOEBOX_IDENTITY_SEMANTICS
   memcpy(event.structure,event.code,sizeof(event.structure));

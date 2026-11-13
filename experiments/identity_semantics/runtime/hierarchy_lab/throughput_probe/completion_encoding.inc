@@ -2,14 +2,15 @@
 // Every code has its own saved producer and derivative graph; neural context
 // is excluded. The learned gate is bounded in [0.5,1.5].
 inline int constituent_allocate(Model&m,int r,const ContentEvent*parts,int n){
-  auto&s=m.composition.stream;int start=int(s.semantic_cursor++%SEM_RING);
-  if(!s.semantic_records[start].ref.serial)return start;
+  auto&s=m.composition.stream;int capacity=constituent_capacity(m);
+  int start=int(s.semantic_cursor++%capacity);
+  if(!constituent_slot(m,start).ref.serial)return start;
   // Mark from actual owners before recycling. Long held completed units must
   // not lose eligibility just because a faster child has published again.
-  uint64_t mark=++m.semantic_work_serial;SemanticRef work[SEM_RING];int count=0;
+  uint64_t mark=++m.semantic_work_serial;std::vector<SemanticRef> work;work.reserve(capacity);
   auto add=[&](SemanticRef ref){
-    if(!constituent_record(m,ref)||m.semantic_mark[ref.index]==mark)return;
-    m.semantic_mark[ref.index]=mark;work[count++]=ref;
+    if(!constituent_record(m,ref)||constituent_mark(m,ref.index)==mark)return;
+    constituent_mark(m,ref.index)=mark;work.push_back(ref);
   };
   for(int a=0;a<N;a++){
     for(int k=0;k<2;k++)add(s.history[a][k].semantic);
@@ -18,21 +19,22 @@ inline int constituent_allocate(Model&m,int r,const ContentEvent*parts,int n){
   }
   for(int k=0;k<n;k++)add(parts[k].semantic);
   add(m.semantic_inflight);
-  for(int i=0;i<count;i++){
+  for(size_t i=0;i<work.size();i++){
     auto&node=*constituent_record(m,work[i]);for(int k=0;k<node.count;k++)add(node.edges[k].source);
   }
-  for(int k=0;k<SEM_RING;k++)
-    if(m.semantic_mark[k]!=mark)s.semantic_records[k].ref=SemanticRef{};
-  for(int k=0;k<SEM_RING;k++){
-    int index=(start+k)%SEM_RING;
-    if(m.semantic_mark[index]!=mark){s.semantic_cursor=index+1;return index;}
+  for(int k=0;k<capacity;k++)
+    if(constituent_mark(m,k)!=mark)constituent_slot(m,k).ref=SemanticRef{};
+  for(int k=0;k<capacity;k++){
+    int index=(start+k)%capacity;
+    if(constituent_mark(m,index)!=mark){s.semantic_cursor=index+1;return index;}
   }
-  // Bounded eligibility is explicit and generation checked even on exhaustion.
-  s.completion_metrics[r][4]++;return start;
+  // Every slot is live. Grow the reference pool instead of severing credit.
+  constituent_resize(m,size_t(capacity)*2-SEM_RING);
+  s.semantic_cursor=capacity+1;return capacity;
 }
 inline void constituent_encode(Model&m,int r,ContentEvent&out,const ContentEvent*parts,int n,bool binding){
   auto&s=m.composition.stream;int index=constituent_allocate(m,r,parts,n);
-  auto&node=s.semantic_records[index];node=ConstituentRecord{};
+  auto&node=constituent_slot(m,index);node=ConstituentRecord{};
   node.ref={++s.semantic_serial,r,index};out.semantic=node.ref;
   memcpy(node.features,out.symbol_features,sizeof(node.features));
   float squared=0,raw[D]{};

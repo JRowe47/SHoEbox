@@ -52,8 +52,10 @@ inline bool completion_prepare(Model&m,int r,bool learn,ContentEvent&event,Conte
   s.metrics[r][0]+=fresh_count;s.metrics[r][14]++;s.metrics[r][15]+=count-fresh_count;s.metrics[r][16]+=fresh_count;
   int available=std::min<int64_t>(required,s.history[driver][0].ref.seq-s.seen[r]);
   s.seen[r]=s.history[driver][0].ref.seq;
-  frame.clock_begin=s.history[driver][available-1].ref.begin;
-  frame.clock_end=s.history[driver][0].ref.end;
+  // Coverage includes held side constituents. Only the recursively preserved
+  // primary clock determines adjacency, never that all-source coverage union.
+  frame.clock_begin=s.history[driver][available-1].clock_begin;
+  frame.clock_end=s.history[driver][0].clock_end;
   frame.ref.seq=++s.frame_serial[r];frame.ref.tick=m.s.tick;
   float q[D]{},qw=0,cw=0;int parents=0;LaceParent links[LACE_LINKS];
   binding_bundle(m,r,frame,children,count,q,frame.context,qw,cw,links,parents);

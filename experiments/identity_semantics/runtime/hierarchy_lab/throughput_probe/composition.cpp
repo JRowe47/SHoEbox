@@ -1,10 +1,12 @@
 // Streaming local updates without autograd or dense optimizer moments.
-// Completion adds bounded semantic DAG eligibility, not a global temporal tape.
+// Completion retains live semantic DAG eligibility, not a global temporal tape.
 // No hidden label input. Neural parameter mutation follows computation.
 #include <cmath>
 #include <cstring>
 #include <algorithm>
 #include <cstdint>
+#include <array>
+#include <vector>
 #include <immintrin.h>
 #ifndef SHOEBOX_EXPERTS
 #define SHOEBOX_EXPERTS 12
@@ -108,6 +110,11 @@ struct Model {
   // Transient workspace, excluded from checkpoint state and model parameters.
   uint64_t semantic_mark[SEM_RING]{},semantic_work_serial=0;
   float semantic_gradient[SEM_RING][D]{};
+  // Grow only when every collected record is still reachable. Reference
+  // semantics never overwrite live ancestry to meet a fixed memory budget.
+  std::vector<ConstituentRecord> semantic_overflow;
+  std::vector<uint64_t> semantic_overflow_mark;
+  std::vector<std::array<float,D>> semantic_overflow_gradient;
   SemanticRef semantic_inflight{};
 #endif
 #ifdef SHOEBOX_LEARNED_MESSAGES
@@ -737,7 +744,11 @@ static void router_scores(Model&m,int r,const float*input,const int*indices,int 
 extern "C" {
 void* create(float*p,float*em,float*fb,float*sl,int*st,int*pe,float*si,int*fp,float*fs,int*ca,int head){return new Model(p,em,fb,sl,st,pe,si,fp,fs,ca,head);}
 void destroy(void*p){delete static_cast<Model*>(p);}
-void reset(void*p){auto&m=*static_cast<Model*>(p);memset(&m.composition.stream,0,sizeof(m.composition.stream));m.laces=LaceState{};auto&s=m.s;memset(&s,0,sizeof(s));s.rng=7131587;s.recall_slot[0]=s.recall_slot[1]=-1;initialize_learned(m);}
+void reset(void*p){auto&m=*static_cast<Model*>(p);
+#ifdef SHOEBOX_LEARNED_COMPLETION
+constituent_resize(m,0);
+#endif
+memset(&m.composition.stream,0,sizeof(m.composition.stream));m.laces=LaceState{};auto&s=m.s;memset(&s,0,sizeof(s));s.rng=7131587;s.recall_slot[0]=s.recall_slot[1]=-1;initialize_learned(m);}
 size_t state_size(){return sizeof(State);}
 void export_state(void*p,void*out){memcpy(out,&static_cast<Model*>(p)->s,sizeof(State));}
 void import_state(void*p,void*in){memcpy(&static_cast<Model*>(p)->s,in,sizeof(State));}
@@ -758,7 +769,11 @@ void persistent_metrics(void*p,double*out){auto&s=static_cast<Model*>(p)->s;for(
 void block_before(void*p,int64_t cutoff){static_cast<Model*>(p)->block_before=cutoff;}
 void freeze_writes(void*p,int value){static_cast<Model*>(p)->s.freeze_writes=value;}
 void clear_memory(void*p){auto&s=static_cast<Model*>(p)->s;memset(s.born,0,sizeof(s.born));memset(s.pending_valid,0,sizeof(s.pending_valid));s.used=0;s.recall_slot[0]=s.recall_slot[1]=-1;}
-void reset_context(void*p){auto&m=*static_cast<Model*>(p);memset(&m.composition.stream,0,sizeof(m.composition.stream));m.laces=LaceState{};auto&s=m.s;
+void reset_context(void*p){auto&m=*static_cast<Model*>(p);
+#ifdef SHOEBOX_LEARNED_COMPLETION
+constituent_resize(m,0);
+#endif
+memset(&m.composition.stream,0,sizeof(m.composition.stream));m.laces=LaceState{};auto&s=m.s;
  memset(m.learned.memory,0,sizeof(m.learned.memory));memset(m.learned.eligibility_a,0,sizeof(m.learned.eligibility_a));memset(m.learned.eligibility_b,0,sizeof(m.learned.eligibility_b));memset(m.learned.records,0,sizeof(m.learned.records));
  memset(s.hist,0,sizeof(s.hist));memset(s.mem,0,sizeof(s.mem));memset(s.u,0,sizeof(s.u));memset(s.h,0,sizeof(s.h));memset(s.pred,0,sizeof(s.pred));
  memset(s.valid,0,sizeof(s.valid));memset(s.pending,0,sizeof(s.pending));memset(s.pending_valid,0,sizeof(s.pending_valid));memset(s.key_trace,0,sizeof(s.key_trace));

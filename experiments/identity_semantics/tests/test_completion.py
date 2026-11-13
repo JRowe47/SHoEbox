@@ -1,4 +1,4 @@
-"""Completed role frames, recursive code Jacobians and version-33 lifecycle."""
+"""Completed role frames, recursive code Jacobians and version-34 lifecycle."""
 import ctypes as ct
 import subprocess,sys,tempfile,unittest
 from pathlib import Path
@@ -14,10 +14,11 @@ class CompletionTests(unittest.TestCase):
   subprocess.run(['g++','-O2','-march=native','-std=c++17',f'-DSHOEBOX_EXPERTS={core.E}','-shared','-fPIC',str(ROOT/'tests/completion_fixture.cpp'),'-o',str(path)],check=True)
   cls.fx=ct.CDLL(str(path));p=ct.c_void_p;i=ct.c_int;f=ct.c_float;l=ct.c_int64
   signatures=dict(completion_fixture_chain=[p,i,f,i,p,p],completion_fixture_update=[p,p,f],
+   completion_fixture_grow=[p,p],completion_fixture_update_grown=[p],
    completion_fixture_gate=[p,i,f],completion_fixture_source=[p,i,i,l,l],completion_fixture_seed_frame=[p,i],
    completion_fixture_prepare=[p,i,i,i,p],completion_fixture_erase_patterns=[p],message_fixture_weights=[p],
    semantic_fixture_weight=[p,i,i,i,f],relay_fixture_forward=[p,i,i],relay_fixture_schedule=[p,i],
-   relay_fixture_teach=[p,i,p,i,f,i],relay_fixture_public_output=[p,i,f])
+   completion_fixture_clock_case=[p,i,p],relay_fixture_teach=[p,i,p,i,f,i],relay_fixture_public_output=[p,i,f])
   for name,args in signatures.items():getattr(cls.fx,name).argtypes=args
   cls.text=np.frombuffer(b'The king walked across the street. '*120,np.uint8)
  def make(self,**policy):
@@ -149,4 +150,49 @@ class CompletionTests(unittest.TestCase):
   np.testing.assert_array_equal(a.flat,b.flat);np.testing.assert_array_equal(a.semantic_parameters(),b.semantic_parameters())
   before=b.semantic_parameters();self.fx.relay_fixture_teach(b.handle,11,target.ctypes.data,6,.03,1);np.testing.assert_array_equal(before,b.semantic_parameters())
 
-if __name__=='__main__':unittest.main()
+ def test_primary_clock_ignores_side_coverage_but_respects_real_gaps(self):
+  for overlap in (0,1,2,3):
+   with self.subTest(overlap=overlap):
+    m=self.make();result=np.zeros(7,np.float64)
+    self.fx.completion_fixture_clock_case(m.handle,overlap,result.ctypes.data)
+    self.assertEqual(result[0],1.0)
+    self.assertEqual(result[1],16)
+    self.assertEqual(result[4],int(overlap>=2))
+    self.assertEqual(result[6],1 if overlap>=2 else 2)
+    if overlap==1:
+     self.assertEqual(result[2],0)
+     self.assertEqual(result[3],16)
+ def test_primary_clocks_propagate_from_atoms_through_the_whole_graph(self):
+  m=self.make();m.run(self.text,mode='periodic');m.finish_document(mode='periodic')
+  events=m.content_events();clocks=m.completion_clocks()
+  for region,event in events.items():
+   with self.subTest(region=region):
+    self.assertGreater(event['seq'],0)
+    begin,end=clocks[region];covered_begin,covered_end=event['span']
+    self.assertLess(begin,end)
+    self.assertLessEqual(covered_begin,begin)
+    self.assertLessEqual(end,covered_end)
+  self.assertEqual(clocks['A1'],events['A1']['span'])
+  self.assertEqual(clocks['B1'],events['B1']['span'])
+  self.assertEqual(clocks['L2'],events['L2']['span'])
+ def test_live_semantic_pool_grows_and_resumes_without_pruning_or_work_cutoff(self):
+  m=self.make();result=np.zeros(4,np.uint64)
+  self.fx.completion_fixture_grow(m.handle,result.ctypes.data)
+  self.assertEqual(tuple(result),(32768,1,16416,0))
+  self.assertEqual(m.completion_capacity(),32768)
+  for metrics in m.completion_metrics().values():
+   self.assertEqual(metrics['expired_semantic_handles'],0)
+   self.assertEqual(metrics['semantic_budget_omissions'],0)
+  with tempfile.TemporaryDirectory() as tmp:
+   path=Path(tmp)/'grown.npz';m.save(path);n=Model.load(path);self.addCleanup(n.close)
+   self.assertEqual(n.completion_capacity(),32768)
+   self.assertEqual(m.fingerprint(),n.fingerprint())
+   for model in (m,n):self.fx.completion_fixture_update_grown(model.handle)
+   np.testing.assert_array_equal(m.semantic_parameters(),n.semantic_parameters())
+   self.assertEqual(m.fingerprint(),n.fingerprint())
+   malformed=m.composition_state()[:-1]
+   with self.assertRaises(ValueError):n.import_composition(malformed)
+   n.reset();self.assertEqual(n.completion_capacity(),16384)
+   self.assertTrue(all(event['seq']==0 for event in n.content_events().values()))
+
+if __name__=='__main__':unittest.main(verbosity=2)

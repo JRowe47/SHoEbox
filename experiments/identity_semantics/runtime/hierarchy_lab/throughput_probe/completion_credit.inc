@@ -1,10 +1,25 @@
 inline int content_coord(int,int);
 inline float content_sign(int,int);
+inline int constituent_capacity(const Model&m){return SEM_RING+int(m.semantic_overflow.size());}
+inline ConstituentRecord& constituent_slot(Model&m,int index){
+  return index<SEM_RING?m.composition.stream.semantic_records[index]:m.semantic_overflow[index-SEM_RING];
+}
+inline uint64_t& constituent_mark(Model&m,int index){
+  return index<SEM_RING?m.semantic_mark[index]:m.semantic_overflow_mark[index-SEM_RING];
+}
+inline float* constituent_gradient(Model&m,int index){
+  return index<SEM_RING?m.semantic_gradient[index]:m.semantic_overflow_gradient[index-SEM_RING].data();
+}
+inline void constituent_resize(Model&m,size_t overflow){
+  m.semantic_overflow.resize(overflow);m.semantic_overflow_mark.resize(overflow);
+  m.semantic_overflow_gradient.resize(overflow);
+  m.composition.stream.reserved=uint32_t(overflow);
+}
 inline int constituent_coord(const Model&m,int slot,int j){return slot<0?content_coord(j,-100-slot):m.perm[slot*D+j];}
 inline float constituent_sign(const Model&m,int slot,int j){return slot<0?content_sign(j,-100-slot):m.signs[slot*D+j];}
 inline ConstituentRecord* constituent_record(Model&m,SemanticRef ref){
-  if(!ref.serial||ref.region<2||ref.region>=N||ref.index<0||ref.index>=SEM_RING)return nullptr;
-  auto&node=m.composition.stream.semantic_records[ref.index];
+  if(!ref.serial||ref.region<2||ref.region>=N||ref.index<0||ref.index>=constituent_capacity(m))return nullptr;
+  auto&node=constituent_slot(m,ref.index);
   return node.ref.serial==ref.serial?&node:nullptr;
 }
 // A saved composition is a small DAG: multiple roles may use the same source.
@@ -14,26 +29,25 @@ inline void constituent_update(Model&m,SemanticRef root,const float*gradient,flo
   if(!root.serial||rate==0)return;
   auto&stream=m.composition.stream;
   uint64_t mark=++m.semantic_work_serial;
-  SemanticRef work[SEM_WORK];int count=0;
+  std::vector<SemanticRef> work;work.reserve(SEM_RING);
   auto admit=[&](SemanticRef ref){
     if(!ref.serial)return;
     if(!constituent_record(m,ref)){stream.completion_metrics[receiver][1]++;return;}
-    if(m.semantic_mark[ref.index]==mark)return;
-    if(count==SEM_WORK){stream.completion_metrics[receiver][2]++;return;}
-    m.semantic_mark[ref.index]=mark;
-    memset(m.semantic_gradient[ref.index],0,D*sizeof(float));
-    work[count++]=ref;
+    if(constituent_mark(m,ref.index)==mark)return;
+    constituent_mark(m,ref.index)=mark;
+    memset(constituent_gradient(m,ref.index),0,D*sizeof(float));
+    work.push_back(ref);
   };
-  admit(root);if(!count)return;
-  for(int i=0;i<count;i++){
+  admit(root);if(work.empty())return;
+  for(size_t i=0;i<work.size();i++){
     auto*node=constituent_record(m,work[i]);
     for(int e=0;e<node->count;e++)admit(node->edges[e].source);
   }
-  std::sort(work,work+count,[](SemanticRef a,SemanticRef b){return a.serial>b.serial;});
-  memcpy(m.semantic_gradient[root.index],gradient,D*sizeof(float));
-  for(int i=0;i<count;i++){
+  std::sort(work.begin(),work.end(),[](SemanticRef a,SemanticRef b){return a.serial>b.serial;});
+  memcpy(constituent_gradient(m,root.index),gradient,D*sizeof(float));
+  for(size_t i=0;i<work.size();i++){
     auto ref=work[i];auto&node=*constituent_record(m,ref);int r=ref.region;
-    float*incoming=m.semantic_gradient[ref.index];float local[D];
+    float*incoming=constituent_gradient(m,ref.index);float local[D];
     double norm2=0;float gate_gradient=0;
     for(int j=0;j<D;j++){
       local[j]=incoming[j]*node.derivative[j];
@@ -51,8 +65,8 @@ inline void constituent_update(Model&m,SemanticRef root,const float*gradient,flo
     if(r!=receiver){stream.message_metrics[r][0]++;stream.message_metrics[r][1]+=std::sqrt(norm2);}
     for(int e=0;e<node.count;e++){
       const auto&edge=node.edges[e];auto child=edge.source;
-      if(!child.serial||!constituent_record(m,child)||m.semantic_mark[child.index]!=mark)continue;
-      float*out=m.semantic_gradient[child.index];
+      if(!child.serial||!constituent_record(m,child)||constituent_mark(m,child.index)!=mark)continue;
+      float*out=constituent_gradient(m,child.index);
       for(int j=0;j<D;j++)out[constituent_coord(m,edge.slot,j)]+=edge.weight*constituent_sign(m,edge.slot,j)*node.payload_derivative[j]*local[j];
     }
   }

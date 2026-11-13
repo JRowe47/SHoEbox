@@ -1,5 +1,24 @@
 # SHoEbox handoff
 
+## 2026-11-13 - current reference defaults and primary clocks
+
+The canonical entry point is `from shoebox_reference import fresh_model`.
+`fresh_model()` selects completion with all compatible implemented features
+and full temporal credit. The completion/content branch is included alongside
+all earlier published repairs. Throughput is secondary to implementing the
+reference design, as recorded in `AGENTS.md`.
+
+Primary clocks are separate from all-source coverage throughout atoms,
+sequences, role bindings and relays. The confidence-1.0 held-context regression
+is covered, including genuine gap/overlap controls. New checkpoints use version
+34 / ABI 8. The converter accepts version 31, 32 and 33 at a fresh boundary.
+Effective capabilities and unsupported legacy controls are explicit. A longer
+repeated-pattern stress exposed fixed-pool semantic pruning; the reference pool
+now grows, retains live ancestry and checkpoints its overflow records.
+
+[Current review and verification](experiments/identity_semantics/deliverables/SHoEbox_Reference_Defaults.md).
+The dated entries below describe historical states, not current defaults.
+
 ## 2026-11-13 - separated regional contribution checks
 
 The fourth repair is complete in `experiments/identity_semantics`. Production

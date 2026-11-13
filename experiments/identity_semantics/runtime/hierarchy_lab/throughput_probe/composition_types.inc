@@ -29,7 +29,7 @@ struct ContentEvent {
   float code[D]{},context[D]{};
 #ifdef SHOEBOX_LEARNED_COMPLETION
   SemanticRef semantic{};
-  int64_t clock_begin=0,clock_end=0;
+  int64_t clock_begin=0,clock_end=0; // Primary occurrences only; ref spans cover all roles.
   int context_count=0;
   LaceParent context_edges[COMP_MAX]{};
 #endif
@@ -96,7 +96,7 @@ struct CompositionStream {
 };
 struct CompositionRuntime {
 #ifdef SHOEBOX_LEARNED_COMPLETION
-  uint32_t version=7,enabled=1;
+  uint32_t version=8,enabled=1; // Recursive primary clocks and appended live semantic overflow.
 #elif defined(SHOEBOX_LEARNED_MESSAGES)
   uint32_t version=6,enabled=1;
 #elif defined(SHOEBOX_PRESERVE_RELAYS)

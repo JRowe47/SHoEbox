@@ -26,6 +26,16 @@ inline ContentEvent binding_compose(Model&m,int r,const ContentEvent*children,in
 #endif
   out.ref.begin=children[0].ref.begin;out.ref.end=children[0].ref.end;
   for(int i=1;i<n;i++){out.ref.begin=std::min(out.ref.begin,children[i].ref.begin);out.ref.end=std::max(out.ref.end,children[i].ref.end);}
+#ifdef SHOEBOX_LEARNED_COMPLETION
+  // Fusion coverage and the primary occurrence clock are separate channels.
+  // Source roles can be listed newest-first; order by occurrence, not slot.
+  int driver=int(m.slots[4*m.starts[r]]),first=-1,last=-1;
+  for(int i=0;i<n;i++)if(int(m.slots[4*children[i].ref.role])==driver){
+    if(first<0||children[i].ref.seq<children[first].ref.seq)first=i;
+    if(last<0||children[i].ref.seq>children[last].ref.seq)last=i;
+  }
+  if(first>=0){out.clock_begin=children[first].clock_begin;out.clock_end=children[last].clock_end;}
+#endif
   ContentID id{content_mix(uint64_t(r)+0x62696e64),content_mix(0x726f6c657631)};
   float squared=0;
   for(int k=m.starts[r];k<m.starts[r+1];k++)if(!m.slots[4*k+2])squared+=m.slots[4*k+3]*m.slots[4*k+3];
