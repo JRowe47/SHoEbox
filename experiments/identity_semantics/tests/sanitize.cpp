@@ -50,6 +50,15 @@ int main(int argc,char**argv){
   uint64_t content_updates=0;
   for(int r=0;r<N;r++){assert(m.content_expert_metrics[r][5]==0);content_updates+=m.content_expert_metrics[r][1];}
   assert(content_updates>0);
+  std::vector<uint64_t>events(N*13),primary(N*65),coverage(N*65),lengths(N*9),recognized(N*9),updates(N*2);
+  acceptance_status(p,events.data(),primary.data(),coverage.data(),lengths.data(),recognized.data(),updates.data());
+  for(int r=0;r<N;r++){
+    uint64_t pc=0,cc=0;for(int i=0;i<65;i++){pc+=primary[r*65+i];cc+=coverage[r*65+i];}
+    assert(pc==events[r*13]&&cc==pc);
+    assert(events[r*13+9]==0&&events[r*13+10]==0&&events[r*13+11]==0);
+    assert(lengths[r*9]==0&&recognized[r*9]==0);
+  }
+  acceptance_reset(p);assert(m.acceptance.events[0][0]==0);
 #endif
   assert(composition_import(p,saved.data(),saved.size(),0));
 #ifdef SHOEBOX_LEARNED_COMPLETION

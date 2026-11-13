@@ -56,6 +56,9 @@ class LocalCreditTests(unittest.TestCase):
         pending=np.zeros(2,np.uint64);self.fx.local_fixture_pending(m.handle,pending.ctypes.data)
         np.testing.assert_array_equal(pending,0)
         self.assertTrue(all(v['missing_producers']==0 for v in metrics.values()))
+        observed=m.acceptance_metrics()
+        self.assertEqual(sum(v['language_dfa_update_calls'] for v in observed.values()),0)
+        self.assertGreater(sum(v['local_update_calls'] for v in observed.values()),0)
         after=m.flat.copy();self.teach(m);np.testing.assert_array_equal(after,m.flat)
 
     def test_derivatives_match_finite_difference_before_any_mutation(self):

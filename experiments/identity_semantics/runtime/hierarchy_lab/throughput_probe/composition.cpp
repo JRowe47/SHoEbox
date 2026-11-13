@@ -110,6 +110,7 @@ struct UtilityRuntime {
 #ifdef SHOEBOX_LEARNED_COMPLETION
 #include "pattern_types.inc"
 #include "paired_memory_types.inc"
+#include "acceptance_types.inc"
 struct RetainedNeural {
   LaceRecord lace{};
   InputCredit input{};
@@ -199,6 +200,9 @@ struct Model {
   // Derived layout only: no new model parameters or checkpoint state.
   alignas(64) float transposed_keys[N][D][E];
   float cached_read[2][D]{};bool cached_read_valid[2]{};
+#ifdef SHOEBOX_LEARNED_COMPLETION
+  AcceptanceObservations acceptance;
+#endif
 #ifdef SHOEBOX_CONTRIBUTION_CHECKS
   // Append-only diagnostic fields: the production Model prefix is unchanged.
   int contribution_kind=0,contribution_region=-1;
@@ -366,6 +370,9 @@ inline void expert_update(Model&m,int r,const float*g,float rate,LaceRecord*reco
   LaceRecord*v=record?record:current_lace(m,r);
   if(v&&v->expert<0)return;
   if(!valid_bottom_publication(m,r,v)){m.learned.metrics[r][2]++;return;}
+#ifdef SHOEBOX_LEARNED_COMPLETION
+  m.acceptance.expert_update_calls[r][teaching]++;
+#endif
   if(m.utility_observe){double z=0;for(int j=0;j<D;j++)z+=double(g[j])*g[j];
     m.utility_metrics[r][0]+=std::sqrt(z);m.utility_metrics[r][1]++;}
   learn_bottom_state(m,r,v,g,rate);
@@ -812,11 +819,15 @@ static void router_scores(Model&m,int r,const float*input,const int*indices,int 
 #endif
 }
 #include "composition_events.inc"
+#ifdef SHOEBOX_LEARNED_COMPLETION
+#include "acceptance_api.inc"
+#endif
 extern "C" {
 void* create(float*p,float*em,float*fb,float*sl,int*st,int*pe,float*si,int*fp,float*fs,int*ca,int head){return new Model(p,em,fb,sl,st,pe,si,fp,fs,ca,head);}
 void destroy(void*p){delete static_cast<Model*>(p);}
 void reset(void*p){auto&m=*static_cast<Model*>(p);
 #ifdef SHOEBOX_LEARNED_COMPLETION
+m.acceptance=AcceptanceObservations{};
 paired_clear(m);
 constituent_resize(m,0);
 for(auto&archive:m.neural_archive)archive.clear();
@@ -856,6 +867,7 @@ paired_clear(m);
 }
 void reset_context(void*p){auto&m=*static_cast<Model*>(p);
 #ifdef SHOEBOX_LEARNED_COMPLETION
+m.acceptance=AcceptanceObservations{};
 paired_reset_stream(m);memset(m.s.return_birth,0,sizeof(m.s.return_birth));
 constituent_resize(m,0);
 for(auto&archive:m.neural_archive)archive.clear();

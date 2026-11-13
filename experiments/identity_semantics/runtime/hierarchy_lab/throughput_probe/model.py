@@ -146,6 +146,32 @@ class Model(parent.Model):
         if not hasattr(self.lib,'completion_capacity'):return 0
         self.lib.completion_capacity.argtypes=[ct.c_void_p];self.lib.completion_capacity.restype=ct.c_size_t
         return int(self.lib.completion_capacity(self.handle))
+    def acceptance_metrics(self):
+        """Publication distributions and objective calls since reset/import.
+
+        These observations do not enter checkpoints or fingerprints. Span bin 0
+        is zero; bin b>0 is [2**(b-1), 2**b-1]. Temporal lengths count local
+        frames in L2-G5, excluding relays and EC/Y source-role arity.
+        """
+        if not hasattr(self.lib,'acceptance_status'):return {}
+        arrays=[np.zeros((18,n),np.uint64) for n in (13,65,65,9,9,2)]
+        self.lib.acceptance_status.argtypes=[ct.c_void_p]*7
+        self.lib.acceptance_status(self.handle,*(a.ctypes.data for a in arrays))
+        names=('publications','primary_span_sum','primary_span_max','coverage_span_sum',
+               'coverage_span_max','formed','recognized','provisional','relays',
+               'invalid_primary_spans','invalid_coverage_spans','primary_outside_coverage','unclocked_fusions')
+        return {name:{**dict(zip(names,map(int,arrays[0][r]))),
+                      'primary_span_histogram':arrays[1][r].tolist(),
+                      'coverage_span_histogram':arrays[2][r].tolist(),
+                      'sequence_length_histogram':arrays[3][r].tolist(),
+                      'recognized_sequence_length_histogram':arrays[4][r].tolist(),
+                      'language_dfa_update_calls':int(arrays[5][r,0]),
+                      'local_update_calls':int(arrays[5][r,1])}
+                for r,name in enumerate(core.NAMES)}
+    def reset_acceptance_metrics(self):
+        if not hasattr(self.lib,'acceptance_reset'):raise ValueError('Completion kernel required')
+        self.lib.acceptance_reset.argtypes=[ct.c_void_p]
+        self.lib.acceptance_reset(self.handle)
     def neural_state(self):
         if not hasattr(self.lib,'neural_state_size'):return np.zeros(0,np.uint8)
         self.lib.neural_state_size.argtypes=[ct.c_void_p];self.lib.neural_state_size.restype=ct.c_size_t
@@ -288,6 +314,7 @@ class Model(parent.Model):
                 relay_provenance=self.runtime_kernel in RELAY_KERNELS and self.composition['enabled'],
                 learned_completion=completion,primary_occurrence_clock=completion,
                 retained_neural_producers=completion,
+                acceptance_observations=completion,
                 local_neural_prediction_credit=completion and self.local_credit and self.lace['depth']>0,
                 expert_constituent_content=completion and self.content_experts,
                 reusable_pattern_classes=completion and self.pattern_classes,

@@ -112,6 +112,56 @@ recognition behavior. Run `src/validate_pattern_classes.py` for the matched cost
 frozen class-removal intervention and held-out generation checks. See
 [the fourth-fix report](deliverables/SHoEbox_Pattern_Classes.md).
 
+### Reference acceptance (sixth fix)
+
+From the repository root:
+
+```bash
+python experiments/identity_semantics/src/run_reference_acceptance.py
+```
+
+This runs a fresh 4,096-target reference workload, the full package regression
+suite and ASan/UBSan. The workload gates live neural/content/semantic/feedback
+ownership; independent language/DFA and local credit deliveries; all 18 regions;
+primary-clock hierarchy growth; class reuse/promotions/prediction; and paired
+memory admission, recall and utility. Isolated native tests enforce the actual
+causal weight changes, derivatives, unrelated-expert isolation, held producers,
+role/order distinctions and asynchronous memory identity.
+Hierarchy growth follows the actual repeated primary-source roles in the model's
+recipe, including E4 -> G5. An unrelated wider side-source span is not a required
+ordering relationship.
+
+`acceptance_metrics()` reports primary and coverage sums/maxima and 65-bin
+histograms: bin zero is zero length; bin b>0 covers [2**(b-1), 2**b-1] bytes.
+EC/Y may publish partial startup fusions before their designated primary source
+exists; these are explicit `unclocked_fusions` in primary bin zero, excluded
+from primary-span means. Zero or invalid clocks elsewhere fail acceptance.
+Local sequence histograms index frame counts 1-8 for L2-G5, excluding relays.
+A multi-source binding alone counts as one temporal frame. Recognized formed
+publications and inherited relay recognition are distinct. EC/Y source arity
+does not count as temporal completion. These read-only observations and eligible
+expert-update call counts restart on reset, snapshot load/import, or explicit
+`reset_acceptance_metrics()`. They are excluded from learned state, fingerprints
+and checkpoints; v39 / ABI 10 and historical continuation remain unchanged.
+Existing delivery counters retain their existing stream/checkpoint scopes.
+
+The gate evaluates content-expert removal at L3/F4/G5, G5 feedback removal,
+class removal and paired recall suppression on copies of the same fitted model.
+Cold/warm frozen memory is explicit. Channel controls preserve complete event
+hashes, now including primary clocks. Nonzero downstream effects are required
+on the fixed probes; the sign of NLL change is reported, never assumed positive.
+Zero held-out recall is reported as unexercised, with a separate familiar-cue
+probe required to exercise recall. Two unseen generation prompts use fixed
+sampling seeds and must reproduce exactly in production and diagnostic kernels.
+The source model, fitted weights/dictionaries and frozen episodic store cannot
+change during evaluation.
+
+Results are written with an explicit overall status, including failures.
+`--mechanisms-only` skips regressions/sanitizers and is labelled partial, never
+complete acceptance. `reference_smoke.py` uses the same counter and hierarchy
+contracts; it remains a timing/mechanism smoke rather than the complete gate.
+All checks are reproducible without external corpora or saved test models.
+
 ### Paired content/context episodic memory (fifth fix)
 
 Fresh reference models use a single native episode store shared by EC-C and EC-X.

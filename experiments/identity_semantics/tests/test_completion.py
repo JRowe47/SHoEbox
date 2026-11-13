@@ -88,9 +88,9 @@ class CompletionTests(unittest.TestCase):
   self.assertEqual(self.prepare(m,drain=1)[0],0)
  def test_hierarchy_spans_and_publication_rates(self):
   m=self.make();m.run(self.text,mode='periodic');m.finish_document(mode='periodic')
-  metrics=m.composition_metrics();means={r:v['span_sum']/max(v['published'],1) for r,v in metrics.items()}
-  self.assertLess(means['L2'],means['L3']);self.assertLess(means['L3'],means['F4']);self.assertLess(means['F4'],means['G5'])
-  self.assertGreater(metrics['L2']['published'],metrics['L3']['published']);self.assertGreater(metrics['L3']['published'],metrics['F4']['published'])
+  sys.path.insert(0,str(ROOT/'src'));from reference_acceptance import collect,check_hierarchy
+  metrics=m.composition_metrics();observed=collect(m)
+  check_hierarchy(observed['acceptance'],observed['primary_edges'])
   for v in m.completion_metrics().values():self.assertEqual(v['expired_semantic_handles'],0);self.assertEqual(v['semantic_capacity_prunes'],0);self.assertEqual(v['semantic_budget_omissions'],0)
   for v in m.relay_teaching_status().values():self.assertEqual(v['expired_producers'],0);self.assertEqual(v['duplicate_schedules'],0)
   before={k:v['published'] for k,v in metrics.items()};m.finish_document(mode='periodic')

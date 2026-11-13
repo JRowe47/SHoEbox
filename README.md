@@ -44,7 +44,16 @@ policy unless explicitly upgraded.
 Version-33/34 completion checkpoints require explicit fresh-stream conversion;
 versions 31 and 32 retain their original kernels when loaded.
 
+Reference acceptance now checks credit loss and activity separately for local
+prediction and language/DFA teaching. Publication diagnostics report primary
+span distributions, all-source coverage, local sequence lengths and recognition.
+Run `python experiments/identity_semantics/src/run_reference_acceptance.py` for
+the complete gate: native regressions, sanitizers, exact continuation, matched
+frozen contributions and held-out generation checks. Failed or skipped checks
+cannot produce an overall passing status. Checkpoints remain v39 / ABI 10.
+
 [Current implementation and usage](experiments/identity_semantics/README.md) |
+[Acceptance contract](experiments/identity_semantics/deliverables/SHoEbox_Reference_Acceptance.md) |
 [Paired episodic memory](experiments/identity_semantics/deliverables/SHoEbox_Paired_Episodic_Memory.md) |
 [Reusable pattern classes](experiments/identity_semantics/deliverables/SHoEbox_Pattern_Classes.md) |
 [Constituent expert repair](experiments/identity_semantics/deliverables/SHoEbox_Constituent_Experts.md) |

@@ -96,6 +96,9 @@ inline ContentEvent content_compose(Model&m,int r,const ContentEvent*children,in
   }
   return out;
 }
+#ifdef SHOEBOX_LEARNED_COMPLETION
+#include "acceptance_events.inc"
+#endif
 inline void content_publish(Model&m,int r,ContentEvent event,bool relay=false){
   auto&z=m.composition.stream;event.ref.seq=z.history[r][0].ref.seq+1;
   event.ref.tick=m.s.tick;event.ref.index=m.laces.cursor[r];
@@ -115,6 +118,7 @@ inline void content_publish(Model&m,int r,ContentEvent event,bool relay=false){
   auto&d=z.metrics[r];d[1]++;d[2]+=formed;d[3]+=formed&&event.ref.recognized;
   d[4]+=formed&&!event.ref.recognized;d[7]+=event.ref.end-event.ref.begin;
 #ifdef SHOEBOX_LEARNED_COMPLETION
+  acceptance_publish(m,r,event,relay,formed);
   if(m.pattern.enabled){
     auto&metric=m.pattern.metrics[r];metric[13]+=std::max<int64_t>(0,event.clock_end-event.clock_begin);
     if(!relay&&event.kind==1&&event.count>1){metric[12]++;metric[14]+=event.count;}

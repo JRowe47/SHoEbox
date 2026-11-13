@@ -23,6 +23,9 @@ inline void contribution_event(Model&m,int r,const ContentEvent&e){
     add(x.tick);add(x.region);add(x.role);add(x.recognized);add(x.index);};
   ref(e.ref);ref(e.origin);add(e.count);add(e.kind);add(e.local_arity);add(e.relayed);
   add(e.present_mask);add(e.fresh_mask);
+#ifdef SHOEBOX_LEARNED_COMPLETION
+  add(e.clock_begin);add(e.clock_end);
+#endif
   for(int i=0;i<e.count;i++)ref(e.children[i]);
   m.contribution_hashes[r]=h;
 }

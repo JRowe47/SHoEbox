@@ -60,6 +60,7 @@ int composition_import(void*p,const void*in,size_t size,int fitted){
     for(size_t i=0;i<overflow;i++)if(extra[i].ref.serial&&extra[i].encoder>1)return 0;
   }
   auto&m=*static_cast<Model*>(p);constituent_resize(m,overflow);
+  m.acceptance=AcceptanceObservations{};
   m.content_records.clear();memset(m.content_expert_metrics,0,sizeof(m.content_expert_metrics));
   pattern_reset_stream(m);
   memcpy(&target,in,fitted?size:sizeof(CompositionRuntime));

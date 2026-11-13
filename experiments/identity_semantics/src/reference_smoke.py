@@ -13,6 +13,7 @@ import numpy as np
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / 'runtime'))
 from runtime import fresh_model
+from reference_acceptance import collect, check_training
 
 
 def main():
@@ -59,33 +60,9 @@ def main():
             args.output.parent.mkdir(parents=True, exist_ok=True)
             args.output.write_text(json.dumps(result, indent=2, allow_nan=False) + '\n')
             if kernel == 'completion':
-                row.update(capabilities=model.capabilities(), completion=model.completion_metrics(),
-                           teaching=model.relay_teaching_status(), clocks=model.completion_clocks(),
-                           lace=model.lace_metrics(), messages=model.message_metrics(), neural=model.neural_metrics(),
-                           local_credit=model.local_credit_metrics(), content_experts=model.content_expert_metrics(),
-                           pattern_classes=model.pattern_metrics())
+                row.update(collect(model), clocks=model.completion_clocks())
                 args.output.write_text(json.dumps(result, indent=2, allow_nan=False) + '\n')
-                for metrics in row['lace'].values():
-                    assert metrics['missing_parent'] == metrics['overwritten_credit'] == 0
-                for metrics in row['messages'].values():
-                    assert metrics['missing_feedback_producers'] == 0
-                for metrics in row['neural'].values():
-                    assert metrics['missing_live_dependencies'] == 0
-                for metrics in row['content_experts'].values():
-                    assert metrics['missing_producers'] == 0
-                assert sum(v['updates'] for v in row['content_experts'].values()) > 0
-                assert sum(v['reused'] for v in row['pattern_classes'].values()) > 0
-                assert sum(v['promoted'] for v in row['pattern_classes'].values()) > 0
-                for metrics in row['local_credit'].values():
-                    assert metrics['missing_producers'] == 0
-                assert sum(v['neural_updates'] for v in row['local_credit'].values()) > 0
-                assert sum(v['feedback_deliveries'] for v in row['local_credit'].values()) > 0
-                for metrics in row['composition'].values():
-                    assert metrics['expired_input_edges'] == metrics['overwritten_input_credit'] == 0
-                for metrics in row['completion'].values():
-                    assert all(metrics[k] == 0 for k in ('expired_semantic_handles', 'semantic_budget_omissions', 'semantic_capacity_prunes'))
-                for metrics in row['teaching'].values():
-                    assert metrics['expired_producers'] == metrics['duplicate_schedules'] == 0
+                row['acceptance_contracts'] = check_training(row)
                 snapshot = model.snapshot_copy()
                 try:
                     assert snapshot.fingerprint() == model.fingerprint()
