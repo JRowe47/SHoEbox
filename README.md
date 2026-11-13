@@ -1,6 +1,38 @@
 # SHoEbox
 
-## Current scalable online CPU runtime
+## Current composition and credit runtime
+
+The repaired native runtime is in
+[experiments/composition_repair](experiments/composition_repair/README.md).
+It separates reusable constituent identities from compute experts and contextual
+state, learns completion boundaries, consumes each child event once, and assigns
+credit through the upper regions' retained input. Checkpoint version 28 includes
+the constituent dictionaries, pending events and temporal credit state.
+
+Two matched fresh 1M-parameter models, each trained on 1M Tiny Shakespeare byte
+targets, reduce mean held-out loss from **2.060284 to 2.035142 nats/byte**.
+Same-core interleaved timing measures **22,564 -> 17,098 training bytes/s**:
+1.22% lower loss at 24.2% lower throughput. The 19 structural and numerical checks,
+address/undefined-behavior checks, and clean-build exact-resume check pass.
+Removing L3 hurts prediction substantially more after repair; E4/G5 still show
+little contribution after this short run.
+
+```bash
+cd experiments/composition_repair
+python -m pip install -r requirements.txt
+python -m unittest discover -s tests -v
+python tests/run_sanitizer.py
+```
+
+This implementation uses width 64 and uniform expert banks. The 1.02M, 4.99M and
+100.20M configurations build and run; the full matched language comparisons use
+the 1.02M model. The directory includes tested source, fixed initialization
+fixtures, raw measurements, the [report](experiments/composition_repair/deliverables/SHoEbox_Composition_Repair_Report.md)
+and [PDF](experiments/composition_repair/deliverables/SHoEbox_Composition_Repair_Report.pdf).
+Corpus and checkpoint restoration instructions and checksums accompany it.
+Legacy weights require explicit conversion to the new message semantics.
+
+## Earlier width-scaling runtime
 
 The width-aware native runtime and matched 25M-byte comparison are in
 [experiments/scaling_cpu](experiments/scaling_cpu/README.md). It supports widths
@@ -172,5 +204,6 @@ The completed **100,000-byte CPU continuation** averages **61.54 training bytes/
 at B50/T32. Held-out NLL falls **4.434 -> 3.269**, remaining at unigram level
 (3.256 baseline; greedy predictions are spaces). See
 [training results and checkpoint audit](docs/cpu_training_results.json).
+
 
 

@@ -1,0 +1,140 @@
+{
+  "mean_nll": {
+    "Original": 2.0602843517684803,
+    "Repaired": 2.0351424393071085
+  },
+  "nll_improvement": 0.025141912461371874,
+  "relative_nll_improvement": 1.2203127417723132,
+  "throughput": {
+    "core": 0,
+    "targets_per_trial": 32768,
+    "trials": [
+      {
+        "iteration": 0,
+        "kernel": "native",
+        "seconds": 1.5226612309998018,
+        "bytes_s": 21520.216928675625,
+        "nll": 2.0457814578987588
+      },
+      {
+        "iteration": 0,
+        "kernel": "composition",
+        "seconds": 1.8431421120039886,
+        "bytes_s": 17778.336128608345,
+        "nll": 1.9967171298834105
+      },
+      {
+        "iteration": 1,
+        "kernel": "composition",
+        "seconds": 1.8355596369947307,
+        "bytes_s": 17851.776286413333,
+        "nll": 1.9967171298834105
+      },
+      {
+        "iteration": 1,
+        "kernel": "native",
+        "seconds": 1.4542097209996427,
+        "bytes_s": 22533.20104164539,
+        "nll": 2.0457814578987588
+      },
+      {
+        "iteration": 2,
+        "kernel": "native",
+        "seconds": 1.443917507000151,
+        "bytes_s": 22693.817230651926,
+        "nll": 2.0457814578987588
+      },
+      {
+        "iteration": 2,
+        "kernel": "composition",
+        "seconds": 2.2349845909993746,
+        "bytes_s": 14661.398620805601,
+        "nll": 1.9967171298834105
+      },
+      {
+        "iteration": 3,
+        "kernel": "composition",
+        "seconds": 2.012669283001742,
+        "bytes_s": 16280.866547100595,
+        "nll": 1.9967171298834105
+      },
+      {
+        "iteration": 3,
+        "kernel": "native",
+        "seconds": 1.4541300450000563,
+        "bytes_s": 22534.43570103713,
+        "nll": 2.0457814578987588
+      },
+      {
+        "iteration": 4,
+        "kernel": "native",
+        "seconds": 1.425560874005896,
+        "bytes_s": 22986.04051044156,
+        "nll": 2.0457814578987588
+      },
+      {
+        "iteration": 4,
+        "kernel": "composition",
+        "seconds": 1.920609421998961,
+        "bytes_s": 17061.25130110797,
+        "nll": 1.9967171298834105
+      },
+      {
+        "iteration": 5,
+        "kernel": "composition",
+        "seconds": 1.9124786850006785,
+        "bytes_s": 17133.785728957482,
+        "nll": 1.9967171298834105
+      },
+      {
+        "iteration": 5,
+        "kernel": "native",
+        "seconds": 1.4503139549997286,
+        "bytes_s": 22593.72867994374,
+        "nll": 2.0457814578987588
+      }
+    ],
+    "timing_includes": "native forward and all training updates",
+    "timing_excludes": "loading, snapshots, compilation, evaluation, reporting",
+    "checkpoints": [
+      "results/native_seed1/last.npz",
+      "results/delivery_composition_seed1/last.npz"
+    ],
+    "checkpoint_sha256": [
+      "655b4578885b9f373f912fc9532cb8f6bced2576aac6525f629c704de44fabe7",
+      "ebfa402a32975ff005cc6f892f3368e65d14fb02f80be13796fb27561c75dd8e"
+    ],
+    "binary_sha256": {
+      "native": "80b5d1c5c9ba291e8634db4aad3f4170cef7d367d0410e2574d4bbaedf7274bf",
+      "composition": "d93db9416bba2ca77bcef5e5a26234f1e214723b5368362bd1d0a0c99ac09f75"
+    },
+    "median_bytes_s": {
+      "native": 22564.082190490437,
+      "composition": 17097.518515032727
+    },
+    "throughput_ratio": 0.7577316183610794,
+    "extra_seconds_per_million": 14.169797881833553
+  },
+  "neural_parameters": 1023744,
+  "composition_bytes": 3101800,
+  "tests_passed": 19,
+  "retained_input_credit_received": 8277023.0,
+  "retained_input_credit_forwarded": 8046714.0,
+  "expired_retained_input_edges": 0.0,
+  "overwritten_retained_input_credit": 0.0,
+  "ordinary_source_lookup_misses": 867683.0,
+  "lesion_deltas": {
+    "Original": {
+      "mean_Y": 0.0893917493888039,
+      "remove_L3": 0.06970548543842714,
+      "remove_E4": 0.0004179501005503461,
+      "remove_G5": -0.00015922571979132272
+    },
+    "Repaired": {
+      "mean_Y": 0.1567417073422761,
+      "remove_L3": 0.3814756756906297,
+      "remove_E4": -6.7167621655706e-06,
+      "remove_G5": -1.6071924604510457e-06
+    }
+  }
+}

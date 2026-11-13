@@ -1,0 +1,61 @@
+extern "C" {
+int composition_configure(void*p,int enabled,float threshold,int count,int maximum,float context){
+  if((enabled!=0&&enabled!=1)||!std::isfinite(threshold)||threshold<=0||threshold>=1||count<1||count>1000000||maximum<2||maximum>COMP_MAX||!std::isfinite(context)||context<0||context>1)return 0;
+  auto&z=static_cast<Model*>(p)->composition;
+  z.enabled=enabled;z.boundary_threshold=threshold;z.min_count=count;z.max_children=maximum;z.context_gain=context;return 1;
+}
+size_t composition_state_size(){return sizeof(CompositionRuntime);}
+size_t composition_fitted_size(){return offsetof(CompositionRuntime,stream);}
+void composition_export(void*p,void*out){memcpy(out,&static_cast<Model*>(p)->composition,sizeof(CompositionRuntime));}
+int composition_import(void*p,const void*in,size_t size,int fitted){
+  if(size!=(fitted?offsetof(CompositionRuntime,stream):sizeof(CompositionRuntime)))return 0;
+  const auto*z=static_cast<const CompositionRuntime*>(in);
+  if(z->version!=2||z->enabled>1||!std::isfinite(z->boundary_threshold)||z->boundary_threshold<=0||z->boundary_threshold>=1||z->min_count<1||z->min_count>1000000||z->max_children<2||z->max_children>COMP_MAX||!std::isfinite(z->context_gain)||z->context_gain<0||z->context_gain>1)return 0;
+  auto&target=static_cast<Model*>(p)->composition;
+  memcpy(&target,in,size);if(fitted)memset(&target.stream,0,sizeof(target.stream));return 1;
+}
+void composition_metrics(void*p,double*out){memcpy(out,static_cast<Model*>(p)->composition.stream.metrics,sizeof(CompositionStream::metrics));}
+void composition_events(void*p,uint64_t*out,float*code){
+  auto&z=static_cast<Model*>(p)->composition.stream;
+  for(int r=0;r<N;r++){
+    const auto&e=z.history[r][0];uint64_t*row=out+r*(12+COMP_MAX*9);
+    row[0]=e.ref.seq;row[1]=e.ref.id.a;row[2]=e.ref.id.b;row[3]=e.ref.begin;row[4]=e.ref.end;
+    row[5]=e.ref.tick;row[6]=e.count;row[7]=e.ref.recognized;row[8]=e.kind;row[9]=z.length[r];row[10]=z.seen[r];row[11]=z.byte_position;
+    for(int i=0;i<COMP_MAX;i++){const auto&c=e.children[i];uint64_t*v=row+12+9*i;
+      v[0]=c.id.a;v[1]=c.id.b;v[2]=c.seq;v[3]=c.begin;v[4]=c.end;v[5]=c.tick;v[6]=c.region;v[7]=c.role;v[8]=c.recognized;}
+    memcpy(code+r*D,e.code,D*sizeof(float));
+  }
+}
+int composition_finish(void*p,int mode,float lr,float lp,float route){
+  auto&m=*static_cast<Model*>(p);if(!m.composition.enabled)return 1;
+  if(mode<0||mode>6||mode==5)return 0;
+  auto&z=m.composition.stream;z.draining=1;unsigned char byte=0;float unused=0;
+  int passes=0;
+  for(;passes<2*N+2;passes++){
+    bool pending=false;
+    for(int r=2;r<=14;r++){
+      int driver=int(m.slots[4*m.starts[r]]);
+      if((m.s.ablation==1&&driver>=2&&driver!=17)||(m.s.ablation>=10&&driver==m.s.ablation-10)){z.length[r]=0;z.seen[r]=z.history[driver][0].ref.seq;continue;}
+      pending|=z.length[r]>0||z.seen[r]!=z.history[driver][0].ref.seq;
+    }
+    if(!pending)break;
+    run(p,&byte,&byte,1,mode,lr,lp,route,0,&unused);
+  }
+  if(mode)for(int i=0;i<LACE_DEPTH+1;i++)for(int r=N-1;r>=0;r--)flush_credit(m,r,lr);
+  z.draining=0;return passes<2*N+2;
+}
+void composition_credit_probe(void*p,int region,const float*gradient,int input_only,int depth){
+  auto&m=*static_cast<Model*>(p);if(region<0||region>=N||depth<0||depth>=LACE_DEPTH)return;
+  auto*v=current_lace(m,region);if(!v)return;
+  if(input_only)deliver_input_credit(m,region,*v,gradient,depth);else distribute_credit(m,region,*v,gradient,depth);
+}
+void composition_credit_snapshot(void*p,int r,double*out){
+  auto&m=*static_cast<Model*>(p);if(r<0||r>=N)return;
+  for(int a=0;a<LACE_RING;a++){
+    int index=(m.laces.cursor[r]-a)&(LACE_RING-1);auto&v=m.laces.records[r][index];auto&t=m.composition.stream.input[r][index];
+    double*row=out+a*(8+2*D);row[0]=v.tick;row[1]=t.previous_tick;row[2]=t.retention;row[3]=v.nparents;
+    row[4]=t.uses[0];row[5]=v.uses[0];row[6]=v.expert;row[7]=t.tick;
+    for(int j=0;j<D;j++){row[8+j]=t.gradient[0][j];row[8+D+j]=v.credit[0][j];}
+  }
+}
+}

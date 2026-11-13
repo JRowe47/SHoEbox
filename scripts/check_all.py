@@ -32,6 +32,13 @@ def main():
         cwd=ROOT / 'experiments' / 'scaling_cpu', env=env)
     if result.returncode:
         return result.returncode
+    env = dict(os.environ, SHOEBOX_EXPERTS='12',
+               OPENBLAS_NUM_THREADS='1', OMP_NUM_THREADS='1')
+    result = subprocess.run(
+        [sys.executable, '-m', 'unittest', 'discover', '-s', 'tests', '-v'],
+        cwd=ROOT / 'experiments' / 'composition_repair', env=env)
+    if result.returncode:
+        return result.returncode
     if args.legacy:
         return subprocess.run([sys.executable, 'scripts/check_legacy.py'], cwd=ROOT).returncode
     return 0
@@ -39,5 +46,6 @@ def main():
 
 if __name__ == '__main__':
     raise SystemExit(main())
+
 
 

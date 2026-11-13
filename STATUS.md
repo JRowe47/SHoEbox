@@ -1,5 +1,35 @@
 # SHoEbox handoff
 
+## 2026-11-13 - composition and retained-input credit repair published
+
+The current composition runtime is in `experiments/composition_repair/`.
+It introduces independent stable constituent identities, learned update/hold/
+completion events, ordered child provenance and spans, separate content and
+context, and the previously absent upper-region retained-input credit path.
+Error-driven teaching multipliers now scale router updates together with expert
+updates. Transparent singleton relays preserve the actual neural producer and
+do not consume neural eligibility slots. EC memory cues use constituent content.
+
+All 19 checks pass, including alignment/context invariance, new combinations of
+familiar constituents, numerical retained-input Jacobians, exact checkpoint
+resume, and disabled-repair parity. AddressSanitizer and UndefinedBehaviorSanitizer
+pass. The full two-seed 1M-parameter/1M-byte comparison improves mean held-out NLL
+from 2.060284 to 2.035142; interleaved single-core training measures 22,564 versus
+17,098 bytes/s. The final trace records no expired retained-input edges, while
+ordinary source eligibility remains bounded and its misses remain counted.
+
+L3's causal contribution increases; E4 and G5 remain weak after this short run.
+The 5M and 100,198,144-parameter configurations pass smoke checks, without full
+matched language training. Width is 64 with uniform banks. Version-28 checkpoints
+use composition-state ABI 2. The conversion script imports compatible legacy
+weights into fresh constituent, working-context and hippocampal state.
+
+The repository carries source, fixed fixtures, tests, reports, measurements and
+artifact hashes. The downloadable repair archive contains the four trained
+comparison checkpoints and exact corpus. See the
+[runtime README](experiments/composition_repair/README.md) for restoration and use.
+The repair suite is now included in `scripts/check_all.py` and the existing CI.
+
 ## 2026-11-10 - width scaling and matched 25M comparison published
 
 `experiments/scaling_cpu/` now contains the width-64/128/256 native runtime,
@@ -762,5 +792,6 @@ python scripts/check_all.py
 
 The archive includes runnable source, corpus, parent, selected/final checkpoints,
 optimizer/runtime/credit states, complete logs, causal query traces and hashes.
+
 
 
