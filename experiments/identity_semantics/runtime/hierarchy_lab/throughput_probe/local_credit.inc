@@ -76,6 +76,7 @@ inline void local_distribute(Model&m,int r,LaceRecord&v,const float*g,int depth,
 inline void local_prediction_update(Model&m,int r,LaceRecord&v,const float*g,float rate){
   const float issuer_scale=m.teaching_scale[r][1];
   if(rate==0||issuer_scale==0||m.frozen_region[r])return;
+  ContentCreditScope content_scope(m);
   m.local_credit_metrics[r][0]++;
   LocalCredit work;float upstream[D];
   for(int j=0;j<D;j++)upstream[j]=issuer_scale*g[j];

@@ -11,6 +11,7 @@ Payload gain is 1, feedback activation/routing are 0.1, semantic LR multiplier
 is 1, and neural lace depth is 3. Learned bottom state, task routing, EMA/revival,
 retained-input credit and both EC recall channels remain enabled. Local prediction
 errors now propagate to causal neural producers by default, independently of DFA.
+Constituent-only expert encoding is also enabled by default.
 
 `model.capabilities()` reports the effective feature switches and unavailable
 historical experiments. `port_mode`, `port_gain` and `balance` are not implemented
@@ -36,18 +37,31 @@ An upper expert executes when its unit completes. Frame admission and semantic
 encoding run independently before that commitment. Y still executes every byte.
 The next-content teacher consumes the next completed target exactly once.
 
-The exported code now recursively depends on child learned content:
+The exported code recursively depends on child learned content and its own
+content-selected regional expert. This is a separate pass through the existing
+W/bias/keys banks, before the recurrent expert's execution:
 
 ```text
 payload = tanh(normalized role transforms of (child.code - child.structure))
 gain = payload_gain * (1 + 0.5 * tanh(regional_gate_parameter))
-code = structure + 0.25 * tanh(local_adapter * structural_features + gain * payload)
+x = structure + gain * payload
+expert, runner = top_two(keys @ masked(x))
+response_gate = 2 * sigmoid((score[expert] - score[runner]) / temperature)
+code = structure + 0.25 * tanh(local_adapter * structural_features
+                               + gain * payload + bias[expert]
+                               + response_gate * W[expert] @ x)
 ```
 
 Sequence composition uses distinct temporal transforms; source binding uses the
 original recipe transforms and weights. Exact IDs and structural descriptors
 remain independent of neural values and surrounding recurrent context. The
 payload is part of the exported code and is not added a second time to input.
+Content routing uses no recurrent state, feedback, usage-count pressure or running
+mean. With task router gain disabled the response gate is one. Byte atoms and
+transparent identity relays keep their existing content semantics; each actual
+encoding (including bound-frame admission) saves its own selected expert, input,
+residual, mask and gate derivatives. Expert selection does not redefine the exact
+content ID or introduce a learned pattern-class identity.
 
 Each encoding saves its actual dependencies and derivatives. The pool starts
 with 16,384 semantic records and is collected from live histories, pending frames
@@ -74,11 +88,18 @@ of a bottom expert while its original generation is still retained.
 retained-input edges, and on overwritten outstanding credit.
 
 This repair adds no learned parameters: **1,031,952 parameters** at 12 experts.
-Version **36 / composition ABI 9** checkpoints the complete owned archive as well
-as pending frames, gates, semantic dependencies, recent eligibility and the local
-neural-credit policy. Version 35 remains exactly loadable with its old local
-teaching behavior. Enable the repair explicitly on an older loaded model with
-`model.configure_local_credit(True)`; subsequent saves retain that choice. Version
+Version **37 / composition ABI 10** checkpoints the complete owned archive, pending
+frames, gates, semantic dependencies, recent eligibility, local neural-credit
+policy and content-expert policy/eligibility. The sidecar follows semantic record
+lifetimes and pool growth; missing or mismatched content records are rejected.
+Versions 35 and 36 remain exactly loadable, preserving their old content behavior;
+version 35 additionally preserves its old local-teaching behavior. The explicit
+v9 importer changes the ABI header and clears a formerly unused padding field,
+without discarding or reinterpreting events. Enable either repair explicitly on
+an older loaded model with `model.configure_local_credit(True)` and/or
+`model.configure_content_experts(True)`; subsequent saves retain those choices.
+Existing saved constituents retain their original encoder and credit semantics.
+Version
 33/34 completion checkpoints require explicit fresh-stream conversion; expired
 records in an old snapshot cannot be reconstructed. Versions 31 and 32 remain
 exactly loadable with their original kernels. Conversion preserves fitted
@@ -108,6 +129,20 @@ diagnostics reset on stream reset/load and do not change checkpoint state.
 The smoke check requires local neural updates, feedback deliveries and zero
 missing local producers. See [the local-credit report](deliverables/SHoEbox_Local_Prediction_Credit.md)
 and [the preceding retention repair](deliverables/SHoEbox_Neural_Producer_Retention.md).
+
+Content credit follows the saved output derivative through the selected transform
+and routing margin into child payloads, including repeated roles. Adapter and
+payload-gate derivatives include the new branch. Shared expert-bank gradients
+are accumulated until the enclosing semantic/local reverse pass has computed
+its derivatives, so a producer update cannot alter a later derivative in the
+same pass. Frozen nodes still transmit child derivatives. Task/local teaching
+scales and semantic learning rate remain in force. This uses saved online lace
+eligibility and the current pre-update expert Jacobian, not unrolled BPTT.
+
+`content_expert_metrics()` reports encodes, task/local updates, router updates and
+missing producers. The `content_expert` diagnostic mutes only the constituent
+transform; `expert_transform` still targets recurrent context execution.
+See [the constituent-expert report](deliverables/SHoEbox_Constituent_Experts.md).
 
 The earlier completion kernel implements the completion/content mechanisms. The matched 50,000-target
 smoke comparison, including throughput and task contributions, is documented in

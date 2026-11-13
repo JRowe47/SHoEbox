@@ -107,7 +107,7 @@ class CompletionTests(unittest.TestCase):
   m=self.make();m.run(self.text[:500],mode='periodic');a=m.evaluation_copy();b=m.evaluation_copy(diagnostic=True)
   self.addCleanup(a.close);self.addCleanup(b.close)
   np.testing.assert_array_equal(a.run(self.text[:800],logits=True)[1],b.run(self.text[:800],logits=True)[1]);base=b.contribution_metrics()
-  for kind in ('expert_transform','semantic_payload','semantic_residual'):
+  for kind in ('expert_transform','semantic_payload','semantic_residual','content_expert'):
    c=m.evaluation_copy(diagnostic=True)
    try:
     c.configure_contribution(kind,'S3');c.run(self.text[:800]);self.assertEqual([v['event_hash'] for v in base.values()],[v['event_hash'] for v in c.contribution_metrics().values()])

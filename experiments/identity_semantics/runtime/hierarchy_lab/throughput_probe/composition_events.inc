@@ -9,6 +9,7 @@ inline ContentID content_pair(ContentID a,ContentID b,uint64_t role){
 #include "semantics_events.inc"
 #endif
 #ifdef SHOEBOX_LEARNED_COMPLETION
+#include "content_expert_encoding.inc"
 #include "completion_encoding.inc"
 #endif
 inline int content_coord(int j,int position){return (j+11*position+7)&63;}

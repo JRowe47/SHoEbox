@@ -5,6 +5,7 @@
 #include <cstring>
 #include <algorithm>
 #include <cstdint>
+#include <cstddef>
 #include <array>
 #include <vector>
 #include <map>
@@ -132,6 +133,13 @@ struct Model {
   bool local_neural_credit=true;
   // Read-only per-objective diagnostics, not recurrent/checkpoint state.
   uint64_t local_credit_metrics[N][8]{};
+  bool content_experts=true;
+  std::vector<ContentExpertRecord> content_records;
+  // Scoped, transient accumulation keeps every shared-bank Jacobian ahead of
+  // parameter mutation, including a local objective's multiple semantic roots.
+  int content_credit_depth=0;
+  std::map<std::pair<int,int>,ContentExpertGradient> content_gradients;
+  uint64_t content_expert_metrics[N][6]{}; // encodes, updates, local, task, routes, missing
 #endif
 #ifdef SHOEBOX_LEARNED_MESSAGES
   // Payload, feedback activation, feedback routing, semantic learning scale.
@@ -204,6 +212,7 @@ struct Model {
     for(int r=0;r<N;r++)for(int t=0;t<2;t++)teaching_scale[r][t]=1.f;
     for(int r=0;r<N;r++)regional_gain[r]=1.f;
     W=p;p+=N*E*D*D;bias=p;p+=N*E*D;keys=p;p+=N*E*D;P=p;p+=N*D*D;pbias=p;p+=N*D;readout=p;p+=V*2*D;rbias=p;
+    refresh_keys(); // Content encoding can precede the first recurrent run.
   }
 };
 #ifdef SHOEBOX_CONTRIBUTION_CHECKS
@@ -296,6 +305,7 @@ inline void learn_bottom_state(Model&,int,LaceRecord*,const float*,float);
 inline void bottom_task_update(Model&,int,LaceRecord&,const float*,float);
 inline float norm(const float*x){float z=1.f;for(int i=0;i<D;i++)z+=x[i]*x[i];return z;}
 #ifdef SHOEBOX_LEARNED_COMPLETION
+#include "content_expert_credit.inc"
 #include "completion_credit.inc"
 #endif
 #ifdef SHOEBOX_LEARNED_MESSAGES
@@ -341,6 +351,9 @@ inline void expert_update(Model&m,int r,const float*g,float rate,LaceRecord*reco
   if(m.frozen_region[r])return;
   rate*=m.teaching_scale[r][teaching];
   if(rate==0)return;
+#ifdef SHOEBOX_LEARNED_COMPLETION
+  ContentCreditScope content_scope(m);
+#endif
   State&s=m.s;
   LaceRecord*v=record?record:current_lace(m,r);
   if(v&&v->expert<0)return;
@@ -791,6 +804,7 @@ constituent_resize(m,0);
 for(auto&archive:m.neural_archive)archive.clear();
 memset(m.neural_metrics,0,sizeof(m.neural_metrics));
 memset(m.local_credit_metrics,0,sizeof(m.local_credit_metrics));
+m.content_records.clear();memset(m.content_expert_metrics,0,sizeof(m.content_expert_metrics));
 #endif
 memset(&m.composition.stream,0,sizeof(m.composition.stream));m.laces=LaceState{};auto&s=m.s;memset(&s,0,sizeof(s));s.rng=7131587;s.recall_slot[0]=s.recall_slot[1]=-1;initialize_learned(m);}
 size_t state_size(){return sizeof(State);}
@@ -819,6 +833,7 @@ constituent_resize(m,0);
 for(auto&archive:m.neural_archive)archive.clear();
 memset(m.neural_metrics,0,sizeof(m.neural_metrics));
 memset(m.local_credit_metrics,0,sizeof(m.local_credit_metrics));
+m.content_records.clear();memset(m.content_expert_metrics,0,sizeof(m.content_expert_metrics));
 #endif
 memset(&m.composition.stream,0,sizeof(m.composition.stream));m.laces=LaceState{};auto&s=m.s;
  memset(m.learned.memory,0,sizeof(m.learned.memory));memset(m.learned.eligibility_a,0,sizeof(m.learned.eligibility_a));memset(m.learned.eligibility_b,0,sizeof(m.learned.eligibility_b));memset(m.learned.records,0,sizeof(m.learned.records));

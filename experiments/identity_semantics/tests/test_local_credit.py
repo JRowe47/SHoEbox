@@ -27,6 +27,7 @@ class LocalCreditTests(unittest.TestCase):
 
     def make(self,depth=2,repeated=1,relay=0):
         m=fresh_model(seed=7);self.addCleanup(m.close)
+        m.configure_content_experts(False) # Isolate the original neural-credit derivative.
         self.fx.local_fixture_setup(m.handle,depth,repeated,relay)
         # The controlled native fixture sets these policies; mirror them in
         # checkpoint metadata exactly as a normal constructor would.
@@ -150,7 +151,10 @@ class LocalCreditTests(unittest.TestCase):
             with np.load(path,allow_pickle=False) as saved:arrays={k:saved[k].copy() for k in saved.files}
             arrays.pop('local_credit_policy');np.savez_compressed(path,**arrays)
             with self.assertRaisesRegex(ValueError,'local-credit policy'):Model.load(path)
-            arrays['version'][0]=35;np.savez_compressed(path,**arrays)
+            arrays['version'][0]=35
+            arrays['composition_state'][:4]=np.array([9],np.uint32).view(np.uint8)
+            arrays.pop('content_expert_policy');arrays.pop('content_expert_state')
+            np.savez_compressed(path,**arrays)
             old=Model.load(path);self.addCleanup(old.close);self.assertFalse(old.local_credit)
             baseline=m.snapshot_copy();self.addCleanup(baseline.close);baseline.configure_local_credit(False)
             self.teach(old);self.teach(baseline);self.assertEqual(old.fingerprint(),baseline.fingerprint())

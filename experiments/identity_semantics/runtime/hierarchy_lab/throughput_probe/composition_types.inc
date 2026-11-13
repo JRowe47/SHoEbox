@@ -96,7 +96,7 @@ struct CompositionStream {
 };
 struct CompositionRuntime {
 #ifdef SHOEBOX_LEARNED_COMPLETION
-  uint32_t version=9,enabled=1; // Primary clocks plus separately checkpointed neural ownership.
+  uint32_t version=10,enabled=1; // Explicit content encoder tags; v9 live import is lossless.
 #elif defined(SHOEBOX_LEARNED_MESSAGES)
   uint32_t version=6,enabled=1;
 #elif defined(SHOEBOX_PRESERVE_RELAYS)

@@ -26,12 +26,17 @@ longer completed units do not lose ancestry to the old fixed pool limit. Neural 
 need them, retaining their input, routing and bottom-state eligibility. Local
 prediction errors now teach causal child experts, retained-input dependencies
 and feedback producers using their own local objective and learning rate.
-New checkpoints are version 36 / composition ABI 9. Version-35 checkpoints
-retain their previous local-teaching policy unless explicitly upgraded.
+Exported constituents now use a separate expert pass over their own structural
+and learned child content. It shares the existing regional banks, excludes
+recurrent state and feedback, and saves its own routing and credit eligibility.
+New checkpoints are version 37 / composition ABI 10. Versions 35/36 preserve
+their previous content behavior; version 35 also retains its old local-teaching
+policy unless explicitly upgraded.
 Version-33/34 completion checkpoints require explicit fresh-stream conversion;
 versions 31 and 32 retain their original kernels when loaded.
 
 [Current implementation and usage](experiments/identity_semantics/README.md) |
+[Constituent expert repair](experiments/identity_semantics/deliverables/SHoEbox_Constituent_Experts.md) |
 [Local prediction credit repair](experiments/identity_semantics/deliverables/SHoEbox_Local_Prediction_Credit.md).
 The sections below record earlier studies; their historical recommendations do
 not override the current default.

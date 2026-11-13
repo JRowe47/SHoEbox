@@ -31,16 +31,26 @@ int main(int argc,char**argv){
   float utility[8]{1,1,1,1,1,.001f,0,0};utility_configure(p,utility);
 #endif
 #ifdef SHOEBOX_LEARNED_COMPLETION
-  constexpr int length=4096; // Plus the forced >16K live-DAG lifecycle below.
+  constexpr int length=1024; // Cache wraps plus the forced >16K live-DAG lifecycle below.
 #else
   constexpr int length=10000;
 #endif
   std::vector<unsigned char>x(length),y(length);for(int i=0;i<length;i++){x[i]=i%19<12?"abcdefghijkl"[i%12]:i%256;y[i]=x[i];}
+  std::cerr<<"Training "<<length<<" bytes\n";
   float out=0;double loss=run(p,x.data(),y.data(),x.size(),6,.012,.004,.002,0,&out);assert(std::isfinite(loss));
   assert(composition_finish(p,6,.012,.004,.002));
+  std::cerr<<"Training/drain passed; round-trip state\n";
   std::vector<unsigned char>saved(composition_state_size(p));composition_export(p,saved.data());
+  #ifdef SHOEBOX_LEARNED_COMPLETION
+  std::vector<unsigned char>content(content_expert_state_size(p));content_expert_export(p,content.data());
+  uint64_t content_updates=0;
+  for(int r=0;r<N;r++){assert(m.content_expert_metrics[r][5]==0);content_updates+=m.content_expert_metrics[r][1];}
+  assert(content_updates>0);
+#endif
   assert(composition_import(p,saved.data(),saved.size(),0));
 #ifdef SHOEBOX_LEARNED_COMPLETION
+  assert(content_expert_import(p,content.data(),content.size()));
+  assert(!content_expert_import(p,content.data(),content.size()-1));
   for(int r=0;r<N;r++){
     assert(m.laces.metrics[r][3]==0&&m.laces.metrics[r][11]==0);
     assert(m.composition.stream.message_metrics[r][3]==0);
@@ -56,6 +66,7 @@ int main(int argc,char**argv){
   assert(!neural_import(p,neural.data(),neural.size()-1));
   reset_context(p);
   for(auto&archive:m.neural_archive)assert(archive.empty());
+  std::cerr<<"Growing live constituent DAG\n";
   ContentEvent child{};child.ref.region=3;semantic_encode(m,3,child);
   constituent_encode(m,3,child,nullptr,0,false);m.composition.stream.history[3][0]=child;
   for(int i=0;i<SEM_RING+31;i++){
@@ -64,13 +75,18 @@ int main(int argc,char**argv){
     m.composition.stream.history[3][0]=child;
   }
   assert(constituent_capacity(m)>SEM_RING);
+  std::cerr<<"Growth passed; credit and checkpoint continuation\n";
   float gradient[D];for(float&g:gradient)g=.1f;
   constituent_update(m,child.semantic,gradient,.01f,3);
   saved.resize(composition_state_size(p));composition_export(p,saved.data());
+  content.resize(content_expert_state_size(p));content_expert_export(p,content.data());
   reset_context(p);assert(composition_import(p,saved.data(),saved.size(),0));
+  assert(content_expert_import(p,content.data(),content.size()));
   assert(constituent_record(m,m.composition.stream.history[3][0].semantic));
   constituent_update(m,m.composition.stream.history[3][0].semantic,gradient,.01f,3);
+  assert(m.content_expert_metrics[3][1]>SEM_RING&&m.content_expert_metrics[3][5]==0);
 #endif
+  std::cerr<<"Evaluating after reset\n";
   reset_context(p);loss=run(p,x.data(),y.data(),x.size(),0,0,0,0,0,&out);assert(std::isfinite(loss));
   destroy(p);std::cout<<"ASan/UBSan passed; train/eval/drain/reset/export/import (including semantic pool growth in completion); loss "<<loss<<"\n";
 }

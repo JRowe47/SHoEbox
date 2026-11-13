@@ -23,8 +23,10 @@ inline int constituent_allocate(Model&m,int r,const ContentEvent*parts,int n){
   for(size_t i=0;i<work.size();i++){
     auto&node=*constituent_record(m,work[i]);for(int k=0;k<node.count;k++)add(node.edges[k].source);
   }
-  for(int k=0;k<capacity;k++)
-    if(constituent_mark(m,k)!=mark)constituent_slot(m,k).ref=SemanticRef{};
+  for(int k=0;k<capacity;k++)if(constituent_mark(m,k)!=mark){
+    constituent_slot(m,k).ref=SemanticRef{};
+    if(size_t(k)<m.content_records.size())m.content_records[k].ref=SemanticRef{};
+  }
   for(int k=0;k<capacity;k++){
     int index=(start+k)%capacity;
     if(constituent_mark(m,index)!=mark){s.semantic_cursor=index+1;return index;}
@@ -36,6 +38,7 @@ inline int constituent_allocate(Model&m,int r,const ContentEvent*parts,int n){
 inline void constituent_encode(Model&m,int r,ContentEvent&out,const ContentEvent*parts,int n,bool binding){
   auto&s=m.composition.stream;int index=constituent_allocate(m,r,parts,n);
   auto&node=constituent_slot(m,index);node=ConstituentRecord{};
+  if(size_t(index)<m.content_records.size())m.content_records[index]=ContentExpertRecord{};
   node.ref={++s.semantic_serial,r,index};out.semantic=node.ref;
   memcpy(node.features,out.symbol_features,sizeof(node.features));
   float squared=0,raw[D]{};
@@ -57,10 +60,18 @@ inline void constituent_encode(Model&m,int r,ContentEvent&out,const ContentEvent
 #ifdef SHOEBOX_CONTRIBUTION_CHECKS
   muted=contribution_selected(m,CHECK_SEMANTIC,r);
 #endif
+  float expert[D]{};for(int j=0;j<D;j++)node.payload[j]=std::tanh(raw[j]);
+  bool encode=m.content_experts;
+#ifdef SHOEBOX_CONTRIBUTION_CHECKS
+  if(contribution_apply(m,CHECK_CONTENT_EXPERT,r))encode=false;
+#endif
+  if(encode)content_expert_encode(m,r,node,out.structure,gain,expert);
   for(int j=0;j<D;j++){
-    float payload=std::tanh(raw[j]),value=0;
+    float payload=node.payload[j],value=0;
     for(int k=0;k<8;k++)value+=m.composition.symbols[r-2][j][k]*node.features[k];
-    float residual=muted?0:std::tanh(value+gain*payload);
+    float pre=value+gain*payload;
+    if(encode)pre+=expert[j]; // Keep historical floating-point order when disabled.
+    float residual=muted?0:std::tanh(pre);
     out.code[j]=out.structure[j]+.25f*residual;
     node.derivative[j]=out.symbol_derivative[j]=muted?0:.25f*(1-residual*residual);
     node.payload[j]=payload;node.payload_derivative[j]=gain*(1-payload*payload);

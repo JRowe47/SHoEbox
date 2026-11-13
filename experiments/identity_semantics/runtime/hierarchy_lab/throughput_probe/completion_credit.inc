@@ -27,6 +27,7 @@ inline ConstituentRecord* constituent_record(Model&m,SemanticRef ref){
 // order is topological, including a sequence of locally encoded bound frames.
 inline void constituent_update(Model&m,SemanticRef root,const float*gradient,float rate,int receiver,int teaching=0){
   if(!root.serial||rate==0)return;
+  ContentCreditScope content_scope(m);
   auto&stream=m.composition.stream;
   uint64_t mark=++m.semantic_work_serial;
   std::vector<SemanticRef> work;work.reserve(SEM_RING);
@@ -47,12 +48,19 @@ inline void constituent_update(Model&m,SemanticRef root,const float*gradient,flo
   memcpy(constituent_gradient(m,root.index),gradient,D*sizeof(float));
   for(size_t i=0;i<work.size();i++){
     auto ref=work[i];auto&node=*constituent_record(m,ref);int r=ref.region;
-    float*incoming=constituent_gradient(m,ref.index);float local[D];
+    float*incoming=constituent_gradient(m,ref.index);float local[D],payload_local[D];
     double norm2=0;float gate_gradient=0;
     for(int j=0;j<D;j++){
       local[j]=incoming[j]*node.derivative[j];
-      norm2+=double(local[j])*local[j];gate_gradient+=local[j]*node.payload[j]*node.gain_derivative;
+      norm2+=double(local[j])*local[j];payload_local[j]=local[j];
     }
+    auto*content=content_expert_record(m,ref);
+    if(node.encoder){
+      if(!content){m.content_expert_metrics[r][5]++;continue;}
+      float dx[D];content_expert_derivative(m,*content,local,dx);
+      for(int j=0;j<D;j++)payload_local[j]+=dx[j];
+    }
+    for(int j=0;j<D;j++)gate_gradient+=payload_local[j]*node.payload[j]*node.gain_derivative;
     // Policy affects parameter updates, not the derivative of the saved code.
     if(!m.frozen_region[r]&&(r==receiver||m.teaching_scale[r][teaching]!=0)){
       float scale=rate*(r==receiver?1.f:m.teaching_scale[r][teaching]);
@@ -60,6 +68,7 @@ inline void constituent_update(Model&m,SemanticRef root,const float*gradient,flo
         m.composition.symbols[r-2][j][k]-=scale*local[j]*node.features[k];
       m.composition.payload_gates[r-2]-=scale*gate_gradient;
       m.composition.symbol_updates[r-2]++;
+      if(node.encoder)content_expert_accumulate(m,*content,local,scale,teaching);
     }
     stream.completion_metrics[r][0]++;
     if(r!=receiver){stream.message_metrics[r][0]++;stream.message_metrics[r][1]+=std::sqrt(norm2);}
@@ -67,7 +76,7 @@ inline void constituent_update(Model&m,SemanticRef root,const float*gradient,flo
       const auto&edge=node.edges[e];auto child=edge.source;
       if(!child.serial||!constituent_record(m,child)||constituent_mark(m,child.index)!=mark)continue;
       float*out=constituent_gradient(m,child.index);
-      for(int j=0;j<D;j++)out[constituent_coord(m,edge.slot,j)]+=edge.weight*constituent_sign(m,edge.slot,j)*node.payload_derivative[j]*local[j];
+      for(int j=0;j<D;j++)out[constituent_coord(m,edge.slot,j)]+=edge.weight*constituent_sign(m,edge.slot,j)*node.payload_derivative[j]*payload_local[j];
     }
   }
 }
