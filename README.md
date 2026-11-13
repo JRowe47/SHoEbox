@@ -1,6 +1,43 @@
 # SHoEbox
 
-## Current composition and credit runtime
+## Current multi-source binding and identity/vector runtime
+
+The current tested repair is in
+[experiments/identity_semantics](experiments/identity_semantics/README.md).
+It includes explicit multi-source constituent roles, consistent structural IDs
+and descriptors, and learned regional semantic residuals. Required distinctions
+reach routing and local teaching; exact identities stay separate from context,
+expert selection and learned-vector updates.
+
+Two fresh 1M-model seeds, each trained on one million Tiny Shakespeare byte
+targets, improve mean reserved-test NLL **1.959272 -> 1.946529 nats/byte**
+against the preceding binding runtime. One seed is slightly worse and one
+improves. Same-core median throughput is **6,218 -> 5,284 training bytes/s**
+(15.0% lower), with **1,023,744 -> 1,031,936 parameters** (0.80% more).
+
+```bash
+cd experiments/identity_semantics
+python -m pip install -r requirements.txt
+python -m unittest discover -s tests -v
+python tests/run_semantics_sanitizer.py
+```
+
+Select `fresh_model(kernel="semantics")`, or use `Model.load()` for a version-30
+/ ABI-4 checkpoint. The historical fresh-model default remains `composition`.
+All **62 checks** and ASan/UBSan pass. Data and trained checkpoints have
+[verified restoration instructions](experiments/identity_semantics/README.md#restore-data-and-trained-checkpoints).
+
+[Report](experiments/identity_semantics/deliverables/SHoEbox_Identity_Semantics_Report.md) |
+[PDF](experiments/identity_semantics/deliverables/SHoEbox_Identity_Semantics_Report.pdf) |
+[Curves](experiments/identity_semantics/deliverables/SHoEbox_Identity_Semantics_Curves.png).
+
+Next: preserve pending teaching and recognition through singleton relays, then
+check regional neural contributions with content and relay transport intact.
+The audit narrowed the earlier L3 lesion interpretation: whole-source removal
+measured transport as well as learned computation.
+
+
+## Earlier composition and credit runtime
 
 The repaired native runtime is in
 [experiments/composition_repair](experiments/composition_repair/README.md).
@@ -204,6 +241,7 @@ The completed **100,000-byte CPU continuation** averages **61.54 training bytes/
 at B50/T32. Held-out NLL falls **4.434 -> 3.269**, remaining at unigram level
 (3.256 baseline; greedy predictions are spaces). See
 [training results and checkpoint audit](docs/cpu_training_results.json).
+
 
 
 

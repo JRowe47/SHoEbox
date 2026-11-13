@@ -1,5 +1,39 @@
 # SHoEbox handoff
 
+## 2026-11-12 - multi-source binding and identity/vector repairs published
+
+Current package: `experiments/identity_semantics/`. Select
+`fresh_model(kernel="semantics")`; exact continuation uses `Model.load()`
+with version-30 checkpoints / composition ABI 4. The version-29 binding
+kernel and earlier composition/native comparators remain available.
+
+Every declared immediate source has an explicit constituent role, including
+distinct older/newer occurrences. Exact structural identity, immutable
+descriptors, learned semantic vectors and neural context are separate.
+Sixteen regional 64-by-8 residual matrices add 8,192 coefficients. Updates
+use saved publication features/derivatives for local, task/downstream and
+retained-input credit.
+
+All 62 tests and ASan/UBSan pass. Both binding baselines reproduce the prior
+study's validation and test losses exactly. After one million training bytes
+per model, two-seed reserved-test mean NLL is 1.959272 for binding, 2.023765
+for corrected fixed encoding, and 1.946529 for corrected learned encoding.
+Removing the trained residual worsens NLL by 0.065187 / 0.059476. Matched
+throughput is 6,218 / 6,265 / 5,284 bytes/s; the new model has 1,031,936
+coefficients and 3,317,000 bytes of composition state.
+
+Next: retain pending producer teaching and inherited recognition through
+singleton relays, then check regional neural contribution while preserving
+content and relay traffic. Whole-source L3 removal does not isolate learned
+L3 computation. Joint hippocampal episodes and memory lifecycle policies
+remain separate audit items.
+
+The repository includes source, fixtures, tests, reports and measurements.
+Six trained checkpoints and the exact corpus remain in the downloadable
+archive with verified restoration. `scripts/check_all.py` includes the new
+suite, so it runs through the existing CI workflow.
+
+
 ## 2026-11-13 - composition and retained-input credit repair published
 
 The current composition runtime is in `experiments/composition_repair/`.
@@ -792,6 +826,7 @@ python scripts/check_all.py
 
 The archive includes runnable source, corpus, parent, selected/final checkpoints,
 optimizer/runtime/credit states, complete logs, causal query traces and hashes.
+
 
 
 

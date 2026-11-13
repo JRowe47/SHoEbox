@@ -1,0 +1,210 @@
+{
+  "parent_commit": "6d06d60072c3032ac1ce13ceed04ee8f7d89a4cc",
+  "parameters": 1023744,
+  "mean_test_nll": {
+    "composition": 2.039969541359934,
+    "binding": 1.959271644610233
+  },
+  "relative_nll_reduction_percent": 3.9558383158948662,
+  "throughput": {
+    "core": 0,
+    "trials": [
+      {
+        "kernel": "composition",
+        "trial": 0,
+        "targets": 32768,
+        "seconds": 2.0418567919987254,
+        "bytes_per_second": 16048.138208519598,
+        "loss": 1.9968490739131535
+      },
+      {
+        "kernel": "binding",
+        "trial": 0,
+        "targets": 32768,
+        "seconds": 5.333427047997247,
+        "bytes_per_second": 6143.892042604144,
+        "loss": 1.8728929164500079
+      },
+      {
+        "kernel": "binding",
+        "trial": 1,
+        "targets": 32768,
+        "seconds": 4.995738808000169,
+        "bytes_per_second": 6559.189993585207,
+        "loss": 1.8728929164500079
+      },
+      {
+        "kernel": "composition",
+        "trial": 1,
+        "targets": 32768,
+        "seconds": 2.2012452790004318,
+        "bytes_per_second": 14886.11937642846,
+        "loss": 1.9968490739131535
+      },
+      {
+        "kernel": "composition",
+        "trial": 2,
+        "targets": 32768,
+        "seconds": 2.3958321399986744,
+        "bytes_per_second": 13677.085073254812,
+        "loss": 1.9968490739131535
+      },
+      {
+        "kernel": "binding",
+        "trial": 2,
+        "targets": 32768,
+        "seconds": 7.055235650004761,
+        "bytes_per_second": 4644.4940503125345,
+        "loss": 1.8728929164500079
+      },
+      {
+        "kernel": "binding",
+        "trial": 3,
+        "targets": 32768,
+        "seconds": 7.430745454003045,
+        "bytes_per_second": 4409.786367039047,
+        "loss": 1.8728929164500079
+      },
+      {
+        "kernel": "composition",
+        "trial": 3,
+        "targets": 32768,
+        "seconds": 2.7051134260036633,
+        "bytes_per_second": 12113.355279304886,
+        "loss": 1.9968490739131535
+      },
+      {
+        "kernel": "composition",
+        "trial": 4,
+        "targets": 32768,
+        "seconds": 2.5652959009967162,
+        "bytes_per_second": 12773.575160381448,
+        "loss": 1.9968490739131535
+      },
+      {
+        "kernel": "binding",
+        "trial": 4,
+        "targets": 32768,
+        "seconds": 7.035796837000817,
+        "bytes_per_second": 4657.326065425189,
+        "loss": 1.8728929164500079
+      },
+      {
+        "kernel": "binding",
+        "trial": 5,
+        "targets": 32768,
+        "seconds": 5.50701051899523,
+        "bytes_per_second": 5950.233776923785,
+        "loss": 1.8728929164500079
+      },
+      {
+        "kernel": "composition",
+        "trial": 5,
+        "targets": 32768,
+        "seconds": 2.1936923260000185,
+        "bytes_per_second": 14937.372762637691,
+        "loss": 1.9968490739131535
+      }
+    ],
+    "median_bytes_per_second": {
+      "composition": 14281.602224841636,
+      "binding": 5303.779921174487
+    },
+    "binding_over_baseline_ratio": 0.3713714916348119,
+    "extra_seconds_per_million": 118.52462162984745,
+    "includes": "forward, routing, dictionary/memory updates, neural learning",
+    "excludes": "compilation, snapshots, checkpoint I/O, validation"
+  },
+  "relation_probe": {
+    "parameters": 1023744,
+    "classes": 4,
+    "region": "E4",
+    "task": "Predict ordered pair (S3 bit, R3 bit); all other roles fixed",
+    "labels_leak_into_input": false,
+    "source_only_accuracy_ceiling": 0.5,
+    "train_patterns": 4,
+    "evaluation": "Same relations at held-out absolute alignment; diagnostic linear readout, not a language benchmark",
+    "bound": {
+      "accuracy": 1.0,
+      "nll": 0.009893204134117931
+    },
+    "first_source_only": {
+      "accuracy": 0.5,
+      "nll": 0.6952365642664371
+    },
+    "bound_with_secondary_source_removed": {
+      "accuracy": 0.5,
+      "nll": 2.727313130135756
+    },
+    "alignment_code_max_diff": 0.0
+  },
+  "neural_contribution": [
+    {
+      "seed": 1,
+      "region": "L3",
+      "baseline": 1.9471767290044444,
+      "intervened_nll": 1.9791596595767686,
+      "delta": 0.031982930572324264,
+      "targets": 78771
+    },
+    {
+      "seed": 1,
+      "region": "E4",
+      "baseline": 1.9471767290044444,
+      "intervened_nll": 1.947196675987173,
+      "delta": 1.9946982728669127e-05,
+      "targets": 78771
+    },
+    {
+      "seed": 1,
+      "region": "V4",
+      "baseline": 1.9471767290044444,
+      "intervened_nll": 1.9471878750145104,
+      "delta": 1.1146010066021006e-05,
+      "targets": 78771
+    },
+    {
+      "seed": 1,
+      "region": "G5",
+      "baseline": 1.9471767290044444,
+      "intervened_nll": 1.947481419220987,
+      "delta": 0.00030469021654266903,
+      "targets": 78771
+    },
+    {
+      "seed": 2,
+      "region": "L3",
+      "baseline": 1.971366560215994,
+      "intervened_nll": 2.000193446518235,
+      "delta": 0.028826886302241173,
+      "targets": 78771
+    },
+    {
+      "seed": 2,
+      "region": "E4",
+      "baseline": 1.971366560215994,
+      "intervened_nll": 1.9714090082283642,
+      "delta": 4.244801237018869e-05,
+      "targets": 78771
+    },
+    {
+      "seed": 2,
+      "region": "V4",
+      "baseline": 1.971366560215994,
+      "intervened_nll": 1.971379695774299,
+      "delta": 1.3135558305066297e-05,
+      "targets": 78771
+    },
+    {
+      "seed": 2,
+      "region": "G5",
+      "baseline": 1.971366560215994,
+      "intervened_nll": 1.9715884857488084,
+      "delta": 0.0002219255328144154,
+      "targets": 78771
+    }
+  ],
+  "test_count": 35,
+  "checkpoint_version": 29,
+  "composition_abi": 3
+}

@@ -1,0 +1,367 @@
+{
+  "version": 1,
+  "occurrence_semantics": "Two-occurrence roles use distinct older/newer events; frames may overlap. Held roles are reused explicitly and never counted as fresh at the same role.",
+  "regions": [
+    {
+      "region": "A1",
+      "operation": "atom",
+      "immediate": [],
+      "context": []
+    },
+    {
+      "region": "B1",
+      "operation": "atom",
+      "immediate": [],
+      "context": []
+    },
+    {
+      "region": "L2",
+      "operation": "learned_sequence",
+      "immediate": [
+        {
+          "source": "A1",
+          "occurrences": 2,
+          "relative_width": 4
+        }
+      ],
+      "context": [
+        "L3"
+      ],
+      "operation_note": "A1 temporal grouping is learned and variable-length; the recipe occurrence count describes the inherited port schema, not a mandatory two-item boundary."
+    },
+    {
+      "region": "S2",
+      "operation": "role_binding",
+      "immediate": [
+        {
+          "source": "A1",
+          "occurrences": 1,
+          "relative_width": 4
+        },
+        {
+          "source": "B1",
+          "occurrences": 1,
+          "relative_width": 4
+        }
+      ],
+      "context": [
+        "S3"
+      ]
+    },
+    {
+      "region": "R2",
+      "operation": "role_binding",
+      "immediate": [
+        {
+          "source": "A1",
+          "occurrences": 2,
+          "relative_width": 4
+        },
+        {
+          "source": "B1",
+          "occurrences": 1,
+          "relative_width": 4
+        }
+      ],
+      "context": [
+        "R3"
+      ]
+    },
+    {
+      "region": "F2",
+      "operation": "role_binding",
+      "immediate": [
+        {
+          "source": "B1",
+          "occurrences": 2,
+          "relative_width": 4
+        },
+        {
+          "source": "A1",
+          "occurrences": 1,
+          "relative_width": 2
+        }
+      ],
+      "context": [
+        "F4"
+      ]
+    },
+    {
+      "region": "L3",
+      "operation": "role_binding",
+      "immediate": [
+        {
+          "source": "L2",
+          "occurrences": 2,
+          "relative_width": 4
+        },
+        {
+          "source": "S2",
+          "occurrences": 1,
+          "relative_width": 2
+        }
+      ],
+      "context": [
+        "F3",
+        "EC-C"
+      ]
+    },
+    {
+      "region": "S3",
+      "operation": "role_binding",
+      "immediate": [
+        {
+          "source": "S2",
+          "occurrences": 2,
+          "relative_width": 4
+        },
+        {
+          "source": "L2",
+          "occurrences": 1,
+          "relative_width": 2
+        }
+      ],
+      "context": [
+        "E4",
+        "EC-C"
+      ]
+    },
+    {
+      "region": "R3",
+      "operation": "role_binding",
+      "immediate": [
+        {
+          "source": "R2",
+          "occurrences": 2,
+          "relative_width": 4
+        },
+        {
+          "source": "S2",
+          "occurrences": 1,
+          "relative_width": 4
+        }
+      ],
+      "context": [
+        "F3"
+      ]
+    },
+    {
+      "region": "F3",
+      "operation": "role_binding",
+      "immediate": [
+        {
+          "source": "F2",
+          "occurrences": 2,
+          "relative_width": 4
+        },
+        {
+          "source": "L2",
+          "occurrences": 1,
+          "relative_width": 4
+        },
+        {
+          "source": "R2",
+          "occurrences": 1,
+          "relative_width": 4
+        }
+      ],
+      "context": [
+        "G5",
+        "M4",
+        "EC-X"
+      ]
+    },
+    {
+      "region": "E4",
+      "operation": "role_binding",
+      "immediate": [
+        {
+          "source": "S3",
+          "occurrences": 2,
+          "relative_width": 4
+        },
+        {
+          "source": "R3",
+          "occurrences": 2,
+          "relative_width": 4
+        },
+        {
+          "source": "L3",
+          "occurrences": 1,
+          "relative_width": 4
+        }
+      ],
+      "context": [
+        "G5",
+        "EC-X"
+      ]
+    },
+    {
+      "region": "F4",
+      "operation": "role_binding",
+      "immediate": [
+        {
+          "source": "F3",
+          "occurrences": 2,
+          "relative_width": 4
+        },
+        {
+          "source": "R3",
+          "occurrences": 1,
+          "relative_width": 4
+        },
+        {
+          "source": "L3",
+          "occurrences": 1,
+          "relative_width": 4
+        }
+      ],
+      "context": [
+        "G5",
+        "M4"
+      ]
+    },
+    {
+      "region": "V4",
+      "operation": "role_binding",
+      "immediate": [
+        {
+          "source": "S3",
+          "occurrences": 2,
+          "relative_width": 4
+        },
+        {
+          "source": "F3",
+          "occurrences": 1,
+          "relative_width": 4
+        },
+        {
+          "source": "B1",
+          "occurrences": 1,
+          "relative_width": 2
+        }
+      ],
+      "context": [
+        "G5"
+      ]
+    },
+    {
+      "region": "M4",
+      "operation": "role_binding",
+      "immediate": [
+        {
+          "source": "R3",
+          "occurrences": 1,
+          "relative_width": 4
+        },
+        {
+          "source": "F3",
+          "occurrences": 1,
+          "relative_width": 4
+        },
+        {
+          "source": "B1",
+          "occurrences": 1,
+          "relative_width": 2
+        }
+      ],
+      "context": [
+        "F4"
+      ]
+    },
+    {
+      "region": "G5",
+      "operation": "role_binding",
+      "immediate": [
+        {
+          "source": "E4",
+          "occurrences": 2,
+          "relative_width": 4
+        },
+        {
+          "source": "F4",
+          "occurrences": 2,
+          "relative_width": 4
+        },
+        {
+          "source": "V4",
+          "occurrences": 1,
+          "relative_width": 4
+        }
+      ],
+      "context": []
+    },
+    {
+      "region": "EC-C",
+      "operation": "role_binding",
+      "immediate": [
+        {
+          "source": "L3",
+          "occurrences": 1,
+          "relative_width": 4
+        },
+        {
+          "source": "S3",
+          "occurrences": 1,
+          "relative_width": 4
+        },
+        {
+          "source": "S2",
+          "occurrences": 1,
+          "relative_width": 2
+        }
+      ],
+      "context": [
+        "EC-X"
+      ]
+    },
+    {
+      "region": "EC-X",
+      "operation": "role_binding",
+      "immediate": [
+        {
+          "source": "E4",
+          "occurrences": 1,
+          "relative_width": 4
+        },
+        {
+          "source": "F3",
+          "occurrences": 1,
+          "relative_width": 4
+        }
+      ],
+      "context": [
+        "G5",
+        "M4",
+        "EC-C"
+      ]
+    },
+    {
+      "region": "Y",
+      "operation": "role_binding",
+      "immediate": [
+        {
+          "source": "L3",
+          "occurrences": 2,
+          "relative_width": 4
+        },
+        {
+          "source": "F4",
+          "occurrences": 1,
+          "relative_width": 4
+        },
+        {
+          "source": "S2",
+          "occurrences": 1,
+          "relative_width": 2
+        },
+        {
+          "source": "EC-C",
+          "occurrences": 1,
+          "relative_width": 2
+        }
+      ],
+      "context": []
+    }
+  ]
+}

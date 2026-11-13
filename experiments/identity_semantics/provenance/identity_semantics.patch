@@ -1,0 +1,959 @@
+--- a/runtime/hierarchy_lab/throughput_probe/binding_events.inc
++++ b/runtime/hierarchy_lab/throughput_probe/binding_events.inc
+@@ -29,15 +29,25 @@
+     out.children[i]=child.ref;out.present_mask|=uint32_t(1)<<role;
+     uint64_t start=uint64_t(child.ref.begin-out.ref.begin),duration=uint64_t(child.ref.end-child.ref.begin);
+     uint64_t shape=content_mix(uint64_t(k))^content_mix(start+0x1234)^content_mix(duration+0x9876);
++#ifdef SHOEBOX_IDENTITY_SEMANTICS
++    shape^=content_mix(uint64_t(child.ref.region)+0x737263);
++#endif
+     id=content_pair(id,child.ref.id,shape);
+     // Preserve compositional child features, and make source identity and
+     // relative geometry visible to routing/teaching through a small fixed tag.
+     uint64_t tag=content_mix(child.ref.id.a^content_mix(child.ref.id.b)^shape);
+     float weight=scale*m.slots[4*k+3]*m.regional_gain[child.ref.region];
++#ifdef SHOEBOX_IDENTITY_SEMANTICS
++    for(int j=0;j<D;j++)out.structure[j]+=weight*m.signs[k*D+j]*child.structure[m.perm[k*D+j]];
++#else
+     for(int j=0;j<D;j++)out.code[j]+=weight*(m.signs[k*D+j]*child.code[m.perm[k*D+j]]+.125f*((tag>>j)&1?1.f:-1.f));
++#endif
+   }
+   // The present-role mask distinguishes a missing role from a shifted role.
+   out.ref.id=content_pair(id,{out.present_mask,0x70726573656e74},0x62696e64);
++#ifdef SHOEBOX_IDENTITY_SEMANTICS
++  semantic_encode(m,r,out);
++#endif
+   uint32_t count=content_count(m.composition.patterns[r],out.ref.id,learn,m.composition.stream.metrics[r][6]);
+   out.ref.recognized=count>=m.composition.min_count;out.confidence=std::min(1.f,float(count)/m.composition.min_count);
+   return out;
+--- a/runtime/hierarchy_lab/throughput_probe/composition.cpp
++++ b/runtime/hierarchy_lab/throughput_probe/composition.cpp
+@@ -244,6 +244,30 @@
+ inline void learn_bottom_state(Model&,int,LaceRecord*,const float*,float);
+ inline void bottom_task_update(Model&,int,LaceRecord&,const float*,float);
+ inline float norm(const float*x){float z=1.f;for(int i=0;i<D;i++)z+=x[i]*x[i];return z;}
++#ifdef SHOEBOX_IDENTITY_SEMANTICS
++inline void semantic_input_update(Model&m,int r,LaceRecord&v,const float*du,float rate){
++#ifdef SHOEBOX_FIXED_SEMANTICS
++  return;
++#endif
++  if(!m.composition.enabled||r<2||m.frozen_region[r]||rate==0)return;
++  int index=int(&v-&m.laces.records[r][0]);if(index<0||index>=LACE_RING)return;
++  auto&state=m.composition.stream.input[r][index];
++  if(state.tick!=v.tick||state.symbol_scale==0)return;
++  float scale=rate*state.symbol_scale/norm(v.u);
++  for(int j=0;j<D;j++){
++    float g=std::clamp(du[j],-2.f,2.f)*state.symbol_derivative[j]*scale;
++    for(int k=0;k<8;k++)m.composition.symbols[r-2][j][k]-=g*state.symbol_features[k];
++  }
++  m.composition.symbol_updates[r-2]++;
++}
++inline void semantic_expert_update(Model&m,int r,LaceRecord*v,const float*g,float rate){
++  if(!v||r<2||!m.composition.enabled)return;
++  float du[D]{},pre[D];float*w=m.W+(r*E+v->expert)*D*D;
++  for(int j=0;j<D;j++)du[j]=pre[j]=g[j]*(1-v->h[j]*v->h[j]);
++  for(int i=0;i<D;i++)for(int j=0;j<D;j++)du[j]+=v->gate*w[i*D+j]*pre[i];
++  semantic_input_update(m,r,*v,du,rate);
++}
++#endif
+ inline void expert_update(Model&m,int r,const float*g,float rate,LaceRecord*record=nullptr,int teaching=0){
+   if(m.frozen_region[r])return;
+   rate*=m.teaching_scale[r][teaching];
+@@ -255,6 +279,9 @@
+   if(m.utility_observe){double z=0;for(int j=0;j<D;j++)z+=double(g[j])*g[j];
+     m.utility_metrics[r][0]+=std::sqrt(z);m.utility_metrics[r][1]++;}
+   learn_bottom_state(m,r,v,g,rate);
++#ifdef SHOEBOX_IDENTITY_SEMANTICS
++  semantic_expert_update(m,r,v,g,rate);
++#endif
+   int e=record?record->expert:s.chosen[r];
+   const float*u=record?record->u:s.u[r],*h=record?record->h:s.h[r];
+   const float*returned=record?record->returned:s.returned[std::clamp(r-15,0,1)];
+@@ -421,6 +448,9 @@
+         float gradient[D];float scale=1.f/std::pow(float(state.uses[d]),m.lcfg[5]);
+         for(int j=0;j<D;j++)gradient[j]=state.gradient[d][j]*scale;
+         memset(state.gradient[d],0,D*sizeof(float));state.uses[d]=0;
++#ifdef SHOEBOX_IDENTITY_SEMANTICS
++        semantic_input_update(m,r,v,gradient,lr*m.lcfg[1]*m.teaching_scale[r][0]);
++#endif
+         deliver_input_credit(m,r,v,gradient,d+1);z.metrics[r][9]++;
+       }
+     }
+@@ -891,6 +921,13 @@
+         if(m.composition.enabled){auto&state=m.composition.stream.input[r][cursor];
+           for(int d=0;d<LACE_DEPTH;d++)m.composition.stream.metrics[r][11]+=state.uses[d];
+           state=InputCredit{};state.tick=s.tick;
++#ifdef SHOEBOX_IDENTITY_SEMANTICS
++          if(r>=2&&nparts){
++            memcpy(state.symbol_features,composed.symbol_features,sizeof(state.symbol_features));
++            memcpy(state.symbol_derivative,composed.symbol_derivative,sizeof(state.symbol_derivative));
++            state.symbol_scale=alpha*qa;
++          }
++#endif
+           if(r>=2){auto&z=m.composition.stream;state.previous_tick=z.memory_tick[r];state.previous_index=z.memory_index[r];state.retention=1-alpha;z.memory_tick[r]=s.tick;z.memory_index[r]=cursor;}
+         }
+         for(int d=0;d<LACE_DEPTH;d++)if(v.uses[d])m.laces.metrics[r][11]+=v.uses[d];
+--- a/runtime/hierarchy_lab/throughput_probe/composition_api.inc
++++ b/runtime/hierarchy_lab/throughput_probe/composition_api.inc
+@@ -81,3 +81,10 @@
+  for(int r=0;r<N;r++){const auto&e=m.composition.stream.history[r][0];out[3*r]=e.present_mask;out[3*r+1]=e.fresh_mask;out[3*r+2]=e.kind;}
+ }
+ #endif
++
++#ifdef SHOEBOX_IDENTITY_SEMANTICS
++extern "C" {
++void semantic_parameters(void*p,float*out){memcpy(out,static_cast<Model*>(p)->composition.symbols,sizeof(CompositionRuntime::symbols));}
++void semantic_updates(void*p,uint64_t*out){memcpy(out,static_cast<Model*>(p)->composition.symbol_updates,sizeof(CompositionRuntime::symbol_updates));}
++}
++#endif
+--- a/runtime/hierarchy_lab/throughput_probe/composition_events.inc
++++ b/runtime/hierarchy_lab/throughput_probe/composition_events.inc
+@@ -5,6 +5,9 @@
+   return {content_mix(a.a^content_mix(b.a+role+0x9e3779b97f4a7c15ULL)),
+           content_mix(a.b+content_mix(b.b^role^0xd6e8feb86659fd93ULL))};
+ }
++#ifdef SHOEBOX_IDENTITY_SEMANTICS
++#include "semantics_events.inc"
++#endif
+ inline int content_coord(int j,int position){return (j+11*position+7)&63;}
+ inline float content_sign(int j,int position){return ((j*13+position*17)%11)<5?-1.f:1.f;}
+ inline uint32_t content_count(CountEntry*table,ContentID key,bool learn,double&evictions){
+@@ -30,6 +33,15 @@
+   return confidence;
+ }
+ inline ContentEvent content_compose(Model&m,int r,const ContentEvent*children,int n,int kind,bool learn){
++#ifdef SHOEBOX_IDENTITY_SEMANTICS
++  if(n==1&&kind==1){
++    ContentEvent out=children[0];out.ref.region=r;out.ref.seq=0;
++    out.children[0]=children[0].ref;out.children[0].role=0;
++    out.count=1;out.kind=3;out.confidence=0;out.ref.recognized=0;
++    // Preserve vector/identity exactly. Relay recognition/teaching is step 3.
++    return out;
++  }
++#endif
+   ContentEvent out{};out.count=n;out.kind=n==1&&kind==1?3:kind;
+   out.ref.region=r;out.ref.begin=children[0].ref.begin;out.ref.end=children[0].ref.end;
+   ContentID id{content_mix(uint64_t(r)+0x636f6d70),content_mix(uint64_t(kind)+0x726f6c65)};
+@@ -39,10 +51,20 @@
+     out.ref.begin=std::min(out.ref.begin,children[i].ref.begin);out.ref.end=std::max(out.ref.end,children[i].ref.end);
+     // Relative geometry is semantic; absolute byte offsets and event ticks are not.
+     uint64_t geometry=uint64_t(children[i].ref.begin-children[0].ref.begin);
++#ifdef SHOEBOX_IDENTITY_SEMANTICS
++    uint64_t duration=uint64_t(children[i].ref.end-children[i].ref.begin);
++    uint64_t shape=content_mix(uint64_t(i)+0x726f6c65)^content_mix(geometry+0x7374617274)^content_mix(duration+0x647572)^content_mix(uint64_t(children[i].ref.region)+0x737263);
++    id=content_pair(id,children[i].ref.id,shape);
++    for(int j=0;j<D;j++)out.structure[j]+=scale*content_sign(j,i)*children[i].structure[content_coord(j,i)];
++#else
+     id=content_pair(id,children[i].ref.id,content_mix(uint64_t(i)^geometry));
+     for(int j=0;j<D;j++)out.code[j]+=scale*content_sign(j,i)*children[i].code[content_coord(j,i)];
++#endif
+   }
+   out.ref.id=id;
++#ifdef SHOEBOX_IDENTITY_SEMANTICS
++  semantic_encode(m,r,out);
++#endif
+   if(n==1&&kind==1){out.ref.id=children[0].ref.id;memcpy(out.code,children[0].code,sizeof(out.code));out.confidence=0;}
+   else {
+     auto&z=m.composition;uint32_t count=content_count(z.patterns[r],id,learn,z.stream.metrics[r][6]);
+@@ -62,7 +84,11 @@
+ inline void content_atom(Model&m,int r,int byte){
+   ContentEvent event{};event.ref.id={content_mix(uint64_t(byte)+1),content_mix(uint64_t(byte)+257)};
+   event.ref.region=r;event.ref.begin=m.composition.stream.byte_position-1;event.ref.end=m.composition.stream.byte_position;event.ref.recognized=1;
+-  memcpy(event.code,m.emb+byte*D,sizeof(event.code));content_publish(m,r,event);
++  memcpy(event.code,m.emb+byte*D,sizeof(event.code));
++#ifdef SHOEBOX_IDENTITY_SEMANTICS
++  memcpy(event.structure,event.code,sizeof(event.structure));
++#endif
++  content_publish(m,r,event);
+ }
+ inline void content_passthrough(Model&m,int r,ContentEvent event,const ContentEvent&child){
+   auto&s=m.s;auto&z=m.composition.stream;
+--- a/runtime/hierarchy_lab/throughput_probe/composition_types.inc
++++ b/runtime/hierarchy_lab/throughput_probe/composition_types.inc
+@@ -19,11 +19,19 @@
+ #endif
+   ChildEvent children[COMP_MAX]{};
+   float code[D]{},context[D]{};
++#ifdef SHOEBOX_IDENTITY_SEMANTICS
++  // Immutable descriptor, distinct from the learned semantic code and context.
++  // This prevents stale child embeddings from changing a parent's symbol meaning.
++  float structure[D]{},symbol_features[8]{},symbol_derivative[D]{};
++#endif
+ };
+ struct InputCredit {
+   int64_t tick=0,previous_tick=0;
+   int previous_index=-1;
+   float retention=0;
++#ifdef SHOEBOX_IDENTITY_SEMANTICS
++  float symbol_features[8]{},symbol_derivative[D]{},symbol_scale=0;
++#endif
+   float gradient[LACE_DEPTH][D]{};
+   int uses[LACE_DEPTH]{};
+ };
+@@ -39,7 +47,9 @@
+   double metrics[N][COMP_METRICS]{};
+ };
+ struct CompositionRuntime {
+-#ifdef SHOEBOX_MULTI_BINDING
++#ifdef SHOEBOX_IDENTITY_SEMANTICS
++  uint32_t version=4,enabled=1;
++#elif defined(SHOEBOX_MULTI_BINDING)
+   uint32_t version=3,enabled=1;
+ #else
+   uint32_t version=2,enabled=1;
+@@ -47,5 +57,10 @@
+   float boundary_threshold=.35f,context_gain=.2f;
+   uint32_t min_count=3,max_children=8;
+   CountEntry totals[N][COMP_TABLE]{},pairs[N][COMP_TABLE]{},patterns[N][COMP_TABLE]{};
++#ifdef SHOEBOX_IDENTITY_SEMANTICS
++  // Eight fixed features per local symbol; 8,192 learned coefficients total.
++  float symbols[N-2][D][8]{};
++  uint64_t symbol_updates[N-2]{};
++#endif
+   CompositionStream stream{};
+ };
+--- a/runtime/hierarchy_lab/throughput_probe/model.py
++++ b/runtime/hierarchy_lab/throughput_probe/model.py
+@@ -13,7 +13,7 @@
+ FLAGS=os.environ.get('SHOEBOX_CXX_FLAGS','').split()
+ _CONSTRUCTION_LOCK=threading.RLock()
+ def build():
+-    source=ROOT/(KERNEL+'.cpp');digest=hashlib.sha256(source.read_bytes()+((ROOT/'composition.cpp').read_bytes() if KERNEL=='binding' else b'')+b''.join(p.read_bytes() for p in sorted(ROOT.glob('*.inc')))+((ROOT/'e14.cpp').read_bytes() if KERNEL=='e14_fixture' else b'')+str(FLAGS).encode()).hexdigest()[:16]
++    source=ROOT/(KERNEL+'.cpp');digest=hashlib.sha256(source.read_bytes()+((ROOT/'composition.cpp').read_bytes() if KERNEL in ('binding','semantics','semantics_fixed') else b'')+b''.join(p.read_bytes() for p in sorted(ROOT.glob('*.inc')))+((ROOT/'e14.cpp').read_bytes() if KERNEL=='e14_fixture' else b'')+str(FLAGS).encode()).hexdigest()[:16]
+     lib=ROOT/f'_{KERNEL}_e{core.E}_{digest}.so'
+     with open(ROOT/f'.build_e{core.E}.lock','w') as lock:
+         fcntl.flock(lock,fcntl.LOCK_EX)
+@@ -60,7 +60,7 @@
+         self.lib.utility_configure(self.handle,cfg.ctypes.data_as(fp))
+         self._utility_ready=True
+     def configure_composition(self,policy=None):
+-        cfg=dict(enabled=self.runtime_kernel in ('composition','binding'),threshold=.35,min_count=3,max_children=8,context_gain=.2)
++        cfg=dict(enabled=self.runtime_kernel in ('composition','binding','semantics','semantics_fixed'),threshold=.35,min_count=3,max_children=8,context_gain=.2)
+         if policy is not None:
+             if set(policy)-set(cfg):raise ValueError('Unknown composition policy field')
+             cfg.update(policy)
+@@ -104,6 +104,16 @@
+             v=a[r];children=v[12:].reshape(8,9)[:int(v[6])]
+             result[name]=dict(seq=int(v[0]),id=(int(v[1]),int(v[2])),span=(int(v[3]),int(v[4])),tick=int(v[5]),count=int(v[6]),recognized=bool(v[7]),kind=int(v[8]),pending=int(v[9]),seen=int(v[10]),bytes=int(v[11]),children=children.copy(),code=codes[r].copy())
+         return result
++    def semantic_parameters(self):
++        if not hasattr(self.lib,'semantic_parameters'):return np.zeros((0,),np.float32)
++        a=np.zeros((16,64,8),np.float32)
++        self.lib.semantic_parameters.argtypes=[ct.c_void_p,ct.c_void_p]
++        self.lib.semantic_parameters(self.handle,a.ctypes.data);return a
++    def semantic_updates(self):
++        if not hasattr(self.lib,'semantic_updates'):return {}
++        a=np.zeros(16,np.uint64);self.lib.semantic_updates.argtypes=[ct.c_void_p,ct.c_void_p]
++        self.lib.semantic_updates(self.handle,a.ctypes.data)
++        return dict(zip(core.NAMES[2:],map(int,a)))
+     def binding_role_status(self):
+         if not hasattr(self.lib,'binding_role_status'):return {}
+         a=np.zeros((18,3),np.uint64)
+@@ -142,7 +152,7 @@
+         if fresh:
+             self.lib.e13_clear_cache.argtypes=[ct.c_void_p];self.lib.e13_clear_cache(self.handle)
+     @property
+-    def parameter_count(self):return super().parameter_count+((core.E if self.runtime_kernel.startswith('r02') else 16*core.E) if self.gate_bias_policy()['enabled'] else 0)
++    def parameter_count(self):return super().parameter_count+(8192 if self.runtime_kernel.startswith("semantics") else 0)+((core.E if self.runtime_kernel.startswith('r02') else 16*core.E) if self.gate_bias_policy()['enabled'] else 0)
+     def configure_gate_bias(self,gain=250.,limit=2.,step_limit=.01):
+         if not hasattr(self.lib,'e14_configure'):raise ValueError('Gate bias requires e14 kernel')
+         self.lib.e14_configure.argtypes=[ct.c_void_p,ct.c_float,ct.c_float,ct.c_float];self.lib.e14_configure.restype=ct.c_int
+@@ -409,7 +419,7 @@
+         return digest
+     def save(self,path):
+         parent.legacy.base.atomic_checkpoint(path,flat=self.flat,extra=self.extra_flat,state=parent.legacy.base.state(self),lace_state=self.lace_state(),learned_state=self.learned_state(),probe_state=self.probe_state(),utility_state=self.utility_state(),
+-            version=np.array([29 if self.runtime_kernel=="binding" else 28 if self.runtime_kernel=="composition" else 27 if self.runtime_kernel.startswith("r05") else 26 if self.runtime_kernel.startswith("r04") else 25 if self.runtime_kernel.startswith("r03") else 24 if self.runtime_kernel.startswith("r02") and (self.activation_policy()["enabled"] or self.gate_bias_policy()["enabled"]) else 23 if self.gate_bias_policy()["enabled"] else 21 if self.traffic['enabled'] else (20 if self.retention_policy() else 19)],np.int32),experts=np.array([core.E],np.int32),config_json=np.array(json.dumps(self.config)),lace_json=np.array(json.dumps(self.lace)),state_config_json=np.array(json.dumps(self.state_config)),probe_json=np.array(json.dumps(self.probe)),utility_json=np.array(json.dumps(self.utility)),teaching_scales=self.teaching,regional_gains=self.regional_gains,frozen_regions=self.frozen_regions,task_route_lr_scale=np.array(self.task_route_lr_scale,np.float32),a1_learning_scales=self.a1_learning_array,f3_task_route_gain=np.array(self.f3_task_route_gain,np.float32),exploration_json=np.array(json.dumps(self.exploration)),traffic_json=np.array(json.dumps(self.traffic)),traffic_state=self.traffic_state(),
++            version=np.array([30 if self.runtime_kernel.startswith("semantics") else 29 if self.runtime_kernel=="binding" else 28 if self.runtime_kernel=="composition" else 27 if self.runtime_kernel.startswith("r05") else 26 if self.runtime_kernel.startswith("r04") else 25 if self.runtime_kernel.startswith("r03") else 24 if self.runtime_kernel.startswith("r02") and (self.activation_policy()["enabled"] or self.gate_bias_policy()["enabled"]) else 23 if self.gate_bias_policy()["enabled"] else 21 if self.traffic['enabled'] else (20 if self.retention_policy() else 19)],np.int32),experts=np.array([core.E],np.int32),config_json=np.array(json.dumps(self.config)),lace_json=np.array(json.dumps(self.lace)),state_config_json=np.array(json.dumps(self.state_config)),probe_json=np.array(json.dumps(self.probe)),utility_json=np.array(json.dumps(self.utility)),teaching_scales=self.teaching,regional_gains=self.regional_gains,frozen_regions=self.frozen_regions,task_route_lr_scale=np.array(self.task_route_lr_scale,np.float32),a1_learning_scales=self.a1_learning_array,f3_task_route_gain=np.array(self.f3_task_route_gain,np.float32),exploration_json=np.array(json.dumps(self.exploration)),traffic_json=np.array(json.dumps(self.traffic)),traffic_state=self.traffic_state(),
+             **({'gate_bias_state':self.gate_bias_state(),'gate_bias_kernel':np.array('r02' if self.runtime_kernel.startswith('r02') else 'e14_calibrated' if self.gate_bias_policy()['gain']>10000 else 'e14'),'gate_bias_json':np.array(json.dumps(self.gate_bias_policy()))} if self.gate_bias_policy()['enabled'] else {}),
+             **({'activation_state':self.activation_state(),'activation_json':np.array(json.dumps(self.activation_policy())),'activation_kernel':np.array('r02' if self.runtime_kernel.startswith('r02') else 'e13')} if self.activation_policy()['enabled'] else {}),
+             **({"path_prototypes":self.path_prototypes} if self.runtime_kernel.startswith("r03") else {}),
+@@ -421,7 +431,7 @@
+     @classmethod
+     def load(cls,path):
+         with np.load(path,allow_pickle=False) as a:
+-            assert int(a['version'][0]) in (16,17,18,19,20,21,22,23,24,25,26,27,28,29) and int(a['experts'][0])==core.E
++            assert int(a['version'][0]) in (16,17,18,19,20,21,22,23,24,25,26,27,28,29,30) and int(a['experts'][0])==core.E
+             m=cls(config=json.loads(str(a['config_json'])),params=core.unflatten(a['flat']),fixed={k[6:]:a[k] for k in a.files if k.startswith('fixed_')},lace=json.loads(str(a['lace_json'])),state_config=json.loads(str(a['state_config_json'])),extra=a['extra'],probe=json.loads(str(a['probe_json'])),utility=json.loads(str(a['utility_json'])),kernel=str(a['experiment_kernel']) if 'experiment_kernel' in a else str(a['r08_kernel']) if 'r08_kernel' in a else 'r05' if int(a['version'][0])==27 else 'r04' if int(a['version'][0])==26 else 'r03' if int(a['version'][0])==25 else 'r02' if int(a['version'][0])==24 else ('e14_calibrated' if 'gate_bias_kernel' in a and str(a['gate_bias_kernel'])=='e14_calibrated' else 'e14') if 'gate_bias_state' in a else 'e13' if 'activation_state' in a else ('credit' if 'retention_state' in a else None))
+             if 'gate_bias_state' in a:m.import_gate_bias(a['gate_bias_state'])
+             if 'activation_state' in a:m.import_activation(a['activation_state'])
+--- a/runtime/hierarchy_lab/throughput_probe/semantics.cpp
++++ b/runtime/hierarchy_lab/throughput_probe/semantics.cpp
+@@ -0,0 +1,4 @@
++// Consistent structural symbols and learned semantic residuals.
++#define SHOEBOX_MULTI_BINDING 1
++#define SHOEBOX_IDENTITY_SEMANTICS 1
++#include "composition.cpp"
+--- a/runtime/hierarchy_lab/throughput_probe/semantics_events.inc
++++ b/runtime/hierarchy_lab/throughput_probe/semantics_events.inc
+@@ -0,0 +1,20 @@
++// A full-ID anchor makes region, roles, order, presence and geometry visible.
++// IDs remain exact structural keys; floating vectors are similarity features.
++inline void semantic_encode(Model&m,int r,ContentEvent&e){
++  uint64_t bits[2]{content_mix(e.ref.id.a^content_mix(e.ref.id.b)),content_mix(e.ref.id.b+content_mix(e.ref.id.a))};
++  for(int j=0;j<D;j++){
++    unsigned v=unsigned((bits[j/32]>>(2*(j%32)))&3);
++    e.structure[j]+=.125f*(float(v)-1.5f)/1.5f;
++  }
++  for(int k=0;k<8;k++){
++    float value=0;
++    for(int j=0;j<D;j++)value+=((__builtin_parity(unsigned(j)&unsigned(k+1)))?-1.f:1.f)*e.structure[j];
++    e.symbol_features[k]=std::tanh(value*.125f);
++  }
++  for(int j=0;j<D;j++){
++    float value=0;for(int k=0;k<8;k++)value+=m.composition.symbols[r-2][j][k]*e.symbol_features[k];
++    float residual=std::tanh(value);
++    e.code[j]=e.structure[j]+.25f*residual;
++    e.symbol_derivative[j]=.25f*(1-residual*residual);
++  }
++}
+--- a/runtime/hierarchy_lab/throughput_probe/semantics_fixed.cpp
++++ b/runtime/hierarchy_lab/throughput_probe/semantics_fixed.cpp
+@@ -0,0 +1,5 @@
++// Encoding-matched control: semantic learning disabled.
++#define SHOEBOX_MULTI_BINDING 1
++#define SHOEBOX_IDENTITY_SEMANTICS 1
++#define SHOEBOX_FIXED_SEMANTICS 1
++#include "composition.cpp"
+--- a/tests/encoding_probe.cpp
++++ b/tests/encoding_probe.cpp
+@@ -0,0 +1,16 @@
++#ifdef SEMANTIC_PROBE
++#define SHOEBOX_IDENTITY_SEMANTICS 1
++#endif
++#define SHOEBOX_MULTI_BINDING 1
++#include "../runtime/hierarchy_lab/throughput_probe/composition.cpp"
++extern "C" void probe_encode(void*p,int r,int gap,int duration,int source,int offset,uint64_t*ids,float*code){
++ auto&m=*static_cast<Model*>(p);ContentEvent parts[2]{};
++ for(int i=0;i<2;i++){
++  auto&e=parts[i];e.ref.id={content_mix(65+i),content_mix(321+i)};e.ref.region=i?source:0;e.ref.seq=i+1;e.ref.begin=offset+(i?gap:0);e.ref.end=e.ref.begin+(i?duration:1);
++  memcpy(e.code,m.emb+(65+i)*D,sizeof(e.code));
++#ifdef SHOEBOX_IDENTITY_SEMANTICS
++  memcpy(e.structure,e.code,sizeof(e.structure));
++#endif
++ }
++ auto e=content_compose(m,r,parts,2,1,false);ids[0]=e.ref.id.a;ids[1]=e.ref.id.b;memcpy(code,e.code,sizeof(e.code));
++}
+--- a/tests/run_semantics_sanitizer.py
++++ b/tests/run_semantics_sanitizer.py
+@@ -0,0 +1,12 @@
++from pathlib import Path
++import os,struct,subprocess,sys
++ROOT=Path(__file__).resolve().parents[1]
++sys.path.insert(0,str(ROOT/'runtime'))
++from runtime import core
++p,f=core.initialize(41)
++arrays=[core.flat_parameters(p)]+[f[k] for k in ['embedding','feedback','slots','starts','perm','signs','fperm','fsign','cadence']]
++with (ROOT/'results/fixture.bin').open('wb') as output:
++    for a in arrays:output.write(struct.pack('<q',a.size));output.write(a.tobytes())
++command=['g++','-DSHOEBOX_MULTI_BINDING=1','-DSHOEBOX_IDENTITY_SEMANTICS=1','-O1','-g','-march=native','-std=c++17',f'-DSHOEBOX_EXPERTS={core.E}','-fsanitize=address,undefined','-fno-omit-frame-pointer',str(ROOT/'tests/sanitize.cpp'),'-o',str(ROOT/'results/sanitize_semantics')]
++subprocess.run(command,check=True)
++subprocess.run([str(ROOT/'results/sanitize_semantics'),str(ROOT/'results/fixture.bin')],env={**os.environ,'ASAN_OPTIONS':'detect_leaks=0'},check=True)
+--- a/tests/semantics_fixture.cpp
++++ b/tests/semantics_fixture.cpp
+@@ -0,0 +1,38 @@
++#define SHOEBOX_IDENTITY_SEMANTICS 1
++#include "binding_fixture.cpp"
++extern "C" {
++void semantic_fixture_structure(void*p,int src,int age){
++ auto&e=static_cast<Model*>(p)->composition.stream.history[src][age];memcpy(e.structure,e.code,sizeof(e.structure));
++}
++void semantic_fixture_encode(void*p,int r,int kind,uint64_t*meta,float*code){
++ auto&m=*static_cast<Model*>(p);ContentEvent parts[2]{m.composition.stream.history[0][1],m.composition.stream.history[0][0]};
++ auto e=content_compose(m,r,parts,2,kind,false);meta[0]=e.ref.id.a;meta[1]=e.ref.id.b;memcpy(code,e.code,sizeof(e.code));
++}
++void semantic_fixture_change(void*p,int src,int age,int field,int64_t delta){
++ auto&e=static_cast<Model*>(p)->composition.stream.history[src][age];
++ if(field==0)e.ref.end+=delta;
++ if(field==1)e.ref.region+=int(delta);
++ if(field==2)for(int j=0;j<D;j++)e.code[j]+=float(delta);
++ if(field==3){e.ref.tick+=delta;e.ref.seq+=delta;e.ref.index+=int(delta);}
++}
++void semantic_fixture_weight(void*p,int r,int j,int k,float delta){static_cast<Model*>(p)->composition.symbols[r-2][j][k]+=delta;}
++void semantic_fixture_gradient(void*p,int r,const float*g,float rate){
++ auto&m=*static_cast<Model*>(p);ContentEvent parts[2]{m.composition.stream.history[0][1],m.composition.stream.history[0][0]};
++ auto e=content_compose(m,r,parts,2,1,false);auto&v=m.laces.records[r][0];v=LaceRecord{};v.tick=713;
++ auto&s=m.composition.stream.input[r][0];s=InputCredit{};s.tick=v.tick;s.symbol_scale=1;
++ memcpy(s.symbol_features,e.symbol_features,sizeof(s.symbol_features));memcpy(s.symbol_derivative,e.symbol_derivative,sizeof(s.symbol_derivative));
++ semantic_input_update(m,r,v,g,rate);
++}
++void semantic_fixture_saved_gradient(void*p,int r,const float*g,float rate){
++ auto&m=*static_cast<Model*>(p);semantic_input_update(m,r,m.laces.records[r][0],g,rate);
++}
++void semantic_fixture_clear_dictionary(void*p){
++ auto&m=*static_cast<Model*>(p);memset(m.composition.patterns,0,sizeof(m.composition.patterns));
++}
++void semantic_fixture_q(void*p,int r,float*out){
++ auto&m=*static_cast<Model*>(p);memcpy(out,m.utility.previous_q[r],D*sizeof(float));
++}
++}
++extern "C" void semantic_fixture_ablate(void*p){
++ auto&m=*static_cast<Model*>(p);memset(m.composition.symbols,0,sizeof(m.composition.symbols));
++}
+--- a/tests/test_semantics.py
++++ b/tests/test_semantics.py
+@@ -0,0 +1,104 @@
++import ctypes as ct
++import subprocess,sys,tempfile,unittest
++from pathlib import Path
++import numpy as np
++ROOT=Path(__file__).resolve().parents[1];sys.path.insert(0,str(ROOT/'runtime'))
++from runtime import fresh_model,Model,core
++from test_binding import BindingTests
++class SemanticsBindingTests(BindingTests):
++ @classmethod
++ def setUpClass(cls):
++  cls.path=ROOT/'results/semantics_fixture.so'
++  subprocess.run(['g++','-O2','-march=native','-std=c++17','-shared','-fPIC',str(ROOT/'tests/semantics_fixture.cpp'),'-o',str(cls.path)],check=True)
++  cls.fx=ct.CDLL(str(cls.path));f=cls.fx
++  f.fixture_stage.argtypes=[ct.c_void_p,ct.c_int,ct.c_int,ct.c_int,ct.c_int64,ct.c_int64,ct.c_int64,ct.c_float]
++  f.fixture_prepare.argtypes=[ct.c_void_p,ct.c_int,ct.c_int,ct.c_void_p,ct.c_void_p];f.fixture_prepare.restype=ct.c_int
++  f.fixture_inputs.argtypes=[ct.c_void_p,ct.c_int,ct.c_void_p,ct.c_void_p]
++  f.fixture_bundle_gradient.argtypes=[ct.c_void_p,ct.c_int,ct.c_void_p,ct.c_void_p]
++  f.fixture_context_delta.argtypes=[ct.c_void_p,ct.c_int,ct.c_int,ct.c_int,ct.c_float]
++  f.fixture_current_cues.argtypes=[ct.c_void_p,ct.c_int,ct.c_void_p]
++  f.semantic_fixture_structure.argtypes=[ct.c_void_p,ct.c_int,ct.c_int]
++  f.semantic_fixture_encode.argtypes=[ct.c_void_p,ct.c_int,ct.c_int,ct.c_void_p,ct.c_void_p]
++  f.semantic_fixture_change.argtypes=[ct.c_void_p,ct.c_int,ct.c_int,ct.c_int,ct.c_int64]
++  f.semantic_fixture_weight.argtypes=[ct.c_void_p,ct.c_int,ct.c_int,ct.c_int,ct.c_float]
++  f.semantic_fixture_gradient.argtypes=[ct.c_void_p,ct.c_int,ct.c_void_p,ct.c_float]
++  f.semantic_fixture_saved_gradient.argtypes=[ct.c_void_p,ct.c_int,ct.c_void_p,ct.c_float]
++  f.semantic_fixture_clear_dictionary.argtypes=[ct.c_void_p]
++  f.semantic_fixture_q.argtypes=[ct.c_void_p,ct.c_int,ct.c_void_p]
++ def make(self,kernel='semantics'):
++  m=fresh_model(kernel=kernel);self.addCleanup(m.close);return m
++ def stage(self,m,r,offset=0,change=None,context=0):
++  slots=super().stage(m,r,offset,change,context)
++  for _,src,age in slots:self.fx.semantic_fixture_structure(m.handle,src,age)
++  return slots
++ def sequence(self,m,offset=0):
++  for age,value in [(1,65),(0,66)]:
++   self.fx.fixture_stage(m.handle,0,age,value,2-age,offset+1-age,offset+2-age,0)
++   self.fx.semantic_fixture_structure(m.handle,0,age)
++ def encoded(self,m,r=2,kind=1):
++  ids=np.zeros(2,np.uint64);v=np.zeros(64,np.float32)
++  self.fx.semantic_fixture_encode(m.handle,r,kind,ids.ctypes.data,v.ctypes.data);return ids,v
++ def test_15_temporal_geometry_duration_namespace_and_kind(self):
++  a=self.make();self.sequence(a);ia,va=self.encoded(a)
++  for field,delta in [(0,3),(1,1)]:
++   b=self.make();self.sequence(b);self.fx.semantic_fixture_change(b.handle,0,0,field,delta);ib,vb=self.encoded(b)
++   self.assertFalse(np.array_equal(ia,ib));self.assertGreater(np.linalg.norm(va-vb),.1)
++  for r,kind in [(15,1),(16,1),(2,2)]:
++   ib,vb=self.encoded(a,r,kind);self.assertFalse(np.array_equal(ia,ib));self.assertGreater(np.linalg.norm(va-vb),.1)
++ def test_16_alignment_and_occurrence_do_not_change_symbol(self):
++  a=self.make();b=self.make();self.sequence(a);self.sequence(b,10000)
++  self.fx.semantic_fixture_change(b.handle,0,0,3,1000)
++  for aa,bb in zip(self.encoded(a),self.encoded(b)):np.testing.assert_array_equal(aa,bb)
++ def test_17_stale_child_embedding_cannot_relabel_parent(self):
++  a=self.make();self.sequence(a);before=self.encoded(a)
++  self.fx.semantic_fixture_change(a.handle,0,0,2,100)
++  for aa,bb in zip(before,self.encoded(a)):np.testing.assert_array_equal(aa,bb)
++ def test_18_shared_adapter_gradient_matches_finite_difference(self):
++  m=self.make();self.sequence(m);g=np.linspace(-.3,.3,64,dtype=np.float32)
++  for j,k in [(2,0),(17,3),(61,7)]:
++   self.fx.semantic_fixture_weight(m.handle,2,j,k,.7)
++   scores=[]
++   for delta in [-.01,.01]:
++    self.fx.semantic_fixture_weight(m.handle,2,j,k,delta);scores.append(float(g.astype(np.float64)@self.encoded(m)[1].astype(np.float64)));self.fx.semantic_fixture_weight(m.handle,2,j,k,-delta)
++   before=m.semantic_parameters();self.fx.semantic_fixture_gradient(m.handle,2,g.ctypes.data,.1);after=m.semantic_parameters()
++   actual=float((before[0,j,k]-after[0,j,k])/.1)
++   self.assertAlmostEqual(actual,(scores[1]-scores[0])/.02,delta=1e-5)
++ def test_19_learning_changes_vector_without_changing_id(self):
++  m=self.make();self.sequence(m);ids,v=self.encoded(m);g=np.linspace(-.2,.4,64,dtype=np.float32)
++  for _ in range(20):self.fx.semantic_fixture_gradient(m.handle,2,g.ctypes.data,.1)
++  ids2,v2=self.encoded(m);np.testing.assert_array_equal(ids,ids2);self.assertGreater(np.linalg.norm(v-v2),.001)
++  self.assertLess(float(g@v2),float(g@v))
++ def test_20_saved_features_survive_new_occurrence(self):
++  a=self.make();b=self.make();g=np.linspace(-.2,.4,64,dtype=np.float32)
++  for m in [a,b]:self.sequence(m);self.fx.semantic_fixture_gradient(m.handle,2,g.ctypes.data,0)
++  self.sequence(b,1000);self.fx.fixture_stage(b.handle,0,0,90,900,900,901,100)
++  for m in [a,b]:self.fx.semantic_fixture_saved_gradient(m.handle,2,g.ctypes.data,.01)
++  np.testing.assert_array_equal(a.semantic_parameters(),b.semantic_parameters())
++ def test_21_eval_and_frozen_regions_freeze_semantic_weights(self):
++  a=self.make();a.configure_training_policy(np.array([1]*6+[0]*12,np.int32));before=a.semantic_parameters()
++  x=np.arange(300,dtype=np.uint8);a.run(x,mode='periodic');np.testing.assert_array_equal(before[:4],a.semantic_parameters()[:4])
++  b=self.make();b.run(x,mode='periodic');self.assertGreater(np.linalg.norm(b.semantic_parameters()),0)
++  before=b.semantic_parameters();b.run(x);np.testing.assert_array_equal(before,b.semantic_parameters())
++ def test_22_teacher_content_input_and_router_cue_are_same_vector(self):
++  m=self.make();m.utility['innovation']=1.;m.lib.utility_configure(m.handle,np.array([m.utility[k] for k in __import__('model').FIELDS],np.float32).ctypes.data_as(ct.POINTER(ct.c_float)))
++  m.run(np.arange(60,dtype=np.uint8),mode='periodic',lr=0,lp=0)
++  for r in [3,4,6,10,14,15,16]:
++   cue=np.zeros(64,np.float32);q=cue.copy();self.fx.fixture_current_cues(m.handle,r,cue.ctypes.data);self.fx.semantic_fixture_q(m.handle,r,q.ctypes.data)
++   np.testing.assert_array_equal(cue,q);np.testing.assert_array_equal(q,m.content_events()[core.NAMES[r]]['code'])
++ def test_23_dictionary_eviction_does_not_remap_vector(self):
++  m=self.make();self.sequence(m);a=self.encoded(m);self.fx.semantic_fixture_clear_dictionary(m.handle)
++  for aa,bb in zip(a,self.encoded(m)):np.testing.assert_array_equal(aa,bb)
++ def test_24_binding_abi_rejected_and_fixed_control_no_updates(self):
++  m=self.make();b=self.make('binding')
++  with self.assertRaises(ValueError):m.import_composition(b.composition_state())
++  f=self.make('semantics_fixed');f.run(np.arange(300,dtype=np.uint8),mode='periodic');self.assertEqual(np.linalg.norm(f.semantic_parameters()),0)
++ def test_25_disabled_composition_matches_binding(self):
++  a=self.make();b=self.make('binding')
++  for m in [a,b]:m.configure_composition({'enabled':False})
++  x=np.arange(200,dtype=np.uint8)
++  np.testing.assert_array_equal(a.run(x,mode='periodic',logits=True)[1],b.run(x,mode='periodic',logits=True)[1]);np.testing.assert_array_equal(a.flat,b.flat)
++ def test_26_fitted_copy_preserves_semantics_and_resets_stream(self):
++  m=self.make();m.run(np.arange(100,dtype=np.uint8),mode='periodic');c=m.frozen_copy();self.addCleanup(c.close)
++  np.testing.assert_array_equal(m.semantic_parameters(),c.semantic_parameters());self.assertTrue(all(v['seq']==0 for v in c.content_events().values()))
++del BindingTests
++if __name__=='__main__':unittest.main(verbosity=2)
+--- a/tests/test_semantics_delivery.py
++++ b/tests/test_semantics_delivery.py
+@@ -0,0 +1,15 @@
++import sys,tempfile,unittest
++from pathlib import Path
++import numpy as np
++ROOT=Path(__file__).resolve().parents[1];sys.path.insert(0,str(ROOT/'runtime'));sys.path.insert(0,str(ROOT/'src'))
++from runtime import fresh_model,Model
++from convert_to_semantics import convert
++class SemanticsDeliveryTests(unittest.TestCase):
++ def test_conversion_preserves_weights_resets_new_semantic_state(self):
++  a=fresh_model(kernel='binding');self.addCleanup(a.close);a.run(np.arange(60,dtype=np.uint8),mode='periodic')
++  with tempfile.TemporaryDirectory() as tmp:
++   old=Path(tmp)/'old.npz';new=Path(tmp)/'new.npz';a.save(old);result=convert(old,new);b=Model.load(new);self.addCleanup(b.close)
++   self.assertEqual(result['version'],30);self.assertFalse(result['exact_continuation']);self.assertEqual(b.runtime_kernel,'semantics')
++   np.testing.assert_array_equal(a.flat,b.flat);np.testing.assert_array_equal(a.extra_flat,b.extra_flat);self.assertEqual(np.linalg.norm(b.semantic_parameters()),0)
++   self.assertTrue(all(e['seq']==0 for e in b.content_events().values()))
++   with self.assertRaises(ValueError):convert(old,new)
+--- a/src/convert_to_semantics.py
++++ b/src/convert_to_semantics.py
+@@ -0,0 +1,22 @@
++"""Explicit weight conversion; new semantic dictionaries and working state."""
++import argparse,json,sys
++from pathlib import Path
++import numpy as np
++ROOT=Path(__file__).resolve().parents[1];sys.path.insert(0,str(ROOT/'runtime'))
++from runtime import Model,core
++def convert(source,destination):
++ source=Path(source);destination=Path(destination)
++ if source.resolve()==destination.resolve() or destination.exists():raise ValueError('Choose a new, nonexistent checkpoint path')
++ with np.load(source,allow_pickle=False) as a:
++  if int(a['version'][0])!=29 or int(a['experts'][0])!=core.E:raise ValueError('Expected a version-29 checkpoint with matching expert count')
++  policy={k:json.loads(str(a[k+'_json'])) for k in ['config','lace','state_config','probe','utility']}
++  m=Model(params=core.unflatten(a['flat']),extra=a['extra'],fixed={k[6:]:a[k] for k in a.files if k.startswith('fixed_')},kernel='semantics',**policy)
++  for key,method in [('teaching_scales','configure_teaching'),('regional_gains','configure_regional_gains'),('a1_learning_scales','configure_a1_learning')]:
++   if key in a:getattr(m,method)(a[key])
++  if 'frozen_regions' in a:m.configure_training_policy(a['frozen_regions'],float(a['task_route_lr_scale']))
++  if 'composition_json' in a:m.configure_composition(json.loads(str(a['composition_json'])))
++  np.testing.assert_array_equal(m.flat,a['flat']);np.testing.assert_array_equal(m.extra_flat,a['extra'])
++  destination.parent.mkdir(parents=True,exist_ok=True);m.save(destination);m.close()
++ return dict(source=str(source),destination=str(destination),version=30,abi=4,reset='all dictionaries, stream context, eligibility, fitted preprocessing means, and hippocampal associations',preserved='neural parameters, fixed transports, supported teaching/gain/state policies',exact_continuation=False)
++if __name__=='__main__':
++ p=argparse.ArgumentParser();p.add_argument('source');p.add_argument('destination');a=p.parse_args();print(json.dumps(convert(a.source,a.destination),indent=2))
+--- a/src/encoding_probe.py
++++ b/src/encoding_probe.py
+@@ -0,0 +1,18 @@
++import ctypes as ct,json,subprocess,sys
++from pathlib import Path
++import numpy as np
++ROOT=Path(__file__).resolve().parents[1];sys.path.insert(0,str(ROOT/'runtime'))
++from runtime import fresh_model
++rows=[]
++for kernel in ['binding','semantics']:
++ path=ROOT/f'results/probe_{kernel}.so'
++ subprocess.run(['g++','-O2','-march=native','-std=c++17','-shared','-fPIC',*(['-DSEMANTIC_PROBE=1'] if kernel=='semantics' else []),str(ROOT/'tests/encoding_probe.cpp'),'-o',str(path)],check=True)
++ lib=ct.CDLL(str(path));lib.probe_encode.argtypes=[ct.c_void_p]+[ct.c_int]*5+[ct.c_void_p]*2
++ m=fresh_model(kernel=kernel)
++ def encode(args):
++  ids=np.zeros(2,np.uint64);code=np.zeros(64,np.float32);lib.probe_encode(m.handle,*args,ids.ctypes.data,code.ctypes.data);return ids,code
++ base=encode((2,1,1,0,0))
++ for name,args in [('relative_start',(2,7,1,0,0)),('duration',(2,1,4,0,0)),('source_role',(2,1,1,1,0)),('receiver_namespace',(16,1,1,0,0)),('absolute_offset',(2,1,1,0,7000))]:
++  ids,code=encode(args);rows.append(dict(kernel=kernel,change=name,id_changed=bool(np.any(ids!=base[0])),code_l2=float(np.linalg.norm(code-base[1])),max_abs=float(np.max(np.abs(code-base[1])))))
++ m.close()
++(ROOT/'results/encoding_probe.json').write_text(json.dumps(rows,indent=2)+'\n');print(json.dumps(rows,indent=2))
+--- a/src/package_semantics.py
++++ b/src/package_semantics.py
+@@ -0,0 +1,31 @@
++"""Build a verified source, evidence, data, and checkpoint archive."""
++from pathlib import Path
++import hashlib,json,zipfile
++ROOT=Path(__file__).resolve().parents[1]
++PREFIX='SHoEbox_Identity_Semantics/'
++ARCHIVE='SHoEbox_Identity_Semantics_Source_and_Checkpoints.zip'
++def digest(p):return hashlib.sha256(p.read_bytes()).hexdigest()
++def write(p,obj):p.write_text(json.dumps(obj,indent=2)+'\n')
++def include(p):
++ r=p.relative_to(ROOT)
++ if '__pycache__' in r.parts or any(v.startswith('.') for v in r.parts):return False
++ if r.parts[0] in ['runtime','src','tests']:
++  return p.suffix in ['.py','.cpp','.inc','.json'] or (r.parts[:2]==('runtime','configs') and p.suffix=='.npz')
++ if r.parts[0]=='results':return p.suffix in ['.json','.log'] or (p.name=='last.npz' and r.parts[1].startswith('full_'))
++ if r.parts[0]=='data':return p.name in ['train_segment.txt','heldout.bin','source_manifest.json']
++ if r.parts[0]=='provenance':return p.suffix in ['.md','.json','.patch']
++ if r.parts[0]=='deliverables':return p.suffix in ['.md','.pdf','.json','.csv','.png']
++ return len(r.parts)==1 and p.name in ['README.md','requirements.txt','requirements-reports.txt','BINDING_SCHEMA.json','DATA_MANIFEST.json','SOURCE_MANIFEST.json','ARTIFACT_MANIFEST.json']
++source={str(p.relative_to(ROOT)):digest(p) for folder in ['runtime','src','tests'] for p in sorted((ROOT/folder).rglob('*')) if p.is_file() and include(p)}
++write(ROOT/'SOURCE_MANIFEST.json',dict(description='Tested consistent identity/vector semantics experiment; source/configuration hashes.',base_repository='https://github.com/JRowe47/SHoEbox',base_commit='6d06d60072c3032ac1ce13ceed04ee8f7d89a4cc',base_path='experiments/composition_repair',semantic_checkpoint_version=30,semantic_composition_state_abi=4,comparator_checkpoint_version=29,comparator_composition_state_abi=3,parameters=1031936,files=source))
++artifacts={str(p.relative_to(ROOT)):dict(bytes=p.stat().st_size,sha256=digest(p)) for p in sorted(ROOT.rglob('*')) if p.is_file() and include(p) and (p.relative_to(ROOT).parts[0]=='data' or (p.name=='last.npz' and p.relative_to(ROOT).parts[0]=='results'))}
++write(ROOT/'ARTIFACT_MANIFEST.json',dict(archive=ARCHIVE,archive_prefix=PREFIX,description='Per-file hashes avoid a self-referential archive checksum. SHA256SUMS also covers source, reports, and raw measurements.',files=artifacts))
++files=[p for p in sorted(ROOT.rglob('*')) if p.is_file() and include(p)]
++(ROOT/'SHA256SUMS').write_text(''.join(f'{digest(p)}  {p.relative_to(ROOT)}\n' for p in files));files.append(ROOT/'SHA256SUMS')
++archive=ROOT/'deliverables'/ARCHIVE
++with zipfile.ZipFile(archive,'w',compression=zipfile.ZIP_DEFLATED,compresslevel=6) as z:
++ for p in files:z.write(p,PREFIX+str(p.relative_to(ROOT)))
++with zipfile.ZipFile(archive) as z:
++ assert z.testzip() is None
++ for p in files:assert hashlib.sha256(z.read(PREFIX+str(p.relative_to(ROOT)))).hexdigest()==digest(p)
++print(json.dumps(dict(archive=str(archive),bytes=archive.stat().st_size,files=len(files),sha256=digest(archive)),indent=2))
+--- a/src/render_semantics_report.py
++++ b/src/render_semantics_report.py
+@@ -0,0 +1,78 @@
++from pathlib import Path
++import re,html
++from reportlab.platypus import SimpleDocTemplate,Paragraph,Spacer,Table,TableStyle,KeepTogether,Image
++from reportlab.lib import colors
++from reportlab.lib.styles import getSampleStyleSheet,ParagraphStyle
++from reportlab.lib.enums import TA_LEFT
++from reportlab.pdfbase import pdfmetrics
++from reportlab.pdfbase.ttfonts import TTFont
++
++ROOT=Path(__file__).resolve().parents[1]
++md=ROOT/'deliverables/SHoEbox_Identity_Semantics_Report.md'
++pdf=md.with_suffix('.pdf')
++for name,file in [('Sans','DejaVuSans.ttf'),('Sans-Bold','DejaVuSans-Bold.ttf'),('Sans-Oblique','DejaVuSans-Oblique.ttf')]:
++ pdfmetrics.registerFont(TTFont(name,'/usr/share/fonts/truetype/dejavu/'+file))
++pdfmetrics.registerFontFamily('Sans',normal='Sans',bold='Sans-Bold',italic='Sans-Oblique',boldItalic='Sans-Bold')
++styles=getSampleStyleSheet()
++styles.add(ParagraphStyle(name='BodyAudit',fontName='Sans',fontSize=9.4,leading=14.2,textColor=colors.HexColor('#203244'),spaceAfter=6))
++styles.add(ParagraphStyle(name='CodeAudit',fontName='Courier',fontSize=8.4,leading=12,textColor=colors.HexColor('#203244'),spaceAfter=1))
++styles.add(ParagraphStyle(name='BodyBeforeTable',parent=styles['BodyAudit'],keepWithNext=True))
++styles.add(ParagraphStyle(name='TitleAudit',fontName='Sans-Bold',fontSize=23,leading=29,textColor=colors.HexColor('#113c55'),spaceAfter=13))
++styles.add(ParagraphStyle(name='HeadAudit',fontName='Sans-Bold',fontSize=13.4,leading=18,textColor=colors.HexColor('#126078'),spaceBefore=13,spaceAfter=8,keepWithNext=True))
++styles.add(ParagraphStyle(name='CellAudit',fontName='Sans',fontSize=8.1,leading=11.5,textColor=colors.HexColor('#233445')))
++styles.add(ParagraphStyle(name='CellHeadAudit',parent=styles['CellAudit'],fontName='Sans-Bold',textColor=colors.white))
++styles.add(ParagraphStyle(name='ListAudit',parent=styles['BodyAudit'],leftIndent=12,firstLineIndent=-10,spaceAfter=6))
++def markup(s):
++ s=html.escape(s)
++ s=re.sub(r'\[([^]]+)\]\((https?://[^)]+)\)',lambda m:'<a href="'+m.group(2)+'" color="#126078">'+m.group(1)+'</a>',s)
++ s=re.sub(r'`([^`]+)`',lambda m:'<font name="Courier" size="8.4">'+m.group(1)+'</font>',s)
++ s=re.sub(r'\*\*(.+?)\*\*',r'<b>\1</b>',s)
++ return s
++lines=md.read_text().splitlines();story=[];i=0;width=492
++while i<len(lines):
++ line=lines[i].strip()
++ if not line:i+=1;continue
++ if line.startswith('!['):
++  filename=line.split('](',1)[1].rstrip(')');story.append(Image(str(md.parent/filename),width=492,height=184));story.append(Spacer(1,10));i+=1;continue
++ if line.startswith('```'):
++  code=[];i+=1
++  while i<len(lines) and not lines[i].startswith('```'):code.append(lines[i]);i+=1
++  story.append(KeepTogether([Paragraph(html.escape(ln),styles['CodeAudit']) for ln in code]+[Spacer(1,8)]));i+=1;continue
++ if line.startswith('# '):story.append(Paragraph(markup(line[2:]),styles['TitleAudit']));i+=1;continue
++ if line.startswith('## '):story.append(Paragraph(markup(line[3:]),styles['HeadAudit']));i+=1;continue
++ if line.startswith('|'):
++  rows=[]
++  while i<len(lines) and lines[i].strip().startswith('|'):
++   vals=[s.strip() for s in lines[i].strip().strip('|').split('|')]
++   if not all(re.fullmatch(r'[-: ]+',v) for v in vals):rows.append(vals)
++   i+=1
++  n=len(rows[0]);header=rows[0]
++  if header[0]=='Region' and n==3:widths=[60,280,152]
++  elif header[0]=='Node':widths=[40,135,317]
++  elif header[0]=='Controlled change':widths=[258,100,134]
++  elif header[0]=='Region/intervention':widths=[250,121,121]
++  elif n==5:widths=[52,110,110,110,110]
++  elif n==4:widths=[126,122,122,122]
++  else:widths=[width/n]*n
++  cells=[[Paragraph(markup(v),styles['CellHeadAudit'] if r==0 else styles['CellAudit']) for v in row] for r,row in enumerate(rows)]
++  t=Table(cells,colWidths=widths,repeatRows=1,hAlign='LEFT')
++  t.setStyle(TableStyle([('BACKGROUND',(0,0),(-1,0),colors.HexColor('#16465d')),('VALIGN',(0,0),(-1,-1),'TOP'),('LEFTPADDING',(0,0),(-1,-1),7),('RIGHTPADDING',(0,0),(-1,-1),7),('TOPPADDING',(0,0),(-1,-1),5),('BOTTOMPADDING',(0,0),(-1,-1),5),('ROWBACKGROUNDS',(0,1),(-1,-1),[colors.HexColor('#eef4f7'),colors.white]),('LINEBELOW',(0,0),(-1,0),.6,colors.HexColor('#16465d')),('LINEBELOW',(0,1),(-1,-1),.25,colors.HexColor('#d5e0e7'))]))
++  story.extend([KeepTogether([t]) if len(rows)<=8 else t,Spacer(1,10)]);continue
++ if line.startswith('- ') or re.match(r'^\d+\. ',line):
++  s='- '+line[2:] if line.startswith('- ') else line
++  story.append(Paragraph(markup(s),styles['ListAudit']));i+=1;continue
++ paragraph=[line];i+=1
++ while i<len(lines) and lines[i].strip() and not lines[i].startswith(('#','|','- ')) and not re.match(r'^\d+\. ',lines[i]):paragraph.append(lines[i].strip());i+=1
++ j=i
++ while j<len(lines) and not lines[j].strip():j+=1
++ style=styles['BodyBeforeTable'] if j<len(lines) and lines[j].lstrip().startswith('|') else styles['BodyAudit']
++ body=Paragraph(markup(' '.join(paragraph)),style)
++ story.append(KeepTogether([body]) if paragraph[0].startswith('Finite differences verify') else body)
++def page(canvas,doc):
++ canvas.saveState();w,h=doc.pagesize
++ canvas.setStrokeColor(colors.HexColor('#cfdee5'));canvas.line(52,h-35,w-52,h-35)
++ canvas.setFont('Sans',7.2);canvas.setFillColor(colors.HexColor('#536b7c'));canvas.drawString(52,h-27,'SHoEbox / Consistent identity and vector semantics / 1M-model study')
++ canvas.line(52,39,w-52,39);canvas.drawString(52,26,'12 November 2026 | Structure, learning and throughput');canvas.drawRightString(w-52,26,str(doc.page));canvas.restoreState()
++doc=SimpleDocTemplate(str(pdf),pagesize=(596,842),leftMargin=52,rightMargin=52,topMargin=52,bottomMargin=54,title='SHoEbox: consistent identity and vector semantics',author='OpenAI')
++doc.build(story,onFirstPage=page,onLaterPages=page)
++print(pdf)
+--- a/src/report_semantics.py
++++ b/src/report_semantics.py
+@@ -0,0 +1,168 @@
++"""Render experiment evidence as ordinary downloadable reports and curves."""
++from pathlib import Path
++import csv,json
++import numpy as np
++import matplotlib
++matplotlib.use('Agg')
++import matplotlib.pyplot as plt
++ROOT=Path(__file__).resolve().parents[1];OUT=ROOT/'deliverables';OUT.mkdir(exist_ok=True)
++KERNELS=['binding','semantics_fixed','semantics']
++labels={'binding':'Previous binding','semantics_fixed':'Corrected encoding, fixed','semantics':'Corrected encoding, learned'}
++runs={(k,s):json.loads((ROOT/f'results/full_{k}_seed{s}/training.json').read_text()) for k in KERNELS for s in [1,2]}
++assert all(r['status']=='complete' and r['tokens']==1000000 for r in runs.values())
++perf=json.loads((ROOT/'results/throughput.json').read_text());probe=json.loads((ROOT/'results/encoding_probe.json').read_text());contrib=json.loads((ROOT/'results/semantic_contribution.json').read_text());selection=json.loads((ROOT/'results/rate_selection.json').read_text())
++means={k:float(np.mean([runs[k,s]['test_nll'] for s in [1,2]])) for k in KERNELS}
++speed=perf['median_bytes_per_second'];delta=means['semantics']-means['binding'];pct=100*delta/means['binding'];slow=100*(1-speed['semantics']/speed['binding'])
++summary=dict(base_commit='6d06d60072c3032ac1ce13ceed04ee8f7d89a4cc',base_package='SHoEbox_Multisource_Binding',parameters={'binding':1023744,'semantics':1031936},added_semantic_coefficients=8192,mean_test_nll=means,change_nll=delta,relative_nll_change_percent=pct,throughput=perf,encoding_probe=probe,semantic_contribution=contrib,rate_selection=selection,test_count=62,checkpoint_version=30,composition_abi=4)
++(OUT/'SHoEbox_Identity_Semantics_Results.json').write_text(json.dumps(summary,indent=2)+'\n')
++with (OUT/'SHoEbox_Identity_Semantics_Curves.csv').open('w',newline='') as f:
++ w=csv.writer(f);w.writerow(['kernel','seed','split','tokens','nll'])
++ for (k,s),r in runs.items():
++  for split in ['training','validation']:
++   for row in r[split]:w.writerow([k,s,split,row['tokens'],row['nll']])
++colors={'binding':'#637586','semantics_fixed':'#d89226','semantics':'#008c95'}
++fig,axes=plt.subplots(1,2,figsize=(11.5,4.3));fig.patch.set_facecolor('white')
++for k in KERNELS:
++ a=np.array([[p['nll'] for p in runs[k,s]['training']] for s in [1,2]]);x=np.array([p['tokens'] for p in runs[k,1]['training']])/1e6
++ smooth=np.array([np.convolve(z,np.ones(10)/10,mode='valid') for z in a]);axes[0].plot(x[9:],smooth.mean(0),color=colors[k],label=labels[k]);axes[0].fill_between(x[9:],smooth.min(0),smooth.max(0),color=colors[k],alpha=.10)
++ v=np.array([[p['nll'] for p in runs[k,s]['validation'][1:]] for s in [1,2]]);vx=np.array([p['tokens'] for p in runs[k,1]['validation'][1:]])/1e6
++ axes[1].plot(vx,v.mean(0),color=colors[k],marker='o',markersize=3);axes[1].fill_between(vx,v.min(0),v.max(0),color=colors[k],alpha=.10)
++for ax in axes:
++ ax.set_xlabel('Training byte targets (millions)');ax.set_ylabel('NLL (nats / byte)');ax.grid(alpha=.18);ax.spines[['top','right']].set_visible(False)
++axes[0].set_title('Training loss - 50K-target moving mean');axes[1].set_title('Validation loss - 32,768 targets');axes[0].legend(frameon=False,fontsize=8)
++fig.suptitle('SHoEbox: identity and vector semantics | 1M model | two seeds',fontsize=13,fontweight='bold');fig.text(.5,.015,'Shaded bands show the two-seed range. Each arm uses its independently selected learning rate.',ha='center',fontsize=8,color='#555555');fig.tight_layout(rect=(0,.05,1,.92));fig.savefig(OUT/'SHoEbox_Identity_Semantics_Curves.png',dpi=190);plt.close(fig)
++rows='\n'.join(f"| {s} | {runs['binding',s]['test_nll']:.6f} | {runs['semantics_fixed',s]['test_nll']:.6f} | {runs['semantics',s]['test_nll']:.6f} |" for s in [1,2])
++proberows=[]
++change_names={'relative_start':'Relative start: 1 to 7','duration':'Second-child duration: 1 to 4','source_role':'Second-child source role','receiver_namespace':'Receiving-region namespace','absolute_offset':'Absolute offset: +7,000'}
++for name,label in change_names.items():
++ old=next(x for x in probe if x['kernel']=='binding' and x['change']==name);new=next(x for x in probe if x['kernel']=='semantics' and x['change']==name)
++ proberows.append(f"| {label} | {'Yes' if old['id_changed'] else 'No'} / {old['code_l2']:.4f} | {'Yes' if new['id_changed'] else 'No'} / {new['code_l2']:.4f} |")
++perfrows='\n'.join(f"| {labels[k]} | {speed[k]:,.0f} | {1e6/speed[k]:.1f} |" for k in KERNELS)
++contribrows='\n'.join(f"| {x['seed']} | {x['baseline_nll']:.6f} | {x['zero_semantic_residual_nll']:.6f} | {x['delta_nll']:+.6f} |" for x in contrib)
++regionrows=[]
++for i,name in enumerate(['L2','S2','R2','F2','L3','S3','R3','F3','E4','F4','V4','M4','G5','EC-C','EC-X','Y']):
++ if name in ['L2','L3','E4','V4','G5','EC-C','EC-X','Y']:
++  regionrows.append(f"| {name} | {contrib[0]['regional_updates'][name]:,} | {contrib[0]['regional_parameter_l2'][i]:.6f} |")
++assessment=(f"The repaired learned model lowers mean reserved-test NLL by {abs(delta):.6f} nats/byte ({abs(pct):.2f}%)." if delta<0 else f"The repaired learned model raises mean reserved-test NLL by {delta:.6f} nats/byte ({pct:.2f}%) in this comparison. The structural contract is repaired; this isolated change did not improve token-matched language loss.")
++throughput_note=(f'{slow:.1f}% lower' if slow>=0 else f'{-slow:.1f}% higher')
++text=f'''# SHoEbox: consistent identity and vector semantics
++
++12 November 2026 | Second repair from the principled code audit | 1M-model study
++
++## Result
++
++The identity/vector mismatch is repaired on top of the multi-source binding implementation. Required structural distinctions now enter the content vector used by routing and local teaching, including L2's previously missing geometry and receiving-region distinctions. Exact structural IDs remain separate from learned semantic vectors and neural context.
++
++**62 checks pass**, including the previous 35 checks, the binding suite against the new kernel, new semantic and gradient checks, and explicit checkpoint conversion. AddressSanitizer and UndefinedBehaviorSanitizer pass.
++
++The learned version has **1,031,936 neural coefficients**, including 8,192 new semantic coefficients: **0.80% more** than the 1,023,744-parameter binding model. Each comparison model received one million training byte targets, using two seeds. {assessment}
++
++Same-core median training throughput is **{speed['binding']:,.0f} bytes/s before and {speed['semantics']:,.0f} bytes/s after**, or **{throughput_note} throughput**. The corrected fixed-encoding control is measured separately below.
++
++## Representation contract
++
++| Object | Meaning and permitted changes |
++| --- | --- |
++| Exact content ID | 128-bit structural key. Includes receiving region, composition kind, ordered child IDs, source/recipe roles, present roles, relative starts and durations. Excludes absolute alignment, occurrence serial, expert choice and contextual activity. Byte atoms share the byte vocabulary; source distinctions enter compound roles. |
++| Structural descriptor | Deterministic composition of children's immutable descriptors, plus an anchor derived from both halves of the compound ID. It carries role/geometry/namespace distinctions into the neural interface. |
++| Semantic vector | Structural descriptor plus a learned bounded residual for that region. Learning may change this vector while keeping the exact ID fixed. |
++| Neural context | The expert's recurrent, context-sensitive publication. It remains separate from content identity and descriptor. |
++
++The local symbol is the exact content ID, not an expert number, a dictionary bucket, or an occurrence index. Count-table eviction therefore cannot reassign a symbol's vector. Parents build their own descriptors from immutable child descriptors, so a held child embedding from an earlier weight revision does not unpredictably change a parent's content code. Learned semantic adaptation belongs to each receiving region; learned neural publications continue to travel through the separate contextual path.
++
++The learned code is a compact shared function of a local symbol's descriptor. It is not an unbounded per-symbol embedding table. Eight fixed signed projections yield eight bounded features. A regional 64-by-8 matrix maps these features into a residual bounded to +/-0.25 per coordinate. There are sixteen such matrices, for L2 through Y. They start at zero.
++
++The exact ID remains the equality authority. A 64-dimensional similarity vector is not used as a collision-free identifier. The full-ID anchor makes required structural changes visible in the tested neural interface; learned residuals do not rewrite IDs or recognition counters.
++
++## What was corrected
++
++L2 now encodes constituent duration and source role in its ID, and carries the complete identity distinctions into its vector. A singleton still forwards its child's ID and vector. Mixed-source regions retain the declared slot positions and add the source namespace explicitly to the structural key. Their vectors now include an anchor for the completed compound ID, which covers the receiver namespace and present-role mask as well as the constituent fields.
++
++This keeps identity, descriptor, semantic embedding and contextual response as separate concepts. Semantic learning does not use an expert's context-sensitive output as the symbol itself.
++
++The following controlled probes use the same two child contents. Each cell shows **ID changed? / vector L2 distance**. The previous implementation's vector stayed exactly unchanged for every listed structural distinction.
++
++| Controlled change | Previous binding | Repaired semantics |
++| --- | ---: | ---: |
++{chr(10).join(proberows)}
++
++The inherited binding checks additionally exercise every immediate constituent slot in all fifteen mixed-source regions, absent inputs without role renumbering, and genuine older/newer occurrences.
++
++## Semantic learning and saved provenance
++
++Semantic matrices learn from local prediction and task/downstream credit entering a region's neural input, including retained-input credit. The update retains the publication's eight features, residual derivative, input scaling, tick and eligibility index. A later event cannot substitute its own embedding features for that saved producer.
++
++The semantic residual is an input-side learned transform. It receives the saved expert-input Jacobian with the selected expert/gate held fixed; it does not differentiate hard routing decisions or turn this runtime into full backpropagation through time. The future-content target is read as a detached observed target. There is no update that moves the arriving target toward the prediction merely to reduce the error.
++
++Finite differences verify the semantic-matrix derivative. Behavioral checks verify a loss-reducing semantic update with unchanged ID, preservation of saved features across later occurrences, unchanged parameters during evaluation, frozen-region behavior, and exact save/load/chunk continuation. Router cues and the local teacher's content input share the same content vector; the existing Y prefix-byte addition and normalization remain explicit.
++
++Singleton cancellation of outstanding teaching and recognition status is still the next repair in the agreed sequence. This patch retains that behavior and does not claim to have repaired relay teaching.
++
++## Matched language experiment
++
++All three arms use the same Tiny Shakespeare byte stream, width 64, twelve experts per region, initial expert parameters, fixed transports and train/validation/test split. Each arm was screened on seed 3 at peak rates 0.02, 0.04 and 0.08 for 100,000 targets. Selection uses only 32,768 validation targets.
++
++Selected peaks: previous binding **{selection['binding']['peak_lr']}**, corrected fixed encoding **{selection['semantics_fixed']['peak_lr']}**, and corrected learned encoding **{selection['semantics']['peak_lr']}**. Rates follow cosine decay to one tenth of the selected peak by one million targets. Local rate is one third of main; prototype rate is 0.002. Seeds 1 and 2 were then trained from fresh initialization for each arm.
++
++The primary endpoint is the remaining **78,771 reserved-test targets**, evaluated from a fresh stream. As in the prior binding study, evaluation starts with cold episodic memory and permits causal memory admission from the observed test prefix. Neural weights, semantic coefficients and composition dictionaries stay frozen. The fixed-encoding arm holds the 8,192 semantic coefficients at zero throughout training.
++
++| Seed | Previous binding NLL | Corrected fixed NLL | Corrected learned NLL |
++| --- | ---: | ---: | ---: |
++{rows}
++| Mean | {means['binding']:.6f} | {means['semantics_fixed']:.6f} | {means['semantics']:.6f} |
++
++The fixed and learned arms use independently selected rates, so their difference includes rate selection. The frozen intervention below isolates dependence on the learned semantic residual within each trained learned model.
++
++![Training and validation loss](SHoEbox_Identity_Semantics_Curves.png)
++
++## Learned residual contribution
++
++Each learned checkpoint is evaluated with its semantic residual intact and then with all semantic matrices zeroed in a fresh evaluation copy. IDs, descriptors, dictionaries, expert weights and the evaluation protocol are retained. The intact pass reproduces the study's reserved-test loss to numerical precision. Positive changes mean that removing the residual worsens loss.
++
++| Seed | Intact test NLL | Zero residual test NLL | Change |
++| --- | ---: | ---: | ---: |
++{contribrows}
++
++This intervention measures dependence on the learned residual after training, while the fixed-encoding arm measures retraining without it. Regional neural-publication contribution checks remain a separate later step after the relay repair.
++
++Selected seed-1 semantic learning diagnostics:
++
++| Region | Semantic update calls | Learned matrix L2 norm |
++| --- | ---: | ---: |
++{chr(10).join(regionrows)}
++
++## Throughput and state cost
++
++Timing uses one pinned CPU core, six trials per arm in alternating order, 1,024 warmup targets and 16,384 timed targets per trial, after the training workers have exited. It includes forward execution, routing, dictionaries, episodic admission and neural learning. Compilation, snapshot creation, checkpoint writes and evaluation are excluded.
++
++| Implementation | Median training bytes/s | Projected seconds per million |
++| --- | ---: | ---: |
++{perfrows}
++
++Composition state grows from **3,103,240 to 3,317,000 bytes**, an increase of **213,760 bytes**. That includes immutable descriptors, saved semantic eligibility and 32,768 bytes of learned coefficients. The learned arm also computes input Jacobians for semantic credit; the timing measures that cost. These comparisons match training targets, not elapsed compute.
++
++## Delivery and continuation
++
++The package contains the full runtime, six trained checkpoints, exact data, tests, raw training records, rate selection, intervention evidence and report-generation scripts. The previous binding kernel remains available for reproduction.
++
++```
++model = fresh_model(kernel="semantics")
++model = Model.load("results/full_semantics_seed1/last.npz")
++```
++
++Semantic checkpoints use **version 30 / composition ABI 4**. Save/load is exact for the new kernel. The loader rejects a version-29 binding composition blob rather than reinterpreting it. To reuse old neural weights, `src/convert_to_semantics.py` explicitly creates a new checkpoint with fresh semantic matrices, dictionaries, working context, eligibility, preprocessing means and episodic associations. That operation is a weight conversion, not exact continuation.
++
++```
++python -m unittest discover -s tests -v
++python tests/run_semantics_sanitizer.py
++python src/run_semantics_study.py pilots
++python src/run_semantics_study.py full
++python src/encoding_probe.py
++python src/semantic_contribution.py
++python src/semantics_performance.py
++```
++
++Source provenance: the recovered binding package's 49 recorded source/configuration hashes all match. Its ancestor is [SHoEbox commit 6d06d60](https://github.com/JRowe47/SHoEbox/commit/6d06d60072c3032ac1ce13ceed04ee8f7d89a4cc). This delivery is a tested source package; no GitHub publication is included in this step.
++'''
++(OUT/'SHoEbox_Identity_Semantics_Report.md').write_text(text)
++print(json.dumps(dict(mean_test_nll=means,change=delta,percent=pct,median_bytes_per_second=speed),indent=2))
+--- a/src/run_semantics_study.py
++++ b/src/run_semantics_study.py
+@@ -0,0 +1,62 @@
++"""Matched 1M-parameter study; tune on validation, then test two fresh seeds."""
++import argparse,hashlib,json,math,os,subprocess,sys,time
++from pathlib import Path
++ROOT=Path(__file__).resolve().parents[1]
++os.environ.update(OMP_NUM_THREADS='1',OPENBLAS_NUM_THREADS='1',MKL_NUM_THREADS='1')
++sys.path.insert(0,str(ROOT/'runtime'))
++import numpy as np
++from runtime import fresh_model,Model,core
++def write(p,data):
++ p=Path(p);p.parent.mkdir(parents=True,exist_ok=True);tmp=p.with_suffix('.tmp');tmp.write_text(json.dumps(data,indent=2,allow_nan=False)+'\n');tmp.replace(p)
++def evaluate(m,data):
++ c=m.frozen_copy();loss=0.;n=len(data)-1
++ for i in range(0,n,8192):
++  z=min(8192,n-i);loss+=z*c.run(data[i:i+z],data[i+1:i+z+1])
++ c.close();return loss/n
++def worker(a):
++ os.sched_setaffinity(0,{a.core});folder=ROOT/'results'/a.out;folder.mkdir(exist_ok=True)
++ train=np.fromfile(ROOT/'data/train_segment.txt',np.uint8);held=np.fromfile(ROOT/'data/heldout.bin',np.uint8)
++ validation=held[:32769];test=held[32768:]
++ m=fresh_model(a.seed,kernel=a.kernel);assert m.parameter_count in (1023744,1031936)
++ r=dict(kernel=a.kernel,seed=a.seed,peak_lr=a.peak,parameters=m.parameter_count,tokens=0,training=[],validation=[],train_seconds=0.,status='running',core=a.core,composition_bytes=m.composition_state().size,train_sha256=hashlib.sha256(train).hexdigest(),heldout_sha256=hashlib.sha256(held).hexdigest(),validation_targets=len(validation)-1,test_targets=len(test)-1,selection_seed=3)
++ r['validation'].append(dict(tokens=0,nll=evaluate(m,validation)))
++ for pos in range(0,a.tokens,5000):
++  n=min(5000,a.tokens-pos);lr=a.peak*(.1+.45*(1+math.cos(math.pi*(pos+n/2)/1000000)))
++  start=time.perf_counter();loss=m.run(train[pos:pos+n],train[pos+1:pos+n+1],mode='periodic',lr=lr,lp=lr/3,route=.002);sec=time.perf_counter()-start
++  r['train_seconds']+=sec;r['tokens']=pos+n;r['training'].append(dict(tokens=pos+n,nll=loss,lr=lr,seconds=sec))
++  if (pos+n)%100000==0 or pos+n==a.tokens:
++   val=evaluate(m,validation);r['validation'].append(dict(tokens=pos+n,nll=val));write(folder/'training.json',r);print(a.kernel,a.seed,a.peak,pos+n,round(val,6),flush=True)
++ if a.tokens==1000000:
++  r['test_nll']=evaluate(m,test);r['full_heldout_nll']=evaluate(m,held);r['stats']=m.stats();r['composition_metrics']=m.composition_metrics();r['lace_metrics']=m.lace_metrics();m.save(folder/'last.npz')
++ r['semantic_updates']=m.semantic_updates();r['semantic_norm']=float(np.linalg.norm(m.semantic_parameters()));r['status']='complete';write(folder/'training.json',r);m.close()
++def launch(jobs,max_workers):
++ pending=list(jobs);active=[]
++ while pending or active:
++  while pending and len(active)<max_workers:
++   job=pending.pop(0);log=open(ROOT/'results'/(job['out']+'.log'),'w');cmd=[sys.executable,__file__,'worker']
++   for k,v in job.items():cmd+=['--'+k,str(v)]
++   proc=subprocess.Popen(cmd,stdout=log,stderr=subprocess.STDOUT);active.append((proc,log,job))
++  for p,l,j in active[:]:
++   code=p.poll()
++   if code is not None:
++    l.close();active.remove((p,l,j));print(j['out'],code,flush=True)
++    if code:raise RuntimeError('Study worker failed: '+j['out'])
++  if active:time.sleep(.2)
++def main():
++ p=argparse.ArgumentParser();p.add_argument('stage',choices=['worker','pilots','full']);p.add_argument('--kernel');p.add_argument('--seed',type=int);p.add_argument('--peak',type=float);p.add_argument('--tokens',type=int);p.add_argument('--out');p.add_argument('--core',type=int);a=p.parse_args()
++ if a.stage=='worker':worker(a);return
++ cpus=sorted(os.sched_getaffinity(0))
++ if a.stage=='pilots':
++  jobs=[]
++  for rate in [.02,.04,.08]:
++   for kernel in ['binding','semantics','semantics_fixed']:jobs.append(dict(kernel=kernel,seed=3,peak=rate,tokens=100000,out=f'pilot_{kernel}_{rate}',core=cpus[len(jobs)%3]))
++  launch(jobs,3);selection={}
++  for kernel in ['binding','semantics','semantics_fixed']:
++   rows=[json.loads((ROOT/'results'/j['out']/'training.json').read_text()) for j in jobs if j['kernel']==kernel];best=min(rows,key=lambda r:r['validation'][-1]['nll']);selection[kernel]=dict(peak_lr=best['peak_lr'],validation_nll=best['validation'][-1]['nll'],pilot_seed=3,pilot_targets=100000)
++  write(ROOT/'results/rate_selection.json',selection);print(selection,flush=True)
++ else:
++  selection=json.loads((ROOT/'results/rate_selection.json').read_text());jobs=[]
++  for seed in [1,2]:
++   for kernel in ['binding','semantics','semantics_fixed']:jobs.append(dict(kernel=kernel,seed=seed,peak=selection[kernel]['peak_lr'],tokens=1000000,out=f'full_{kernel}_seed{seed}',core=cpus[len(jobs)]))
++  launch(jobs,3)
++if __name__=='__main__':main()
+--- a/src/semantic_contribution.py
++++ b/src/semantic_contribution.py
+@@ -0,0 +1,21 @@
++"""Frozen learned-residual intervention, with the complete symbol contract retained."""
++from pathlib import Path
++import ctypes as ct,json,os,subprocess,sys
++os.environ['OPENBLAS_NUM_THREADS']='1'
++ROOT=Path(__file__).resolve().parents[1];sys.path.insert(0,str(ROOT/'runtime'))
++import numpy as np
++from runtime import Model
++path=ROOT/'results/semantic_intervention.so'
++subprocess.run(['g++','-O2','-march=native','-std=c++17','-shared','-fPIC',str(ROOT/'tests/semantics_fixture.cpp'),'-o',str(path)],check=True)
++lib=ct.CDLL(str(path));lib.semantic_fixture_ablate.argtypes=[ct.c_void_p]
++data=np.fromfile(ROOT/'data/heldout.bin',np.uint8)[32768:];rows=[]
++for seed in [1,2]:
++ original=Model.load(ROOT/f'results/full_semantics_seed{seed}/last.npz')
++ learned=original.frozen_copy();disabled=original.frozen_copy();lib.semantic_fixture_ablate(disabled.handle)
++ base=learned.run(data[:-1],data[1:]);muted=disabled.run(data[:-1],data[1:])
++ expected=json.loads((ROOT/f'results/full_semantics_seed{seed}/training.json').read_text())['test_nll']
++ assert abs(base-expected)<1e-12,(base,expected)
++ row=dict(seed=seed,baseline_nll=base,zero_semantic_residual_nll=muted,delta_nll=muted-base,parameters_l2=float(np.linalg.norm(original.semantic_parameters())),regional_updates=original.semantic_updates(),regional_parameter_l2=np.linalg.norm(original.semantic_parameters().reshape(16,-1),axis=1).tolist())
++ rows.append(row);print(json.dumps(row),flush=True)
++ original.close();learned.close();disabled.close()
++(ROOT/'results/semantic_contribution.json').write_text(json.dumps(rows,indent=2)+'\n')
+--- a/src/semantics_performance.py
++++ b/src/semantics_performance.py
+@@ -0,0 +1,19 @@
++"""Alternating same-core training timing after all study workers finish."""
++import argparse,json,os,statistics,sys,time
++from pathlib import Path
++os.environ.update(OPENBLAS_NUM_THREADS='1',OMP_NUM_THREADS='1')
++ROOT=Path(__file__).resolve().parents[1];sys.path.insert(0,str(ROOT/'runtime'))
++import numpy as np
++from runtime import Model
++p=argparse.ArgumentParser();p.add_argument('--core',type=int,default=min(os.sched_getaffinity(0)));a=p.parse_args();os.sched_setaffinity(0,{a.core})
++models={k:Model.load(ROOT/f'results/full_{k}_seed1/last.npz') for k in ['binding','semantics_fixed','semantics']}
++data=np.fromfile(ROOT/'data/train_segment.txt',np.uint8)[:17409];rows=[]
++for trial in range(6):
++ for k in (['binding','semantics_fixed','semantics'] if trial%2==0 else ['semantics','semantics_fixed','binding']):
++  m=models[k].snapshot_copy();m.run(data[:1024],data[1:1025],mode='periodic',lr=.008,lp=.008/3,route=.002)
++  t=time.perf_counter();loss=m.run(data[1024:-1],data[1025:],mode='periodic',lr=.008,lp=.008/3,route=.002);seconds=time.perf_counter()-t
++  row=dict(kernel=k,trial=trial,targets=16384,seconds=seconds,bytes_per_second=16384/seconds,loss=loss);rows.append(row);print(k,trial,round(row['bytes_per_second']),flush=True);m.close()
++med={k:statistics.median(r['bytes_per_second'] for r in rows if r['kernel']==k) for k in models}
++r=dict(core=a.core,trials=rows,median_bytes_per_second=med,semantics_over_binding_ratio=med['semantics']/med['binding'],extra_seconds_per_million=1e6/med['semantics']-1e6/med['binding'],includes='forward, routing, dictionary/memory updates, neural learning',excludes='compilation, snapshots, checkpoint I/O, validation')
++(ROOT/'results/throughput.json').write_text(json.dumps(r,indent=2)+'\n')
++for m in models.values():m.close()
