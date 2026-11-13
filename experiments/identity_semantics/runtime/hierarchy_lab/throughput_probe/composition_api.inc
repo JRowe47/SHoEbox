@@ -2,6 +2,10 @@ extern "C" {
 int composition_configure(void*p,int enabled,float threshold,int count,int maximum,float context){
   if((enabled!=0&&enabled!=1)||!std::isfinite(threshold)||threshold<=0||threshold>=1||count<1||count>1000000||maximum<2||maximum>COMP_MAX||!std::isfinite(context)||context<0||context>1)return 0;
   auto&z=static_cast<Model*>(p)->composition;
+#ifdef SHOEBOX_LEARNED_COMPLETION
+  if(z.enabled!=enabled&&(z.stream.byte_position||z.stream.semantic_serial||paired_occupied(*static_cast<Model*>(p))))return 0;
+  if(z.enabled!=enabled)for(int r=0;r<N;r++)if(static_cast<Model*>(p)->s.valid[r])return 0;
+#endif
 #ifdef SHOEBOX_MULTI_BINDING
   auto&m=*static_cast<Model*>(p);
   for(int r=3;r<N;r++){
@@ -162,12 +166,24 @@ void evaluation_copy_memory(void*target,const void*source){
   memcpy(d.born,s.born,sizeof(d.born));memcpy(d.updated,s.updated,sizeof(d.updated));
   memcpy(d.qmean,s.qmean,sizeof(d.qmean));memcpy(d.vmean,s.vmean,sizeof(d.vmean));
   d.used=s.used;d.tick=s.tick;
+#ifdef SHOEBOX_LEARNED_COMPLETION
+  auto&target_model=*static_cast<Model*>(target);const auto&source_model=*static_cast<const Model*>(source);
+  target_model.paired=source_model.paired;paired_reset_stream(target_model);
+#endif
 }
 void evaluation_memory_info(void*p,uint64_t*out){
   auto&s=static_cast<Model*>(p)->s;out[0]=out[1]=0;
   for(int a=0;a<2;a++)for(int i=0;i<PCAP;i++)out[a]+=s.born[a][i]!=0;
   uint64_t hash=14695981039346656037ULL;
   auto add=[&](const void*p,size_t n){auto*b=static_cast<const unsigned char*>(p);for(size_t i=0;i<n;i++){hash^=b[i];hash*=1099511628211ULL;}};
+#ifdef SHOEBOX_LEARNED_COMPLETION
+  auto&m=*static_cast<Model*>(p);
+  if(paired_enabled(m)){
+    out[0]=out[1]=paired_occupied(m);add(&m.paired.serial,sizeof(m.paired.serial));
+    for(const auto&e:m.paired.slots)add(&e,sizeof(e));
+    out[2]=hash;out[3]=s.freeze_writes;out[4]=s.tick;return;
+  }
+#endif
   add(s.pk,sizeof(s.pk));add(s.pv,sizeof(s.pv));add(s.priority,sizeof(s.priority));
   add(s.utility,sizeof(s.utility));add(s.born,sizeof(s.born));add(s.updated,sizeof(s.updated));
   out[2]=hash;out[3]=s.freeze_writes;out[4]=s.tick;
@@ -224,4 +240,5 @@ void completion_clocks(void*p,int64_t*out){
 #include "neural_api.inc"
 #include "content_expert_api.inc"
 #include "pattern_api.inc"
+#include "paired_memory_api.inc"
 #endif

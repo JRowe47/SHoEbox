@@ -106,11 +106,68 @@ collection, and preserves relay class identity.
 
 `configure_pattern_classes(True)` upgrades an older model only after
 `reset_context()` or at a clean stream boundary. `snapshot_copy()`, frozen copies,
-fingerprints and version-38 checkpoints include the appropriate class state.
+fingerprints and version-38+ checkpoints include the appropriate class state.
 Versions 35-37 load with class learning disabled to reproduce their exact-key
 recognition behavior. Run `src/validate_pattern_classes.py` for the matched cost,
 frozen class-removal intervention and held-out generation checks. See
 [the fourth-fix report](deliverables/SHoEbox_Pattern_Classes.md).
+
+### Paired content/context episodic memory (fifth fix)
+
+Fresh reference models use a single native episode store shared by EC-C and EC-X.
+An episode owns two detached observed-input values, two normalized address keys,
+its members' exact publication provenance and primary clocks, one stream epoch,
+and an immutable monotonic ID. The memory contains observed constituent content;
+recalled values and recurrent EC state are excluded from admission.
+
+EC publications need not coincide. After the regional pass, the latest completed
+content observation pairs with the latest completed context observation, once
+per new occurrence tuple. Both sides must exist in the current stream. A held
+member retains its original sequence, tick and boundaries. `reset_context()`
+clears those observations and advances the stream epoch while preserving stored
+episodes. `finish_document(reset=True)` drains before resetting. No episode can
+pair an old-document observation with a new-document observation.
+
+The first EC request in each byte or drain step locks a joint read using its
+current input and the latest completed opposite-side input. It sets both return
+vectors to members of one selected episode, with one similarity gate and ID.
+Later EC requests in the same step reuse that pair. If the first request lacks
+an opposite-side observation, both ports stay empty for that step. Writes occur
+after both regions, before target scoring. Returned vectors still pass through
+the existing separately learned EC matrices.
+
+Joint similarity is the average of content and context key cosine similarities.
+A signed joint projection supplies the sparse bucket probes. With default
+`buckets=2048, ways=4`, memory holds at most 8,192 complete pairs. Stable/adaptive
+bucket namespaces, novelty and outcome surprise, salience-weighted reservoir
+priority and usefulness competition determine admission. Each episode occupies
+one row. Reinforcement updates recency metadata without blending members or
+changing identity; replacement gives the whole pair a new ID. There is no FIFO,
+sliding context window or age-based expiry. Detached episodes do not own the
+neural credit DAG.
+
+Both EC ports can teach an episode's shared utility. Delayed records carry their
+original returned values and ID: an evicted episode still teaches its learned
+return port, but cannot update a replacement's utility. `clear_memory()` preserves
+the serial allocator so old handles cannot alias a new admission. Memory-frozen
+evaluation blocks admission, reinforcement, priority competition and utility
+updates while query normalization and recurrent inference continue normally.
+
+`paired_memory_metrics()` exposes admissions, replacements, joint hits,
+incomplete and cached reads, utility deliveries, retired handles and current
+member provenance. `evaluation_memory_info()` reports equal channel occupancy
+for paired episodes. Cold copies start empty; warm copies retain complete
+stored episodes and coordinate centers, with a fresh pairing stream.
+`snapshot_copy()`, fingerprints and v39 checkpoints include the entire causal
+pairing state. Malformed sidecars are rejected before replacing live state.
+
+Versions 35-38 keep the independent transition stores for exact continuation.
+To upgrade an old checkpoint explicitly, call `reset_context()`, `clear_memory()`
+and `configure_paired_memory(True)`; policy changes require a fresh stream and
+empty memory. The fitted neural weights remain available. New reference models
+enable pairing by default; historical profiles keep it disabled. Run
+`src/validate_paired_memory.py` for matched timing and frozen recall interventions.
+See [the fifth-fix report](deliverables/SHoEbox_Paired_Episodic_Memory.md).
 
 Each encoding saves its actual dependencies and derivatives. The pool starts
 with 16,384 semantic records and is collected from live histories, pending frames
@@ -137,9 +194,10 @@ of a bottom expert while its original generation is still retained.
 retained-input edges, and on overwritten outstanding credit.
 
 The expert transform adds no neural parameters: **1,031,952 parameters** at 12 experts.
-Version **38 / composition ABI 10** checkpoints the complete owned archive, pending
+Version **39 / composition ABI 10** checkpoints the complete owned archive, pending
 frames, gates, semantic dependencies, recent eligibility, local neural-credit
-policy, content-expert policy/eligibility, and the versioned class policy/state.
+policy, content-expert policy/eligibility, class policy/state, and paired-memory
+policy, immutable episodes, asynchronous observations and joint return cache.
 The sidecars follow semantic record
 lifetimes and pool growth; missing or mismatched content records are rejected.
 Versions 35-37 remain exactly loadable, preserving exact-key recognition.

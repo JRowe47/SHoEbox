@@ -32,7 +32,12 @@ recurrent state and feedback, and saves its own routing and credit eligibility.
 Reusable pattern classes now learn role-aware child content independently of
 exact binding IDs. Completion uses class transitions and a learned next-content
 forecast; held context remains bound while equivalent patterns can reuse a class.
-New checkpoints are version 38 / composition ABI 10, with versioned class state.
+EC-C and EC-X now share immutable content/context episodes. Retrieval selects
+one episode for both learned return ports; asynchronous updates pair the latest
+completed observations within the same document stream. Admission and utility
+remain content addressed. New checkpoints are version 39 / composition ABI 10,
+with versioned class and paired-memory state. Versions 35-38 preserve their
+independent associative-memory policy when loaded.
 Versions 35-37 retain exact-key recognition when loaded. Versions 35/36 preserve
 their previous content behavior; version 35 also retains its old local-teaching
 policy unless explicitly upgraded.
@@ -40,6 +45,7 @@ Version-33/34 completion checkpoints require explicit fresh-stream conversion;
 versions 31 and 32 retain their original kernels when loaded.
 
 [Current implementation and usage](experiments/identity_semantics/README.md) |
+[Paired episodic memory](experiments/identity_semantics/deliverables/SHoEbox_Paired_Episodic_Memory.md) |
 [Reusable pattern classes](experiments/identity_semantics/deliverables/SHoEbox_Pattern_Classes.md) |
 [Constituent expert repair](experiments/identity_semantics/deliverables/SHoEbox_Constituent_Experts.md) |
 [Local prediction credit repair](experiments/identity_semantics/deliverables/SHoEbox_Local_Prediction_Credit.md).

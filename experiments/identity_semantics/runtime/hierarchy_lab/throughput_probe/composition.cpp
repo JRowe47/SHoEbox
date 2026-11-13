@@ -109,6 +109,7 @@ struct UtilityRuntime {
 #include "composition_types.inc"
 #ifdef SHOEBOX_LEARNED_COMPLETION
 #include "pattern_types.inc"
+#include "paired_memory_types.inc"
 struct RetainedNeural {
   LaceRecord lace{};
   InputCredit input{};
@@ -137,6 +138,7 @@ struct Model {
   uint64_t local_credit_metrics[N][8]{};
   bool content_experts=true;
   PatternRuntime pattern;
+  PairedMemory paired;
   std::vector<ContentExpertRecord> content_records;
   // Scoped, transient accumulation keeps every shared-bank Jacobian ahead of
   // parameter mutation, including a local objective's multiple semantic roots.
@@ -296,6 +298,9 @@ inline void commit(Model&m,int a,const float*q,const float*current_key,const int
   for(int j=0;j<D;j++)s.vmean[a][j]+=.01f*(q[j]-s.vmean[a][j]);
 }
 inline LaceRecord* current_lace(Model&,int);
+#ifdef SHOEBOX_LEARNED_COMPLETION
+#include "paired_memory.inc"
+#endif
 #include "neural_access.inc"
 #ifdef SHOEBOX_LEARNED_COMPLETION
 #include "neural_retention.inc"
@@ -370,6 +375,9 @@ inline void expert_update(Model&m,int r,const float*g,float rate,LaceRecord*reco
   int e=record?record->expert:s.chosen[r];
   const float*u=record?record->u:s.u[r],*h=record?record->h:s.h[r];
   const float*returned=record?record->returned:s.returned[std::clamp(r-15,0,1)];
+#ifdef SHOEBOX_LEARNED_COMPLETION
+  paired_utility_credit(m,r,record,g,h,returned);
+#endif
   float gate=v?v->gate:1.f,a=rate/norm(u);
   if(r>=6&&r<=14&&m.utility.config[7]>0&&m.utility.config[7]!=1.f)a*=m.utility.config[7];
   // Unity preserves the legacy floating-point operation order.
@@ -395,6 +403,9 @@ inline void expert_update(Model&m,int r,const float*g,float rate,LaceRecord*reco
     double prior=before[j],now=j<D*D?w[j]:b[j-D*D];delta+=(now-prior)*(now-prior);weight+=prior*prior;}
     auto&z=m.update_metrics[r][teaching];z[1]++;z[2]+=std::sqrt(delta);z[3]+=std::sqrt(weight);
     z[4]+=std::sqrt(delta/std::max(weight,1e-30));z[5]+=delta;}
+#ifdef SHOEBOX_LEARNED_COMPLETION
+  if(!paired_enabled(m)){
+#endif
   if(!record&&(r==15||r==16)&&m.cfg[10]&&s.recall_slot[r-15]>=0&&s.return_birth[r-15]==s.born[r-15][s.recall_slot[r-15]]){
     int a=r-15,k=s.recall_slot[a];float influence=0;
     for(int i=0;i<D;i++)influence-=g[i]*(1-h[i]*h[i])*s.contribution[a][i];
@@ -408,6 +419,9 @@ inline void expert_update(Model&m,int r,const float*g,float rate,LaceRecord*reco
     }
     s.utility[a][k]+=.01f*(std::clamp(influence,-1.f,1.f)-s.utility[a][k]);
   }
+#ifdef SHOEBOX_LEARNED_COMPLETION
+  }
+#endif
   if(v)route_task_update(m,r,*v,g,m.task_route_lr_scale==1.f?rate:rate*m.task_route_lr_scale);
 }
 
@@ -803,6 +817,7 @@ void* create(float*p,float*em,float*fb,float*sl,int*st,int*pe,float*si,int*fp,fl
 void destroy(void*p){delete static_cast<Model*>(p);}
 void reset(void*p){auto&m=*static_cast<Model*>(p);
 #ifdef SHOEBOX_LEARNED_COMPLETION
+paired_clear(m);
 constituent_resize(m,0);
 for(auto&archive:m.neural_archive)archive.clear();
 memset(m.neural_metrics,0,sizeof(m.neural_metrics));
@@ -827,12 +842,21 @@ void configure_laces(void*p,float*cfg){memcpy(static_cast<Model*>(p)->lcfg,cfg,1
 void lace_metrics(void*p,double*out){memcpy(out,static_cast<Model*>(p)->laces.metrics,N*12*sizeof(double));}
 void lace_codes(void*p,uint64_t*out){auto&m=*static_cast<Model*>(p);for(int r=0;r<N;r++){auto*v=current_lace(m,r);out[3*r]=v?v->input_mask:0;out[3*r+1]=v?v->feature_mask:0;out[3*r+2]=v?v->expert:0;}}
 void query_vectors(void*p,float*out){memcpy(out,static_cast<Model*>(p)->s.query,2*D*sizeof(float));}
-void persistent_metrics(void*p,double*out){auto&s=static_cast<Model*>(p)->s;for(int i=0;i<16;i++)out[i]=s.pc[i];out[16]=s.age_sum;out[17]=s.max_age;out[18]=s.similarity_sum;out[19]=s.used;}
+void persistent_metrics(void*p,double*out){auto&m=*static_cast<Model*>(p);auto&s=m.s;for(int i=0;i<16;i++)out[i]=s.pc[i];out[16]=s.age_sum;out[17]=s.max_age;out[18]=s.similarity_sum;out[19]=s.used;
+#ifdef SHOEBOX_LEARNED_COMPLETION
+if(paired_enabled(m))out[19]=paired_occupied(m);
+#endif
+}
 void block_before(void*p,int64_t cutoff){static_cast<Model*>(p)->block_before=cutoff;}
 void freeze_writes(void*p,int value){static_cast<Model*>(p)->s.freeze_writes=value;}
-void clear_memory(void*p){auto&s=static_cast<Model*>(p)->s;memset(s.born,0,sizeof(s.born));memset(s.pending_valid,0,sizeof(s.pending_valid));s.used=0;s.recall_slot[0]=s.recall_slot[1]=-1;}
+void clear_memory(void*p){auto&m=*static_cast<Model*>(p);auto&s=m.s;memset(s.born,0,sizeof(s.born));memset(s.pending_valid,0,sizeof(s.pending_valid));s.used=0;s.recall_slot[0]=s.recall_slot[1]=-1;
+#ifdef SHOEBOX_LEARNED_COMPLETION
+paired_clear(m);
+#endif
+}
 void reset_context(void*p){auto&m=*static_cast<Model*>(p);
 #ifdef SHOEBOX_LEARNED_COMPLETION
+paired_reset_stream(m);memset(m.s.return_birth,0,sizeof(m.s.return_birth));
 constituent_resize(m,0);
 for(auto&archive:m.neural_archive)archive.clear();
 memset(m.neural_metrics,0,sizeof(m.neural_metrics));
@@ -980,11 +1004,20 @@ double run(void*p,const unsigned char*x,const unsigned char*y,int length,int mod
           float g[D];for(int j=0;j<D;j++)g[j]=s.credit[j]/s.credit_count;
           expert_update(m,15,g,lr*m.cfg[7]);memset(s.credit,0,sizeof(s.credit));s.credit_count=0;
         }
+#ifdef SHOEBOX_LEARNED_COMPLETION
+        if(!paired_enabled(m))
+#endif
         memset(s.returned[a],0,D*sizeof(float));
       }
-      // Sparse content lookup: read existing associations before committing
-      // the previous cue -> current observed EC input transition.
+      // Completion uses one joint episodic read; historical kernels retain
+      // their previous-cue -> current-input associative transition contract.
       if(r==15||r==16){
+#ifdef SHOEBOX_LEARNED_COMPLETION
+        if(paired_enabled(m)){
+          paired_read(m,r-15,q,composed);
+          if(!m.cfg[10])for(int j=0;j<D;j++)c[j]+=s.returned[r-15][j];
+        }else{
+#endif
         int a=r-15;s.recall_slot[a]=-1;float key[D];normalize_key(m,a,q,key);int bs[4];buckets(key,int(m.cfg[12]),bs);
         float change=s.pending_valid[a]?1-dot64(key,s.pending_key[a]):1;
         bool wake=false;
@@ -1006,6 +1039,9 @@ double run(void*p,const unsigned char*x,const unsigned char*y,int length,int mod
         if(s.tick%int(m.cfg[9])==0)commit(m,a,q,key,bs);
         if(event_ec&&!scheduled&&!wake){active[r]=false;s.pc[14]++;continue;}
         if(event_ec&&!scheduled)s.pc[15]++;
+#ifdef SHOEBOX_LEARNED_COMPLETION
+        }
+#endif
       }
       if(mode&&m.lcfg[11])flush_credit(m,r,lr);
       // A future observed bottom-up bundle teaches the previous publication.
@@ -1165,6 +1201,9 @@ double run(void*p,const unsigned char*x,const unsigned char*y,int length,int mod
       }
       memcpy(s.hist[r][1],s.hist[r][0],D*sizeof(float));memcpy(s.hist[r][0],s.h[r],D*sizeof(float));s.valid[r]++;
       if(m.composition.enabled){if(r<2)content_atom(m,r,x[t]);else if(nparts&&(r!=17||composed.ref.seq==0))content_publish(m,r,composed);}
+#ifdef SHOEBOX_LEARNED_COMPLETION
+      if(paired_enabled(m)&&(r==15||r==16))paired_stage(m,r-15,q,m.composition.stream.history[r][0]);
+#endif
       if(mode&&mode!=4&&route>0&&!m.frozen_region[r]&&r<2&&(m.scfg[8]>0||m.scfg[11]>0))update_bottom_prototype(m,r,best,routing_mask,route,lr);
       else if(mode&&mode!=4&&route>0&&!m.frozen_region[r]){
         float*k=m.keys+(r*E+best)*D;float n=std::sqrt(norm(routing)-1.f+1e-6f),kn=0;
@@ -1181,6 +1220,9 @@ double run(void*p,const unsigned char*x,const unsigned char*y,int length,int mod
       if((mode==1||mode==3||mode==6)&&(mode!=6||s.exec[r]%4==0)&&!(m.cfg[10]&&(r==15||r==16))){for(int i=0;i<D;i++){float z=m.pbias[r*D+i];for(int j=0;j<D;j++)z+=m.P[(r*D+i)*D+j]*s.h[r][j];s.pred[r][i]=z;}s.pending[r]=1;}
       else if(mode==6)s.pending[r]=0;
     }
+#ifdef SHOEBOX_LEARNED_COMPLETION
+    paired_commit(m); // Both completed observations are visible; targets are not.
+#endif
     if(m.composition.stream.draining)continue;
     float features[2*D],logits[V],prob[V],maxlog=-1e30f;int selected[V],nout=V;
     for(int j=0;j<D;j++){features[j]=s.h[0][j];features[D+j]=m.utility.config[6]>0?0.f:(m.utility_ablation?m.utility.ymean[j]:s.h[17][j])-m.utility.config[0]*m.utility.ymean[j];}

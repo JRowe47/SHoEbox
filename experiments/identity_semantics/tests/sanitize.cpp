@@ -44,6 +44,9 @@ int main(int argc,char**argv){
   #ifdef SHOEBOX_LEARNED_COMPLETION
   std::vector<unsigned char>content(content_expert_state_size(p));content_expert_export(p,content.data());
   std::vector<unsigned char>patterns(pattern_state_size(p,0));pattern_export(p,patterns.data(),0);
+  std::vector<unsigned char>episodes(paired_memory_state_size(p));paired_memory_export(p,episodes.data());
+  assert(paired_occupied(m)>0&&m.paired.metrics[10]>0&&m.paired.metrics[11]>0);
+  assert(m.s.return_birth[0]==m.s.return_birth[1]);
   uint64_t content_updates=0;
   for(int r=0;r<N;r++){assert(m.content_expert_metrics[r][5]==0);content_updates+=m.content_expert_metrics[r][1];}
   assert(content_updates>0);
@@ -52,6 +55,8 @@ int main(int argc,char**argv){
 #ifdef SHOEBOX_LEARNED_COMPLETION
   assert(content_expert_import(p,content.data(),content.size()));
   assert(pattern_import(p,patterns.data(),patterns.size()));
+  assert(paired_memory_import(p,episodes.data(),episodes.size()));
+  assert(!paired_memory_import(p,episodes.data(),episodes.size()-1));
   assert(!pattern_import(p,patterns.data(),patterns.size()-1));
   assert(m.pattern.serial>0);
   assert(!content_expert_import(p,content.data(),content.size()-1));
@@ -69,6 +74,7 @@ int main(int argc,char**argv){
   assert(neural_import(p,neural.data(),neural.size()));
   assert(!neural_import(p,neural.data(),neural.size()-1));
   reset_context(p);
+  assert(paired_occupied(m)>0&&!m.paired.stream.latest[0].stream&&!m.paired.stream.latest[1].stream);
   for(auto&archive:m.neural_archive)assert(archive.empty());
   std::cerr<<"Growing live constituent DAG\n";
   ContentEvent child{};child.ref.region=3;semantic_encode(m,3,child);
