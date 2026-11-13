@@ -22,13 +22,14 @@ third-hop credit is unsampled. Historical kernels require an explicit selection.
 Primary occurrence clocks are now propagated separately from all-source content
 coverage. Held side context can no longer force an otherwise adjacent learned
 sequence to split. Semantic eligibility grows when all records remain live, so
-longer completed units do not lose ancestry to the old fixed pool limit. New
-checkpoints are version 34 / composition ABI 8.
-Version-33 completion checkpoints require explicit fresh-stream conversion;
+longer completed units do not lose ancestry to the old fixed pool limit. Neural producers now survive cache wrap while live events or pending updates
+need them, retaining their input, routing and bottom-state eligibility. New
+checkpoints are version 35 / composition ABI 9.
+Version-33/34 completion checkpoints require explicit fresh-stream conversion;
 versions 31 and 32 retain their original kernels when loaded.
 
 [Current implementation and usage](experiments/identity_semantics/README.md) |
-[Review and verification](experiments/identity_semantics/deliverables/SHoEbox_Reference_Defaults.md).
+[Neural retention repair](experiments/identity_semantics/deliverables/SHoEbox_Neural_Producer_Retention.md).
 The sections below record earlier studies; their historical recommendations do
 not override the current default.
 

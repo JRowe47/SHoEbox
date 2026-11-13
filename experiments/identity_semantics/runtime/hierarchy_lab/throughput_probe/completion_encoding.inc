@@ -16,6 +16,7 @@ inline int constituent_allocate(Model&m,int r,const ContentEvent*parts,int n){
     for(int k=0;k<2;k++)add(s.history[a][k].semantic);
     for(int k=0;k<s.length[a];k++)add(s.pending[a][k].semantic);
     for(int k=0;k<LACE_RING;k++)add(s.input[a][k].semantic);
+    for(const auto&entry:m.neural_archive[a])add(entry.second.input.semantic);
   }
   for(int k=0;k<n;k++)add(parts[k].semantic);
   add(m.semantic_inflight);

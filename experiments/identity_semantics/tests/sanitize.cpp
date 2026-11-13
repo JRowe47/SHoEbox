@@ -41,7 +41,17 @@ int main(int argc,char**argv){
   std::vector<unsigned char>saved(composition_state_size(p));composition_export(p,saved.data());
   assert(composition_import(p,saved.data(),saved.size(),0));
 #ifdef SHOEBOX_LEARNED_COMPLETION
+  for(int r=0;r<N;r++){
+    assert(m.laces.metrics[r][3]==0&&m.laces.metrics[r][11]==0);
+    assert(m.composition.stream.message_metrics[r][3]==0);
+    assert(m.composition.stream.metrics[r][10]==0&&m.composition.stream.metrics[r][11]==0);
+    assert(m.neural_metrics[r][3]==0);
+  }
+  std::vector<unsigned char>neural(neural_state_size(p));neural_export(p,neural.data());
+  assert(neural_import(p,neural.data(),neural.size()));
+  assert(!neural_import(p,neural.data(),neural.size()-1));
   reset_context(p);
+  for(auto&archive:m.neural_archive)assert(archive.empty());
   ContentEvent child{};child.ref.region=3;semantic_encode(m,3,child);
   constituent_encode(m,3,child,nullptr,0,false);m.composition.stream.history[3][0]=child;
   for(int i=0;i<SEM_RING+31;i++){

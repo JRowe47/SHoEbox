@@ -61,8 +61,16 @@ def main():
             if kernel == 'completion':
                 row.update(capabilities=model.capabilities(), completion=model.completion_metrics(),
                            teaching=model.relay_teaching_status(), clocks=model.completion_clocks(),
-                           lace=model.lace_metrics())
+                           lace=model.lace_metrics(), messages=model.message_metrics(), neural=model.neural_metrics())
                 args.output.write_text(json.dumps(result, indent=2, allow_nan=False) + '\n')
+                for metrics in row['lace'].values():
+                    assert metrics['missing_parent'] == metrics['overwritten_credit'] == 0
+                for metrics in row['messages'].values():
+                    assert metrics['missing_feedback_producers'] == 0
+                for metrics in row['neural'].values():
+                    assert metrics['missing_live_dependencies'] == 0
+                for metrics in row['composition'].values():
+                    assert metrics['expired_input_edges'] == metrics['overwritten_input_credit'] == 0
                 for metrics in row['completion'].values():
                     assert all(metrics[k] == 0 for k in ('expired_semantic_handles', 'semantic_budget_omissions', 'semantic_capacity_prunes'))
                 for metrics in row['teaching'].values():

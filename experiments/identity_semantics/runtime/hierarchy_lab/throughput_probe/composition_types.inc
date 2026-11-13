@@ -96,7 +96,7 @@ struct CompositionStream {
 };
 struct CompositionRuntime {
 #ifdef SHOEBOX_LEARNED_COMPLETION
-  uint32_t version=8,enabled=1; // Recursive primary clocks and appended live semantic overflow.
+  uint32_t version=9,enabled=1; // Primary clocks plus separately checkpointed neural ownership.
 #elif defined(SHOEBOX_LEARNED_MESSAGES)
   uint32_t version=6,enabled=1;
 #elif defined(SHOEBOX_PRESERVE_RELAYS)

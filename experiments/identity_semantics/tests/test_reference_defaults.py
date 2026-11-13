@@ -23,7 +23,7 @@ class ReferenceDefaultsTests(unittest.TestCase):
         for model in (a, b):
             self.assertEqual(model.runtime_kernel, 'completion')
             self.assertTrue(all(model.capabilities()['features'].values()))
-            self.assertEqual(model.capabilities()['composition_abi'], 8)
+            self.assertEqual(model.capabilities()['composition_abi'], 9)
             self.assertEqual(model.capabilities()['reference_profile'], 'reference-v1')
             self.assertEqual(model.lace['depth'], 3)
             self.assertEqual(model.state_config['temporal_features'], 64)
@@ -62,8 +62,8 @@ class ReferenceDefaultsTests(unittest.TestCase):
             path = Path(tmp) / 'reference.npz'
             m.save(path)
             with np.load(path, allow_pickle=False) as saved:
-                self.assertEqual(int(saved['version'][0]), 34)
-                self.assertEqual(saved['composition_state'][:4].view(np.uint32)[0], 8)
+                self.assertEqual(int(saved['version'][0]), 35)
+                self.assertEqual(saved['composition_state'][:4].view(np.uint32)[0], 9)
             n = Model.load(path)
             self.addCleanup(n.close)
             self.assertEqual(m.fingerprint(), n.fingerprint())
@@ -78,7 +78,7 @@ class ReferenceDefaultsTests(unittest.TestCase):
         self.addCleanup(m.close)
         m.run(np.frombuffer(b'Old clocks must not resume. ' * 15, np.uint8), mode='periodic')
         with tempfile.TemporaryDirectory() as tmp:
-            source, target = Path(tmp) / 'v33.npz', Path(tmp) / 'v34.npz'
+            source, target = Path(tmp) / 'v33.npz', Path(tmp) / 'v35.npz'
             m.save(source)
             with np.load(source, allow_pickle=False) as saved:
                 arrays = {key: saved[key].copy() for key in saved.files}
@@ -89,7 +89,36 @@ class ReferenceDefaultsTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, 'coverage clocks'):
                 Model.load(source)
             result = convert(source, target)
-            self.assertEqual((result['version'], result['abi']), (34, 8))
+            self.assertEqual((result['version'], result['abi']), (35, 9))
+            n = Model.load(target)
+            self.addCleanup(n.close)
+            for old, new in ((m.flat, n.flat), (m.extra_flat, n.extra_flat),
+                             (m.semantic_parameters(), n.semantic_parameters()),
+                             (m.completion_gates(), n.completion_gates()),
+                             (m.means(), n.means()), (m.ymean(), n.ymean())):
+                np.testing.assert_array_equal(old, new)
+            self.assertEqual(m.lace, n.lace)
+            self.assertTrue(all(event['seq'] == 0 for event in n.content_events().values()))
+            self.assertEqual(n.persistent_metrics()['occupied'], 0)
+
+    def test_v34_requires_explicit_fitted_conversion(self):
+        m = fresh_model(profile='historical')
+        self.addCleanup(m.close)
+        m.run(np.frombuffer(b'Old clocks must not resume. ' * 15, np.uint8), mode='periodic')
+        with tempfile.TemporaryDirectory() as tmp:
+            source, target = Path(tmp) / 'v34.npz', Path(tmp) / 'v35.npz'
+            m.save(source)
+            with np.load(source, allow_pickle=False) as saved:
+                arrays = {key: saved[key].copy() for key in saved.files}
+            # Fitted arrays are unchanged; v34 lacks owned neural eligibility.
+            arrays['version'][0] = 34
+            arrays['composition_state'][:4] = np.array([8], np.uint32).view(np.uint8)
+            arrays.pop('neural_state', None)
+            np.savez_compressed(source, **arrays)
+            with self.assertRaisesRegex(ValueError, 'expiring neural producers'):
+                Model.load(source)
+            result = convert(source, target)
+            self.assertEqual((result['version'], result['abi']), (35, 9))
             n = Model.load(target)
             self.addCleanup(n.close)
             for old, new in ((m.flat, n.flat), (m.extra_flat, n.extra_flat),

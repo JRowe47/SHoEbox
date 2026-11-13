@@ -57,19 +57,30 @@ pool never redirects expired credit to a newer producer. `completion_capacity()`
 reports its current allocation; `completion_metrics()` retains separate counters
 for expired handles, omitted work and capacity pruning, all expected to stay zero
 in the reference path. Overflow records are included in exact checkpoints and
-cleared on stream reset. The completion kernel has 64
-neural eligibility entries per region and up to 72 context links to accommodate
-completed frames; earlier kernels keep their original layouts. This adds 16
-learned scalar payload gates, for **1,031,952 parameters** at 12 experts.
+cleared on stream reset. The completion kernel retains 64 recent neural entries
+per region as a cache and archives every displaced producer still needed by live
+owners. Handles use the immutable region/execution-tick pair; the ring index is
+only a lookup hint. Saved inputs, routing cues, feedback derivatives and bottom
+state eligibility travel with the original record.
 
-Version **34 / composition ABI 8** saves pending frames, learned gates, all
-semantic dependencies and neural eligibility for exact continuation. Old
-checkpoints retain their original kernels. Explicit conversion starts a fresh
-stream while preserving fitted weights, dictionaries and preprocessing means.
-Version-33 completion state cannot resume under the corrected clock: convert it
-explicitly, preserving its fitted payload gates as well. Versions 31 and 32
-remain exactly loadable with their original kernels. The converter preserves
-saved training policies; fresh models use the current reference policy:
+Collection follows held/relayed publications, pending frames, forecasts,
+retained inputs and outstanding updates, using the configured neural credit
+depth. Archived input records also own their semantic DAG. Released records are
+reclaimed; both reset methods clear the archive. Expert revival defers replacement
+of a bottom expert while its original generation is still retained.
+`neural_metrics()` reports archive/reclamation counts and missing live references.
+`reference_smoke.py` now fails on missing neural parents, feedback producers or
+retained-input edges, and on overwritten outstanding credit.
+
+This repair adds no learned parameters: **1,031,952 parameters** at 12 experts.
+Version **35 / composition ABI 9** checkpoints the complete owned archive as well
+as pending frames, gates, semantic dependencies and recent eligibility. Version
+33/34 completion checkpoints require explicit fresh-stream conversion; expired
+records in an old snapshot cannot be reconstructed. Versions 31 and 32 remain
+exactly loadable with their original kernels. Conversion preserves fitted
+weights, dictionaries, saved training policy and preprocessing means, and resets
+working/event/associative memory and pending updates. Fresh models use the current
+reference policy:
 
 ```bash
 python src/convert_to_completion.py old_messages_relays_or_completion.npz new_completion.npz
@@ -78,7 +89,11 @@ python tests/run_completion_sanitizer.py
 python src/run_completion_study.py --data /path/to/restored/data
 ```
 
-The new kernel implements the missing mechanisms. The matched 50,000-target
+The neural retention repair is documented in
+[its report](deliverables/SHoEbox_Neural_Producer_Retention.md). Local prediction
+error propagation to child neural experts remains the next separate repair.
+
+The earlier completion kernel implements the completion/content mechanisms. The matched 50,000-target
 smoke comparison, including throughput and task contributions, is documented in
 [the completion report](deliverables/SHoEbox_Completion_Fix.md). It does not
 supersede the earlier million-target quality comparison. The default now selects

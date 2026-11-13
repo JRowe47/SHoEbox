@@ -1,4 +1,4 @@
-"""Convert v31 relays/v32 messages/v33 completion to v34 completion at a fresh stream boundary."""
+"""Convert v31 relays/v32 messages/v33/v34 completion to v35 completion at a fresh stream boundary."""
 import argparse,ctypes as ct,json,sys
 from pathlib import Path
 import numpy as np
@@ -9,9 +9,9 @@ def convert(source,destination):
  source,destination=Path(source),Path(destination)
  if source.resolve()==destination.resolve() or destination.exists():raise ValueError('Choose a new, nonexistent checkpoint path')
  with np.load(source,allow_pickle=False) as a:
-  if (int(a['version'][0]),str(a['experiment_kernel'])) not in ((31,'relays'),(32,'messages'),(33,'completion')):
-   raise ValueError('Expected a version-31 relay, version-32 message or version-33 completion checkpoint')
-  if int(a['version'][0])==33:
+  if (int(a['version'][0]),str(a['experiment_kernel'])) not in ((31,'relays'),(32,'messages'),(33,'completion'),(34,'completion')):
+   raise ValueError('Expected a version-31 relay, version-32 message or version-33/34 completion checkpoint')
+  if int(a['version'][0]) in (33,34):
    return convert_coverage_checkpoint(a,destination)
  old=Model.load(source)
  try:
@@ -21,17 +21,17 @@ def convert(source,destination):
   try:
    previous=old.composition_state(fitted=True);fitted=new.composition_state(fitted=True)
    if fitted.size!=previous.size+16*4 or previous[:4].view(np.uint32)[0] not in (5,6):raise ValueError('Unexpected fitted layout')
-   fitted[:previous.size]=previous;fitted[:4]=np.array([8],np.uint32).view(np.uint8)
+   fitted[:previous.size]=previous;fitted[:4]=np.array([9],np.uint32).view(np.uint8)
    new.import_composition(fitted,fitted=True)
    means=old.means();new.lib.probe_set_means(new.handle,means.ctypes.data_as(ct.POINTER(ct.c_float)));new.set_ymean(old.ymean())
    np.testing.assert_array_equal(old.semantic_parameters(),new.semantic_parameters())
    destination.parent.mkdir(parents=True,exist_ok=True);new.save(destination)
   finally:new.close()
  finally:old.close()
- return dict(version=34,abi=8,exact_continuation=False,preserved='neural/semantic weights, fitted dictionaries, fixed transports, policies and preprocessing means',reset='all event/working/associative memory, pending teaching and eligibility',added='16 neutral payload-gate parameters')
+ return dict(version=35,abi=9,exact_continuation=False,preserved='neural/semantic weights, fitted dictionaries, fixed transports, policies and preprocessing means',reset='all event/working/associative memory, pending teaching and eligibility',added='16 neutral payload-gate parameters')
 
 def convert_coverage_checkpoint(a,destination):
- """Import only fitted v33 data. Its pending coverage clocks cannot be resumed."""
+ """Import fitted v33/v34 data; expired eligibility cannot be recovered."""
  if int(a['experts'][0])!=core.E:raise ValueError('Set matching SHOEBOX_EXPERTS before import')
  policies={k:json.loads(str(a[k+'_json'])) for k in ('config','lace','state_config','probe','utility','composition','messages')}
  # These legacy port switches were accepted no-ops in v33, not fitted behavior.
@@ -43,9 +43,9 @@ def convert_coverage_checkpoint(a,destination):
  new=Model(params=core.unflatten(a['flat']),extra=a['extra'],fixed={k[6:]:a[k] for k in a.files if k.startswith('fixed_')},kernel='completion',**policies)
  try:
   old=np.ascontiguousarray(a['composition_state'],np.uint8);fitted=new.composition_state(fitted=True)
-  if old.size!=new.composition_state().size or old[:4].view(np.uint32)[0]!=7:
-   raise ValueError('Unexpected version-33 completion layout')
-  fitted[:]=old[:fitted.size];fitted[:4]=np.array([8],np.uint32).view(np.uint8)
+  if old.size<new.composition_state().size or old[:4].view(np.uint32)[0] not in (7,8):
+   raise ValueError('Unexpected historical completion layout')
+  fitted[:]=old[:fitted.size];fitted[:4]=np.array([9],np.uint32).view(np.uint8)
   new.import_composition(fitted,fitted=True)
   # Preserve fitted preprocessing means, clear all runtime counters and buffers.
   for key,clean,method,count in [('probe_state',new.probe_state(),'probe_import',18*64),
@@ -56,10 +56,10 @@ def convert_coverage_checkpoint(a,destination):
    getattr(new.lib,method)(new.handle,clean.ctypes.data)
   destination.parent.mkdir(parents=True,exist_ok=True);new.save(destination)
  finally:new.close()
- return dict(version=34,abi=8,exact_continuation=False,
+ return dict(version=35,abi=9,exact_continuation=False,
   preserved='neural/semantic weights, payload gates, fitted dictionaries, policies and preprocessing means',
   reset='all event/working/associative memory, pending teaching and eligibility',
-  changed='primary occurrence clocks are separate from content coverage')
+  changed='primary occurrence clocks and lifetime-owned neural eligibility')
 
 if __name__=='__main__':
  p=argparse.ArgumentParser(description=__doc__);p.add_argument('source');p.add_argument('destination');a=p.parse_args();print(json.dumps(convert(a.source,a.destination),indent=2))

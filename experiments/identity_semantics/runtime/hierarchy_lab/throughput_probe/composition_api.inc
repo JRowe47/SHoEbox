@@ -56,7 +56,14 @@ int composition_import(void*p,const void*in,size_t size,int fitted){
 #else
   memcpy(&target,in,size);
 #endif
-  if(fitted)memset(&target.stream,0,sizeof(target.stream));return 1;
+  if(fitted){
+    memset(&target.stream,0,sizeof(target.stream));
+#ifdef SHOEBOX_LEARNED_COMPLETION
+    for(auto&archive:m.neural_archive)archive.clear();
+    memset(m.neural_metrics,0,sizeof(m.neural_metrics));
+#endif
+  }
+  return 1;
 }
 void composition_metrics(void*p,double*out){memcpy(out,static_cast<Model*>(p)->composition.stream.metrics,sizeof(CompositionStream::metrics));}
 void composition_events(void*p,uint64_t*out,float*code){
@@ -203,4 +210,8 @@ void completion_clocks(void*p,int64_t*out){
   for(int r=0;r<N;r++){out[2*r]=s.history[r][0].clock_begin;out[2*r+1]=s.history[r][0].clock_end;}
 }
 }
+#endif
+
+#ifdef SHOEBOX_LEARNED_COMPLETION
+#include "neural_api.inc"
 #endif

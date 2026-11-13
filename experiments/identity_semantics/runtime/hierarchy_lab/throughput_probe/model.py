@@ -142,17 +142,37 @@ class Model(parent.Model):
         if not hasattr(self.lib,'completion_capacity'):return 0
         self.lib.completion_capacity.argtypes=[ct.c_void_p];self.lib.completion_capacity.restype=ct.c_size_t
         return int(self.lib.completion_capacity(self.handle))
+    def neural_state(self):
+        if not hasattr(self.lib,'neural_state_size'):return np.zeros(0,np.uint8)
+        self.lib.neural_state_size.argtypes=[ct.c_void_p];self.lib.neural_state_size.restype=ct.c_size_t
+        self.lib.neural_export.argtypes=[ct.c_void_p,ct.c_void_p]
+        out=np.zeros(self.lib.neural_state_size(self.handle),np.uint8)
+        self.lib.neural_export(self.handle,out.ctypes.data);return out
+    def import_neural(self,data):
+        data=np.ascontiguousarray(data,dtype=np.uint8)
+        if not hasattr(self.lib,'neural_import'):
+            if data.size:raise ValueError('Neural ownership requires the completion kernel')
+            return
+        self.lib.neural_import.argtypes=[ct.c_void_p,ct.c_void_p,ct.c_size_t];self.lib.neural_import.restype=ct.c_int
+        if not self.lib.neural_import(self.handle,data.ctypes.data,data.size):raise ValueError('Invalid neural ownership snapshot')
+    def neural_metrics(self):
+        if not hasattr(self.lib,'neural_metrics'):return {}
+        out=np.zeros((18,5),np.uint64);self.lib.neural_metrics.argtypes=[ct.c_void_p,ct.c_void_p]
+        self.lib.neural_metrics(self.handle,out.ctypes.data)
+        fields=('archived','reclaimed','peak_archived','missing_live_dependencies','live_archived')
+        return {name:dict(zip(fields,map(int,row))) for name,row in zip(core.NAMES,out)}
     def capabilities(self):
         """Report effective mechanisms, including controls absent from this kernel."""
         completion=self.runtime_kernel in COMPLETION_KERNELS and self.composition['enabled']
         reference=completion and all(all(getattr(self,group).get(k)==v for k,v in policy.items())
             for group,policy in settings_for(core.E).items()) and self.messages==MESSAGE_DEFAULT
         return dict(kernel=self.runtime_kernel,reference_profile=REFERENCE_PROFILE if reference else 'custom' if completion else None,
-            checkpoint_version=34 if self.runtime_kernel in COMPLETION_KERNELS else None,
-            composition_abi=8 if self.runtime_kernel in COMPLETION_KERNELS else None,
+            checkpoint_version=35 if self.runtime_kernel in COMPLETION_KERNELS else None,
+            composition_abi=9 if self.runtime_kernel in COMPLETION_KERNELS else None,
             features=dict(multi_source_binding=self.composition['enabled'] and self.runtime_kernel in ('binding','semantics','semantics_fixed',*RELAY_KERNELS),
                 relay_provenance=self.runtime_kernel in RELAY_KERNELS and self.composition['enabled'],
                 learned_completion=completion,primary_occurrence_clock=completion,
+                retained_neural_producers=completion,
                 recursive_constituent_content=completion and self.messages['payload_gain']>0,
                 semantic_credit=self.composition['enabled'] and self.messages['semantic_lr']>0,
                 feedback_activation=self.composition['enabled'] and self.messages['feedback_activation']>0,
@@ -569,6 +589,7 @@ class Model(parent.Model):
         m.import_activation(self.activation_state())
         m.import_boundary_metrics(self.boundary_metrics())
         m.import_composition(self.composition_state())
+        m.import_neural(self.neural_state())
         return m
     def base_fingerprint(self):
         digest=hashlib.sha256(super().fingerprint().encode()+self.probe_state().tobytes()+self.utility_state().tobytes()).hexdigest()
@@ -579,6 +600,7 @@ class Model(parent.Model):
         return digest
     def fingerprint(self):
         digest=self.base_fingerprint()
+        if self.neural_state().size:digest=hashlib.sha256(digest.encode()+self.neural_state().tobytes()).hexdigest()
         if self.runtime_kernel in MESSAGE_KERNELS:digest=hashlib.sha256(digest.encode()+json.dumps(self.messages,sort_keys=True).encode()).hexdigest()
         if self.composition_state().size:digest=hashlib.sha256(digest.encode()+self.composition_state().tobytes()).hexdigest()
         if not np.array_equal(self.boundary_policy,[0,1,0,1]):digest=hashlib.sha256(digest.encode()+self.boundary_policy.tobytes()+self.boundary_metrics().tobytes()).hexdigest()
@@ -594,13 +616,14 @@ class Model(parent.Model):
     def save(self,path):
         if self.runtime_kernel in DIAGNOSTIC_KERNELS:raise ValueError('Evaluation interventions cannot be saved as training checkpoints')
         parent.legacy.base.atomic_checkpoint(path,flat=self.flat,extra=self.extra_flat,state=parent.legacy.base.state(self),lace_state=self.lace_state(),learned_state=self.learned_state(),probe_state=self.probe_state(),utility_state=self.utility_state(),
-            version=np.array([34 if self.runtime_kernel=="completion" else 32 if self.runtime_kernel=="messages" else 31 if self.runtime_kernel=="relays" else 30 if self.runtime_kernel.startswith("semantics") else 29 if self.runtime_kernel=="binding" else 28 if self.runtime_kernel=="composition" else 27 if self.runtime_kernel.startswith("r05") else 26 if self.runtime_kernel.startswith("r04") else 25 if self.runtime_kernel.startswith("r03") else 24 if self.runtime_kernel.startswith("r02") and (self.activation_policy()["enabled"] or self.gate_bias_policy()["enabled"]) else 23 if self.gate_bias_policy()["enabled"] else 21 if self.traffic['enabled'] else (20 if self.retention_policy() else 19)],np.int32),experts=np.array([core.E],np.int32),config_json=np.array(json.dumps(self.config)),lace_json=np.array(json.dumps(self.lace)),state_config_json=np.array(json.dumps(self.state_config)),probe_json=np.array(json.dumps(self.probe)),utility_json=np.array(json.dumps(self.utility)),teaching_scales=self.teaching,regional_gains=self.regional_gains,frozen_regions=self.frozen_regions,task_route_lr_scale=np.array(self.task_route_lr_scale,np.float32),a1_learning_scales=self.a1_learning_array,f3_task_route_gain=np.array(self.f3_task_route_gain,np.float32),exploration_json=np.array(json.dumps(self.exploration)),traffic_json=np.array(json.dumps(self.traffic)),traffic_state=self.traffic_state(),
+            version=np.array([35 if self.runtime_kernel=="completion" else 32 if self.runtime_kernel=="messages" else 31 if self.runtime_kernel=="relays" else 30 if self.runtime_kernel.startswith("semantics") else 29 if self.runtime_kernel=="binding" else 28 if self.runtime_kernel=="composition" else 27 if self.runtime_kernel.startswith("r05") else 26 if self.runtime_kernel.startswith("r04") else 25 if self.runtime_kernel.startswith("r03") else 24 if self.runtime_kernel.startswith("r02") and (self.activation_policy()["enabled"] or self.gate_bias_policy()["enabled"]) else 23 if self.gate_bias_policy()["enabled"] else 21 if self.traffic['enabled'] else (20 if self.retention_policy() else 19)],np.int32),experts=np.array([core.E],np.int32),config_json=np.array(json.dumps(self.config)),lace_json=np.array(json.dumps(self.lace)),state_config_json=np.array(json.dumps(self.state_config)),probe_json=np.array(json.dumps(self.probe)),utility_json=np.array(json.dumps(self.utility)),teaching_scales=self.teaching,regional_gains=self.regional_gains,frozen_regions=self.frozen_regions,task_route_lr_scale=np.array(self.task_route_lr_scale,np.float32),a1_learning_scales=self.a1_learning_array,f3_task_route_gain=np.array(self.f3_task_route_gain,np.float32),exploration_json=np.array(json.dumps(self.exploration)),traffic_json=np.array(json.dumps(self.traffic)),traffic_state=self.traffic_state(),
             **({'gate_bias_state':self.gate_bias_state(),'gate_bias_kernel':np.array('r02' if self.runtime_kernel.startswith('r02') else 'e14_calibrated' if self.gate_bias_policy()['gain']>10000 else 'e14'),'gate_bias_json':np.array(json.dumps(self.gate_bias_policy()))} if self.gate_bias_policy()['enabled'] else {}),
             **({'activation_state':self.activation_state(),'activation_json':np.array(json.dumps(self.activation_policy())),'activation_kernel':np.array('r02' if self.runtime_kernel.startswith('r02') else 'e13')} if self.activation_policy()['enabled'] else {}),
             **({"path_prototypes":self.path_prototypes} if self.runtime_kernel.startswith("r03") else {}),
             **({"precision_policy":self.precision_policy,"precision_state":self.precision_state()} if self.runtime_kernel.startswith(("r04","r05")) else {}),
             **({"boundary_policy":self.boundary_policy,"boundary_metrics":self.boundary_metrics()} if self.runtime_kernel.startswith("r05") else {}),
             **({'r08_kernel':np.array('r04_credit')} if self.runtime_kernel.startswith('r04_credit') else {}),
+            **({'neural_state':self.neural_state()} if self.runtime_kernel in COMPLETION_KERNELS else {}),
             **({'messages_json':np.array(json.dumps(self.messages))} if self.runtime_kernel in MESSAGE_KERNELS else {}),
             composition_state=self.composition_state(),composition_json=np.array(json.dumps(self.composition)),experiment_kernel=np.array(self.runtime_kernel),
             kernel_sha256=np.array(hashlib.sha256((ROOT/(self.runtime_kernel+'.cpp')).read_bytes()).hexdigest()),**({'retention_state':self.retention_state(),'retention_version':np.array([1],np.int32)} if self.retention_policy() else {}),**{'fixed_'+k:v for k,v in self.fixed.items()})
@@ -609,11 +632,15 @@ class Model(parent.Model):
         with np.load(path,allow_pickle=False) as a:
             if int(a['version'][0])==33:
                 raise ValueError('Version-33 completion uses coverage clocks; convert_to_completion.py starts a fresh stream with primary clocks')
-            if int(a['version'][0])==34 and ('messages_json' not in a or str(a['experiment_kernel'])!='completion'):
+            if int(a['version'][0])==34:
+                raise ValueError('Version-34 completion has expiring neural producers; convert_to_completion.py starts a fresh stream with neural ownership')
+            if int(a['version'][0])==35 and ('neural_state' not in a):
+                raise ValueError('Completion checkpoints require saved neural ownership')
+            if int(a['version'][0])==35 and ('messages_json' not in a or str(a['experiment_kernel'])!='completion'):
                 raise ValueError('Completion checkpoints require their saved policy and production kernel')
             if int(a['version'][0])==32 and ('messages_json' not in a or str(a['experiment_kernel'])!='messages'):
                 raise ValueError('Message checkpoints require their saved policy and production kernel')
-            assert int(a['version'][0]) in (16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,34) and int(a['experts'][0])==core.E
+            assert int(a['version'][0]) in (16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,35) and int(a['experts'][0])==core.E
             m=cls(config=json.loads(str(a['config_json'])),params=core.unflatten(a['flat']),fixed={k[6:]:a[k] for k in a.files if k.startswith('fixed_')},lace=json.loads(str(a['lace_json'])),state_config=json.loads(str(a['state_config_json'])),extra=a['extra'],probe=json.loads(str(a['probe_json'])),utility=json.loads(str(a['utility_json'])),kernel=str(a['experiment_kernel']) if 'experiment_kernel' in a else str(a['r08_kernel']) if 'r08_kernel' in a else 'r05' if int(a['version'][0])==27 else 'r04' if int(a['version'][0])==26 else 'r03' if int(a['version'][0])==25 else 'r02' if int(a['version'][0])==24 else ('e14_calibrated' if 'gate_bias_kernel' in a and str(a['gate_bias_kernel'])=='e14_calibrated' else 'e14') if 'gate_bias_state' in a else 'e13' if 'activation_state' in a else ('credit' if 'retention_state' in a else 'native'))
             if 'messages_json' in a:m.configure_messages(json.loads(str(a['messages_json'])))
             if 'gate_bias_state' in a:m.import_gate_bias(a['gate_bias_state'])
@@ -636,6 +663,7 @@ class Model(parent.Model):
                 getattr(m.lib,method)(m.handle,arr.ctypes.data)
             if 'composition_json' in a:m.configure_composition(json.loads(str(a['composition_json'])))
             if 'composition_state' in a:m.import_composition(a['composition_state'])
+            if 'neural_state' in a:m.import_neural(a['neural_state'])
             if 'retention_state' in a:
                 assert int(a['retention_version'][0])==1
                 m.import_retention(a['retention_state'])

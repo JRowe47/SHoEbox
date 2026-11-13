@@ -49,8 +49,8 @@ inline void message_feedback(Model&m,const float*raw,float squared,float*out,Mes
 }
 inline void message_route_gradient(Model&m,int r,LaceRecord&v,const float*g,float*out){
   if(r<2||!m.composition.enabled||!message_enabled(m))return;
-  int index=int(&v-&m.laces.records[r][0]);if(index<0||index>=LACE_RING)return;
-  const auto&input=m.composition.stream.input[r][index];if(input.tick!=v.tick)return;
+  auto*saved_input=lace_input(m,r,v);if(!saved_input)return;
+  const auto&input=*saved_input;if(input.tick!=v.tick)return;
   float dg=0;for(int j=0;j<D;j++)dg+=g[j]*(1-v.h[j]*v.h[j])*v.residual[j];
   // This is the smooth response-gate derivative with selection/mask held fixed.
   // No derivative is claimed for the hard choice or top-k boundary itself.
@@ -87,8 +87,8 @@ inline void message_semantic_update(Model&m,int r,LaceRecord&v,InputCredit&input
 }
 inline void message_feedback_credit(Model&m,int r,LaceRecord&v,const float*du,const float*dcue,int depth){
   if(r<2||!m.composition.enabled||!message_feedback_enabled(m))return;
-  int index=int(&v-&m.laces.records[r][0]);if(index<0||index>=LACE_RING)return;
-  const auto&input=m.composition.stream.input[r][index];if(input.tick!=v.tick)return;
+  auto*saved_input=lace_input(m,r,v);if(!saved_input)return;
+  const auto&input=*saved_input;if(input.tick!=v.tick)return;
   const auto&saved=input.message;float df[D];
   for(int j=0;j<D;j++)df[j]=saved.feedback_derivative[j]*(saved.alpha*m.message_config[1]*du[j]+(dcue?m.message_config[2]*dcue[j]:0.f));
   for(int e=0;e<saved.feedback_count;e++){

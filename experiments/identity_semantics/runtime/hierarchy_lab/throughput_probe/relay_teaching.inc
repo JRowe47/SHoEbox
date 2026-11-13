@@ -22,9 +22,9 @@ inline void relay_teach(Model&m,int r,const float*q,int mode,float lp,bool relay
      m.utility.config[3]<=0||(m.cfg[10]&&(r==15||r==16))){
     z.teaching_metrics[r][3]++;return;
   }
-  if(t.index<0||t.index>=LACE_RING){z.teaching_metrics[r][4]++;return;}
-  auto&v=m.laces.records[r][t.index];
-  if(v.tick!=tick||v.expert<0){z.teaching_metrics[r][4]++;return;}
+  auto*producer=find_lace(m,r,tick,t.index);
+  if(!producer||producer->expert<0){z.teaching_metrics[r][4]++;return;}
+  auto&v=*producer;
   float err[D],g[D]{};double mse=0;
   for(int i=0;i<D;i++){
     const float target=q[i]-(m.utility.config[4]>0?t.input[i]:0.f);
