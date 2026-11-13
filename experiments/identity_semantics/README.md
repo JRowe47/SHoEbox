@@ -28,9 +28,10 @@ the reference policy unless a comparison explicitly requests otherwise.
 The completed-constituent implementation works as follows. S2 through G5 now
 admit non-overlapping primary-source occurrences, preserve every declared
 immediate source role in bound frames, and learn when a sequence of frames is
-complete. Side-source updates alone do not commit a new upper unit. Familiar
-frames can propose a new combination; unfamiliar combinations remain explicit
-provisional units. End-of-document draining preserves an odd primary tail.
+complete. Side-source updates alone do not commit a new upper unit. Learned
+class transitions and next-content forecasts support multi-frame completion;
+unfamiliar classes remain explicit provisional units. The historical policy
+retains its familiar-frame proposal heuristic. End-of-document draining preserves an odd primary tail.
 L2 retains its sequence detector; EC and Y retain their fusion/output roles.
 
 An upper expert executes when its unit completes. Frame admission and semantic
@@ -61,7 +62,55 @@ mean. With task router gain disabled the response gate is one. Byte atoms and
 transparent identity relays keep their existing content semantics; each actual
 encoding (including bound-frame admission) saves its own selected expert, input,
 residual, mask and gate derivatives. Expert selection does not redefine the exact
-content ID or introduce a learned pattern-class identity.
+content ID. A separate learner assigns reusable pattern classes after encoding.
+
+### Reusable classes and predictive completion
+
+`pattern_classes=True` is the fresh reference default. Exact IDs still bind every
+child identity, source role, presence and coverage geometry. Separate monotonically
+allocated class IDs identify learned prototypes, independently of expert indices.
+`pattern_events()` exposes those IDs without replacing `content_events()`.
+
+Each region has up to 256 online prototypes. The descriptor retains a normalized
+64-coordinate learned child code per declared role, the source/presence schema,
+bounded relative primary-clock geometry and order/overlap relations. Primary and
+repeated-source roles receive full matching weight; singleton side roles receive
+0.1 weight. Thus changing held context can preserve a class, while reversing a
+primary/repeated-source arrangement cannot hide behind matches in other roles.
+Side roles remain in classification, exported content and causal credit. Absolute
+byte position and exact child IDs are excluded from class matching.
+
+Matching uses a 0.22 radius, a 0.35 per-core-role distance guard, and online means
+with an adaptation horizon capped at 64 observations. A class becomes recognized
+at the configured `min_count`. Dictionary replacement is least-recently-used;
+retired IDs are never reassigned, even while old events still name them. Metrics
+report reuse, provisional-to-recognized promotions, unknown evaluation events,
+class/dictionary turnover, sequence lengths and primary spans separately from
+all-source coverage. `pattern_metrics()` also reports the dictionary population.
+
+Adjacent events train separate class-transition counts and a per-class
+next-content forecast. The forecast target bundles normalized learned child codes
+by role, plus the current exported code; singleton side context is attenuated.
+The score combines prior categorical confidence and prior continuous prediction
+confidence equally. Neither current-transition counts nor the current target
+enter the score before the decision. Clock gaps and overlaps still force a
+boundary. The atomic L2 input path uses byte-class transition evidence.
+
+Prototypes and forecasts use online statistics; neural representation learning
+continues through the saved expert/semantic credit paths. Frozen evaluation and
+frozen regions do not update the class dictionary. Stream reset retains fitted
+classes and transition evidence while clearing event assignments. The neural
+parameter count remains 1,031,952; learned class statistics add separate state.
+The class sidecar is generation-checked against semantic ownership, follows pool
+collection, and preserves relay class identity.
+
+`configure_pattern_classes(True)` upgrades an older model only after
+`reset_context()` or at a clean stream boundary. `snapshot_copy()`, frozen copies,
+fingerprints and version-38 checkpoints include the appropriate class state.
+Versions 35-37 load with class learning disabled to reproduce their exact-key
+recognition behavior. Run `src/validate_pattern_classes.py` for the matched cost,
+frozen class-removal intervention and held-out generation checks. See
+[the fourth-fix report](deliverables/SHoEbox_Pattern_Classes.md).
 
 Each encoding saves its actual dependencies and derivatives. The pool starts
 with 16,384 semantic records and is collected from live histories, pending frames
@@ -87,12 +136,14 @@ of a bottom expert while its original generation is still retained.
 `reference_smoke.py` now fails on missing neural parents, feedback producers or
 retained-input edges, and on overwritten outstanding credit.
 
-This repair adds no learned parameters: **1,031,952 parameters** at 12 experts.
-Version **37 / composition ABI 10** checkpoints the complete owned archive, pending
+The expert transform adds no neural parameters: **1,031,952 parameters** at 12 experts.
+Version **38 / composition ABI 10** checkpoints the complete owned archive, pending
 frames, gates, semantic dependencies, recent eligibility, local neural-credit
-policy and content-expert policy/eligibility. The sidecar follows semantic record
+policy, content-expert policy/eligibility, and the versioned class policy/state.
+The sidecars follow semantic record
 lifetimes and pool growth; missing or mismatched content records are rejected.
-Versions 35 and 36 remain exactly loadable, preserving their old content behavior;
+Versions 35-37 remain exactly loadable, preserving exact-key recognition.
+Versions 35 and 36 preserve their old content behavior;
 version 35 additionally preserves its old local-teaching behavior. The explicit
 v9 importer changes the ABI header and clears a formerly unused padding field,
 without discarding or reinterpreting events. Enable either repair explicitly on

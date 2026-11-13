@@ -43,6 +43,7 @@ int main(int argc,char**argv){
   std::vector<unsigned char>saved(composition_state_size(p));composition_export(p,saved.data());
   #ifdef SHOEBOX_LEARNED_COMPLETION
   std::vector<unsigned char>content(content_expert_state_size(p));content_expert_export(p,content.data());
+  std::vector<unsigned char>patterns(pattern_state_size(p,0));pattern_export(p,patterns.data(),0);
   uint64_t content_updates=0;
   for(int r=0;r<N;r++){assert(m.content_expert_metrics[r][5]==0);content_updates+=m.content_expert_metrics[r][1];}
   assert(content_updates>0);
@@ -50,6 +51,9 @@ int main(int argc,char**argv){
   assert(composition_import(p,saved.data(),saved.size(),0));
 #ifdef SHOEBOX_LEARNED_COMPLETION
   assert(content_expert_import(p,content.data(),content.size()));
+  assert(pattern_import(p,patterns.data(),patterns.size()));
+  assert(!pattern_import(p,patterns.data(),patterns.size()-1));
+  assert(m.pattern.serial>0);
   assert(!content_expert_import(p,content.data(),content.size()-1));
   for(int r=0;r<N;r++){
     assert(m.laces.metrics[r][3]==0&&m.laces.metrics[r][11]==0);

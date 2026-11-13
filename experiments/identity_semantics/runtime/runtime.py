@@ -29,4 +29,5 @@ def fresh_model(seed=1, kernel=REFERENCE_KERNEL, *, profile=None):
         fixed = {key: arrays[key].copy() for key in arrays.files}
     return Model(params=params, fixed=fixed, kernel=kernel,
                  local_credit=False if profile == 'historical' else None,
-                 content_experts=False if profile == 'historical' else None, **settings)
+                 content_experts=False if profile == 'historical' else None,
+                 pattern_classes=False if profile == 'historical' else None, **settings)

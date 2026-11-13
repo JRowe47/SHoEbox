@@ -69,10 +69,10 @@ class CompletionTests(unittest.TestCase):
   self.source(m,2,3,4,6);self.assertEqual(self.prepare(m)[0],0)
   self.source(m,2,4,6,8);emitted=self.prepare(m);self.assertEqual(emitted[0],1)
   tail=self.prepare(m,drain=1);self.assertEqual(tuple(tail[6:8]),(4,8));self.assertEqual(tail[4],4)
- def test_recognition_changes_completion_of_unseen_frame_transition(self):
+ def test_historical_recognition_changes_completion_of_unseen_frame_transition(self):
   outcomes=[]
   for familiar in (False,True):
-   m=self.make();self.source(m,3,70,0,2)
+   m=self.make();m.configure_pattern_classes(False);self.source(m,3,70,0,2)
    for i in range(4):
     self.source(m,2,i+1,2*i,2*i+2)
     if i%2:
@@ -153,7 +153,7 @@ class CompletionTests(unittest.TestCase):
  def test_primary_clock_ignores_side_coverage_but_respects_real_gaps(self):
   for overlap in (0,1,2,3):
    with self.subTest(overlap=overlap):
-    m=self.make();result=np.zeros(7,np.float64)
+    m=self.make();m.configure_pattern_classes(False);result=np.zeros(7,np.float64)
     self.fx.completion_fixture_clock_case(m.handle,overlap,result.ctypes.data)
     self.assertEqual(result[0],1.0)
     self.assertEqual(result[1],16)

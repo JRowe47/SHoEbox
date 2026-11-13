@@ -25,9 +25,10 @@ class LocalCreditTests(unittest.TestCase):
                              local_fixture_live_teach=[p,i],neural_fixture_advance=[p,i,i]).items():
             getattr(cls.fx,name).argtypes=args
 
-    def make(self,depth=2,repeated=1,relay=0):
+    def make(self,depth=2,repeated=1,relay=0,pattern_classes=True):
         m=fresh_model(seed=7);self.addCleanup(m.close)
         m.configure_content_experts(False) # Isolate the original neural-credit derivative.
+        m.configure_pattern_classes(pattern_classes)
         self.fx.local_fixture_setup(m.handle,depth,repeated,relay)
         # The controlled native fixture sets these policies; mirror them in
         # checkpoint metadata exactly as a normal constructor would.
@@ -145,7 +146,7 @@ class LocalCreditTests(unittest.TestCase):
             self.assertTrue(all(v['missing_producers']==0 for v in c.local_credit_metrics().values()))
 
     def test_v35_preserves_old_policy_and_v36_requires_explicit_saved_policy(self):
-        m=self.make()
+        m=self.make(pattern_classes=False) # v35 predates learned class recognition.
         with tempfile.TemporaryDirectory() as tmp:
             path=Path(tmp)/'model.npz';m.save(path)
             with np.load(path,allow_pickle=False) as saved:arrays={k:saved[k].copy() for k in saved.files}
@@ -154,6 +155,7 @@ class LocalCreditTests(unittest.TestCase):
             arrays['version'][0]=35
             arrays['composition_state'][:4]=np.array([9],np.uint32).view(np.uint8)
             arrays.pop('content_expert_policy');arrays.pop('content_expert_state')
+            arrays.pop('pattern_class_policy');arrays.pop('pattern_class_state')
             np.savez_compressed(path,**arrays)
             old=Model.load(path);self.addCleanup(old.close);self.assertFalse(old.local_credit)
             baseline=m.snapshot_copy();self.addCleanup(baseline.close);baseline.configure_local_credit(False)

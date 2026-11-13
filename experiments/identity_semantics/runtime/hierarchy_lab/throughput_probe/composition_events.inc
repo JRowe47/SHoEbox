@@ -36,6 +36,9 @@ inline float content_transition(Model&m,int r,ContentID from,ContentID to,bool l
   if(learn){content_count(z.totals[r],from,true,metric[6]);content_count(z.pairs[r],pair,true,metric[6]);}
   return confidence;
 }
+#ifdef SHOEBOX_LEARNED_COMPLETION
+#include "pattern_events.inc"
+#endif
 inline ContentEvent content_compose(Model&m,int r,const ContentEvent*children,int n,int kind,bool learn){
 #ifdef SHOEBOX_IDENTITY_SEMANTICS
   if(n==1&&kind==1){
@@ -87,6 +90,9 @@ inline ContentEvent content_compose(Model&m,int r,const ContentEvent*children,in
   else {
     auto&z=m.composition;uint32_t count=content_count(z.patterns[r],id,learn,z.stream.metrics[r][6]);
     out.ref.recognized=count>=z.min_count;out.confidence=std::min(1.f,float(count)/z.min_count);
+#ifdef SHOEBOX_LEARNED_COMPLETION
+    pattern_classify(m,r,out,children,n,false,learn);
+#endif
   }
   return out;
 }
@@ -108,6 +114,12 @@ inline void content_publish(Model&m,int r,ContentEvent event,bool relay=false){
 #endif
   auto&d=z.metrics[r];d[1]++;d[2]+=formed;d[3]+=formed&&event.ref.recognized;
   d[4]+=formed&&!event.ref.recognized;d[7]+=event.ref.end-event.ref.begin;
+#ifdef SHOEBOX_LEARNED_COMPLETION
+  if(m.pattern.enabled){
+    auto&metric=m.pattern.metrics[r];metric[13]+=std::max<int64_t>(0,event.clock_end-event.clock_begin);
+    if(!relay&&event.kind==1&&event.count>1){metric[12]++;metric[14]+=event.count;}
+  }
+#endif
 }
 inline void content_atom(Model&m,int r,int byte){
   ContentEvent event{};event.ref.id={content_mix(uint64_t(byte)+1),content_mix(uint64_t(byte)+257)};
@@ -173,11 +185,18 @@ inline bool content_prepare(Model&m,int r,bool learn,ContentEvent&event,ContentE
     if(length){
       const auto&last=s.pending[r][length-1];
       float score=content_transition(m,r,last.ref.id,next.ref.id,learn);
+#ifdef SHOEBOX_LEARNED_COMPLETION
+      if(m.pattern.enabled)score=last.clock_end==next.clock_begin?pattern_transition(m,r,last,next,learn):0.f;
+#endif
       boundary=score<z.boundary_threshold||last.ref.end!=next.ref.begin;
       // Familiar compounds can form a novel relation without pretending that
       // the relation was already recognized. Keep the proposal explicitly
       // provisional until the independent pattern dictionary has evidence.
-      if(length==1&&last.count>=2&&next.count>=2&&last.ref.recognized&&next.ref.recognized&&last.ref.end==next.ref.begin)boundary=false;
+      if(
+#ifdef SHOEBOX_LEARNED_COMPLETION
+         !m.pattern.enabled&&
+#endif
+         length==1&&last.count>=2&&next.count>=2&&last.ref.recognized&&next.ref.recognized&&last.ref.end==next.ref.begin)boundary=false;
     }
     if(boundary){n=length;for(int i=0;i<n;i++)parts[i]=s.pending[r][i];length=0;}
     s.pending[r][length++]=next;

@@ -26,6 +26,7 @@ inline int constituent_allocate(Model&m,int r,const ContentEvent*parts,int n){
   for(int k=0;k<capacity;k++)if(constituent_mark(m,k)!=mark){
     constituent_slot(m,k).ref=SemanticRef{};
     if(size_t(k)<m.content_records.size())m.content_records[k].ref=SemanticRef{};
+    if(size_t(k)<m.pattern.assignments.size())m.pattern.assignments[k]=PatternAssignment{};
   }
   for(int k=0;k<capacity;k++){
     int index=(start+k)%capacity;
@@ -39,6 +40,7 @@ inline void constituent_encode(Model&m,int r,ContentEvent&out,const ContentEvent
   auto&s=m.composition.stream;int index=constituent_allocate(m,r,parts,n);
   auto&node=constituent_slot(m,index);node=ConstituentRecord{};
   if(size_t(index)<m.content_records.size())m.content_records[index]=ContentExpertRecord{};
+  if(size_t(index)<m.pattern.assignments.size())m.pattern.assignments[index]=PatternAssignment{};
   node.ref={++s.semantic_serial,r,index};out.semantic=node.ref;
   memcpy(node.features,out.symbol_features,sizeof(node.features));
   float squared=0,raw[D]{};

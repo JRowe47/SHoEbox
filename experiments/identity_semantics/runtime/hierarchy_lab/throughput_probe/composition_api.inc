@@ -57,6 +57,7 @@ int composition_import(void*p,const void*in,size_t size,int fitted){
   }
   auto&m=*static_cast<Model*>(p);constituent_resize(m,overflow);
   m.content_records.clear();memset(m.content_expert_metrics,0,sizeof(m.content_expert_metrics));
+  pattern_reset_stream(m);
   memcpy(&target,in,fitted?size:sizeof(CompositionRuntime));
   if(overflow)memcpy(m.semantic_overflow.data(),static_cast<const unsigned char*>(in)+sizeof(CompositionRuntime),overflow*sizeof(ConstituentRecord));
 #else
@@ -222,4 +223,5 @@ void completion_clocks(void*p,int64_t*out){
 #ifdef SHOEBOX_LEARNED_COMPLETION
 #include "neural_api.inc"
 #include "content_expert_api.inc"
+#include "pattern_api.inc"
 #endif

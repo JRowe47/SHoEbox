@@ -65,8 +65,9 @@ inline bool completion_prepare(Model&m,int r,bool learn,ContentEvent&event,Conte
     const auto&last=s.pending[r][length-1];
     float score=content_transition(m,r,last.ref.id,frame.ref.id,learn);
     bool adjacent=last.clock_end==frame.clock_begin;
+    if(m.pattern.enabled)score=adjacent?pattern_transition(m,r,last,frame,learn):0.f;
     boundary=score<m.composition.boundary_threshold||!adjacent;
-    if(length==1&&last.ref.recognized&&frame.ref.recognized&&adjacent)boundary=false;
+    if(!m.pattern.enabled&&length==1&&last.ref.recognized&&frame.ref.recognized&&adjacent)boundary=false;
   }
   if(boundary)completion_emit(m,r,learn,event,parts,n);
   s.pending[r][s.length[r]++]=frame;

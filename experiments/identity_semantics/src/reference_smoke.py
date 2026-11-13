@@ -62,7 +62,8 @@ def main():
                 row.update(capabilities=model.capabilities(), completion=model.completion_metrics(),
                            teaching=model.relay_teaching_status(), clocks=model.completion_clocks(),
                            lace=model.lace_metrics(), messages=model.message_metrics(), neural=model.neural_metrics(),
-                           local_credit=model.local_credit_metrics(), content_experts=model.content_expert_metrics())
+                           local_credit=model.local_credit_metrics(), content_experts=model.content_expert_metrics(),
+                           pattern_classes=model.pattern_metrics())
                 args.output.write_text(json.dumps(result, indent=2, allow_nan=False) + '\n')
                 for metrics in row['lace'].values():
                     assert metrics['missing_parent'] == metrics['overwritten_credit'] == 0
@@ -73,6 +74,8 @@ def main():
                 for metrics in row['content_experts'].values():
                     assert metrics['missing_producers'] == 0
                 assert sum(v['updates'] for v in row['content_experts'].values()) > 0
+                assert sum(v['reused'] for v in row['pattern_classes'].values()) > 0
+                assert sum(v['promoted'] for v in row['pattern_classes'].values()) > 0
                 for metrics in row['local_credit'].values():
                     assert metrics['missing_producers'] == 0
                 assert sum(v['neural_updates'] for v in row['local_credit'].values()) > 0

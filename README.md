@@ -29,13 +29,18 @@ and feedback producers using their own local objective and learning rate.
 Exported constituents now use a separate expert pass over their own structural
 and learned child content. It shares the existing regional banks, excludes
 recurrent state and feedback, and saves its own routing and credit eligibility.
-New checkpoints are version 37 / composition ABI 10. Versions 35/36 preserve
+Reusable pattern classes now learn role-aware child content independently of
+exact binding IDs. Completion uses class transitions and a learned next-content
+forecast; held context remains bound while equivalent patterns can reuse a class.
+New checkpoints are version 38 / composition ABI 10, with versioned class state.
+Versions 35-37 retain exact-key recognition when loaded. Versions 35/36 preserve
 their previous content behavior; version 35 also retains its old local-teaching
 policy unless explicitly upgraded.
 Version-33/34 completion checkpoints require explicit fresh-stream conversion;
 versions 31 and 32 retain their original kernels when loaded.
 
 [Current implementation and usage](experiments/identity_semantics/README.md) |
+[Reusable pattern classes](experiments/identity_semantics/deliverables/SHoEbox_Pattern_Classes.md) |
 [Constituent expert repair](experiments/identity_semantics/deliverables/SHoEbox_Constituent_Experts.md) |
 [Local prediction credit repair](experiments/identity_semantics/deliverables/SHoEbox_Local_Prediction_Credit.md).
 The sections below record earlier studies; their historical recommendations do

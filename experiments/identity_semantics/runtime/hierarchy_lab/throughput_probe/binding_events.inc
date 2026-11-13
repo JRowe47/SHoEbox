@@ -69,6 +69,9 @@ inline ContentEvent binding_compose(Model&m,int r,const ContentEvent*children,in
 #endif
   uint32_t count=content_count(m.composition.patterns[r],out.ref.id,learn,m.composition.stream.metrics[r][6]);
   out.ref.recognized=count>=m.composition.min_count;out.confidence=std::min(1.f,float(count)/m.composition.min_count);
+#ifdef SHOEBOX_LEARNED_COMPLETION
+  pattern_classify(m,r,out,children,n,true,learn);
+#endif
   return out;
 }
 inline bool binding_prepare(Model&m,int r,bool learn,ContentEvent&event,ContentEvent*parts,int&n){

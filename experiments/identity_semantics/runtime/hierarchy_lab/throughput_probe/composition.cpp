@@ -9,6 +9,7 @@
 #include <array>
 #include <vector>
 #include <map>
+#include <memory>
 #include <immintrin.h>
 #ifndef SHOEBOX_EXPERTS
 #define SHOEBOX_EXPERTS 12
@@ -107,6 +108,7 @@ struct UtilityRuntime {
 };
 #include "composition_types.inc"
 #ifdef SHOEBOX_LEARNED_COMPLETION
+#include "pattern_types.inc"
 struct RetainedNeural {
   LaceRecord lace{};
   InputCredit input{};
@@ -134,6 +136,7 @@ struct Model {
   // Read-only per-objective diagnostics, not recurrent/checkpoint state.
   uint64_t local_credit_metrics[N][8]{};
   bool content_experts=true;
+  PatternRuntime pattern;
   std::vector<ContentExpertRecord> content_records;
   // Scoped, transient accumulation keeps every shared-bank Jacobian ahead of
   // parameter mutation, including a local objective's multiple semantic roots.
@@ -805,6 +808,7 @@ for(auto&archive:m.neural_archive)archive.clear();
 memset(m.neural_metrics,0,sizeof(m.neural_metrics));
 memset(m.local_credit_metrics,0,sizeof(m.local_credit_metrics));
 m.content_records.clear();memset(m.content_expert_metrics,0,sizeof(m.content_expert_metrics));
+pattern_reset_stream(m);
 #endif
 memset(&m.composition.stream,0,sizeof(m.composition.stream));m.laces=LaceState{};auto&s=m.s;memset(&s,0,sizeof(s));s.rng=7131587;s.recall_slot[0]=s.recall_slot[1]=-1;initialize_learned(m);}
 size_t state_size(){return sizeof(State);}
@@ -834,6 +838,7 @@ for(auto&archive:m.neural_archive)archive.clear();
 memset(m.neural_metrics,0,sizeof(m.neural_metrics));
 memset(m.local_credit_metrics,0,sizeof(m.local_credit_metrics));
 m.content_records.clear();memset(m.content_expert_metrics,0,sizeof(m.content_expert_metrics));
+pattern_reset_stream(m);
 #endif
 memset(&m.composition.stream,0,sizeof(m.composition.stream));m.laces=LaceState{};auto&s=m.s;
  memset(m.learned.memory,0,sizeof(m.learned.memory));memset(m.learned.eligibility_a,0,sizeof(m.learned.eligibility_a));memset(m.learned.eligibility_b,0,sizeof(m.learned.eligibility_b));memset(m.learned.records,0,sizeof(m.learned.records));
