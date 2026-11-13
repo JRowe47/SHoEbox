@@ -61,6 +61,7 @@ int composition_import(void*p,const void*in,size_t size,int fitted){
 #ifdef SHOEBOX_LEARNED_COMPLETION
     for(auto&archive:m.neural_archive)archive.clear();
     memset(m.neural_metrics,0,sizeof(m.neural_metrics));
+memset(m.local_credit_metrics,0,sizeof(m.local_credit_metrics));
 #endif
   }
   return 1;

@@ -61,7 +61,8 @@ def main():
             if kernel == 'completion':
                 row.update(capabilities=model.capabilities(), completion=model.completion_metrics(),
                            teaching=model.relay_teaching_status(), clocks=model.completion_clocks(),
-                           lace=model.lace_metrics(), messages=model.message_metrics(), neural=model.neural_metrics())
+                           lace=model.lace_metrics(), messages=model.message_metrics(), neural=model.neural_metrics(),
+                           local_credit=model.local_credit_metrics())
                 args.output.write_text(json.dumps(result, indent=2, allow_nan=False) + '\n')
                 for metrics in row['lace'].values():
                     assert metrics['missing_parent'] == metrics['overwritten_credit'] == 0
@@ -69,6 +70,10 @@ def main():
                     assert metrics['missing_feedback_producers'] == 0
                 for metrics in row['neural'].values():
                     assert metrics['missing_live_dependencies'] == 0
+                for metrics in row['local_credit'].values():
+                    assert metrics['missing_producers'] == 0
+                assert sum(v['neural_updates'] for v in row['local_credit'].values()) > 0
+                assert sum(v['feedback_deliveries'] for v in row['local_credit'].values()) > 0
                 for metrics in row['composition'].values():
                     assert metrics['expired_input_edges'] == metrics['overwritten_input_credit'] == 0
                 for metrics in row['completion'].values():

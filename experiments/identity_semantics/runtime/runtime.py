@@ -27,4 +27,5 @@ def fresh_model(seed=1, kernel=REFERENCE_KERNEL, *, profile=None):
     params, _ = core.initialize(seed)
     with np.load(ROOT / 'configs' / (size + '_fixed.npz'), allow_pickle=False) as arrays:
         fixed = {key: arrays[key].copy() for key in arrays.files}
-    return Model(params=params, fixed=fixed, kernel=kernel, **settings)
+    return Model(params=params, fixed=fixed, kernel=kernel,
+                 local_credit=False if profile == 'historical' else None, **settings)

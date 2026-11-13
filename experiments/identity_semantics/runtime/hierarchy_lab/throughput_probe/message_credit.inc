@@ -57,9 +57,9 @@ inline void message_route_gradient(Model&m,int r,LaceRecord&v,const float*g,floa
   for(int j=0;j<D;j++)out[j]=dg*input.message.route_derivative[j];
 }
 inline void message_semantic_update(Model&m,int r,LaceRecord&v,InputCredit&input,
-                                    const float*du,const float*dcue,float rate){
+                                    const float*du,const float*dcue,float rate,int teaching=0){
 #ifdef SHOEBOX_LEARNED_COMPLETION
-  completion_semantic_update(m,r,v,input,du,dcue,rate);return;
+  completion_semantic_update(m,r,v,input,du,dcue,rate,teaching);return;
 #endif
   const auto&saved=input.message;float dq[D];
   for(int j=0;j<D;j++)dq[j]=saved.qa*(saved.alpha*du[j]+(dcue?dcue[j]:0.f));

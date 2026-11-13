@@ -25,7 +25,7 @@ inline ConstituentRecord* constituent_record(Model&m,SemanticRef ref){
 // A saved composition is a small DAG: multiple roles may use the same source.
 // Accumulate those paths before updating its actual adapter. Reverse creation
 // order is topological, including a sequence of locally encoded bound frames.
-inline void constituent_update(Model&m,SemanticRef root,const float*gradient,float rate,int receiver){
+inline void constituent_update(Model&m,SemanticRef root,const float*gradient,float rate,int receiver,int teaching=0){
   if(!root.serial||rate==0)return;
   auto&stream=m.composition.stream;
   uint64_t mark=++m.semantic_work_serial;
@@ -54,8 +54,8 @@ inline void constituent_update(Model&m,SemanticRef root,const float*gradient,flo
       norm2+=double(local[j])*local[j];gate_gradient+=local[j]*node.payload[j]*node.gain_derivative;
     }
     // Policy affects parameter updates, not the derivative of the saved code.
-    if(!m.frozen_region[r]&&(r==receiver||m.teaching_scale[r][0]!=0)){
-      float scale=rate*(r==receiver?1.f:m.teaching_scale[r][0]);
+    if(!m.frozen_region[r]&&(r==receiver||m.teaching_scale[r][teaching]!=0)){
+      float scale=rate*(r==receiver?1.f:m.teaching_scale[r][teaching]);
       for(int j=0;j<D;j++)for(int k=0;k<8;k++)
         m.composition.symbols[r-2][j][k]-=scale*local[j]*node.features[k];
       m.composition.payload_gates[r-2]-=scale*gate_gradient;
@@ -71,8 +71,8 @@ inline void constituent_update(Model&m,SemanticRef root,const float*gradient,flo
     }
   }
 }
-inline void completion_semantic_update(Model&m,int r,LaceRecord&v,InputCredit&input,const float*du,const float*dcue,float rate){
+inline void completion_semantic_update(Model&m,int r,LaceRecord&v,InputCredit&input,const float*du,const float*dcue,float rate,int teaching=0){
   float gradient[D];
   for(int j=0;j<D;j++)gradient[j]=std::clamp(input.message.qa*(input.message.alpha*du[j]+(dcue?dcue[j]:0.f)),-2.f,2.f);
-  constituent_update(m,input.semantic,gradient,rate*m.message_config[3]/norm(v.u),r);
+  constituent_update(m,input.semantic,gradient,rate*m.message_config[3]/norm(v.u),r,teaching);
 }

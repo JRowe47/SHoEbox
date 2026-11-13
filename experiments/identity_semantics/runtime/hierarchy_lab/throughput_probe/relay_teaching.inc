@@ -37,6 +37,10 @@ inline void relay_teach(Model&m,int r,const float*q,int mode,float lp,bool relay
     m.utility_metrics[r][2]+=std::sqrt(norm2);m.utility_metrics[r][3]++;}
   // The saved record supplies h/u/expert/gate, router cue, semantic eligibility
   // and producer parents. Neither the relay's h nor the current expert is used.
+#ifdef SHOEBOX_LEARNED_COMPLETION
+  if(m.local_neural_credit)local_prediction_update(m,r,v,g,rate);
+  else
+#endif
   expert_update(m,r,g,rate,&v,1);
   float a=rate*m.teaching_scale[r][1]/norm(v.h);
   if(a!=0)for(int i=0;i<D;i++){

@@ -68,7 +68,7 @@ void neural_fixture_update(void*p,int source,int objective){
     fixture_execute(m,17,3);auto&v=*current_lace(m,17);v.nparents=2;
     for(int k=0;k<2;k++)v.parents[k]={source,-1,101,.5f,1};
     distribute_credit(m,17,v,g,0);flush_credit(m,source,.04f);
-  }else if(objective==1){ // the local objective still teaches only its issuer (fix 2 is separate)
+  }else if(objective==1){ // saved local issuer; this fixture has no child dependencies
     auto&t=m.composition.stream.teaching[source];t.tick=101;t.index=1;
     for(int j=0;j<D;j++)t.prediction[j]=.3f;
     relay_teach(m,source,g,6,.04f,true);

@@ -46,7 +46,11 @@ int main(int argc,char**argv){
     assert(m.composition.stream.message_metrics[r][3]==0);
     assert(m.composition.stream.metrics[r][10]==0&&m.composition.stream.metrics[r][11]==0);
     assert(m.neural_metrics[r][3]==0);
+    assert(m.local_credit_metrics[r][7]==0);
   }
+  uint64_t local_updates=0,feedback_deliveries=0;
+  for(int r=0;r<N;r++){local_updates+=m.local_credit_metrics[r][4];feedback_deliveries+=m.local_credit_metrics[r][2];}
+  assert(local_updates>0&&feedback_deliveries>0);
   std::vector<unsigned char>neural(neural_state_size(p));neural_export(p,neural.data());
   assert(neural_import(p,neural.data(),neural.size()));
   assert(!neural_import(p,neural.data(),neural.size()-1));

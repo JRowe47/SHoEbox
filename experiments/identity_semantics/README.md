@@ -9,7 +9,8 @@ DFA (gain 1), the A1 residual objective and local innovation targets. Temporal
 credit uses every byte and all 64 coordinates; third-hop credit is unsampled.
 Payload gain is 1, feedback activation/routing are 0.1, semantic LR multiplier
 is 1, and neural lace depth is 3. Learned bottom state, task routing, EMA/revival,
-retained-input credit and both EC recall channels remain enabled.
+retained-input credit and both EC recall channels remain enabled. Local prediction
+errors now propagate to causal neural producers by default, independently of DFA.
 
 `model.capabilities()` reports the effective feature switches and unavailable
 historical experiments. `port_mode`, `port_gain` and `balance` are not implemented
@@ -73,8 +74,11 @@ of a bottom expert while its original generation is still retained.
 retained-input edges, and on overwritten outstanding credit.
 
 This repair adds no learned parameters: **1,031,952 parameters** at 12 experts.
-Version **35 / composition ABI 9** checkpoints the complete owned archive as well
-as pending frames, gates, semantic dependencies and recent eligibility. Version
+Version **36 / composition ABI 9** checkpoints the complete owned archive as well
+as pending frames, gates, semantic dependencies, recent eligibility and the local
+neural-credit policy. Version 35 remains exactly loadable with its old local
+teaching behavior. Enable the repair explicitly on an older loaded model with
+`model.configure_local_credit(True)`; subsequent saves retain that choice. Version
 33/34 completion checkpoints require explicit fresh-stream conversion; expired
 records in an old snapshot cannot be reconstructed. Versions 31 and 32 remain
 exactly loadable with their original kernels. Conversion preserves fitted
@@ -89,9 +93,21 @@ python tests/run_completion_sanitizer.py
 python src/run_completion_study.py --data /path/to/restored/data
 ```
 
-The neural retention repair is documented in
-[its report](deliverables/SHoEbox_Neural_Producer_Retention.md). Local prediction
-error propagation to child neural experts remains the next separate repair.
+Local prediction credit uses the saved issuer's actual input and routing
+branches. Its bounded reverse pass finishes before neural parameter mutation,
+uses `lp * upper_local_gain`, the issuer's local teaching scale, recipient local
+scales and `credit_gain`, and preserves the lace reuse exponent and depth policy.
+Context and feedback terms for one consumed role count as one use; transparent
+relays consume no hop. Retained-input edges bypass the old expert's output.
+Frozen recipients transmit derivatives while retaining their parameters.
+
+Local work never enters the language/DFA queues. Semantic adapters receive each
+computed branch once, with local teaching scales. `local_credit_metrics()` reports
+per-region objective, delivery, update, relay and missing-producer counts; these
+diagnostics reset on stream reset/load and do not change checkpoint state.
+The smoke check requires local neural updates, feedback deliveries and zero
+missing local producers. See [the local-credit report](deliverables/SHoEbox_Local_Prediction_Credit.md)
+and [the preceding retention repair](deliverables/SHoEbox_Neural_Producer_Retention.md).
 
 The earlier completion kernel implements the completion/content mechanisms. The matched 50,000-target
 smoke comparison, including throughput and task contributions, is documented in

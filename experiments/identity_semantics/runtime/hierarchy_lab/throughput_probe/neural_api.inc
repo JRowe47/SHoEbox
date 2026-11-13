@@ -4,6 +4,8 @@ struct NeuralSnapshotHeader {
   uint64_t version=1,counts[N]{},metrics[N][4]{};
 };
 extern "C" {
+void local_credit_configure(void*p,int enabled){static_cast<Model*>(p)->local_neural_credit=enabled!=0;}
+void local_credit_status(void*p,uint64_t*out){memcpy(out,static_cast<Model*>(p)->local_credit_metrics,sizeof(Model::local_credit_metrics));}
 size_t neural_state_size(void*p){
   auto&m=*static_cast<Model*>(p);size_t size=sizeof(NeuralSnapshotHeader);
   for(const auto&archive:m.neural_archive)size+=archive.size()*sizeof(RetainedNeural);

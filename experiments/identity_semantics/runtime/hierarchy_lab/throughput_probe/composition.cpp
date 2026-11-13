@@ -129,6 +129,9 @@ struct Model {
   // std::map preserves addresses while delayed updates insert other records.
   std::map<int64_t,RetainedNeural> neural_archive[N];
   uint64_t neural_metrics[N][4]{}; // archived, reclaimed, archive peak, missing live dependency
+  bool local_neural_credit=true;
+  // Read-only per-objective diagnostics, not recurrent/checkpoint state.
+  uint64_t local_credit_metrics[N][8]{};
 #endif
 #ifdef SHOEBOX_LEARNED_MESSAGES
   // Payload, feedback activation, feedback routing, semantic learning scale.
@@ -299,7 +302,7 @@ inline float norm(const float*x){float z=1.f;for(int i=0;i<D;i++)z+=x[i]*x[i];re
 #include "message_credit.inc"
 #endif
 #ifdef SHOEBOX_IDENTITY_SEMANTICS
-inline void semantic_input_update(Model&m,int r,LaceRecord&v,const float*du,float rate,const float*dcue=nullptr){
+inline void semantic_input_update(Model&m,int r,LaceRecord&v,const float*du,float rate,const float*dcue=nullptr,int teaching=0){
 #ifdef SHOEBOX_FIXED_SEMANTICS
   return;
 #endif
@@ -309,7 +312,7 @@ inline void semantic_input_update(Model&m,int r,LaceRecord&v,const float*du,floa
   if(state.tick!=v.tick||state.symbol_scale==0)return;
 #ifdef SHOEBOX_LEARNED_MESSAGES
   if(message_enabled(m)){
-    message_semantic_update(m,r,v,state,du,dcue,rate);
+    message_semantic_update(m,r,v,state,du,dcue,rate,teaching);
     return;
   }
   rate*=m.message_config[3];if(rate==0)return;
@@ -321,20 +324,20 @@ inline void semantic_input_update(Model&m,int r,LaceRecord&v,const float*du,floa
   }
   m.composition.symbol_updates[r-2]++;
 }
-inline void semantic_expert_update(Model&m,int r,LaceRecord*v,const float*g,float rate){
+inline void semantic_expert_update(Model&m,int r,LaceRecord*v,const float*g,float rate,int teaching=0){
   if(!v||r<2||!m.composition.enabled)return;
   float du[D]{},pre[D];float*w=m.W+(r*E+v->expert)*D*D;
   for(int j=0;j<D;j++)du[j]=pre[j]=g[j]*(1-v->h[j]*v->h[j]);
   for(int i=0;i<D;i++)for(int j=0;j<D;j++)du[j]+=v->gate*w[i*D+j]*pre[i];
 #ifdef SHOEBOX_LEARNED_MESSAGES
   alignas(64) float dcue[D]{};message_route_gradient(m,r,*v,g,dcue);
-  semantic_input_update(m,r,*v,du,rate,dcue);
+  semantic_input_update(m,r,*v,du,rate,dcue,teaching);
 #else
   semantic_input_update(m,r,*v,du,rate);
 #endif
 }
 #endif
-inline void expert_update(Model&m,int r,const float*g,float rate,LaceRecord*record=nullptr,int teaching=0){
+inline void expert_update(Model&m,int r,const float*g,float rate,LaceRecord*record=nullptr,int teaching=0,bool semantic=true){
   if(m.frozen_region[r])return;
   rate*=m.teaching_scale[r][teaching];
   if(rate==0)return;
@@ -346,7 +349,7 @@ inline void expert_update(Model&m,int r,const float*g,float rate,LaceRecord*reco
     m.utility_metrics[r][0]+=std::sqrt(z);m.utility_metrics[r][1]++;}
   learn_bottom_state(m,r,v,g,rate);
 #ifdef SHOEBOX_IDENTITY_SEMANTICS
-  semantic_expert_update(m,r,v,g,rate);
+  if(semantic)semantic_expert_update(m,r,v,g,rate);
 #endif
   int e=record?record->expert:s.chosen[r];
   const float*u=record?record->u:s.u[r],*h=record?record->h:s.h[r];
@@ -440,9 +443,6 @@ inline void route_task_update(Model&m,int r,LaceRecord&v,const float*g,float rat
 }
 inline int content_coord(int,int);
 inline float content_sign(int,int);
-#ifdef SHOEBOX_PRESERVE_RELAYS
-#include "relay_teaching.inc"
-#endif
 inline void deliver_input_credit(Model&m,int r,LaceRecord&v,const float*du,int depth,const float*dcue=nullptr){
   if(depth>=int(m.lcfg[0]))return;
 #ifdef SHOEBOX_LEARNED_MESSAGES
@@ -480,11 +480,8 @@ inline void deliver_input_credit(Model&m,int r,LaceRecord&v,const float*du,int d
     target.uses[depth]++;z.metrics[r][8]++;
   }
 }
-inline void distribute_credit(Model&m,int r,LaceRecord&v,const float*g,int depth){
-  if(depth>=int(m.lcfg[0]))return;
-  if(m.composition.enabled&&v.expert<0){deliver_input_credit(m,r,v,g,depth);return;}
-  if(!m.composition.enabled&&depth>=2&&m.lcfg[10]>1&&(v.tick/m.cadence[r])%int(m.lcfg[10]))return;
-  float pre[D],du[D];
+inline void neural_input_gradient(Model&m,int r,const LaceRecord&v,const float*g,float*du){
+  float pre[D];
   bool sparse=m.lcfg[9]<D;
   for(int i=0;i<D;i++){pre[i]=g[i]*(1-v.h[i]*v.h[i]);du[i]=(!sparse||(v.input_mask&(uint64_t(1)<<i)))?pre[i]:0;}
   float*w=m.W+(r*E+v.expert)*D*D;
@@ -506,6 +503,12 @@ inline void distribute_credit(Model&m,int r,LaceRecord&v,const float*g,int depth
     for(int i=0;i<D;i++)if(pre[i]!=0)for(int a=0;a<count;a++){int j=ids[a];du[j]+=v.gate*w[i*D+j]*pre[i];}
 #endif
   }else for(int i=0;i<D;i++)for(int j=0;j<D;j++)du[j]+=v.gate*w[i*D+j]*pre[i];
+}
+inline void distribute_credit(Model&m,int r,LaceRecord&v,const float*g,int depth){
+  if(depth>=int(m.lcfg[0]))return;
+  if(m.composition.enabled&&v.expert<0){deliver_input_credit(m,r,v,g,depth);return;}
+  if(!m.composition.enabled&&depth>=2&&m.lcfg[10]>1&&(v.tick/m.cadence[r])%int(m.lcfg[10]))return;
+  float du[D];neural_input_gradient(m,r,v,g,du);
 #ifdef SHOEBOX_LEARNED_MESSAGES
   alignas(64) float dcue[D]{};message_route_gradient(m,r,v,g,dcue);
   deliver_input_credit(m,r,v,du,depth,dcue);
@@ -513,6 +516,12 @@ inline void distribute_credit(Model&m,int r,LaceRecord&v,const float*g,int depth
   deliver_input_credit(m,r,v,du,depth);
 #endif
 }
+#ifdef SHOEBOX_LEARNED_COMPLETION
+#include "local_credit.inc"
+#endif
+#ifdef SHOEBOX_PRESERVE_RELAYS
+#include "relay_teaching.inc"
+#endif
 // Apply accumulated downstream teaching only when this region next runs.
 // Local Jacobians use current weights and saved publication activations:
 // this is bounded delayed local credit, not an exact temporal gradient.
@@ -781,6 +790,7 @@ void reset(void*p){auto&m=*static_cast<Model*>(p);
 constituent_resize(m,0);
 for(auto&archive:m.neural_archive)archive.clear();
 memset(m.neural_metrics,0,sizeof(m.neural_metrics));
+memset(m.local_credit_metrics,0,sizeof(m.local_credit_metrics));
 #endif
 memset(&m.composition.stream,0,sizeof(m.composition.stream));m.laces=LaceState{};auto&s=m.s;memset(&s,0,sizeof(s));s.rng=7131587;s.recall_slot[0]=s.recall_slot[1]=-1;initialize_learned(m);}
 size_t state_size(){return sizeof(State);}
@@ -808,6 +818,7 @@ void reset_context(void*p){auto&m=*static_cast<Model*>(p);
 constituent_resize(m,0);
 for(auto&archive:m.neural_archive)archive.clear();
 memset(m.neural_metrics,0,sizeof(m.neural_metrics));
+memset(m.local_credit_metrics,0,sizeof(m.local_credit_metrics));
 #endif
 memset(&m.composition.stream,0,sizeof(m.composition.stream));m.laces=LaceState{};auto&s=m.s;
  memset(m.learned.memory,0,sizeof(m.learned.memory));memset(m.learned.eligibility_a,0,sizeof(m.learned.eligibility_a));memset(m.learned.eligibility_b,0,sizeof(m.learned.eligibility_b));memset(m.learned.records,0,sizeof(m.learned.records));

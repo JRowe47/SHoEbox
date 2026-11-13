@@ -40,6 +40,7 @@ class ReferenceDefaultsTests(unittest.TestCase):
         self.addCleanup(b.close)
         self.assertEqual(a.lace['dfa_gain'], 0)
         self.assertEqual(b.state_config['temporal_features'], 16)
+        self.assertFalse(b.local_credit)
         self.assertEqual(b.capabilities()['reference_profile'], 'custom')
         b.configure_messages({'payload_gain': 0})
         self.assertFalse(b.capabilities()['features']['recursive_constituent_content'])
@@ -62,7 +63,7 @@ class ReferenceDefaultsTests(unittest.TestCase):
             path = Path(tmp) / 'reference.npz'
             m.save(path)
             with np.load(path, allow_pickle=False) as saved:
-                self.assertEqual(int(saved['version'][0]), 35)
+                self.assertEqual(int(saved['version'][0]), 36)
                 self.assertEqual(saved['composition_state'][:4].view(np.uint32)[0], 9)
             n = Model.load(path)
             self.addCleanup(n.close)
@@ -89,7 +90,7 @@ class ReferenceDefaultsTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, 'coverage clocks'):
                 Model.load(source)
             result = convert(source, target)
-            self.assertEqual((result['version'], result['abi']), (35, 9))
+            self.assertEqual((result['version'], result['abi']), (36, 9))
             n = Model.load(target)
             self.addCleanup(n.close)
             for old, new in ((m.flat, n.flat), (m.extra_flat, n.extra_flat),
@@ -118,7 +119,7 @@ class ReferenceDefaultsTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, 'expiring neural producers'):
                 Model.load(source)
             result = convert(source, target)
-            self.assertEqual((result['version'], result['abi']), (35, 9))
+            self.assertEqual((result['version'], result['abi']), (36, 9))
             n = Model.load(target)
             self.addCleanup(n.close)
             for old, new in ((m.flat, n.flat), (m.extra_flat, n.extra_flat),
