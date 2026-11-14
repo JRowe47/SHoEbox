@@ -9,7 +9,7 @@ Model::Model(int count,int target,uint32_t seed,bool use_index,bool memory):inde
     for(auto& v:embedding)for(auto& x:v)x=.35f*normal(rng);
     for(auto& v:decoder)for(auto& x:v)x=.02f*normal(rng);
     // Level zero fits recurrence/read maps, but no slow composer or projector.
-    int fixed=int(sizeof(embedding)/sizeof(float)+sizeof(decoder)/sizeof(float)+decoder_bias.size()+D*D+D*K+(count-1)*(sizeof(Shared)+sizeof(AddressParameters))/sizeof(float));
+    int fixed=int(sizeof(embedding)/sizeof(float)+sizeof(decoder)/sizeof(float)+decoder_bias.size()+D*D+D*K+((count-1)*(sizeof(Shared)+sizeof(AddressParameters))+count*sizeof(RecallParameters))/sizeof(float));
     int available=(target-fixed)/int(sizeof(Expert)/sizeof(float));
     if(available<count*2)throw std::invalid_argument("parameter budget too small for this topology");
     const float shares[4]{.5f,.25f,.15f,.1f};float total=0;for(int l=0;l<count;++l)total+=shares[l];
@@ -38,12 +38,14 @@ Model::Model(int count,int target,uint32_t seed,bool use_index,bool memory):inde
             for(int i=0;i<TIME_D;++i)l.address.query_clock[i*TIME_D+i]=.25f;
             for(int i=0;i<D;++i)l.address.reconstruct[i*D+i]=.15f;
         }
+        for(auto& x:l.retrieval.query)x=.02f*normal(rng);
+        for(auto& x:l.retrieval.read)x=.02f*normal(rng);
         rebuild_index(l);
     }
 }
 size_t Model::parameter_count()const{
     size_t n=sizeof(embedding)/sizeof(float)+sizeof(decoder)/sizeof(float)+decoder_bias.size();
-    for(size_t i=0;i<levels.size();++i)n+=(i?(sizeof(Shared)+sizeof(AddressParameters))/sizeof(float):D*D+D*K)+levels[i].experts.size()*sizeof(Expert)/sizeof(float);
+    for(size_t i=0;i<levels.size();++i)n+=(i?(sizeof(Shared)+sizeof(AddressParameters))/sizeof(float):D*D+D*K)+sizeof(RecallParameters)/sizeof(float)+levels[i].experts.size()*sizeof(Expert)/sizeof(float);
     return n;
 }
 void Model::rebuild_index(Level& l){
@@ -137,6 +139,7 @@ void Model::forward_event(int scale,const std::array<Vec,GROUP>& child,const std
         s.negative_cursor=(s.negative_cursor+1)%NEG;s.negative_count=std::min(NEG,s.negative_count+1);
     }
     s.state=e.state;s.content=e.content;++s.executions;
+    l.retained.admit(s.stable,e.content);
     if(training)++s.count;
     if(scale>0){mv(l.p.gain,s.state,s.gain);mv(l.p.bias,s.state,s.bias);}
     if(scale+1<int(levels.size())){
@@ -232,14 +235,26 @@ void Model::observe(uint8_t byte){
         }
     }
     // Projections themselves are cached per slow event. Summation is 3x64.
-    refresh();for(int i=0;i<D;++i)features[i]=std::tanh(levels[0].s.state[i]*(1+cached_gain[i])+cached_bias[i]);
+    refresh();
+    // Retained pairs contain observed input only. Queries execute now, including
+    // when no slow level completes on this byte; they never consume the target.
+    for(size_t l=0;l<levels.size();++l){
+        auto& level=levels[l];
+        recall_forward(level.retained,level.retrieval,levels[0].s.state,byte,level.read_now,int(l)==mask?1:recall_mode);
+        if(int(l)==shuffle)std::rotate(level.read_now.value.begin(),level.read_now.value.begin()+11,level.read_now.value.end());
+    }
+    for(int i=0;i<D;++i)features[i]=std::tanh(levels[0].s.state[i]*(1+cached_gain[i])+cached_bias[i]);
 }
 float Model::teach(uint8_t target){
-    int node=0;float loss=0;Vec feature_grad{};
+    int node=0;float loss=0;Vec feature_grad{};std::array<RecallValue,4> recall_grad{};
     for(int depth=0;depth<8;++depth){
         int bit=(target>>(7-depth))&1;float z=decoder_bias[node]+dot(decoder[node].data(),features.data());
+        for(size_t l=0;l<levels.size();++l)if(int(l)!=mask)z+=dot(levels[l].retrieval.read.data()+node*RECALL_V,levels[l].read_now.value.data(),RECALL_V);
         loss+=softplus(z)-bit*z;
         if(training){float error=sigmoid(z)-bit;
+            for(size_t l=0;l<levels.size();++l){auto& p=levels[l].retrieval;auto& read=levels[l].read_now;
+                float lr=head_rate/(1+dot(read.value.data(),read.value.data(),RECALL_V));
+                for(int j=0;j<RECALL_V;++j){recall_grad[l][j]+=error*p.read[node*RECALL_V+j];p.read[node*RECALL_V+j]-=lr*error*read.value[j];}}
             // Read the exact weights which produced z before changing them.
             for(int j=0;j<D;++j)feature_grad[j]+=error*decoder[node][j];
             float lr=head_rate/(1+energy(features));
@@ -249,6 +264,11 @@ float Model::teach(uint8_t target){
         node=2*node+1+bit;
     }
     if(training){auto& fast=levels[0].s.events[levels[0].s.count-1];
+        for(size_t l=0;l<levels.size();++l){RecallGradient g{};Vec di{};recall_backward(levels[l].retained,levels[l].retrieval,levels[l].read_now,recall_grad[l],g,di);
+            step(levels[l].retrieval.query,g.query,learning_rate);
+            for(int j=0;j<RECALL_K;++j)
+                levels[l].retrieval.query_byte[levels[l].read_now.byte*RECALL_K+j]-=learning_rate*std::clamp(g.query_byte[j],-2.f,2.f);
+            for(int i=0;i<D;++i)fast.task[i]+=di[i];}
         for(int i=0;i<D;++i){float g=feature_grad[i]*(1-features[i]*features[i]);fast.task[i]+=g*(1+cached_gain[i]);
             for(size_t l=1;l<levels.size();++l){auto& s=levels[l].s;if(!s.count)continue;
                 s.events[s.count-1].gain_grad[i]+=g*levels[0].s.state[i];s.events[s.count-1].bias_grad[i]+=g;}
@@ -260,17 +280,18 @@ float Model::teach(uint8_t target){
 void Model::log_probs(float* out)const{
     std::array<float,511> p{};
     for(int n=0;n<255;++n){float z=decoder_bias[n]+dot(decoder[n].data(),features.data());
+        for(size_t l=0;l<levels.size();++l)if(int(l)!=mask)z+=dot(levels[l].retrieval.read.data()+n*RECALL_V,levels[l].read_now.value.data(),RECALL_V);
         p[2*n+1]=p[n]-softplus(z);p[2*n+2]=p[n]-softplus(-z);}
     std::copy(p.begin()+255,p.end(),out);
 }
 double Model::run(const uint8_t* x,const uint8_t* y,size_t n){
     if(!n)throw std::invalid_argument("at least one prediction is required");
-    if(training&&(mask>=0||shuffle>=0||memory_mode))throw std::logic_error("interventions require frozen inference");
+    if(training&&(mask>=0||shuffle>=0||memory_mode||recall_mode))throw std::logic_error("interventions require frozen inference");
     double loss=0;for(size_t t=0;t<n;++t){observe(x[t]);loss+=teach(y[t]);}return loss/n;
 }
 void Model::finish(){if(training)for(size_t l=0;l<levels.size();++l)flush(int(l));}
 void Model::reset(bool clear_store){
-    finish();for(auto& l:levels)l.s=Stream{};
+    finish();for(auto& l:levels){l.s=Stream{};l.retained=RecallStream{};l.read_now=RecallRead{};}
     recalled={};previous_query={};cached_gain={};cached_bias={};features={};payload={};payload_count=0;have_query=false;bytes=0;route_comparisons=0;
     if(clear_store)store.clear();
 }
@@ -279,34 +300,41 @@ void Model::inference(bool cold){
     // source to evaluate; pending derivatives are deliberately discarded.
     training=false;memory_writes=false;
     for(auto& l:levels){l.s.count=0;l.s.events={};l.s.address_events={};l.s.negatives={};l.s.negative_count=0;l.s.negative_cursor=0;}
-    if(cold)reset(true);
+    if(cold)reset(false);
 }
 
 std::string save(const Model& m){
-    Writer w;uint64_t magic=0x31534d454f4853ULL;w.pod(magic);uint32_t version=2;w.pod(version);
-    uint32_t abi=sizeof(Event)^sizeof(Stream)^sizeof(AssociationStore);w.pod(abi);
+    Writer w;uint64_t magic=0x31534d454f4853ULL;w.pod(magic);uint32_t version=4;w.pod(version);
+    uint32_t abi=sizeof(Event)^sizeof(Stream)^sizeof(AssociationStore)^sizeof(RecallParameters)^sizeof(RecallStream)^sizeof(RecallRead);w.pod(abi);
     int count=int(m.levels.size()),target=int(m.parameter_count());w.pod(count);w.pod(target);w.pod(m.indexed);w.pod(m.associations);
     w.pod(m.training);w.pod(m.memory_writes);w.pod(m.have_query);
     w.pod(m.embedding);w.pod(m.decoder);w.pod(m.decoder_bias);w.pod(m.store);
     w.pod(m.recalled);w.pod(m.previous_query);w.pod(m.cached_gain);w.pod(m.cached_bias);w.pod(m.features);
     w.pod(m.payload);w.pod(m.payload_count);w.pod(m.bytes);w.pod(m.route_comparisons);
     w.pod(m.learning_rate);w.pod(m.head_rate);w.pod(m.aux_weight);w.pod(m.route_rate);w.pod(m.mask);w.pod(m.shuffle);
-    w.pod(m.reconstruction_weight);w.pod(m.memory_mode);
-    for(const auto& l:m.levels){w.vector(l.experts);w.pod(l.p);w.pod(l.address);w.pod(l.s);}return w.out;
+    w.pod(m.reconstruction_weight);w.pod(m.memory_mode);w.pod(m.recall_mode);
+    for(const auto& l:m.levels){w.vector(l.experts);w.pod(l.p);w.pod(l.address);w.pod(l.s);w.pod(l.retrieval);w.pod(l.retained);w.pod(l.read_now);}return w.out;
 }
 Model load(const char* p,size_t n){
     Reader r{p,n};uint64_t magic;uint32_t version,abi;r.pod(magic);r.pod(version);r.pod(abi);
-    if(magic!=0x31534d454f4853ULL||version!=2||abi!=(sizeof(Event)^sizeof(Stream)^sizeof(AssociationStore)))throw std::runtime_error("incompatible multiscale checkpoint");
+    if(magic!=0x31534d454f4853ULL||version!=4||abi!=(sizeof(Event)^sizeof(Stream)^sizeof(AssociationStore)^sizeof(RecallParameters)^sizeof(RecallStream)^sizeof(RecallRead)))throw std::runtime_error("incompatible multiscale checkpoint");
     int count,target;bool index,assoc;r.pod(count);r.pod(target);r.pod(index);r.pod(assoc);
     Model m(count,target,7,index,assoc);r.pod(m.training);r.pod(m.memory_writes);r.pod(m.have_query);
     r.pod(m.embedding);r.pod(m.decoder);r.pod(m.decoder_bias);r.pod(m.store);
     r.pod(m.recalled);r.pod(m.previous_query);r.pod(m.cached_gain);r.pod(m.cached_bias);r.pod(m.features);
     r.pod(m.payload);r.pod(m.payload_count);r.pod(m.bytes);r.pod(m.route_comparisons);
     r.pod(m.learning_rate);r.pod(m.head_rate);r.pod(m.aux_weight);r.pod(m.route_rate);r.pod(m.mask);r.pod(m.shuffle);
-    r.pod(m.reconstruction_weight);r.pod(m.memory_mode);
+    r.pod(m.reconstruction_weight);r.pod(m.memory_mode);r.pod(m.recall_mode);
     if(!std::isfinite(m.reconstruction_weight)||m.reconstruction_weight<0||m.memory_mode<0||m.memory_mode>3||(m.training&&m.memory_mode))throw std::runtime_error("invalid addressed-memory configuration");
+    if(m.recall_mode<0||m.recall_mode>4||(m.training&&m.recall_mode))throw std::runtime_error("invalid retained-recall intervention");
     if(m.payload_count<0||m.payload_count>=GROUP||m.mask>=count||m.shuffle>=count)throw std::runtime_error("invalid checkpoint counters");
-    for(size_t level=0;level<m.levels.size();++level){auto& l=m.levels[level];r.vector(l.experts);r.pod(l.p);r.pod(l.address);r.pod(l.s);
+    for(size_t level=0;level<m.levels.size();++level){auto& l=m.levels[level];r.vector(l.experts);r.pod(l.p);r.pod(l.address);r.pod(l.s);r.pod(l.retrieval);r.pod(l.retained);r.pod(l.read_now);
+        if(l.retained.count<0||l.retained.count>RECALL_SLOTS||l.read_now.byte<0||l.read_now.byte>=VOCAB)
+            throw std::runtime_error("invalid retained-recall counters");
+        for(int i=0;i<l.retained.count;++i){const auto& u=l.retained.units[i];
+            if(!u.born||u.born>l.retained.clock)throw std::runtime_error("invalid retained occurrence");
+            for(float x:u.key)if(!std::isfinite(x))throw std::runtime_error("invalid retained key");
+            for(float x:u.value)if(!std::isfinite(x))throw std::runtime_error("invalid retained value");}
         const auto& s=l.s;if(s.count<0||s.count>BLOCK||s.children_count<0||s.children_count>=GROUP||s.negative_count<0||s.negative_count>NEG||s.negative_cursor<0||s.negative_cursor>=NEG)throw std::runtime_error("invalid event ring");
         if(level&&s.addressed.clock.ticks!=s.executions)throw std::runtime_error("invalid native clock");
         for(double v:s.addressed.clock.phase)if(!std::isfinite(v))throw std::runtime_error("invalid clock phase");
@@ -342,6 +370,15 @@ int ms_reconstruction(void* p,float weight){return guard([&]{
 });}
 int ms_memory_intervene(void* p,int mode){return guard([&]{auto& m=*static_cast<shoe::Model*>(p);
     if(m.training||mode<0||mode>3)throw std::invalid_argument("memory interventions require frozen inference and a valid mode");m.memory_mode=mode;
+});}
+int ms_recall_intervene(void* p,int mode){return guard([&]{auto& m=*static_cast<shoe::Model*>(p);
+    if(m.training||mode<0||mode>4)throw std::invalid_argument("recall interventions require frozen inference and a valid mode");
+    m.recall_mode=mode;
+});}
+int ms_recall_stats(void* p,double* out){return guard([&]{auto& m=*static_cast<shoe::Model*>(p);std::fill(out,out+16,0.);
+    for(size_t i=0;i<m.levels.size();++i){out[i]=m.levels[i].retained.count;out[4+i]=m.levels[i].retained.clock;}
+    out[8]=shoe::RECALL_SLOTS;out[9]=m.recall_mode;out[10]=sizeof(shoe::RecallStream)*m.levels.size();
+    out[11]=sizeof(shoe::RecallParameters)/sizeof(float)*m.levels.size();
 });}
 int ms_intervene(void* p,int mask,int shuffle){return guard([&]{auto& m=*static_cast<shoe::Model*>(p);
     if(m.training||mask>=int(m.levels.size())||shuffle>=int(m.levels.size())||mask< -1||shuffle< -1||mask==0||shuffle==0)throw std::invalid_argument("interventions require inference and a valid slow scale");

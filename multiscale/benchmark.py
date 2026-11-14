@@ -77,7 +77,7 @@ def run(args):
                 result["interventions"] = {str(l):dict(mask=model.evaluate(test[:16385], mask=l),
                                                           shuffle=model.evaluate(test[:16385], shuffle=l))
                                            for l in range(1, levels)}
-                if args.memory_profile == "addressed":
+                if args.memory_profile != "legacy":
                     result["memory_interventions"] = {mode:model.evaluate(test[:16385], memory=mode)
                                                        for mode in ("no_read", "no_time", "no_content")}
                 with model.inference_copy() as frozen:
@@ -110,6 +110,6 @@ if __name__ == "__main__":
     p.add_argument("--router", choices=["indexed","scan"], default="indexed")
     p.add_argument("--associations", action="store_true")
     p.add_argument("--checkpoints", action="store_true")
-    p.add_argument("--memory-profile", choices=["addressed", "legacy"], default="addressed")
+    p.add_argument("--memory-profile", choices=["addressed", "addressed_v3", "addressed_v2", "legacy"], default="addressed")
     p.add_argument("--reconstruction-weight", type=float)
     run(p.parse_args())

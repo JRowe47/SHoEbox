@@ -8,7 +8,10 @@ scales, ordered composition, top-one sparse experts, eight-event local learning,
 native-scale contrastive prediction, one shared byte decoder and a bounded
 association store. Fresh models now also enable stable content/time addressing,
 fixed native rotary clocks, learned memory queries and local constituent
-reconstruction. Version-1 checkpoints automatically retain the original runtime.
+reconstruction. New version-4 models also retain ordered pairs, query every
+scale from the current byte, and deliver recalled values directly to the shared
+byte decoder. Cold inference preserves explicit bindings. Version-1, version-2
+and version-3 checkpoints retain their original training runtimes.
 The old cortical runtime below remains reproducible.
 
 ```python
@@ -18,15 +21,17 @@ loss = model.train(b"An observed byte stream for local learning.\n")
 model.save("model.shoe")
 ```
 
-The original rebuild's three matched million-target Tiny Shakespeare runs average **1.97753 nats/byte**
-at approximately **64,746 training bytes/s** for the four-scale model. The
-fast-only control averages 1.99583 nats/byte at 106,880 bytes/s. The hierarchy
-improves loss per byte, but the distant ordered-cue test remains at chance and
-the fast-only model reaches the measured loss thresholds sooner. Consequently,
-learned boundaries and promotion of the hierarchy as the selected generalist
-profile have **not** passed the design's acceptance gate.
+The original delayed AB/BA answer test improves from **50% to 100%** across
+three seeds at the same 6,000-example training budget, including all eight
+prefix shifts and repeated-distractor gaps through 4,096 bytes. Removing either
+the retained read or learned query selection removes the gain. Broader varied-
+distractor recall is still unresolved, and this repair has a measured language
+loss and throughput cost. See the current report for those results; the original
+rebuild and matrix-repair reports remain historical comparisons.
 
 [Implementation and reproduction](multiscale/README.md) |
+[Delayed recall repair and measurements](multiscale/DELAYED_RECALL_REPAIR.md) |
+[Previous matrix and lifecycle repair](multiscale/MEMORY_RECALL_REPAIR.md) |
 [Addressed memory and reconstruction results](multiscale/ADDRESSED_MEMORY_REPORT.md) |
 [Results and remaining gates](multiscale/REBUILD_REPORT.md) |
 [Original rebuild plan](multiscale/DESIGN.md).

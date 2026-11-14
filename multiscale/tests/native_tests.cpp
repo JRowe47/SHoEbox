@@ -40,6 +40,7 @@ float block_loss(Model& m){
 }
 void block_gradient(){
     auto base=std::make_unique<Model>(1,100000,7,false,false);
+    for(auto& l:base->levels)l.retrieval.read.fill(0); // Isolate the original recurrent-block objective.
     auto analytic=std::make_unique<Model>(*base);analytic->learning_rate=.01f;block_loss(*analytic);
     int expert=analytic->levels[0].s.events[0].expert;
     auto before=std::make_unique<Model>(*analytic);analytic->finish();
@@ -60,6 +61,7 @@ void block_gradient(){
 }
 void slow_gradient(){
     auto base=std::make_unique<Model>(2,150000,7,false,false);
+    for(auto& l:base->levels)l.retrieval.read.fill(0); // Retained values are explicit stop-gradients.
     base->reconstruction_weight=0; // This oracle measures the byte objective only.
     std::vector<uint8_t> x(32),y(32);for(int t=0;t<32;++t){x[t]=uint8_t(t*7+13);y[t]=uint8_t(t*19+1);}
     auto analytic=std::make_unique<Model>(*base);analytic->learning_rate=0;analytic->head_rate=0;
@@ -98,21 +100,23 @@ double address_objective(const Vec& c,const Vec& h,const Vec& stable,const Addre
     cn=1/std::sqrt(cn);pn=1/std::sqrt(pn);
     for(int i=0;i<K;++i){key[i]=current[i]*cn*.577350269;key[K+i]=previous[i]*pn*.577350269;}
     for(int i=0;i<TIME_D;++i)key[CONTENT_K+i]=s.clock.phase[i]*.577350269;
-    double result=0;
+    double result=0,norm=1,residual[ADDRESS_V]{};
+    for(int b=0;b<ADDRESS_V;++b)residual[b]=value[b];
+    for(int a=0;a<ADDRESS_K;++a){norm+=key[a]*key[a];
+        for(int b=0;b<ADDRESS_V;++b)residual[b]-=key[a]*retention()[a]*double(s.memory[a*ADDRESS_V+b]);}
     for(int a=0;a<ADDRESS_K;++a){double z=0;
         for(int i=0;i<D;++i)z+=p.query_content[a*D+i]*double(c[i])+p.query_state[a*D+i]*double(h[i]);
         if(a<CONTENT_K)z+=.5*current[a%K]*cn;
         else for(int i=0;i<TIME_D;++i)z+=p.query_clock[(a-CONTENT_K)*TIME_D+i]*s.clock.phase[i];
-        double q=std::tanh(z),scale=1/std::sqrt(1.+s.mass[a]);
+        double q=std::tanh(z);
         for(int b=0;b<ADDRESS_V;++b){int j=a*ADDRESS_V+b;
-            result+=q*s.memory[j]*scale*dr[b]+(retention()[a]*double(s.memory[j])+key[a]*value[b])*dm[j];}}
+            result+=q*s.memory[j]*dr[b]+(retention()[a]*double(s.memory[j])+.5*key[a]*residual[b]/norm)*dm[j];}}
     return result;
 }
 void address_gradients(){
     Vec c{},h{},stable=stable_bytes()[73];AddressStream s;AddressParameters p{},g{};AddressValue dr{};AddressMatrix dm{};
     s.previous_stable=stable_bytes()[29];for(int k=0;k<19;++k)s.clock.advance();
     for(int i=0;i<D;++i){c[i]=.2f*std::sin(float(i));h[i]=.15f*std::cos(float(i));}
-    for(int i=0;i<ADDRESS_K;++i)s.mass[i]=.1f*(i+1);
     for(int i=0;i<ADDRESS_K*ADDRESS_V;++i){s.memory[i]=.1f*std::cos(float(i));dm[i]=.07f*std::sin(float(i));}
     for(int i=0;i<ADDRESS_V;++i)dr[i]=.1f*std::cos(float(i));
     for(int i=0;i<ADDRESS_K*D;++i){p.query_content[i]=.02f*std::sin(float(i));p.query_state[i]=.03f*std::cos(float(i));}
@@ -139,6 +143,33 @@ void address_gradients(){
     Vec changed=c;changed.fill(.8f);auto other=s;AddressEvent altered;address_forward(altered,changed,h,stable,other,p);
     require(e.key==altered.key,"write coordinates independent of learned encoder");
     require(e.value!=altered.value,"addressed values include learned content");
+}
+void bounded_repeated_memory(){
+    AddressStream stream;AddressParameters p{};AddressEvent e;Vec content{},before{};
+    for(int i=0;i<D;++i)content[i]=.3f*std::sin(float(i));
+    for(int i=0;i<TIME_D;++i)p.query_clock[i*TIME_D+i]=.25f;
+    double max_memory=0,max_read=0;
+    for(int t=0;t<10000;++t){
+        address_forward(e,content,before,stable_bytes()[120],stream,p);
+        double memory=0,read=0;for(float x:stream.memory)memory+=double(x)*x;
+        for(float x:e.read)read+=double(x)*x;
+        max_memory=std::max(max_memory,std::sqrt(memory));max_read=std::max(max_read,std::sqrt(read));
+    }
+    require(max_memory<10,"repeated content cannot accumulate unbounded coherent writes");
+    require(max_read<10,"repeated-content read must remain bounded");
+    require(stream.clock.ticks==10000,"residual write retains the native clock");
+    // Removing a channel removes both its write and its read across the prefix.
+    for(int mode:{2,3}){AddressStream s;
+        for(int t=0;t<20;++t)address_forward(e,content,before,stable_bytes()[t],s,p,mode);
+        for(int a=0;a<ADDRESS_K;++a)if((mode==2&&a>=CONTENT_K)||(mode==3&&a<CONTENT_K)){
+            require(e.query[a]==0&&e.key[a]==0,"removed channel has no query or write key");
+            for(int b=0;b<ADDRESS_V;++b)require(s.memory[a*ADDRESS_V+b]==0,"removed write channel remains empty");}
+    }
+    auto m=std::make_unique<Model>(2,200000);uint8_t key[]{1,2},value[]{4,5,6};
+    auto handle=m->store.bind(key,2,value,3);auto copy=std::make_unique<Model>(*m);copy->inference(true);
+    require(copy->store.resolve(handle)!=nullptr,"native cold context preserves persistent records");
+    copy->reset(true);require(copy->store.resolve(handle)==nullptr,"explicit full reset clears persistent records");
+    require(m->store.resolve(handle)!=nullptr,"inference reset leaves source records untouched");
 }
 void reconstruction_gradients(){
     Vec c{},target{};AddressParameters p{};for(int i=0;i<D;++i){c[i]=.2f*std::sin(float(i));target[i]=.3f*std::cos(float(i));}
@@ -199,7 +230,7 @@ void contracts(){
     uint64_t events=0;for(auto& l:large->levels)events+=l.s.executions;
     require(large->route_comparisons<=events*48,"indexed routing comparison bound");
     require(large->parameter_count()>=4995000&&large->parameter_count()<=5000000,"5M fitted parameter accounting");
-    auto minimum=std::make_unique<Model>(4,152383);minimum->run(x.data(),y.data(),512);
+    auto minimum=std::make_unique<Model>(4,205503);minimum->run(x.data(),y.data(),512);
     for(const auto& l:minimum->levels)require(l.experts.size()==2,"minimum budget reserves every expert bank");
     auto bytes=save(*minimum);auto resumed=std::make_unique<Model>(load(bytes.data(),bytes.size()));
     require(save(*resumed)==bytes,"minimum budget checkpoint topology");
@@ -216,5 +247,90 @@ void associations(){
     uint8_t long_value[257]{};bool rejected=false;try{s->bind(key,3,long_value,257);}catch(const std::exception&){rejected=true;}
     require(rejected,"oversized payload rejected");
 }
-int main(){try{gradients();address_gradients();reconstruction_gradients();clock_contracts();block_gradient();slow_gradient();contracts();associations();std::cout<<"PASS "<<checks<<" native checks\n";return 0;}
+// An independent double-precision attention oracle. Retained keys and payloads
+// are detached observed constants; query parameters and the present state learn.
+double recall_objective(const RecallStream& s,const RecallParameters& p,const Vec& input,int byte,const RecallValue& dv){
+    double q[RECALL_K]{},scores[RECALL_SLOTS]{},max=-1e30,total=0,result=0;
+    for(int j=0;j<RECALL_K;++j){double z=p.query_byte[byte*RECALL_K+j];
+        for(int i=0;i<D;++i)z+=double(p.query[j*D+i])*input[i];q[j]=std::tanh(z);}
+    for(int k=0;k<s.count;++k){scores[k]=-.5*double(s.clock-s.units[k].born);
+        for(int j=0;j<RECALL_K;++j)scores[k]+=4*q[j]*s.units[k].key[j];max=std::max(max,scores[k]);}
+    for(int k=0;k<s.count;++k){scores[k]=std::exp(scores[k]-max);total+=scores[k];}
+    for(int k=0;k<s.count;++k)for(int j=0;j<RECALL_V;++j)result+=scores[k]/total*s.units[k].value[j]*dv[j];
+    return result;
+}
+void recall_gradients(){
+    RecallStream s;RecallParameters p{};Vec input{};RecallValue dv{};
+    for(int i=0;i<6;++i)s.admit(stable_bytes()[31*i],stable_bytes()[31*i]);
+    for(int j=0;j<D;++j)input[j]=.2f*std::sin(float(j));
+    for(int j=0;j<RECALL_V;++j)dv[j]=.2f*std::cos(float(j));
+    for(int j=0;j<RECALL_K*D;++j)p.query[j]=.03f*std::sin(float(j));
+    for(int j=0;j<RECALL_K;++j)p.query_byte[63*RECALL_K+j]=.1f*std::cos(float(j));
+    RecallRead e;recall_forward(s,p,input,63,e);RecallGradient g{};Vec di{};
+    recall_backward(s,p,e,dv,g,di);constexpr float eps=.002f;
+    for(int i=0;i<D;++i){auto a=input,b=input;a[i]+=eps;b[i]-=eps;
+        double n=(recall_objective(s,p,a,63,dv)-recall_objective(s,p,b,63,dv))/(2*eps);
+        require(std::abs(n-di[i])<1e-5,"present query-state VJP mismatch");}
+    for(int j=0;j<RECALL_K;++j){auto a=p,b=p;a.query_byte[63*RECALL_K+j]+=eps;b.query_byte[63*RECALL_K+j]-=eps;
+        double n=(recall_objective(s,a,input,63,dv)-recall_objective(s,b,input,63,dv))/(2*eps);
+        require(std::abs(n-g.query_byte[j])<1e-5,"observed-byte query VJP mismatch");}
+    for(int j:{0,31,67,309,780,1023}){auto a=p,b=p;a.query[j]+=eps;b.query[j]-=eps;
+        double n=(recall_objective(s,a,input,63,dv)-recall_objective(s,b,input,63,dv))/(2*eps);
+        require(std::abs(n-g.query[j])<1e-5,"query projection VJP mismatch");}
+    // Verify teach wires this derivative to the same shared tree loss used by
+    // logits, using fixed retained records rather than replaying their writers.
+    auto base=std::make_unique<Model>(2,200000);base->learning_rate=base->head_rate=base->route_rate=0;
+    const std::string prefix="Different retained units: AB then many xxxxx then ?";
+    base->run(reinterpret_cast<const uint8_t*>(prefix.data()),reinterpret_cast<const uint8_t*>(prefix.data()),prefix.size());
+    auto analytic=std::make_unique<Model>(*base);analytic->learning_rate=.01f;analytic->teach(49);
+    auto loss=[](Model& m){auto& l=m.levels[0];Vec input=l.read_now.input;int byte=l.read_now.byte;recall_forward(l.retained,l.retrieval,input,byte,l.read_now);
+        float out[256];m.log_probs(out);return -out[49];};
+    for(int j:{0,3,9,15}){auto a=std::make_unique<Model>(*base),b=std::make_unique<Model>(*base);
+        int index=63*RECALL_K+j;a->levels[0].retrieval.query_byte[index]+=eps;b->levels[0].retrieval.query_byte[index]-=eps;
+        float n=(loss(*a)-loss(*b))/(2*eps);
+        float actual=(base->levels[0].retrieval.query_byte[index]-analytic->levels[0].retrieval.query_byte[index])/.01f;
+        require(std::abs(n-actual)<.0008f,"answer loss did not teach the current query");}
+    auto read_update=std::make_unique<Model>(*base);read_update->head_rate=.01f;read_update->teach(49);
+    for(int j:{0,8,17,31}){auto a=std::make_unique<Model>(*base),b=std::make_unique<Model>(*base);
+        a->levels[0].retrieval.read[j]+=eps;b->levels[0].retrieval.read[j]-=eps;
+        float n=(loss(*a)-loss(*b))/(2*eps);
+        const auto& value=base->levels[0].read_now.value;
+        float rate=.01f/(1+dot(value.data(),value.data(),RECALL_V));
+        float actual=(base->levels[0].retrieval.read[j]-read_update->levels[0].retrieval.read[j])/rate;
+        require(std::abs(n-actual)<.0008f,"retained-value decoder VJP mismatch");}
+}
+void recall_contracts(){
+    RecallStream s,reverse;
+    s.admit(stable_bytes()[65],stable_bytes()[65]);s.admit(stable_bytes()[66],stable_bytes()[66]);
+    reverse.admit(stable_bytes()[66],stable_bytes()[66]);reverse.admit(stable_bytes()[65],stable_bytes()[65]);
+    require(s.units[0].stable!=reverse.units[0].stable,"retained identity preserves pair order");
+    auto cue=s.units[0];
+    for(int t=0;t<10000;++t)s.admit(stable_bytes()[120+t%3],stable_bytes()[120+t%3]);
+    require(s.count==5&&s.units[0].stable==cue.stable&&s.units[0].value==cue.value,"repeated distractor vocabulary preserves an observed cue");
+
+    auto clock=s.clock;s.admit(stable_bytes()[120],stable_bytes()[120]);s.admit(stable_bytes()[120],stable_bytes()[120]);
+    clock=s.clock;for(int t=0;t<10000;++t)s.admit(stable_bytes()[120],stable_bytes()[120]);
+    require(s.clock==clock,"identical pairs do not admit or age retained units");
+    for(int t=0;t<40;++t)s.admit(stable_bytes()[t],stable_bytes()[t]);
+    require(s.count==RECALL_SLOTS,"retained memory has a fixed slot bound");
+    bool old=false;for(const auto& u:s.units){old|=u.stable==cue.stable;require(u.born<=s.clock,"occurrence timestamps remain causal");}
+    require(!old,"capacity overflow evicts the least recently observed distinct pair");
+    auto m=std::make_unique<Model>(4,250000);m->inference(true);
+    for(int i=0;i<194;++i)m->observe(uint8_t(i<2?65+i:120));
+    auto slow=m->levels[3].s.executions;auto units=m->levels[3].retained;
+    for(auto& l:m->levels){l.retrieval.query.fill(0);l.retrieval.query_byte.fill(0);l.retrieval.query_byte[63*RECALL_K]=1;}
+    m->observe(63);
+    require(m->levels[3].s.executions==slow&&m->levels[3].retained.clock==units.clock,"off-boundary question does not execute a slow expert or admit a slow pair");
+    for(auto& l:m->levels){require(l.read_now.byte==63,"every scale receives the present question");
+        require(l.read_now.query[0]>0,"current question selects retained units before next completion");
+        require(l.s.count==0,"frozen recall does not populate derivative rings");}
+    auto state=save(*m);auto clone=std::make_unique<Model>(load(state.data(),state.size()));
+    require(save(*clone)==state,"warm frozen recall checkpoint round trip");
+    m->reset();for(auto& l:m->levels)require(l.retained.count==0&&!l.retained.have_previous,"cold context clears causal retained units");
+    for(int mode=1;mode<=4;++mode){RecallParameters p{};RecallRead e;recall_forward(s,p,Vec{},63,e,mode);
+        if(mode==1)require(e.value==RecallValue{},"no-read intervention removes delivery");
+        if(mode==3)for(int j=RECALL_K;j<RECALL_V;++j)require(e.value[j]==0,"fixed-value intervention");
+        if(mode==4)for(int j=0;j<RECALL_K;++j)require(e.value[j]==0,"learned-value intervention");}
+}
+int main(){try{gradients();address_gradients();bounded_repeated_memory();reconstruction_gradients();clock_contracts();block_gradient();slow_gradient();contracts();associations();recall_gradients();recall_contracts();std::cout<<"PASS "<<checks<<" native checks\n";return 0;}
 catch(const std::exception& e){std::cerr<<"FAIL after "<<checks<<" checks: "<<e.what()<<"\n";return 1;}}

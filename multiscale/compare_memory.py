@@ -25,7 +25,7 @@ def main():
                   platform=platform.platform(), compiler=subprocess.check_output(["g++", "--version"], text=True).splitlines()[0],
                   cpu=args.cpu, language=[], dependencies=[])
     for index, seed in enumerate(args.seeds):
-        profiles = ["legacy", "addressed"] if index % 2 == 0 else ["addressed", "legacy"]
+        profiles = ["legacy", "addressed_v2"] if index % 2 == 0 else ["addressed_v2", "legacy"]
         for profile in profiles:
             destination = out / f"{profile}_seed{seed}"
             language = SimpleNamespace(data=args.data, out=str(destination), cpu=args.cpu, targets=args.targets,

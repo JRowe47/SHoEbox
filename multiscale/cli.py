@@ -17,7 +17,7 @@ def main():
     train.add_argument("--targets",type=int);train.add_argument("--learning-rate",type=float,default=.08)
     train.add_argument("--router",choices=["indexed","scan"],default="indexed")
     train.add_argument("--associations",action="store_true")
-    train.add_argument("--memory-profile",choices=["addressed","legacy"],default="addressed",
+    train.add_argument("--memory-profile",choices=["addressed","addressed_v3","addressed_v2","legacy"],default="addressed",
                        help="fresh-model policy; resume automatically preserves the saved policy")
     train.add_argument("--reconstruction-weight",type=float)
     sample=sub.add_parser("generate");sample.add_argument("--checkpoint",required=True)

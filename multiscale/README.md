@@ -49,18 +49,19 @@ outside git. Existing cortical checkpoints cannot be loaded into this runtime.
 
 | Scale | Bytes/event | 1M bank size | Responsibility |
 | --- | ---: | ---: | --- |
-| Fast | 1 | 104 | Byte transform, immediate prediction and context |
-| Level 1 | 4 | 52 | Four ordered completed byte contents |
-| Level 2 | 16 | 31 | Four ordered Level-1 contents |
-| Level 3 | 64 | 21 | Four ordered Level-2 contents |
+| Fast | 1 | 98 | Byte transform, immediate prediction and context |
+| Level 1 | 4 | 49 | Four ordered completed byte contents |
+| Level 2 | 16 | 29 | Four ordered Level-1 contents |
+| Level 3 | 64 | 20 | Four ordered Level-2 contents |
 
 All widths are 64. `levels=1` and `levels=2` redistribute the same requested
 parameter budget over their banks. Parameters are rounded down by whole experts;
-the default four-scale model has 997,183 fitted scalars. Every selected expert
+the default four-scale model has 999,615 fitted scalars. Every selected expert
 has a 64x64 matrix, bias and learned routing prototype. Shared fitted parameters
 include embeddings, recurrence/read maps, slow composition/conditioning maps,
 native prediction heads, addressed-memory queries/read maps, constituent
-reconstruction heads, and the shared 255-node binary byte decoder.
+reconstruction heads, retained-pair query maps, and the shared 255-node binary
+byte decoder with separate retained-value coefficients.
 Derived router centroids and stored episodes are not fitted parameters.
 
 The ordered adapter uses distinct invertible coordinate permutations and
@@ -81,6 +82,63 @@ fixed signed pooling, read before write, decay .98 and write strength .5.
 Its read and write both receive exact derivatives inside the local block.
 The expert transform, normalized prototype attraction and top-two margin gate
 reuse the reference arithmetic, reimplemented without its regional lifecycle.
+
+## Delayed recall: retained ordered pairs
+
+New models use native checkpoint version 4. In addition to the bounded residual
+matrices, every scale retains at most 16 ordered pairs of consecutive completed
+contents. At the byte scale these overlap, so a pair remains available even when
+it straddles a four-byte composition boundary. Their fixed order-sensitive keys
+combine the two input sketches. Values combine pooled learned contents and the
+fixed key. The store is causal context, separate from the exact payload API.
+
+Consecutive identical pairs do not rewrite the store or advance its occurrence
+clock. A previously seen pair refreshes its value and occurrence; a new distinct
+pair evicts the least recent occurrence when all slots are full. This preserves
+an ordered cue through a long repeated distractor run. It does not protect a
+cue against arbitrarily many changing distractors. Recency is measured in pair
+changes at that scale, not wall-clock time or byte count.
+
+After observing each byte, the present byte's learned query and current fast
+state query all scales' retained pairs, whether or not a slow expert executes.
+Attention combines fixed key similarity and an occurrence-recency bias. The
+retrieved values enter the existing binary decision tree directly, alongside
+its existing fast/slow features. Thus a question does not wait for the next
+slow completion, and useful recalled content does not have to survive another
+saturated recurrent-state/tanh projection before the decoder can use it.
+
+The answer error updates the query and retained-value decoder coefficients
+online using the exact weights from that prediction. Query-state derivatives
+enter the fast level's existing local block. Stored pair contents are detached:
+this repair teaches selection and delivery, and does not introduce delayed
+backpropagation through retired writers or across the content hierarchy. All
+updates use ordinary next-byte targets, with no special cue, question, answer,
+episode delimiter, or evaluation label in the runtime.
+
+The same 6,000-example AB/BA training budget now passes the original delayed
+answer test across seeds 7/17/29, all eight prefix shifts, and repeated-distractor
+gaps through 4,096 bytes. See [`DELAYED_RECALL_REPAIR.md`](DELAYED_RECALL_REPAIR.md)
+for full-vocabulary accuracy, ablations, broader task boundaries, language loss,
+and throughput. The previous matrix repair is preserved in
+[`MEMORY_RECALL_REPAIR.md`](MEMORY_RECALL_REPAIR.md).
+
+The additional fitted parameters total 13,280 per scale (53,120 for four scales),
+compensated by smaller expert banks. The four retained streams occupy 32,352
+bytes, excluding the current read caches. No expert is executed merely to read
+memory; there are at most 16 candidates per scale and no growing history scan.
+Admission of observed pairs continues during frozen inference; learning does not.
+
+```python
+with model.inference_copy() as frozen:
+    frozen.intervene_recall("no_read")  # set before the evaluation prefix
+# Other controls: recency_only, no_fixed_values, no_learned_values.
+# Compact addressed-matrix interventions remain separate.
+```
+
+Cold inference and context reset clear these causal retained pairs. Persistent
+explicit bindings survive unless `clear_memory=True` is requested. Warm copies
+and checkpoints preserve retained units, clocks, current reads, all query and
+decoder parameters, and the original pending local blocks.
 
 ## Stable addresses, native clocks and local reconstruction
 
@@ -113,17 +171,20 @@ independent: learning a better read does not move old write coordinates.
 For row `a`, the operations are:
 
 ```text
-read[b] = sum_a query[a] * memory[a,b] / sqrt(1 + mass[a])
-memory[a,b] = decay[a] * memory[a,b] + key[a] * value[b]
-mass[a] = decay[a]^2 * mass[a] + key[a]^2
+read[b] = sum_a query[a] * memory[a,b]
+decayed[a,b] = decay[a] * memory[a,b]
+residual[b] = value[b] - sum_a key[a] * decayed[a,b]
+rate = 0.5 / (1 + sum_a key[a]^2)
+memory[a,b] = decayed[a,b] + rate * key[a] * residual[b]
 ```
 
 Reading precedes writing. Fixed retention half-lives range from 32 to 2,048
-native events; each temporal sine/cosine pair shares its decay. Mass tracks
-write energy to normalize reads. These are bounded recurrent summaries, not
-an exact record store. Local derivatives include the learned values, query,
-read projection and carried memory matrix; fixed sketches, clocks and mass
-have no trainable ancestors.
+native events; each temporal sine/cosine pair shares its decay. Residual writes
+reinforce the association only to the extent it is not already predicted.
+The old write-energy normalizer is absent. These are compact recurrent
+summaries, not an exact record store. Local derivatives include the residual
+write, learned values, query, read projection and carried memory matrix;
+fixed sketches and clocks have no trainable ancestors.
 
 Each slow event also reconstructs one of its four detached child contents from
 the same canonical content used for composition. The selected child role rotates
@@ -138,7 +199,7 @@ constituents. No future input is supplied to the forward path.
 
 Together the new query/read/reconstruction parameters cost 9,728 scalars per
 slow level. The fitted-budget allocator reduces expert counts to compensate.
-The addressed four-scale topology needs at least 152,383 scalars; use 200,000
+The version-4 four-scale topology needs at least 205,503 scalars; use 250,000
 or more for small four-scale tests.
 
 ```python
@@ -194,23 +255,30 @@ finishes pending updates, then starts fresh composition, state and eligibility;
 rotary clocks and both recurrent memories reset together. Explicit association
 episodes survive unless `clear_memory=True` is passed.
 
-`inference_copy(cold=True)` snapshots currently fitted weights, clears context
-and episodes, and freezes all learning/admission. `cold=False` retains the causal
-prefix and records. It does **not** commit pending training in the source.
+`inference_copy(cold=True)` snapshots currently fitted weights, clears recurrent
+context, preserves association records, and freezes learning/automatic admission.
+Use `inference_copy(clear_memory=True)` to clear the store as well. The same
+option is available in `evaluate` and `generate`. `cold=False` retains the causal
+prefix and records; combining it with `clear_memory=True` is rejected. It does **not** commit pending training in the source.
 Call `finish()` explicitly if evaluation should include those pending updates.
-Forward-only inference does not populate derivative rings. Training checkpoints
+Forward-only inference does not populate derivative rings; retained observed
+pairs are inference memory, not derivative records. Training checkpoints
 retain partial child groups, every local record, negative targets, readout,
-recurrent matrices, clocks, address normalization, stable sketches, episode
+recurrent matrices, clocks, stable sketches, episode
 payloads and counters. A version/ABI header and a
 SHA-256 envelope reject mismatched or corrupt saves; exact continuation is
 verified on this native ABI.
 
-Version-1 multiscale checkpoints automatically select the unchanged runtime in
-`legacy/`; they retain their original learning and state semantics. New addressed
-checkpoints use native version 2 within the existing checksum envelope. Use
-`Model(memory_profile="legacy")` or CLI `--memory-profile legacy` for fresh
-comparisons. Resume selects the saved policy automatically. Old cortical
-checkpoints remain a different format.
+Version-1 checkpoints select the unchanged runtime in `legacy/`; version-2
+checkpoints select `addressed_v2/`, and version-3 selects `addressed_v3/`. Their original learning,
+matrix meaning and stream continuation are preserved. New addressed checkpoints
+use version 4 within the existing checksum envelope. Use
+`Model(memory_profile="addressed_v3")`, `Model(memory_profile="addressed_v2")`,
+or `Model(memory_profile="legacy")`
+(and the corresponding CLI option) for historical comparisons. Resume selects
+the saved policy automatically. The Python cold-copy API preserves explicit association records across all
+versions. Version-4 fast-only models also receive retained-pair recall; use an
+explicit historical profile for the original fast-only arithmetic. Old cortical checkpoints remain a different format.
 
 ## Association store
 
@@ -246,7 +314,7 @@ python multiscale/tests/run_all.py
 python multiscale/tests/run_all.py --no-leak-check
 python -m multiscale.benchmark --data input.txt --out /tmp/shoe-benchmark --checkpoints
 python -m multiscale.dependencies --out /tmp/shoe-dependencies
-python -m multiscale.compare_memory --data input.txt --out /tmp/shoe-memory-comparison
+python -m multiscale.compare_delayed_recall --data input.txt --out /tmp/shoe-recall --extra-tasks
 ```
 
 The language runner reserves the final 10%, trains the first million targets
@@ -265,7 +333,9 @@ language curves, full-test loss, memory interventions, throughput and the ordere
 distant-cue task. Use `--memory-profile legacy` with either original runner to
 reproduce the original algorithm.
 
-See `ADDRESSED_MEMORY_REPORT.md` for the latest change and measurements, and
+See `DELAYED_RECALL_REPAIR.md` for the latest repair and measurements,
+`MEMORY_RECALL_REPAIR.md` for version 3,
+`ADDRESSED_MEMORY_REPORT.md` for the version-2 implementation, and
 `REBUILD_REPORT.md` for the original runtime's passed mechanisms and failed
 architecture gates. Learned boundaries, mixed-corpus selection, systematic
 held-out recombination and larger-scale router qualification remain gated work.
