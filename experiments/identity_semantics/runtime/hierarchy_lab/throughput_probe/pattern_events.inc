@@ -67,7 +67,7 @@ inline PatternClass* pattern_find(Model&m,int r,uint64_t id){
 }
 inline void pattern_classify(Model&m,int r,ContentEvent&out,const ContentEvent*parts,int n,bool binding,bool learn){
   auto&z=m.pattern;if(!z.enabled)return;
-  auto&metric=z.metrics[r];metric[0]++;
+  auto&metric=z.metrics[r];SHOEBOX_DIAGNOSTIC(metric[0]++;)
   learn=learn&&!m.frozen_region[r];
   PatternDescriptor x=pattern_descriptor(m,r,out,parts,n,binding);
   PatternClass*match=nullptr;float best=.22f;
@@ -80,14 +80,14 @@ inline void pattern_classify(Model&m,int r,ContentEvent&out,const ContentEvent*p
     if(z.classes[r].size()<PATTERN_CAP){z.classes[r].emplace_back();match=&z.classes[r].back();}
     else{
       match=&*std::min_element(z.classes[r].begin(),z.classes[r].end(),[](const auto&a,const auto&b){return a.last_used<b.last_used;});
-      metric[6]++;
+      SHOEBOX_DIAGNOSTIC(metric[6]++;)
     }
-    *match=PatternClass{};match->id=++z.serial;match->prototype=x;metric[1]++;
-  }else if(match)metric[2]++;
-  else metric[7]++;
+    *match=PatternClass{};match->id=++z.serial;match->prototype=x;SHOEBOX_DIAGNOSTIC(metric[1]++;)
+  }else if(match)SHOEBOX_DIAGNOSTIC(metric[2]++;)
+  else SHOEBOX_DIAGNOSTIC(metric[7]++;)
   if(match&&learn){
     uint64_t prior=match->count;match->count++;match->last_used=z.clock[r];
-    if(prior&&match->count==m.composition.min_count)metric[3]++;
+    if(prior&&match->count==m.composition.min_count)SHOEBOX_DIAGNOSTIC(metric[3]++;)
     // Bounded online adaptation follows slowly changing child encoders. Class
     // serials stay stable as prototypes move; eviction never reuses a serial.
     float rate=1.f/float(std::min<uint64_t>(match->count,64));
@@ -98,7 +98,7 @@ inline void pattern_classify(Model&m,int r,ContentEvent&out,const ContentEvent*p
   }
   out.ref.recognized=match&&match->count>=m.composition.min_count;
   out.confidence=match?std::min(1.f,float(match->count)/m.composition.min_count):0.f;
-  metric[out.ref.recognized?4:5]++;
+  SHOEBOX_DIAGNOSTIC(metric[out.ref.recognized?4:5]++;)
   if(out.semantic.serial){
     if(size_t(out.semantic.index)>=z.assignments.size())z.assignments.resize(constituent_capacity(m));
     auto&saved=z.assignments[out.semantic.index];saved=PatternAssignment{};
@@ -118,7 +118,7 @@ inline void pattern_classify(Model&m,int r,ContentEvent&out,const ContentEvent*p
   }
 }
 inline float pattern_transition(Model&m,int r,const ContentEvent&from,const ContentEvent&to,bool learn){
-  auto&z=m.pattern;auto&metric=z.metrics[r];metric[8]++;
+  auto&z=m.pattern;auto&metric=z.metrics[r];SHOEBOX_DIAGNOSTIC(metric[8]++;)
   ContentID a=pattern_key(m,from),b=pattern_key(m,to);
   if(!a.a&&!a.b)return 0;
   double evictions=0;
@@ -126,7 +126,7 @@ inline float pattern_transition(Model&m,int r,const ContentEvent&from,const Cont
   uint32_t total=content_count(z.totals[r],a,false,evictions);
   uint32_t count=(b.a||b.b)?content_count(z.pairs[r],pair,false,evictions):0;
   float categorical=count>=m.composition.min_count?std::min(1.f,float(count)/std::max(1u,total)):0.f;
-  metric[9]+=categorical>0;
+  SHOEBOX_DIAGNOSTIC(metric[9]+=categorical>0;)
   float prediction=0,next[D];
   if(auto*saved=pattern_assignment(m,to))memcpy(next,saved->prediction,sizeof(next));
   else pattern_normalize(to.values().code,next);
@@ -135,7 +135,7 @@ inline float pattern_transition(Model&m,int r,const ContentEvent&from,const Cont
     float distance=0;for(int j=0;j<D;j++){float d=next[j]-entry->next[j];distance+=.5f*d*d;}
     // A diffuse/multimodal forecast receives low confidence without renormalizing
     // its mean. Evidence is measured before the current target is learned.
-    prediction=std::max(0.f,1.f-distance/.25f);metric[10]++;metric[11]+=prediction>.7f;
+    prediction=std::max(0.f,1.f-distance/.25f);SHOEBOX_DIAGNOSTIC(metric[10]++;)SHOEBOX_DIAGNOSTIC(metric[11]+=prediction>.7f;)
   }
   float score=entry?.5f*(categorical+prediction):categorical;
   if(learn&&!m.frozen_region[r]){
@@ -145,7 +145,7 @@ inline float pattern_transition(Model&m,int r,const ContentEvent&from,const Cont
       entry->next_count++;float rate=1.f/float(std::min<uint64_t>(entry->next_count,64));
       for(int j=0;j<D;j++)entry->next[j]+=rate*(next[j]-entry->next[j]);
     }
-    metric[15]+=uint64_t(evictions);
+    SHOEBOX_DIAGNOSTIC(metric[15]+=uint64_t(evictions);)
   }
   return score;
 }

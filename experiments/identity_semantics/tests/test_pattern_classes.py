@@ -10,7 +10,7 @@ class PatternClassTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         path=ROOT/'results'/f'pattern_fixture_e{core.E}_{os.getpid()}.so';path.parent.mkdir(exist_ok=True)
-        subprocess.run(['g++','-O2','-march=native','-std=c++17',f'-DSHOEBOX_EXPERTS={core.E}',
+        subprocess.run(['g++','-DSHOEBOX_INLINE_DIAGNOSTICS=1','-O2','-march=native','-std=c++17',f'-DSHOEBOX_EXPERTS={core.E}',
                         '-shared','-fPIC',str(ROOT/'tests/pattern_fixture.cpp'),'-o',str(path)],check=True)
         cls.fx=ct.CDLL(str(path));p,i=ct.c_void_p,ct.c_int
         for name,args in dict(pattern_fixture_frame=[p,i,i,i,ct.c_int64,i,p],pattern_fixture_transition=[p,i,i],

@@ -11,7 +11,7 @@ class CompletionTests(unittest.TestCase):
  def setUpClass(cls):
   (ROOT/'results').mkdir(exist_ok=True)
   path=ROOT/'results'/f'completion_fixture_e{core.E}.so'
-  subprocess.run(['g++','-O2','-march=native','-std=c++17',f'-DSHOEBOX_EXPERTS={core.E}','-shared','-fPIC',str(ROOT/'tests/completion_fixture.cpp'),'-o',str(path)],check=True)
+  subprocess.run(['g++','-DSHOEBOX_INLINE_DIAGNOSTICS=1','-O2','-march=native','-std=c++17',f'-DSHOEBOX_EXPERTS={core.E}','-shared','-fPIC',str(ROOT/'tests/completion_fixture.cpp'),'-o',str(path)],check=True)
   cls.fx=ct.CDLL(str(path));p=ct.c_void_p;i=ct.c_int;f=ct.c_float;l=ct.c_int64
   signatures=dict(completion_fixture_chain=[p,i,f,i,p,p],completion_fixture_update=[p,p,f],
    completion_fixture_grow=[p,p],completion_fixture_update_grown=[p],

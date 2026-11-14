@@ -36,14 +36,14 @@ inline void context_forward(Model&m,int r,const float*u,float*out,ContextEligibi
     for(int k=0;k<heads*MK_DIM;k++)z+=m.event.parameters.readout[r][i][k]*saved.read[k];
     out[i]=z;
   }
-  m.event.metrics[r][0]++;
+  SHOEBOX_DIAGNOSTIC(m.event.metrics[r][0]++;)
 }
 // Exact local VJP through the saved read and fixed pooling. Older memory
 // influence is represented by the recurrence, not an invented temporal tape.
 inline bool context_input_gradient(Model&m,int r,const LaceRecord&v,const float*g,float*du){
   if(!context_enabled(m,r))return false;
   auto*saved=context_record(m,r,v);
-  if(!saved){m.event.metrics[r][9]++;memset(du,0,D*sizeof(float));return true;}
+  if(!saved){SHOEBOX_DIAGNOSTIC(m.event.metrics[r][9]++;)memset(du,0,D*sizeof(float));return true;}
   float dr[MK_FEATURES]{};int heads=m.event.heads;
   for(int i=0;i<D;i++){
     float d=g[i]*(1-v.h[i]*v.h[i]);du[i]=d;
@@ -58,7 +58,7 @@ inline bool context_input_gradient(Model&m,int r,const LaceRecord&v,const float*
   return true;
 }
 inline void context_update(Model&m,int r,LaceRecord&v,const float*g,float rate){
-  auto*saved=context_record(m,r,v);if(!saved){m.event.metrics[r][9]++;return;}
+  auto*saved=context_record(m,r,v);if(!saved){SHOEBOX_DIAGNOSTIC(m.event.metrics[r][9]++;)return;}
   float denominator=1.f;for(int k=0;k<m.event.heads*MK_DIM;k++)denominator+=saved->read[k]*saved->read[k];
   float a=rate/denominator;
   if(r>=6&&r<=14&&m.utility.config[7]>0&&m.utility.config[7]!=1.f)a*=m.utility.config[7];
@@ -72,5 +72,5 @@ inline void context_update(Model&m,int r,LaceRecord&v,const float*g,float rate){
       else for(int j=0;j<D;j++)port[i*D+j]-=b*v.returned[j];
     }
   }
-  m.event.metrics[r][1]++;
+  SHOEBOX_DIAGNOSTIC(m.event.metrics[r][1]++;)
 }

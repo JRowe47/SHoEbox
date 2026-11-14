@@ -1,0 +1,1007 @@
+{
+  "protocol": "Matched Stage-6 vs compact pipeline timing, with inspections outside run().\n\nOne stream, CPU-pinned, rotated execution order. Timed chunks include logits\nand API quiescence; compilation, warmup, memory inspection, evaluation and IO\nare excluded. No validation/benchmark processes should overlap this suite.\n",
+  "baseline": "fbf7c816446289bcd987a85028d7cab59389b7ed",
+  "experts": 64,
+  "runs": [
+    {
+      "config": {
+        "name": "stage6_serial",
+        "old": true
+      },
+      "experts": 64,
+      "targets": 2048,
+      "warmup": 1024,
+      "seconds": 3.193769681995036,
+      "bytes_per_second": 641.2484943875746,
+      "train_nll": 2.016210358791284,
+      "heldout_nll": 2.3905907603066225,
+      "curve": [
+        {
+          "bytes": 512,
+          "seconds": 0.7586056839936646,
+          "nll": 2.389355061828155
+        },
+        {
+          "bytes": 1024,
+          "seconds": 1.5720382500003325,
+          "nll": 2.0994465443197896
+        },
+        {
+          "bytes": 1536,
+          "seconds": 2.3829854630021146,
+          "nll": 1.8784621921167854
+        },
+        {
+          "bytes": 2048,
+          "seconds": 3.193769681995036,
+          "nll": 1.6975776369004052
+        }
+      ],
+      "memory": null,
+      "pending_state_bytes": 608640,
+      "train_peak_rss_kib": 222268,
+      "hashes": {
+        "logits": "275827a550adf30a314a6700ac308bd564b9c86a409ef64922931b17ffe6f1bc",
+        "flat": "c031da2a3a1109ecfa5b3f6819ea90017a917c903652aaa5fb93d0ed754fb64b",
+        "extra": "d36fd63edfa7753ce27338ec273416661e337c8cb70a7954c76f1a88fe4c8ff3",
+        "event": "997a25fe3f6d3e65244712783702084ed7bd136a1a0ec3ceb5ba31ad4853e3e5"
+      },
+      "data_sha256": "d25d6f64ccdfe34932103ecaea9e9d1e407da8b7d2ef4cda943fdb5fdf34a180",
+      "validation_sha256": "9a2b9669613265810181315c9c90e166b64b822355ed85ae5ef5c9c4c660c9e0",
+      "repeat": 0
+    },
+    {
+      "config": {
+        "name": "compact_audit",
+        "audit": true
+      },
+      "experts": 64,
+      "targets": 2048,
+      "warmup": 1024,
+      "seconds": 2.7071381580026355,
+      "bytes_per_second": 756.5184635833448,
+      "train_nll": 2.016210358791284,
+      "heldout_nll": 2.3905907603066225,
+      "curve": [
+        {
+          "bytes": 512,
+          "seconds": 0.580030919998535,
+          "nll": 2.389355061828155
+        },
+        {
+          "bytes": 1024,
+          "seconds": 1.2296639249980217,
+          "nll": 2.0994465443197896
+        },
+        {
+          "bytes": 1536,
+          "seconds": 1.9157282560045132,
+          "nll": 1.8784621921167854
+        },
+        {
+          "bytes": 2048,
+          "seconds": 2.7071381580026355,
+          "nll": 1.6975776369004052
+        }
+      ],
+      "memory": {
+        "committed_version": 3071,
+        "sequence": 3072,
+        "pending": 1,
+        "workers": 1,
+        "enabled": 1,
+        "fused": 1,
+        "pending_state_bytes": 330400,
+        "visible_weight_tiles": 0,
+        "reserved_bytes": 17133696,
+        "pending_banks": 36,
+        "pending_weight_tiles": 19,
+        "pending_scopes": 38,
+        "unique_inputs": 20,
+        "pending_factors": 20,
+        "read_version": 3070,
+        "base_version": 3071,
+        "active_payload_bytes": 362296,
+        "router_weight_bytes_avoided": 278528,
+        "input_bytes_avoided": 0
+      },
+      "pending_state_bytes": 330400,
+      "train_peak_rss_kib": 225772,
+      "hashes": {
+        "logits": "275827a550adf30a314a6700ac308bd564b9c86a409ef64922931b17ffe6f1bc",
+        "flat": "c031da2a3a1109ecfa5b3f6819ea90017a917c903652aaa5fb93d0ed754fb64b",
+        "extra": "d36fd63edfa7753ce27338ec273416661e337c8cb70a7954c76f1a88fe4c8ff3",
+        "event": "997a25fe3f6d3e65244712783702084ed7bd136a1a0ec3ceb5ba31ad4853e3e5"
+      },
+      "data_sha256": "d25d6f64ccdfe34932103ecaea9e9d1e407da8b7d2ef4cda943fdb5fdf34a180",
+      "validation_sha256": "9a2b9669613265810181315c9c90e166b64b822355ed85ae5ef5c9c4c660c9e0",
+      "repeat": 0
+    },
+    {
+      "config": {
+        "name": "compact_serial"
+      },
+      "experts": 64,
+      "targets": 2048,
+      "warmup": 1024,
+      "seconds": 2.555422560981242,
+      "bytes_per_second": 801.4330120078458,
+      "train_nll": 2.0162103553434463,
+      "heldout_nll": 2.390590783570815,
+      "curve": [
+        {
+          "bytes": 512,
+          "seconds": 0.5565718049911084,
+          "nll": 2.389355057962348
+        },
+        {
+          "bytes": 1024,
+          "seconds": 1.1880719999899156,
+          "nll": 2.09944654226706
+        },
+        {
+          "bytes": 1536,
+          "seconds": 1.8775570199795766,
+          "nll": 1.8784621873585365
+        },
+        {
+          "bytes": 2048,
+          "seconds": 2.555422560981242,
+          "nll": 1.6975776337858406
+        }
+      ],
+      "memory": {
+        "committed_version": 3071,
+        "sequence": 3072,
+        "pending": 1,
+        "workers": 1,
+        "enabled": 1,
+        "fused": 1,
+        "pending_state_bytes": 330400,
+        "visible_weight_tiles": 0,
+        "reserved_bytes": 17133696,
+        "pending_banks": 36,
+        "pending_weight_tiles": 19,
+        "pending_scopes": 38,
+        "unique_inputs": 20,
+        "pending_factors": 20,
+        "read_version": 3070,
+        "base_version": 3071,
+        "active_payload_bytes": 362296,
+        "router_weight_bytes_avoided": 278528,
+        "input_bytes_avoided": 0
+      },
+      "pending_state_bytes": 330400,
+      "train_peak_rss_kib": 225648,
+      "hashes": {
+        "logits": "904576e61cc21da151dde4feb83d467f618c6c9e6e5b437c95b1d18356729242",
+        "flat": "d715c8d9d943d102a24638700ccf9a1acf4878673a117e7fd39eb60ac4114039",
+        "extra": "911eb7907ed6f01e4c7fdc376d5686832953a8409f451357bf0150b29091e25b",
+        "event": "79180dc85bf3149dc27631d30986d6a9406f9c5d2026dd9f3b2fcdd22b84812b"
+      },
+      "data_sha256": "d25d6f64ccdfe34932103ecaea9e9d1e407da8b7d2ef4cda943fdb5fdf34a180",
+      "validation_sha256": "9a2b9669613265810181315c9c90e166b64b822355ed85ae5ef5c9c4c660c9e0",
+      "repeat": 0
+    },
+    {
+      "config": {
+        "name": "stage6_worker",
+        "old": true,
+        "workers": 2
+      },
+      "experts": 64,
+      "targets": 2048,
+      "warmup": 1024,
+      "seconds": 3.2057655489916215,
+      "bytes_per_second": 638.8489640623287,
+      "train_nll": 2.016210358791284,
+      "heldout_nll": 2.3905907603066225,
+      "curve": [
+        {
+          "bytes": 512,
+          "seconds": 0.7052392409968888,
+          "nll": 2.389355061828155
+        },
+        {
+          "bytes": 1024,
+          "seconds": 1.5560862899874337,
+          "nll": 2.0994465443197896
+        },
+        {
+          "bytes": 1536,
+          "seconds": 2.37559013099235,
+          "nll": 1.8784621921167854
+        },
+        {
+          "bytes": 2048,
+          "seconds": 3.2057655489916215,
+          "nll": 1.6975776369004052
+        }
+      ],
+      "memory": null,
+      "pending_state_bytes": 608640,
+      "train_peak_rss_kib": 222408,
+      "hashes": {
+        "logits": "275827a550adf30a314a6700ac308bd564b9c86a409ef64922931b17ffe6f1bc",
+        "flat": "c031da2a3a1109ecfa5b3f6819ea90017a917c903652aaa5fb93d0ed754fb64b",
+        "extra": "d36fd63edfa7753ce27338ec273416661e337c8cb70a7954c76f1a88fe4c8ff3",
+        "event": "997a25fe3f6d3e65244712783702084ed7bd136a1a0ec3ceb5ba31ad4853e3e5"
+      },
+      "data_sha256": "d25d6f64ccdfe34932103ecaea9e9d1e407da8b7d2ef4cda943fdb5fdf34a180",
+      "validation_sha256": "9a2b9669613265810181315c9c90e166b64b822355ed85ae5ef5c9c4c660c9e0",
+      "repeat": 0
+    },
+    {
+      "config": {
+        "name": "compact_worker",
+        "workers": 2
+      },
+      "experts": 64,
+      "targets": 2048,
+      "warmup": 1024,
+      "seconds": 2.6556118949956726,
+      "bytes_per_second": 771.1970276452378,
+      "train_nll": 2.0162103553434463,
+      "heldout_nll": 2.390590783570815,
+      "curve": [
+        {
+          "bytes": 512,
+          "seconds": 0.5523068820039043,
+          "nll": 2.389355057962348
+        },
+        {
+          "bytes": 1024,
+          "seconds": 1.2329316890100017,
+          "nll": 2.09944654226706
+        },
+        {
+          "bytes": 1536,
+          "seconds": 1.9260790499974973,
+          "nll": 1.8784621873585365
+        },
+        {
+          "bytes": 2048,
+          "seconds": 2.6556118949956726,
+          "nll": 1.6975776337858406
+        }
+      ],
+      "memory": {
+        "committed_version": 3071,
+        "sequence": 3072,
+        "pending": 1,
+        "workers": 2,
+        "enabled": 1,
+        "fused": 1,
+        "pending_state_bytes": 330400,
+        "visible_weight_tiles": 0,
+        "reserved_bytes": 17133696,
+        "pending_banks": 36,
+        "pending_weight_tiles": 19,
+        "pending_scopes": 38,
+        "unique_inputs": 20,
+        "pending_factors": 20,
+        "read_version": 3070,
+        "base_version": 3071,
+        "active_payload_bytes": 362296,
+        "router_weight_bytes_avoided": 278528,
+        "input_bytes_avoided": 0
+      },
+      "pending_state_bytes": 330400,
+      "train_peak_rss_kib": 225752,
+      "hashes": {
+        "logits": "904576e61cc21da151dde4feb83d467f618c6c9e6e5b437c95b1d18356729242",
+        "flat": "d715c8d9d943d102a24638700ccf9a1acf4878673a117e7fd39eb60ac4114039",
+        "extra": "911eb7907ed6f01e4c7fdc376d5686832953a8409f451357bf0150b29091e25b",
+        "event": "79180dc85bf3149dc27631d30986d6a9406f9c5d2026dd9f3b2fcdd22b84812b"
+      },
+      "data_sha256": "d25d6f64ccdfe34932103ecaea9e9d1e407da8b7d2ef4cda943fdb5fdf34a180",
+      "validation_sha256": "9a2b9669613265810181315c9c90e166b64b822355ed85ae5ef5c9c4c660c9e0",
+      "repeat": 0
+    },
+    {
+      "config": {
+        "name": "stage6_serial",
+        "old": true
+      },
+      "experts": 64,
+      "targets": 2048,
+      "warmup": 1024,
+      "seconds": 3.157055987001513,
+      "bytes_per_second": 648.7056322194449,
+      "train_nll": 2.016210358791284,
+      "heldout_nll": 2.3905907603066225,
+      "curve": [
+        {
+          "bytes": 512,
+          "seconds": 0.7307879400032107,
+          "nll": 2.389355061828155
+        },
+        {
+          "bytes": 1024,
+          "seconds": 1.5046747809974477,
+          "nll": 2.0994465443197896
+        },
+        {
+          "bytes": 1536,
+          "seconds": 2.3578584990027593,
+          "nll": 1.8784621921167854
+        },
+        {
+          "bytes": 2048,
+          "seconds": 3.157055987001513,
+          "nll": 1.6975776369004052
+        }
+      ],
+      "memory": null,
+      "pending_state_bytes": 608640,
+      "train_peak_rss_kib": 222272,
+      "hashes": {
+        "logits": "275827a550adf30a314a6700ac308bd564b9c86a409ef64922931b17ffe6f1bc",
+        "flat": "c031da2a3a1109ecfa5b3f6819ea90017a917c903652aaa5fb93d0ed754fb64b",
+        "extra": "d36fd63edfa7753ce27338ec273416661e337c8cb70a7954c76f1a88fe4c8ff3",
+        "event": "997a25fe3f6d3e65244712783702084ed7bd136a1a0ec3ceb5ba31ad4853e3e5"
+      },
+      "data_sha256": "d25d6f64ccdfe34932103ecaea9e9d1e407da8b7d2ef4cda943fdb5fdf34a180",
+      "validation_sha256": "9a2b9669613265810181315c9c90e166b64b822355ed85ae5ef5c9c4c660c9e0",
+      "repeat": 1
+    },
+    {
+      "config": {
+        "name": "compact_worker",
+        "workers": 2
+      },
+      "experts": 64,
+      "targets": 2048,
+      "warmup": 1024,
+      "seconds": 2.5934041639993666,
+      "bytes_per_second": 789.6956550118736,
+      "train_nll": 2.0162103553434463,
+      "heldout_nll": 2.390590783570815,
+      "curve": [
+        {
+          "bytes": 512,
+          "seconds": 0.5626860329939518,
+          "nll": 2.389355057962348
+        },
+        {
+          "bytes": 1024,
+          "seconds": 1.1914661459886702,
+          "nll": 2.09944654226706
+        },
+        {
+          "bytes": 1536,
+          "seconds": 1.8926084029953927,
+          "nll": 1.8784621873585365
+        },
+        {
+          "bytes": 2048,
+          "seconds": 2.5934041639993666,
+          "nll": 1.6975776337858406
+        }
+      ],
+      "memory": {
+        "committed_version": 3071,
+        "sequence": 3072,
+        "pending": 1,
+        "workers": 2,
+        "enabled": 1,
+        "fused": 1,
+        "pending_state_bytes": 330400,
+        "visible_weight_tiles": 0,
+        "reserved_bytes": 17133696,
+        "pending_banks": 36,
+        "pending_weight_tiles": 19,
+        "pending_scopes": 38,
+        "unique_inputs": 20,
+        "pending_factors": 20,
+        "read_version": 3070,
+        "base_version": 3071,
+        "active_payload_bytes": 362296,
+        "router_weight_bytes_avoided": 278528,
+        "input_bytes_avoided": 0
+      },
+      "pending_state_bytes": 330400,
+      "train_peak_rss_kib": 228084,
+      "hashes": {
+        "logits": "904576e61cc21da151dde4feb83d467f618c6c9e6e5b437c95b1d18356729242",
+        "flat": "d715c8d9d943d102a24638700ccf9a1acf4878673a117e7fd39eb60ac4114039",
+        "extra": "911eb7907ed6f01e4c7fdc376d5686832953a8409f451357bf0150b29091e25b",
+        "event": "79180dc85bf3149dc27631d30986d6a9406f9c5d2026dd9f3b2fcdd22b84812b"
+      },
+      "data_sha256": "d25d6f64ccdfe34932103ecaea9e9d1e407da8b7d2ef4cda943fdb5fdf34a180",
+      "validation_sha256": "9a2b9669613265810181315c9c90e166b64b822355ed85ae5ef5c9c4c660c9e0",
+      "repeat": 1
+    },
+    {
+      "config": {
+        "name": "stage6_worker",
+        "old": true,
+        "workers": 2
+      },
+      "experts": 64,
+      "targets": 2048,
+      "warmup": 1024,
+      "seconds": 3.4899853190145222,
+      "bytes_per_second": 586.8219527577554,
+      "train_nll": 2.016210358791284,
+      "heldout_nll": 2.3905907603066225,
+      "curve": [
+        {
+          "bytes": 512,
+          "seconds": 0.8789068730111467,
+          "nll": 2.389355061828155
+        },
+        {
+          "bytes": 1024,
+          "seconds": 1.8208951090055052,
+          "nll": 2.0994465443197896
+        },
+        {
+          "bytes": 1536,
+          "seconds": 2.642667871012236,
+          "nll": 1.8784621921167854
+        },
+        {
+          "bytes": 2048,
+          "seconds": 3.4899853190145222,
+          "nll": 1.6975776369004052
+        }
+      ],
+      "memory": null,
+      "pending_state_bytes": 608640,
+      "train_peak_rss_kib": 228136,
+      "hashes": {
+        "logits": "275827a550adf30a314a6700ac308bd564b9c86a409ef64922931b17ffe6f1bc",
+        "flat": "c031da2a3a1109ecfa5b3f6819ea90017a917c903652aaa5fb93d0ed754fb64b",
+        "extra": "d36fd63edfa7753ce27338ec273416661e337c8cb70a7954c76f1a88fe4c8ff3",
+        "event": "997a25fe3f6d3e65244712783702084ed7bd136a1a0ec3ceb5ba31ad4853e3e5"
+      },
+      "data_sha256": "d25d6f64ccdfe34932103ecaea9e9d1e407da8b7d2ef4cda943fdb5fdf34a180",
+      "validation_sha256": "9a2b9669613265810181315c9c90e166b64b822355ed85ae5ef5c9c4c660c9e0",
+      "repeat": 1
+    },
+    {
+      "config": {
+        "name": "compact_serial"
+      },
+      "experts": 64,
+      "targets": 2048,
+      "warmup": 1024,
+      "seconds": 2.5662320909905247,
+      "bytes_per_second": 798.0572011355,
+      "train_nll": 2.0162103553434463,
+      "heldout_nll": 2.390590783570815,
+      "curve": [
+        {
+          "bytes": 512,
+          "seconds": 0.5378321419993881,
+          "nll": 2.389355057962348
+        },
+        {
+          "bytes": 1024,
+          "seconds": 1.1586937859974569,
+          "nll": 2.09944654226706
+        },
+        {
+          "bytes": 1536,
+          "seconds": 1.8684726939973189,
+          "nll": 1.8784621873585365
+        },
+        {
+          "bytes": 2048,
+          "seconds": 2.5662320909905247,
+          "nll": 1.6975776337858406
+        }
+      ],
+      "memory": {
+        "committed_version": 3071,
+        "sequence": 3072,
+        "pending": 1,
+        "workers": 1,
+        "enabled": 1,
+        "fused": 1,
+        "pending_state_bytes": 330400,
+        "visible_weight_tiles": 0,
+        "reserved_bytes": 17133696,
+        "pending_banks": 36,
+        "pending_weight_tiles": 19,
+        "pending_scopes": 38,
+        "unique_inputs": 20,
+        "pending_factors": 20,
+        "read_version": 3070,
+        "base_version": 3071,
+        "active_payload_bytes": 362296,
+        "router_weight_bytes_avoided": 278528,
+        "input_bytes_avoided": 0
+      },
+      "pending_state_bytes": 330400,
+      "train_peak_rss_kib": 228136,
+      "hashes": {
+        "logits": "904576e61cc21da151dde4feb83d467f618c6c9e6e5b437c95b1d18356729242",
+        "flat": "d715c8d9d943d102a24638700ccf9a1acf4878673a117e7fd39eb60ac4114039",
+        "extra": "911eb7907ed6f01e4c7fdc376d5686832953a8409f451357bf0150b29091e25b",
+        "event": "79180dc85bf3149dc27631d30986d6a9406f9c5d2026dd9f3b2fcdd22b84812b"
+      },
+      "data_sha256": "d25d6f64ccdfe34932103ecaea9e9d1e407da8b7d2ef4cda943fdb5fdf34a180",
+      "validation_sha256": "9a2b9669613265810181315c9c90e166b64b822355ed85ae5ef5c9c4c660c9e0",
+      "repeat": 1
+    },
+    {
+      "config": {
+        "name": "compact_audit",
+        "audit": true
+      },
+      "experts": 64,
+      "targets": 2048,
+      "warmup": 1024,
+      "seconds": 2.673615138992318,
+      "bytes_per_second": 766.0040407954484,
+      "train_nll": 2.016210358791284,
+      "heldout_nll": 2.3905907603066225,
+      "curve": [
+        {
+          "bytes": 512,
+          "seconds": 0.5717695519997505,
+          "nll": 2.389355061828155
+        },
+        {
+          "bytes": 1024,
+          "seconds": 1.2434474490000866,
+          "nll": 2.0994465443197896
+        },
+        {
+          "bytes": 1536,
+          "seconds": 1.9495987559930654,
+          "nll": 1.8784621921167854
+        },
+        {
+          "bytes": 2048,
+          "seconds": 2.673615138992318,
+          "nll": 1.6975776369004052
+        }
+      ],
+      "memory": {
+        "committed_version": 3071,
+        "sequence": 3072,
+        "pending": 1,
+        "workers": 1,
+        "enabled": 1,
+        "fused": 1,
+        "pending_state_bytes": 330400,
+        "visible_weight_tiles": 0,
+        "reserved_bytes": 17133696,
+        "pending_banks": 36,
+        "pending_weight_tiles": 19,
+        "pending_scopes": 38,
+        "unique_inputs": 20,
+        "pending_factors": 20,
+        "read_version": 3070,
+        "base_version": 3071,
+        "active_payload_bytes": 362296,
+        "router_weight_bytes_avoided": 278528,
+        "input_bytes_avoided": 0
+      },
+      "pending_state_bytes": 330400,
+      "train_peak_rss_kib": 228180,
+      "hashes": {
+        "logits": "275827a550adf30a314a6700ac308bd564b9c86a409ef64922931b17ffe6f1bc",
+        "flat": "c031da2a3a1109ecfa5b3f6819ea90017a917c903652aaa5fb93d0ed754fb64b",
+        "extra": "d36fd63edfa7753ce27338ec273416661e337c8cb70a7954c76f1a88fe4c8ff3",
+        "event": "997a25fe3f6d3e65244712783702084ed7bd136a1a0ec3ceb5ba31ad4853e3e5"
+      },
+      "data_sha256": "d25d6f64ccdfe34932103ecaea9e9d1e407da8b7d2ef4cda943fdb5fdf34a180",
+      "validation_sha256": "9a2b9669613265810181315c9c90e166b64b822355ed85ae5ef5c9c4c660c9e0",
+      "repeat": 1
+    },
+    {
+      "config": {
+        "name": "compact_serial"
+      },
+      "experts": 64,
+      "targets": 2048,
+      "warmup": 1024,
+      "seconds": 3.25755854799354,
+      "bytes_per_second": 628.6916934344725,
+      "train_nll": 2.0162103553434463,
+      "heldout_nll": 2.390590783570815,
+      "curve": [
+        {
+          "bytes": 512,
+          "seconds": 0.765250633994583,
+          "nll": 2.389355057962348
+        },
+        {
+          "bytes": 1024,
+          "seconds": 1.5570040029851953,
+          "nll": 2.09944654226706
+        },
+        {
+          "bytes": 1536,
+          "seconds": 2.3738271169859217,
+          "nll": 1.8784621873585365
+        },
+        {
+          "bytes": 2048,
+          "seconds": 3.25755854799354,
+          "nll": 1.6975776337858406
+        }
+      ],
+      "memory": {
+        "committed_version": 3071,
+        "sequence": 3072,
+        "pending": 1,
+        "workers": 1,
+        "enabled": 1,
+        "fused": 1,
+        "pending_state_bytes": 330400,
+        "visible_weight_tiles": 0,
+        "reserved_bytes": 17133696,
+        "pending_banks": 36,
+        "pending_weight_tiles": 19,
+        "pending_scopes": 38,
+        "unique_inputs": 20,
+        "pending_factors": 20,
+        "read_version": 3070,
+        "base_version": 3071,
+        "active_payload_bytes": 362296,
+        "router_weight_bytes_avoided": 278528,
+        "input_bytes_avoided": 0
+      },
+      "pending_state_bytes": 330400,
+      "train_peak_rss_kib": 228192,
+      "hashes": {
+        "logits": "904576e61cc21da151dde4feb83d467f618c6c9e6e5b437c95b1d18356729242",
+        "flat": "d715c8d9d943d102a24638700ccf9a1acf4878673a117e7fd39eb60ac4114039",
+        "extra": "911eb7907ed6f01e4c7fdc376d5686832953a8409f451357bf0150b29091e25b",
+        "event": "79180dc85bf3149dc27631d30986d6a9406f9c5d2026dd9f3b2fcdd22b84812b"
+      },
+      "data_sha256": "d25d6f64ccdfe34932103ecaea9e9d1e407da8b7d2ef4cda943fdb5fdf34a180",
+      "validation_sha256": "9a2b9669613265810181315c9c90e166b64b822355ed85ae5ef5c9c4c660c9e0",
+      "repeat": 2
+    },
+    {
+      "config": {
+        "name": "stage6_worker",
+        "old": true,
+        "workers": 2
+      },
+      "experts": 64,
+      "targets": 2048,
+      "warmup": 1024,
+      "seconds": 3.45627720101038,
+      "bytes_per_second": 592.5450653672409,
+      "train_nll": 2.016210358791284,
+      "heldout_nll": 2.3905907603066225,
+      "curve": [
+        {
+          "bytes": 512,
+          "seconds": 0.8632062430115184,
+          "nll": 2.389355061828155
+        },
+        {
+          "bytes": 1024,
+          "seconds": 1.6989310290082358,
+          "nll": 2.0994465443197896
+        },
+        {
+          "bytes": 1536,
+          "seconds": 2.5481887640053174,
+          "nll": 1.8784621921167854
+        },
+        {
+          "bytes": 2048,
+          "seconds": 3.45627720101038,
+          "nll": 1.6975776369004052
+        }
+      ],
+      "memory": null,
+      "pending_state_bytes": 608640,
+      "train_peak_rss_kib": 228216,
+      "hashes": {
+        "logits": "275827a550adf30a314a6700ac308bd564b9c86a409ef64922931b17ffe6f1bc",
+        "flat": "c031da2a3a1109ecfa5b3f6819ea90017a917c903652aaa5fb93d0ed754fb64b",
+        "extra": "d36fd63edfa7753ce27338ec273416661e337c8cb70a7954c76f1a88fe4c8ff3",
+        "event": "997a25fe3f6d3e65244712783702084ed7bd136a1a0ec3ceb5ba31ad4853e3e5"
+      },
+      "data_sha256": "d25d6f64ccdfe34932103ecaea9e9d1e407da8b7d2ef4cda943fdb5fdf34a180",
+      "validation_sha256": "9a2b9669613265810181315c9c90e166b64b822355ed85ae5ef5c9c4c660c9e0",
+      "repeat": 2
+    },
+    {
+      "config": {
+        "name": "compact_worker",
+        "workers": 2
+      },
+      "experts": 64,
+      "targets": 2048,
+      "warmup": 1024,
+      "seconds": 2.8670330789900618,
+      "bytes_per_second": 714.3273005839983,
+      "train_nll": 2.0162103553434463,
+      "heldout_nll": 2.390590783570815,
+      "curve": [
+        {
+          "bytes": 512,
+          "seconds": 0.6400159559998428,
+          "nll": 2.389355057962348
+        },
+        {
+          "bytes": 1024,
+          "seconds": 1.308090781007195,
+          "nll": 2.09944654226706
+        },
+        {
+          "bytes": 1536,
+          "seconds": 2.0650374039978487,
+          "nll": 1.8784621873585365
+        },
+        {
+          "bytes": 2048,
+          "seconds": 2.8670330789900618,
+          "nll": 1.6975776337858406
+        }
+      ],
+      "memory": {
+        "committed_version": 3071,
+        "sequence": 3072,
+        "pending": 1,
+        "workers": 2,
+        "enabled": 1,
+        "fused": 1,
+        "pending_state_bytes": 330400,
+        "visible_weight_tiles": 0,
+        "reserved_bytes": 17133696,
+        "pending_banks": 36,
+        "pending_weight_tiles": 19,
+        "pending_scopes": 38,
+        "unique_inputs": 20,
+        "pending_factors": 20,
+        "read_version": 3070,
+        "base_version": 3071,
+        "active_payload_bytes": 362296,
+        "router_weight_bytes_avoided": 278528,
+        "input_bytes_avoided": 0
+      },
+      "pending_state_bytes": 330400,
+      "train_peak_rss_kib": 228216,
+      "hashes": {
+        "logits": "904576e61cc21da151dde4feb83d467f618c6c9e6e5b437c95b1d18356729242",
+        "flat": "d715c8d9d943d102a24638700ccf9a1acf4878673a117e7fd39eb60ac4114039",
+        "extra": "911eb7907ed6f01e4c7fdc376d5686832953a8409f451357bf0150b29091e25b",
+        "event": "79180dc85bf3149dc27631d30986d6a9406f9c5d2026dd9f3b2fcdd22b84812b"
+      },
+      "data_sha256": "d25d6f64ccdfe34932103ecaea9e9d1e407da8b7d2ef4cda943fdb5fdf34a180",
+      "validation_sha256": "9a2b9669613265810181315c9c90e166b64b822355ed85ae5ef5c9c4c660c9e0",
+      "repeat": 2
+    },
+    {
+      "config": {
+        "name": "stage6_serial",
+        "old": true
+      },
+      "experts": 64,
+      "targets": 2048,
+      "warmup": 1024,
+      "seconds": 3.2865328309853794,
+      "bytes_per_second": 623.1491073789035,
+      "train_nll": 2.016210358791284,
+      "heldout_nll": 2.3905907603066225,
+      "curve": [
+        {
+          "bytes": 512,
+          "seconds": 0.6798808309977176,
+          "nll": 2.389355061828155
+        },
+        {
+          "bytes": 1024,
+          "seconds": 1.5883638559898827,
+          "nll": 2.0994465443197896
+        },
+        {
+          "bytes": 1536,
+          "seconds": 2.417080185987288,
+          "nll": 1.8784621921167854
+        },
+        {
+          "bytes": 2048,
+          "seconds": 3.2865328309853794,
+          "nll": 1.6975776369004052
+        }
+      ],
+      "memory": null,
+      "pending_state_bytes": 608640,
+      "train_peak_rss_kib": 228228,
+      "hashes": {
+        "logits": "275827a550adf30a314a6700ac308bd564b9c86a409ef64922931b17ffe6f1bc",
+        "flat": "c031da2a3a1109ecfa5b3f6819ea90017a917c903652aaa5fb93d0ed754fb64b",
+        "extra": "d36fd63edfa7753ce27338ec273416661e337c8cb70a7954c76f1a88fe4c8ff3",
+        "event": "997a25fe3f6d3e65244712783702084ed7bd136a1a0ec3ceb5ba31ad4853e3e5"
+      },
+      "data_sha256": "d25d6f64ccdfe34932103ecaea9e9d1e407da8b7d2ef4cda943fdb5fdf34a180",
+      "validation_sha256": "9a2b9669613265810181315c9c90e166b64b822355ed85ae5ef5c9c4c660c9e0",
+      "repeat": 2
+    },
+    {
+      "config": {
+        "name": "compact_audit",
+        "audit": true
+      },
+      "experts": 64,
+      "targets": 2048,
+      "warmup": 1024,
+      "seconds": 2.7191559309867444,
+      "bytes_per_second": 753.1749013219735,
+      "train_nll": 2.016210358791284,
+      "heldout_nll": 2.3905907603066225,
+      "curve": [
+        {
+          "bytes": 512,
+          "seconds": 0.5993457709992072,
+          "nll": 2.389355061828155
+        },
+        {
+          "bytes": 1024,
+          "seconds": 1.2560701509937644,
+          "nll": 2.0994465443197896
+        },
+        {
+          "bytes": 1536,
+          "seconds": 1.9799213969963603,
+          "nll": 1.8784621921167854
+        },
+        {
+          "bytes": 2048,
+          "seconds": 2.7191559309867444,
+          "nll": 1.6975776369004052
+        }
+      ],
+      "memory": {
+        "committed_version": 3071,
+        "sequence": 3072,
+        "pending": 1,
+        "workers": 1,
+        "enabled": 1,
+        "fused": 1,
+        "pending_state_bytes": 330400,
+        "visible_weight_tiles": 0,
+        "reserved_bytes": 17133696,
+        "pending_banks": 36,
+        "pending_weight_tiles": 19,
+        "pending_scopes": 38,
+        "unique_inputs": 20,
+        "pending_factors": 20,
+        "read_version": 3070,
+        "base_version": 3071,
+        "active_payload_bytes": 362296,
+        "router_weight_bytes_avoided": 278528,
+        "input_bytes_avoided": 0
+      },
+      "pending_state_bytes": 330400,
+      "train_peak_rss_kib": 228248,
+      "hashes": {
+        "logits": "275827a550adf30a314a6700ac308bd564b9c86a409ef64922931b17ffe6f1bc",
+        "flat": "c031da2a3a1109ecfa5b3f6819ea90017a917c903652aaa5fb93d0ed754fb64b",
+        "extra": "d36fd63edfa7753ce27338ec273416661e337c8cb70a7954c76f1a88fe4c8ff3",
+        "event": "997a25fe3f6d3e65244712783702084ed7bd136a1a0ec3ceb5ba31ad4853e3e5"
+      },
+      "data_sha256": "d25d6f64ccdfe34932103ecaea9e9d1e407da8b7d2ef4cda943fdb5fdf34a180",
+      "validation_sha256": "9a2b9669613265810181315c9c90e166b64b822355ed85ae5ef5c9c4c660c9e0",
+      "repeat": 2
+    }
+  ],
+  "comparisons": [
+    {
+      "variant": "stage6_serial",
+      "vs_stage6": {
+        "logits": {
+          "bitwise_equal": true,
+          "max_abs": 0.0
+        },
+        "flat": {
+          "bitwise_equal": true,
+          "max_abs": 0.0
+        },
+        "extra": {
+          "bitwise_equal": true,
+          "max_abs": 0.0
+        },
+        "event": {
+          "bitwise_equal": true,
+          "max_abs": 0.0
+        }
+      }
+    },
+    {
+      "variant": "compact_audit",
+      "vs_stage6": {
+        "logits": {
+          "bitwise_equal": true,
+          "max_abs": 0.0
+        },
+        "flat": {
+          "bitwise_equal": true,
+          "max_abs": 0.0
+        },
+        "extra": {
+          "bitwise_equal": true,
+          "max_abs": 0.0
+        },
+        "event": {
+          "bitwise_equal": true,
+          "max_abs": 0.0
+        }
+      }
+    },
+    {
+      "variant": "compact_serial",
+      "vs_stage6": {
+        "logits": {
+          "bitwise_equal": false,
+          "max_abs": 3.814697265625e-06
+        },
+        "flat": {
+          "bitwise_equal": false,
+          "max_abs": 3.8743019104003906e-07
+        },
+        "extra": {
+          "bitwise_equal": false,
+          "max_abs": 2.980232238769531e-07
+        },
+        "event": {
+          "bitwise_equal": false,
+          "max_abs": 255.0
+        }
+      }
+    },
+    {
+      "variant": "stage6_worker",
+      "vs_stage6": {
+        "logits": {
+          "bitwise_equal": true,
+          "max_abs": 0.0
+        },
+        "flat": {
+          "bitwise_equal": true,
+          "max_abs": 0.0
+        },
+        "extra": {
+          "bitwise_equal": true,
+          "max_abs": 0.0
+        },
+        "event": {
+          "bitwise_equal": true,
+          "max_abs": 0.0
+        }
+      }
+    },
+    {
+      "variant": "compact_worker",
+      "vs_stage6": {
+        "logits": {
+          "bitwise_equal": false,
+          "max_abs": 3.814697265625e-06
+        },
+        "flat": {
+          "bitwise_equal": false,
+          "max_abs": 3.8743019104003906e-07
+        },
+        "extra": {
+          "bitwise_equal": false,
+          "max_abs": 2.980232238769531e-07
+        },
+        "event": {
+          "bitwise_equal": false,
+          "max_abs": 255.0
+        }
+      }
+    }
+  ],
+  "serial_worker_bitwise": true,
+  "medians": {
+    "stage6_serial": 641.2484943875746,
+    "compact_audit": 756.5184635833448,
+    "compact_serial": 798.0572011355,
+    "stage6_worker": 592.5450653672409,
+    "compact_worker": 771.1970276452378
+  }
+}

@@ -70,7 +70,7 @@ inline void message_semantic_update(Model&m,int r,LaceRecord&v,InputCredit&input
     float gradient=std::clamp(dq[j],-2.f,2.f)*input.symbol_derivative[j]*scale;
     for(int k=0;k<8;k++)m.composition.symbols[r-2][j][k]-=gradient*input.symbol_features[k];
   }
-  m.composition.symbol_updates[r-2]++;
+  SHOEBOX_DIAGNOSTIC(m.composition.symbol_updates[r-2]++;)
   for(int e=0;e<saved.semantic_count;e++){
     const auto&source=saved.semantic[e];int producer=source.producer.region;
     if(producer<2||producer>=N||m.frozen_region[producer]||m.teaching_scale[producer][0]==0)continue;
@@ -79,11 +79,11 @@ inline void message_semantic_update(Model&m,int r,LaceRecord&v,InputCredit&input
     for(int j=0;j<D;j++)gradient[message_coord(m,source.slot,j)]+=source.coefficient*message_sign(m,source.slot,j)*saved.payload_derivative[j]*dq[j];
     double norm2=0;
     for(int j=0;j<D;j++){
-      float g=std::clamp(gradient[j],-2.f,2.f)*source.derivative[j];norm2+=double(g)*g;
+      float g=std::clamp(gradient[j],-2.f,2.f)*source.derivative[j];SHOEBOX_DIAGNOSTIC(norm2+=double(g)*g;)
       for(int k=0;k<8;k++)m.composition.symbols[producer-2][j][k]-=source_scale*g*source.features[k];
     }
-    m.composition.symbol_updates[producer-2]++;
-    auto&metric=m.composition.stream.message_metrics[producer];metric[0]++;metric[1]+=std::sqrt(norm2);
+    SHOEBOX_DIAGNOSTIC(m.composition.symbol_updates[producer-2]++;)
+    auto&metric=m.composition.stream.message_metrics[producer];SHOEBOX_DIAGNOSTIC(metric[0]++;)SHOEBOX_DIAGNOSTIC(metric[1]+=std::sqrt(norm2);)
   }
 #endif
 }
@@ -97,7 +97,7 @@ inline void message_feedback_credit(Model&m,int r,LaceRecord&v,const float*du,co
     const auto&source=saved.feedback[e];
     if(source.region<0||source.region>=N||!source.tick)continue;
     auto*p=find_lace(m,source.region,source.tick,source.index);
-    if(!p){m.composition.stream.message_metrics[r][3]++;continue;}
+    if(!p){SHOEBOX_DIAGNOSTIC(m.composition.stream.message_metrics[r][3]++;)continue;}
     float*pending_credit=p->credit[depth];
     for(int j=0;j<D;j++)pending_credit[message_coord(m,source.slot,j)]+=source.coefficient*message_sign(m,source.slot,j)*df[j];
     // The legacy context edge and the new feedback branch are two Jacobian
@@ -105,10 +105,10 @@ inline void message_feedback_credit(Model&m,int r,LaceRecord&v,const float*du,co
     // reuse normalization cannot dilute it merely because a channel was split.
     bool existing=false;
     for(int k=0;k<v.nparents;k++){const auto&e=v.parents[k];existing|=e.region==source.region&&e.tick==source.tick&&e.slot==source.slot;}
-    if(!existing){p->uses[depth]++;m.laces.metrics[source.region][1]++;m.laces.metrics[source.region][8+depth]++;}
+    if(!existing){p->uses[depth]++;SHOEBOX_DIAGNOSTIC(m.laces.metrics[source.region][1]++;)SHOEBOX_DIAGNOSTIC(m.laces.metrics[source.region][8+depth]++;)}
 #ifdef SHOEBOX_LEARNED_COMPLETION
     neural_pending(m,source.region,p->tick,depth);
 #endif
-    m.composition.stream.message_metrics[source.region][2]++;
+    SHOEBOX_DIAGNOSTIC(m.composition.stream.message_metrics[source.region][2]++;)
   }
 }

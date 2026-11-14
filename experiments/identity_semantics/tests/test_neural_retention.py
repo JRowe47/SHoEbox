@@ -17,7 +17,7 @@ class NeuralRetentionTests(unittest.TestCase):
     def setUpClass(cls):
         path = ROOT / 'results' / f'neural_fixture_e{core.E}.so'
         path.parent.mkdir(exist_ok=True)
-        subprocess.run(['g++', '-O2', '-march=native', '-std=c++17',
+        subprocess.run(['g++','-DSHOEBOX_INLINE_DIAGNOSTICS=1', '-O2', '-march=native', '-std=c++17',
                         f'-DSHOEBOX_EXPERTS={core.E}', '-shared', '-fPIC',
                         str(ROOT / 'tests/neural_fixture.cpp'), '-o', str(path)], check=True)
         cls.fx = ct.CDLL(str(path))

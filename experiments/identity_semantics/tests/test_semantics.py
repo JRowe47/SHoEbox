@@ -9,7 +9,7 @@ class SemanticsBindingTests(BindingTests):
  @classmethod
  def setUpClass(cls):
   cls.path=ROOT/'results'/getattr(cls,'fixture_name','semantics_fixture.so')
-  subprocess.run(['g++','-O2','-march=native','-std=c++17','-shared','-fPIC',str(ROOT/'tests'/getattr(cls,'fixture_source','semantics_fixture.cpp')),'-o',str(cls.path)],check=True)
+  subprocess.run(['g++','-DSHOEBOX_INLINE_DIAGNOSTICS=1','-O2','-march=native','-std=c++17','-shared','-fPIC',str(ROOT/'tests'/getattr(cls,'fixture_source','semantics_fixture.cpp')),'-o',str(cls.path)],check=True)
   cls.fx=ct.CDLL(str(cls.path));f=cls.fx
   f.fixture_stage.argtypes=[ct.c_void_p,ct.c_int,ct.c_int,ct.c_int,ct.c_int64,ct.c_int64,ct.c_int64,ct.c_float]
   f.fixture_prepare.argtypes=[ct.c_void_p,ct.c_int,ct.c_int,ct.c_void_p,ct.c_void_p];f.fixture_prepare.restype=ct.c_int

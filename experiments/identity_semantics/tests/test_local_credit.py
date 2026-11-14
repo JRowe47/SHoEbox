@@ -15,7 +15,7 @@ class LocalCreditTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         path=ROOT/'results'/f'local_credit_fixture_e{core.E}.so';path.parent.mkdir(exist_ok=True)
-        subprocess.run(['g++','-O2','-march=native','-std=c++17',f'-DSHOEBOX_EXPERTS={core.E}',
+        subprocess.run(['g++','-DSHOEBOX_INLINE_DIAGNOSTICS=1','-O2','-march=native','-std=c++17',f'-DSHOEBOX_EXPERTS={core.E}',
                         '-shared','-fPIC',str(ROOT/'tests/local_credit_fixture.cpp'),'-o',str(path)],check=True)
         cls.fx=ct.CDLL(str(path));p,i=ct.c_void_p,ct.c_int
         for name,args in dict(local_fixture_setup=[p,i,i,i],local_fixture_teach=[p,ct.c_float,i],

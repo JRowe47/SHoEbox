@@ -129,7 +129,7 @@ int main(int argc,char**argv){
     assert(!bank_pipeline_import(p,queue.data(),queue.size()-1));
     loss=run(p,x.data(),y.data(),33,6,.012,.004,.002,0,&out);assert(std::isfinite(loss));
     loss=run(p,x.data(),y.data(),33,4,.012,.004,.002,0,&out);assert(std::isfinite(loss));
-    assert(m.bank_pipeline.building.empty());
+    assert(m.bank_pipeline.building->scope_count==0);
     assert(composition_finish(p,6,.012,.004,.002));assert(!m.bank_pipeline.pending);
     reset_context(p);assert(bank_pipeline_workers(p,1,-1,1));assert(bank_pipeline_configure(p,0));
   }

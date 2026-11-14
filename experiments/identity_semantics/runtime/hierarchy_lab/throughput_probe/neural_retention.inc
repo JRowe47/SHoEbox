@@ -14,8 +14,8 @@ inline void neural_archive_slot(Model&m,int r,int index){
   }
   if(r>=2&&m.event.heads>0&&m.event.context[r][index].tick==v.tick)m.event.archive[r][v.tick]=m.event.context[r][index];
   m.event.context[r][index]=ContextEligibility{};
-  auto&metrics=m.neural_metrics[r];metrics[0]++;
-  metrics[2]=std::max(metrics[2],uint64_t(m.neural_archive[r].size()));
+  auto&metrics=m.neural_metrics[r];SHOEBOX_DIAGNOSTIC(SHOEBOX_DIAGNOSTIC(metrics[0]++;))
+  SHOEBOX_DIAGNOSTIC(SHOEBOX_DIAGNOSTIC(metrics[2]=std::max(metrics[2],uint64_t(m.neural_archive[r].size()));))
 }
 // Mark live owners, then follow only dependencies reachable within the explicit
 // neural credit depth. This retains held events indefinitely without turning
@@ -30,7 +30,7 @@ inline void neural_collect(Model&m){
     if(!tick||r<0||r>=N)return;
     auto found=marks[r].find(tick);
     if(found!=marks[r].end()&&found->second>=budget)return;
-    if(!find_lace(m,r,tick,index)){m.neural_metrics[r][3]++;return;}
+    if(!find_lace(m,r,tick,index)){SHOEBOX_DIAGNOSTIC(m.neural_metrics[r][3]++;)return;}
     marks[r][tick]=budget;work.push_back({r,tick,budget});
   };
   auto event=[&](const ContentEvent&e){
@@ -84,7 +84,7 @@ inline void neural_collect(Model&m){
       m.neural_index[r].erase(it->first);
       m.pending_neural[r].erase(it->first);m.pending_input[r].erase(it->first);
       if(r<STATE_REGIONS)m.neural_temporal[r].erase(it->first);
-      it=m.neural_archive[r].erase(it);m.neural_metrics[r][1]++;
+      it=m.neural_archive[r].erase(it);SHOEBOX_DIAGNOSTIC(m.neural_metrics[r][1]++;)
     }
     else ++it;
   }

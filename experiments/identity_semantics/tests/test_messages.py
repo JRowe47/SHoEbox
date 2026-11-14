@@ -11,7 +11,7 @@ class MessageTests(unittest.TestCase):
  def setUpClass(cls):
   (ROOT/'results').mkdir(exist_ok=True)
   path=ROOT/'results'/f'messages_fixture_e{core.E}.so'
-  subprocess.run(['g++','-O2','-march=native','-std=c++17',f'-DSHOEBOX_EXPERTS={core.E}','-shared','-fPIC',str(ROOT/'tests/messages_fixture.cpp'),'-o',str(path)],check=True)
+  subprocess.run(['g++','-DSHOEBOX_INLINE_DIAGNOSTICS=1','-O2','-march=native','-std=c++17',f'-DSHOEBOX_EXPERTS={core.E}','-shared','-fPIC',str(ROOT/'tests/messages_fixture.cpp'),'-o',str(path)],check=True)
   cls.fx=ct.CDLL(str(path));p=ct.c_void_p;i=ct.c_int;f=ct.c_float
   signatures=dict(message_fixture_weights=[p],message_fixture_payload=[p,i,i,i,f,i,p,p],message_fixture_semantic_credit=[p,i,p,f],
    message_fixture_pulse=[p,i,i,f],message_fixture_feedback_isolate=[p,i],message_fixture_state=[p,i,p,p],message_fixture_credit=[p,i,i,p,p],message_fixture_route_keys=[p,i,p],

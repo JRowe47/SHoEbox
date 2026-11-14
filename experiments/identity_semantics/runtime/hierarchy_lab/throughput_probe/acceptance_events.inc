@@ -1,4 +1,5 @@
 inline void acceptance_publish(Model&m,int r,const ContentEvent&e,bool relay,bool formed){
+#if SHOEBOX_INLINE_DIAGNOSTICS
   auto&z=m.acceptance;auto&v=z.events[r];
   bool no_primary=false;
   if(r>=15&&e.kind==4&&e.clock_begin==0&&e.clock_end==0){
@@ -22,4 +23,5 @@ inline void acceptance_publish(Model&m,int r,const ContentEvent&e,bool relay,boo
     z.lengths[r][frames]++;
     z.recognized_lengths[r][frames]+=formed&&e.ref.recognized;
   }
+#endif
 }

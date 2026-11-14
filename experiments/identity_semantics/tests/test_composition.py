@@ -38,7 +38,7 @@ class CompositionTests(unittest.TestCase):
         feed(cls.grammar,data,True)
         cls.grammar.finish_document()
         cls.fixture=ROOT/'results/native_fixture.so'
-        subprocess.run(['g++','-O2','-march=native','-std=c++17',f'-DSHOEBOX_EXPERTS={core.E}','-shared','-fPIC',str(ROOT/'tests/native_fixture.cpp'),'-o',str(cls.fixture)],check=True)
+        subprocess.run(['g++','-DSHOEBOX_INLINE_DIAGNOSTICS=1','-O2','-march=native','-std=c++17',f'-DSHOEBOX_EXPERTS={core.E}','-shared','-fPIC',str(ROOT/'tests/native_fixture.cpp'),'-o',str(cls.fixture)],check=True)
         cls.fx=ct.CDLL(str(cls.fixture))
         cls.fx.fixture_memory.argtypes=[ct.c_void_p,ct.c_int,ct.c_int,ct.c_float]
         cls.fx.fixture_flush.argtypes=[ct.c_void_p,ct.c_int]

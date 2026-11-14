@@ -10,7 +10,11 @@ inline Model::ContentBankWorkspace& content_bank(Model&m,int r,int e){
   int index=r*E+e;auto&slot=m.content_banks[index];
   if(!slot)slot=std::make_unique<Model::ContentBankWorkspace>();
   if(!slot->active){
-    slot->gradient=ContentExpertGradient{};slot->requests.clear();slot->routes.clear();
+    if(m.bank_pipeline.enabled){
+      memset(slot->gradient.bias,0,sizeof(slot->gradient.bias));
+      memset(slot->gradient.keys,0,sizeof(slot->gradient.keys));slot->gradient.route=false;
+    }else slot->gradient=ContentExpertGradient{};
+    slot->requests.clear();slot->routes.clear();
     slot->generation++;
     slot->active=true;m.content_dirty.push_back(index);
   }
@@ -75,12 +79,12 @@ inline void content_materialize(Model&m,Model::ContentBankWorkspace&bank){
     uint64_t mask=request.mask;
     while(mask){int j=__builtin_ctzll(mask);mask&=mask-1;bank.gradient.keys[j]+=request.step*input[j];}
   }
-  m.content_factor_metrics[1]+=bank.requests.size();m.content_factor_metrics[3]+=bank.routes.size();
-  m.content_factor_metrics[5]=std::max(m.content_factor_metrics[5],uint64_t(bank.requests.size()+bank.routes.size()));
+  SHOEBOX_DIAGNOSTIC(m.content_factor_metrics[1]+=bank.requests.size();)SHOEBOX_DIAGNOSTIC(m.content_factor_metrics[3]+=bank.routes.size();)
+  SHOEBOX_DIAGNOSTIC(m.content_factor_metrics[5]=std::max(m.content_factor_metrics[5],uint64_t(bank.requests.size()+bank.routes.size()));)
   bank.requests.clear();bank.routes.clear();
 }
 inline void content_expert_flush(Model&m){
-  if(!m.content_dirty.empty())m.content_factor_metrics[4]++;
+  if(!m.content_dirty.empty())SHOEBOX_DIAGNOSTIC(m.content_factor_metrics[4]++;)
   std::sort(m.content_dirty.begin(),m.content_dirty.end());
   for(int index:m.content_dirty){
     int r=index/E,e=index%E;auto&bank=*m.content_banks[index];
@@ -158,17 +162,17 @@ inline void content_expert_accumulate(Model&m,const ContentExpertRecord&v,const 
   auto&request=bank.requests[location.index];
   uint64_t clipped=0;
   for(int i=0;i<D;i++){
-    float d=std::clamp(local[i],-2.f,2.f);clipped+=d!=local[i];gradient.bias[i]+=a*d;
+    float d=std::clamp(local[i],-2.f,2.f);SHOEBOX_DIAGNOSTIC(clipped+=d!=local[i];)gradient.bias[i]+=a*d;
     float factor=a*d*v.gate;
     if(fresh)request.factor[i]=factor;else request.factor[i]+=factor;
   }
-  m.reverse_metrics[6]+=clipped;
-  m.content_factor_metrics[0]++;
-  m.content_expert_metrics[r][1]++;m.content_expert_metrics[r][teaching?2:3]++;
+  SHOEBOX_DIAGNOSTIC(m.reverse_metrics[6]+=clipped;)
+  SHOEBOX_DIAGNOSTIC(m.content_factor_metrics[0]++;)
+  SHOEBOX_DIAGNOSTIC(m.content_expert_metrics[r][1]++;)SHOEBOX_DIAGNOSTIC(m.content_expert_metrics[r][teaching?2:3]++;)
   if(m.lcfg[3]<=0||v.gate_derivative==0||v.expert==v.runner)return;
   float dg=0;for(int j=0;j<D;j++)dg+=local[j]*v.residual[j];
   float raw_step=rate*m.task_route_lr_scale*m.lcfg[3]*dg*v.gate_derivative;
-  float step=std::clamp(raw_step,-.05f,.05f);m.reverse_metrics[7]+=step!=raw_step;
+  float step=std::clamp(raw_step,-.05f,.05f);SHOEBOX_DIAGNOSTIC(m.reverse_metrics[7]+=step!=raw_step;)
   if(step==0)return;
   auto add_route=[&](Model::ContentBankWorkspace&target,int expert,int role,float value){
     target.gradient.route=true; // Normalize even when clipped steps cancel.
@@ -176,8 +180,8 @@ inline void content_expert_accumulate(Model&m,const ContentExpertRecord&v,const 
     if(saved.bank!=destination||saved.generation!=target.generation){
       saved={target.generation,target.routes.size(),destination};target.routes.push_back({v.ref,v.input_mask,value});
     }else target.routes[saved.index].step+=value;
-    m.content_factor_metrics[2]++;
+    SHOEBOX_DIAGNOSTIC(m.content_factor_metrics[2]++;)
   };
   add_route(bank,v.expert,0,step);add_route(content_bank(m,r,v.runner),v.runner,1,-step);
-  m.content_expert_metrics[r][4]++;
+  SHOEBOX_DIAGNOSTIC(m.content_expert_metrics[r][4]++;)
 }

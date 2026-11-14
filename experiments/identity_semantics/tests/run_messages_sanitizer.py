@@ -9,7 +9,7 @@ p,f=core.initialize(41)
 arrays=[core.flat_parameters(p)]+[f[k] for k in ['embedding','feedback','slots','starts','perm','signs','fperm','fsign','cadence']]
 with (ROOT/'results/fixture.bin').open('wb') as output:
  for a in arrays:output.write(struct.pack('<q',a.size));output.write(a.tobytes())
-command=['g++','-DSHOEBOX_LEARNED_MESSAGES=1','-DSHOEBOX_MULTI_BINDING=1','-DSHOEBOX_IDENTITY_SEMANTICS=1','-DSHOEBOX_PRESERVE_RELAYS=1',
+command=['g++','-DSHOEBOX_INLINE_DIAGNOSTICS=1','-DSHOEBOX_LEARNED_MESSAGES=1','-DSHOEBOX_MULTI_BINDING=1','-DSHOEBOX_IDENTITY_SEMANTICS=1','-DSHOEBOX_PRESERVE_RELAYS=1',
          '-O1','-g','-march=native','-std=c++17',f'-DSHOEBOX_EXPERTS={core.E}',
          '-fsanitize=address,undefined','-fno-omit-frame-pointer',str(ROOT/'tests/sanitize.cpp'),
          '-o',str(ROOT/'results/sanitize_messages')]

@@ -112,6 +112,58 @@ recognition behavior. Run `src/validate_pattern_classes.py` for the matched cost
 frozen class-removal intervention and held-out generation checks. See
 [the fourth-fix report](deliverables/SHoEbox_Pattern_Classes.md).
 
+### Compact versioning and external inspection
+
+Router-only jobs carry bias/key vectors, with an optional 64x64 tile only for
+banks receiving weight factors. Two reusable job arenas retain scope/factor,
+input, index and tile capacity. Immutable inputs are copied once per job and
+referenced by index; a bank follows its ordered scope chain directly. Commits
+refresh only changed routers and skip installing superseded weight versions.
+The delayed learning schedule and scope normalization order are unchanged.
+
+Production `completion` builds remove observation counters, histograms,
+covariance/norm collectors, per-job timers and diagnostic-only decoder work at
+compile time. Routing usage, execution clocks, reuse counts, clipping, identity
+validation and all other operational state remain. Existing historical
+observation APIs do not accumulate in this build; check
+`model.capabilities()['inline_diagnostics']`. Their persisted fields are retained
+for old checkpoint layouts. They are not evidence of zero missed events.
+
+```python
+from shoebox_reference import fresh_model, capture_memory, compare_memory, read_memory_index
+model = fresh_model(seed=7, profile='pipeline')
+before = capture_memory(model, include_stream=False)
+model.run(inputs, targets, mode='periodic', lr=.04, lp=.04/3)
+after = capture_memory(model, include_stream=False)
+changes = compare_memory(before, after)  # compares detached arrays only
+inventory = read_memory_index(model)    # current retained records, not event history
+queue = model.inspect_pipeline()        # sparse banks, unique inputs, reserved capacity
+```
+
+Call inspection on the owning thread between native API calls. It waits for a
+pending worker without committing that result. No inspection or comparison is
+invoked by `run()`. Snapshots own their copies; diagnostic field exclusions come
+from native ABI byte ranges and retain operational usage/clock fields.
+`pipeline_metrics()` keeps operational versions/settings; old timing and event
+fields explicitly return `None`. `inspect_pipeline()` reports current payload
+and retained buffer capacity, not historical peaks or per-stage time attribution.
+
+Checkpoint v43 / pipeline extension 2 persists compact pending results. The
+loader accepts v42 / extension 1 without changing its schedule. Worker count,
+fusion and storage capacities remain execution choices. Use a separate audit
+build only for historical counter-coverage regressions:
+
+```bash
+SHOEBOX_INLINE_DIAGNOSTICS=1 python -m unittest discover -s tests -v
+python -m unittest discover -s tests -p test_compact_pipeline.py -v
+python tests/run_compact_sanitizer.py
+python src/measure_compact_pipeline.py --baseline-runtime /path/to/stage6/runtime --output results/compact.json
+```
+
+`src/profile_bank_pipeline.py` now reads memory between training chunks; it no
+longer injects timers into copied source. Timings use only the external API
+boundary. See [the implementation report](deliverables/SHoEbox_Compact_Versioning.md).
+
 ### Structural optimization stage 6
 
 The `pipeline` profile adds a one-byte delay to stage-5 content-bank updates.
@@ -137,11 +189,11 @@ resumed.configure_pipeline_workers(2)
 
 `configure_pipeline_workers(1, fused=False)` selects the unfused serial oracle.
 Worker count, affinity and fusion are execution settings; they do not change the
-saved learning contract. `pipeline_metrics()` reports versions, queued work,
-bank computation, blocking waits and fused forward rows. `finish_pipeline()` is
+saved learning contract. `inspect_pipeline()` reports current version, queued work and reusable buffer inventory;
+`pipeline_metrics()` retains operational versions and settings. `finish_pipeline()` is
 an explicit commit boundary; ordinary API chunk ends, snapshots and saves are
 not. Document drain and reset retire all captured work exactly once. Checkpoint
-v42 includes the committed version and one pending sparse bank result. Old v40
+v43 includes the committed version and one compact pending bank result; v42 remains readable. Old v40
 and v41 checkpoints do not opt into the delayed schedule.
 
 Fusion removes the full dense gradient write/read between factor reduction and

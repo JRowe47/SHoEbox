@@ -35,10 +35,10 @@ inline int paired_lookup(Model&m,const PairedObservation*query,const int*bs,floa
   for(int i=0;i<4;i++){
     bool duplicate=false;for(int j=0;j<i;j++)duplicate|=bs[j]==bs[i];if(duplicate)continue;
     for(int w=0;w<ways;w++){
-      int k=bs[i]*ways+w;m.s.pc[1]++;
+      int k=bs[i]*ways+w;SHOEBOX_DIAGNOSTIC(m.s.pc[1]++;)
       if(size_t(k)>=m.paired.slots.size())continue;
       const auto&e=m.paired.slots[k];if(!e.id||paired_same_occurrences(query,e.members))continue;
-      m.s.pc[2]++;m.paired.metrics[9]++;
+      SHOEBOX_DIAGNOSTIC(m.s.pc[2]++;)SHOEBOX_DIAGNOSTIC(m.paired.metrics[9]++;)
       float score=paired_similarity(query,e.members);if(score>similarity){similarity=score;best=k;}
     }
   }
@@ -48,16 +48,16 @@ inline void paired_read(Model&m,int a,const float*q,const ContentEvent&event){
   auto&z=m.paired;auto&s=m.s;auto&stream=z.stream;
   // The first EC request locks both return ports for this entire regional pass.
   // Later asynchronous publications become cues for the next joint transaction.
-  if(stream.read_tick==s.tick){z.metrics[14]++;return;}
+  if(stream.read_tick==s.tick){SHOEBOX_DIAGNOSTIC(z.metrics[14]++;)return;}
   stream.read_tick=s.tick;stream.read_episode=0;stream.read_slot=-1;stream.similarity=stream.gate=0;
   memset(s.returned,0,sizeof(s.returned));memset(s.return_birth,0,sizeof(s.return_birth));
   s.recall_slot[0]=s.recall_slot[1]=-1;
   stream.query[0]=stream.latest[0];stream.query[1]=stream.latest[1];
   stream.query[a]=paired_observation(m,a,q,event,false);
-  z.metrics[8]++;
-  if(!stream.query[0].stream||!stream.query[1].stream){z.metrics[13]++;return;}
+  SHOEBOX_DIAGNOSTIC(z.metrics[8]++;)
+  if(!stream.query[0].stream||!stream.query[1].stream){SHOEBOX_DIAGNOSTIC(z.metrics[13]++;)return;}
   if(z.slots.empty()||s.ablation==2||s.tick%int(m.cfg[17])||(m.cfg[1]<=0&&!m.cfg[21]))return;
-  int bs[4];paired_buckets(m,stream.query,bs);s.pc[0]++;
+  int bs[4];paired_buckets(m,stream.query,bs);SHOEBOX_DIAGNOSTIC(s.pc[0]++;)
   float sim;int best=paired_lookup(m,stream.query,bs,sim);stream.similarity=sim;
   float gate=best<0?0:std::clamp((sim-m.cfg[8])/std::max(1e-6f,1-m.cfg[8]),0.f,1.f)*m.cfg[1];
   if(gate<=0)return;
@@ -69,8 +69,8 @@ inline void paired_read(Model&m,int a,const float*q,const ContentEvent&event){
   const auto&episode=z.slots[best];
   if(s.ablation==3||m.cfg[21]||(m.block_before&&episode.born<=m.block_before))return;
   stream.read_episode=episode.id;stream.read_slot=best;stream.gate=gate;
-  int64_t age=s.tick-episode.updated;s.age_sum+=age;s.max_age=std::max(s.max_age,age);s.similarity_sum+=sim;
-  s.pc[10]++;s.pc[11]+=age>256;s.pc[12]+=age>4096;s.pc[13]+=age>16384;s.reads++;z.metrics[10]++;
+  int64_t age=s.tick-episode.updated;SHOEBOX_DIAGNOSTIC(s.age_sum+=age;)SHOEBOX_DIAGNOSTIC(s.max_age=std::max(s.max_age,age);)SHOEBOX_DIAGNOSTIC(s.similarity_sum+=sim;)
+  SHOEBOX_DIAGNOSTIC(s.pc[10]++;)SHOEBOX_DIAGNOSTIC(s.pc[11]+=age>256;)SHOEBOX_DIAGNOSTIC(s.pc[12]+=age>4096;)SHOEBOX_DIAGNOSTIC(s.pc[13]+=age>16384;)SHOEBOX_DIAGNOSTIC(s.reads++;)SHOEBOX_DIAGNOSTIC(z.metrics[10]++;)
   for(int side=0;side<2;side++){
     s.recall_slot[side]=best;s.return_birth[side]=int64_t(episode.id);
     for(int j=0;j<D;j++)s.returned[side][j]=gate*(episode.members[side].value[j]-(m.cfg[5]?s.vmean[side][j]:0));
@@ -79,7 +79,7 @@ inline void paired_read(Model&m,int a,const float*q,const ContentEvent&event){
 inline void paired_stage(Model&m,int a,const float*q,const ContentEvent&event){
   auto&z=m.paired;auto&previous=z.stream.latest[a];
   if(previous.stream==z.stream.epoch&&previous.occurrence.seq==event.ref.seq)return;
-  previous=paired_observation(m,a,q,event,true);z.metrics[a]++;
+  previous=paired_observation(m,a,q,event,true);SHOEBOX_DIAGNOSTIC(z.metrics[a]++;)
   // Preserve the existing EC-only running centers and temporal address trace.
   for(int j=0;j<D;j++){
     m.s.key_trace[a][j]+=.25f*(q[j]-m.s.qmean[a][j]-m.s.key_trace[a][j]);
@@ -90,11 +90,11 @@ inline void paired_commit(Model&m){
   auto&z=m.paired;auto&s=m.s;auto&stream=z.stream;
   if(!paired_enabled(m)||s.freeze_writes||s.ablation==2||s.tick%int(m.cfg[9]))return;
   const auto*pair=stream.latest;
-  if(!pair[0].stream||!pair[1].stream){z.metrics[15]++;return;}
+  if(!pair[0].stream||!pair[1].stream){SHOEBOX_DIAGNOSTIC(z.metrics[15]++;)return;}
   bool fresh=false;for(int a=0;a<2;a++)fresh|=stream.considered_stream[a]!=pair[a].stream||stream.considered_seq[a]!=pair[a].occurrence.seq;
   if(!fresh)return;
   for(int a=0;a<2;a++){stream.considered_stream[a]=pair[a].stream;stream.considered_seq[a]=pair[a].occurrence.seq;}
-  z.metrics[2]++;s.pc[3]++;
+  SHOEBOX_DIAGNOSTIC(z.metrics[2]++;)SHOEBOX_DIAGNOSTIC(s.pc[3]++;)
   size_t capacity=size_t(m.cfg[12])*size_t(m.cfg[13]);
   if(z.slots.empty())z.slots.resize(capacity);
   if(z.slots.size()!=capacity)return; // Configuration changes cannot reinterpret a populated store.
@@ -107,7 +107,7 @@ inline void paired_commit(Model&m){
   surprise/=value_norm;
   if(match>=0&&sim>=m.cfg[15]&&surprise<m.cfg[22]){
     // Reinforce admission metadata, never blend the members of an existing ID.
-    z.slots[match].updated=s.tick;z.metrics[5]++;s.pc[4]++;return;
+    z.slots[match].updated=s.tick;SHOEBOX_DIAGNOSTIC(z.metrics[5]++;)SHOEBOX_DIAGNOSTIC(s.pc[4]++;)return;
   }
   int victim=-1;float weakest=1e30f;int ways=int(m.cfg[13]);
   for(int tier=0;tier<2;tier++){
@@ -119,27 +119,27 @@ inline void paired_commit(Model&m){
       if(keep<weakest){weakest=keep;victim=k;}
     }
   }
-  if(victim<0){z.metrics[6]++;s.pc[9]++;return;}
+  if(victim<0){SHOEBOX_DIAGNOSTIC(z.metrics[6]++;)SHOEBOX_DIAGNOSTIC(s.pc[9]++;)return;}
   float importance=1+m.cfg[16]*std::min(3.f,std::max(0.f,1-sim)+surprise);
   float u=(random32(s)+1.0)/4294967297.0,priority=std::pow(u,1.f/importance);
-  if(priority<=weakest){z.metrics[7]++;s.pc[8]++;return;}
+  if(priority<=weakest){SHOEBOX_DIAGNOSTIC(z.metrics[7]++;)SHOEBOX_DIAGNOSTIC(s.pc[8]++;)return;}
   if(z.serial==uint64_t(INT64_MAX))return; // Saved credit handles use signed int64 IDs.
   auto&entry=z.slots[victim];bool occupied=entry.id!=0;
   entry=PairedEpisode{};entry.id=++z.serial;entry.born=entry.updated=s.tick;entry.priority=priority;
-  entry.members[0]=pair[0];entry.members[1]=pair[1];z.metrics[3]++;s.pc[5]++;s.writes++;
-  if(occupied){z.metrics[4]++;s.pc[6]++;}else s.pc[7]++;
+  entry.members[0]=pair[0];entry.members[1]=pair[1];SHOEBOX_DIAGNOSTIC(z.metrics[3]++;)SHOEBOX_DIAGNOSTIC(s.pc[5]++;)SHOEBOX_DIAGNOSTIC(s.writes++;)
+  if(occupied){SHOEBOX_DIAGNOSTIC(z.metrics[4]++;)SHOEBOX_DIAGNOSTIC(s.pc[6]++;)}else SHOEBOX_DIAGNOSTIC(s.pc[7]++;)
 }
 inline void paired_utility_credit(Model&m,int r,const LaceRecord*record,const float*g,const float*h,const float*returned){
   if(!paired_enabled(m)||m.s.freeze_writes||(r!=15&&r!=16)||!m.cfg[10])return;
   int side=r-15,slot=record?record->recall_slot:m.s.recall_slot[side];
   uint64_t id=uint64_t(record?record->recall_birth:m.s.return_birth[side]);
   if(slot<0||!id)return;
-  if(size_t(slot)>=m.paired.slots.size()||m.paired.slots[slot].id!=id){m.paired.metrics[12]++;return;}
+  if(size_t(slot)>=m.paired.slots.size()||m.paired.slots[slot].id!=id){SHOEBOX_DIAGNOSTIC(m.paired.metrics[12]++;)return;}
   float influence=0;
   for(int i=0;i<D;i++){
     float contribution=int(m.cfg[10])==2?m.P[(r*D+i)*D+i]*returned[i]:dot64(m.P+(r*D+i)*D,returned);
     influence-=g[i]*(1-h[i]*h[i])*contribution;
   }
   auto&utility=m.paired.slots[slot].utility;utility+=.01f*(std::clamp(influence,-1.f,1.f)-utility);
-  m.paired.metrics[11]++;
+  SHOEBOX_DIAGNOSTIC(m.paired.metrics[11]++;)
 }

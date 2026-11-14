@@ -8,14 +8,14 @@ inline bool reverse_same_policy(const Model::ReverseRoot&a,const Model::ReverseR
 }
 inline void constituent_union_flush(Model&m,bool force){
   if(m.reverse_flushing||m.reverse_roots.empty()||(!force&&!m.reverse_bank_version.empty()))return;
-  m.reverse_flushing=true;m.reverse_metrics[4]++;
+  m.reverse_flushing=true;SHOEBOX_DIAGNOSTIC(m.reverse_metrics[4]++;)
   auto&roots=m.reverse_roots;std::vector<bool> used(roots.size(),false);
   for(size_t first=0;first<roots.size();first++)if(!used[first]){
     const auto&policy=roots[first];std::vector<size_t> group;float mass=0;
     for(size_t q=first;q<roots.size();q++)if(!used[q]&&reverse_same_policy(policy,roots[q])){
       used[q]=true;group.push_back(q);mass+=std::abs(roots[q].rate);
     }
-    m.reverse_metrics[5]++;
+    SHOEBOX_DIAGNOSTIC(m.reverse_metrics[5]++;)
     // Keep the common singleton case in its original arithmetic order.
     if(group.size()==1&&!m.event.local){
       const auto&root=roots[first];
@@ -25,7 +25,7 @@ inline void constituent_union_flush(Model&m,bool force){
     uint64_t mark=++m.semantic_work_serial;auto&work=m.reverse_work;work.clear();
     auto admit=[&](SemanticRef ref){
       if(!ref.serial)return;
-      if(!constituent_record(m,ref)){m.composition.stream.completion_metrics[policy.receiver][1]++;return;}
+      if(!constituent_record(m,ref)){SHOEBOX_DIAGNOSTIC(m.composition.stream.completion_metrics[policy.receiver][1]++;)return;}
       if(constituent_mark(m,ref.index)==mark)return;
       constituent_mark(m,ref.index)=mark;
       memset(constituent_gradient(m,ref.index),0,D*sizeof(float));work.push_back(ref);
@@ -40,7 +40,7 @@ inline void constituent_union_flush(Model&m,bool force){
       float*out=constituent_gradient(m,root.ref.index),factor=root.rate/mass;
       for(int j=0;j<D;j++)out[j]+=factor*root.gradient[j];
     }
-    m.reverse_metrics[2]+=work.size();
+    SHOEBOX_DIAGNOSTIC(m.reverse_metrics[2]+=work.size();)
     // As in the reference pass, independent ready nodes share a bank tile.
     for(size_t begin=0;begin<work.size();){
       size_t end=begin;uint64_t newest_child=0;
@@ -63,28 +63,28 @@ inline void constituent_union_flush(Model&m,bool force){
             contents[b]->ref.region==contents[a]->ref.region&&contents[b]->expert==contents[a]->expert){
           records[n]=contents[b];inputs[n]=locals[b];outputs[n]=derivatives[b];done[b]=true;n++;
         }
-        content_expert_derivatives(m,records,inputs,outputs,n);m.reverse_metrics[3]+=n;
+        content_expert_derivatives(m,records,inputs,outputs,n);SHOEBOX_DIAGNOSTIC(m.reverse_metrics[3]+=n;)
       }
       for(int a=0;a<count;a++){
         auto ref=work[begin+a];const auto&node=*constituent_record(m,ref);int r=ref.region;
         float*local=locals[a],payload[D],gate_gradient=0;double norm2=0;
-        if(node.encoder&&!contents[a]){m.content_expert_metrics[r][5]++;continue;}
+        if(node.encoder&&!contents[a]){SHOEBOX_DIAGNOSTIC(m.content_expert_metrics[r][5]++;)continue;}
         for(int j=0;j<D;j++){
           payload[j]=local[j]+(node.encoder?derivatives[a][j]:0.f);
           gate_gradient+=payload[j]*node.payload[j]*node.gain_derivative;
-          norm2+=double(local[j])*local[j];
+          SHOEBOX_DIAGNOSTIC(norm2+=double(local[j])*local[j];)
         }
-        if(m.event.local){m.event.metrics[r][2]++;m.event.metrics[r][12+policy.teaching]++;}
+        if(m.event.local){SHOEBOX_DIAGNOSTIC(m.event.metrics[r][2]++;)SHOEBOX_DIAGNOSTIC(m.event.metrics[r][12+policy.teaching]++;)}
         float rate=mass*policy.scales[r];
         if(!m.frozen_region[r]&&rate!=0){
           for(int j=0;j<D;j++)for(int k=0;k<8;k++)
             m.composition.symbols[r-2][j][k]-=rate*local[j]*node.features[k];
           m.composition.payload_gates[r-2]-=rate*gate_gradient;
-          m.composition.symbol_updates[r-2]++;
+          SHOEBOX_DIAGNOSTIC(m.composition.symbol_updates[r-2]++;)
           if(node.encoder)content_expert_accumulate(m,*contents[a],local,rate,policy.teaching);
         }
-        auto&stream=m.composition.stream;stream.completion_metrics[r][0]++;
-        if(r!=policy.receiver){stream.message_metrics[r][0]++;stream.message_metrics[r][1]+=std::sqrt(norm2);}
+        auto&stream=m.composition.stream;SHOEBOX_DIAGNOSTIC(stream.completion_metrics[r][0]++;)
+        if(r!=policy.receiver){SHOEBOX_DIAGNOSTIC(stream.message_metrics[r][0]++;)SHOEBOX_DIAGNOSTIC(stream.message_metrics[r][1]+=std::sqrt(norm2);)}
         for(int e=0;e<node.count;e++){
           const auto&edge=node.edges[e];auto child=edge.source;
           if(!child.serial)continue;
@@ -110,7 +110,7 @@ inline void constituent_union_flush(Model&m,bool force){
 inline void constituent_update(Model&m,SemanticRef root,const float*gradient,float rate,int receiver,int teaching=0){
   if(!root.serial||rate==0||m.reverse_update_scale==0)return;
   rate*=m.reverse_update_scale;if(rate==0)return;
-  m.reverse_metrics[0]++;
+  SHOEBOX_DIAGNOSTIC(m.reverse_metrics[0]++;)
   if(m.reverse_policy==1&&!m.event.local){constituent_update_reference(m,root,gradient,rate,receiver,teaching);return;}
   ContentCreditScope scope(m);m.reverse_roots.emplace_back();auto&request=m.reverse_roots.back();
   request.ref=root;request.rate=rate;request.receiver=receiver;request.teaching=teaching;

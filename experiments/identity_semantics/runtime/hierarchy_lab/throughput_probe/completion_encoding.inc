@@ -39,7 +39,7 @@ inline int constituent_allocate(Model&m,int r,const ContentEvent*parts,int n){
     auto&node=*constituent_record(m,work[i]);for(int k=0;k<node.count;k++)if(event_follow(m,node.ref,k))add(node.edges[k].source);
   }
   for(int k=0;k<capacity;k++)if(constituent_mark(m,k)!=mark){
-    if(m.event.local&&constituent_slot(m,k).ref.serial)m.event.metrics[constituent_slot(m,k).ref.region][8]++;
+    if(m.event.local&&constituent_slot(m,k).ref.serial)SHOEBOX_DIAGNOSTIC(m.event.metrics[constituent_slot(m,k).ref.region][8]++;)
     constituent_slot(m,k).ref=SemanticRef{};
     if(size_t(k)<m.event.eligibility.size())m.event.eligibility[k]=EventEligibility{};
     if(size_t(k)<m.content_records.size())m.content_records[k].ref=SemanticRef{};

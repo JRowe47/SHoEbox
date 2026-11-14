@@ -16,7 +16,7 @@ fixture=ROOT/'results/fixture.bin'
 with fixture.open('wb') as output:
     for a in arrays:output.write(struct.pack('<q',a.size));output.write(a.tobytes())
 binary=ROOT/'results/sanitize_contributions'
-subprocess.run(['g++','-O1','-g','-march=native','-std=c++17',f'-DSHOEBOX_EXPERTS={core.E}',
+subprocess.run(['g++','-DSHOEBOX_INLINE_DIAGNOSTICS=1','-O1','-g','-march=native','-std=c++17',f'-DSHOEBOX_EXPERTS={core.E}',
                 '-fsanitize=address,undefined','-fno-omit-frame-pointer',
                 str(ROOT/'tests/sanitize_contributions.cpp'),'-o',str(binary)],check=True)
 subprocess.run([str(binary),str(fixture)],env={**os.environ,'ASAN_OPTIONS':'detect_leaks=0'},check=True)

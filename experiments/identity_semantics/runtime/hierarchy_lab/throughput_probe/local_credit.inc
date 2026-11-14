@@ -29,14 +29,14 @@ inline void local_deliver_input(Model&m,int r,LaceRecord&v,const float*du,const 
   // delivery. Splitting a channel must not increase its reuse denominator.
   auto deliver=[&](const LaceParent&edge,const float*gradient,int uses){
     auto*p=find_lace(m,edge.region,edge.tick,edge.index);
-    if(!p){m.local_credit_metrics[r][7]++;return;}
+    if(!p){SHOEBOX_DIAGNOSTIC(m.local_credit_metrics[r][7]++;)return;}
     if(p->expert<0){
       local_deliver_input(m,edge.region,*p,gradient,nullptr,depth,work);
-      m.local_credit_metrics[edge.region][6]++;return;
+      SHOEBOX_DIAGNOSTIC(m.local_credit_metrics[edge.region][6]++;)return;
     }
     auto&target=work.pending[depth][{edge.region,edge.tick}];
     for(int j=0;j<D;j++)target.neural[j]+=gradient[j];
-    target.neural_uses+=uses;m.local_credit_metrics[edge.region][1]+=uses;
+    target.neural_uses+=uses;SHOEBOX_DIAGNOSTIC(m.local_credit_metrics[edge.region][1]+=uses;)
   };
   auto*saved=lace_input(m,r,v);
   const MessageInput*message=saved&&saved->tick==v.tick&&r>=2&&message_feedback_enabled(m)?&saved->message:nullptr;
@@ -49,7 +49,7 @@ inline void local_deliver_input(Model&m,int r,LaceRecord&v,const float*du,const 
       const auto&source=message->feedback[e];
       if(!matched[e]&&edge.region==source.region&&edge.tick==source.tick&&edge.slot==source.slot){
         local_transform(m,source,feedback,gradient);matched[e]=true;
-        m.local_credit_metrics[source.region][2]++;
+        SHOEBOX_DIAGNOSTIC(m.local_credit_metrics[source.region][2]++;)
       }
     }
     deliver(edge,gradient,1);
@@ -58,16 +58,16 @@ inline void local_deliver_input(Model&m,int r,LaceRecord&v,const float*du,const 
     const auto&source=message->feedback[e];
     if(source.region<0||source.region>=N||!source.tick)continue;
     float gradient[D]{};local_transform(m,source,feedback,gradient);
-    deliver(source,gradient,1);m.local_credit_metrics[source.region][2]++;
+    deliver(source,gradient,1);SHOEBOX_DIAGNOSTIC(m.local_credit_metrics[source.region][2]++;)
   }
   // Retained u is an input dependency, not the old expert's output h.
   if(r>=2&&saved&&saved->tick==v.tick&&saved->previous_tick&&saved->retention!=0){
     auto*previous=find_lace(m,r,saved->previous_tick,saved->previous_index);
     auto*input=previous?lace_input(m,r,*previous):nullptr;
-    if(!input||input->tick!=previous->tick){m.local_credit_metrics[r][7]++;return;}
+    if(!input||input->tick!=previous->tick){SHOEBOX_DIAGNOSTIC(m.local_credit_metrics[r][7]++;)return;}
     auto&target=work.pending[depth][{r,previous->tick}];
     for(int j=0;j<D;j++)target.input[j]+=saved->retention*du[j];
-    target.input_uses++;m.local_credit_metrics[r][3]++;
+    target.input_uses++;SHOEBOX_DIAGNOSTIC(m.local_credit_metrics[r][3]++;)
   }
 }
 inline void local_distribute(Model&m,int r,LaceRecord&v,const float*g,int depth,LocalCredit&work){
@@ -81,7 +81,7 @@ inline void local_prediction_update(Model&m,int r,LaceRecord&v,const float*g,flo
   const float issuer_scale=m.teaching_scale[r][1];
   if(rate==0||issuer_scale==0||m.frozen_region[r])return;
   ContentCreditScope content_scope(m);
-  m.local_credit_metrics[r][0]++;
+  SHOEBOX_DIAGNOSTIC(m.local_credit_metrics[r][0]++;)
   LocalCredit work(&m.local_credit_pool);float upstream[D];
   for(int j=0;j<D;j++)upstream[j]=issuer_scale*g[j];
   local_distribute(m,r,v,upstream,0,work);
@@ -91,7 +91,7 @@ inline void local_prediction_update(Model&m,int r,LaceRecord&v,const float*g,flo
   for(int d=0;d<std::clamp(int(m.lcfg[0]),0,LACE_DEPTH);d++){
     for(auto&entry:work.pending[d]){
       int source=entry.first.first;auto*producer=find_lace(m,source,entry.first.second);
-      if(!producer){m.local_credit_metrics[source][7]++;continue;}
+      if(!producer){SHOEBOX_DIAGNOSTIC(m.local_credit_metrics[source][7]++;)continue;}
       auto&signal=entry.second;auto&total=work.updates[entry.first];
       if(signal.neural_uses){
         float mean[D],scale=1.f/std::pow(float(signal.neural_uses),m.lcfg[5]);
@@ -123,8 +123,8 @@ inline void local_prediction_update(Model&m,int r,LaceRecord&v,const float*g,flo
     int source=entry.first.first;auto*producer=find_lace(m,source,entry.first.second);auto&total=entry.second;
     if(total.neural_uses){
       expert_update(m,source,total.neural.data(),rate*m.lcfg[1],producer,1,false);
-      if(!m.frozen_region[source]&&m.teaching_scale[source][1]!=0&&m.lcfg[1]!=0)m.local_credit_metrics[source][4]++;
+      if(!m.frozen_region[source]&&m.teaching_scale[source][1]!=0&&m.lcfg[1]!=0)SHOEBOX_DIAGNOSTIC(m.local_credit_metrics[source][4]++;)
     }
-    if(total.input_uses)m.local_credit_metrics[source][5]++;
+    if(total.input_uses)SHOEBOX_DIAGNOSTIC(m.local_credit_metrics[source][5]++;)
   }
 }

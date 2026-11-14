@@ -54,10 +54,18 @@ the complete gate: native regressions, sanitizers, exact continuation, matched
 frozen contributions and held-out generation checks. Failed or skipped checks
 cannot produce an overall passing status. Checkpoints use v40 / ABI 10.
 
+The pipeline now uses compact router-only versions, two reusable job buffers,
+shared immutable inputs, and indexed bank scopes. Production completion builds
+omit inline diagnostic collection. Use `capture_memory`, `compare_memory` and
+`read_memory_index` from `shoebox_reference` at API boundaries, and
+`model.inspect_pipeline()` for current version/buffer inventory. New pipeline
+checkpoints use v43 and continue to load v42. See the
+[compact pipeline report](experiments/identity_semantics/deliverables/SHoEbox_Compact_Versioning.md).
+
 Stage 6 is available as `fresh_model(profile="pipeline")`: a versioned one-byte
 delay for content-bank updates, fused bank kernels, and an optional persistent
 learning worker (`pipeline_workers=2`). One and two workers follow the same
-schedule. Checkpoint v42 retains pending updates; existing policies remain
+schedule. Checkpoint v43 retains compact pending updates; existing policies remain
 reproducible. See the [stage 6 report](experiments/identity_semantics/deliverables/SHoEbox_Structural_Optimization_Stage6.md).
 
 Stage 5 is available as `fresh_model(profile="event")`: native small-head

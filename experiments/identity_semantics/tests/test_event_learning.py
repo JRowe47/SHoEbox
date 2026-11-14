@@ -16,7 +16,7 @@ class EventLearningTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         path=ROOT/'results'/f'event_fixture_e{core.E}.so';path.parent.mkdir(exist_ok=True)
-        subprocess.run(['g++','-O3','-march=native','-std=c++17','-pthread',f'-DSHOEBOX_EXPERTS={core.E}',
+        subprocess.run(['g++','-DSHOEBOX_INLINE_DIAGNOSTICS=1','-O3','-march=native','-std=c++17','-pthread',f'-DSHOEBOX_EXPERTS={core.E}',
                         '-shared','-fPIC',str(ROOT/'tests/event_fixture.cpp'),'-o',str(path)],check=True)
         cls.fx=ct.CDLL(str(path))
         cls.fx.event_context_vjp_check.argtypes=[ct.c_void_p,ct.c_int];cls.fx.event_context_vjp_check.restype=ct.c_float

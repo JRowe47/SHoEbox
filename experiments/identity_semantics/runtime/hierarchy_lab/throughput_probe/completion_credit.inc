@@ -37,16 +37,16 @@ inline Model::PublicationRole& publication_role(Model&m,int slot,const ContentEv
   auto&cache=m.publication_roles[index];
   const auto&role=constituent_role(m,slot);
   if(!context){
-    if(cache.have_payload&&cache.payload==event.payload)m.publication_cache_metrics[0]++;
+    if(cache.have_payload&&cache.payload==event.payload)SHOEBOX_DIAGNOSTIC(m.publication_cache_metrics[0]++;)
     else {
-      m.publication_cache_metrics[1]++;cache.payload=event.payload;cache.have_payload=true;
+      SHOEBOX_DIAGNOSTIC(m.publication_cache_metrics[1]++;)cache.payload=event.payload;cache.have_payload=true;
       const auto&values=event.values();
       for(int j=0;j<D;j++){int k=role.coord[j];cache.structure[j]=values.structure[k];cache.delta[j]=values.code[k]-values.structure[k];}
     }
   }else{
-    if(cache.have_context&&cache.contextual==event.contextual)m.publication_cache_metrics[2]++;
+    if(cache.have_context&&cache.contextual==event.contextual)SHOEBOX_DIAGNOSTIC(m.publication_cache_metrics[2]++;)
     else {
-      m.publication_cache_metrics[3]++;cache.contextual=event.contextual;cache.have_context=true;
+      SHOEBOX_DIAGNOSTIC(m.publication_cache_metrics[3]++;)cache.contextual=event.contextual;cache.have_context=true;
       const auto&values=event.context_data();
       for(int j=0;j<D;j++)cache.context[j]=values.context[role.coord[j]];
     }
@@ -77,7 +77,7 @@ inline const std::vector<SemanticRef>& constituent_schedule(Model&m,SemanticRef 
   auto&work=m.constituent_work;work.clear();bool complete=true;
   auto admit=[&](SemanticRef ref){
     if(!ref.serial)return;
-    if(!constituent_record(m,ref)){m.composition.stream.completion_metrics[receiver][1]++;complete=false;return;}
+    if(!constituent_record(m,ref)){SHOEBOX_DIAGNOSTIC(m.composition.stream.completion_metrics[receiver][1]++;)complete=false;return;}
     if(constituent_mark(m,ref.index)==mark)return;
     constituent_mark(m,ref.index)=mark;memset(constituent_gradient(m,ref.index),0,D*sizeof(float));work.push_back(ref);
   };
@@ -112,7 +112,7 @@ inline void constituent_update_reference(Model&m,SemanticRef root,const float*gr
     float locals[16][D],payloads[16][D],derivatives[16][D];double norms[16]{};
     const ContentExpertRecord*contents[16]{};bool done[16]{};
     int count=int(end-begin);
-    m.reverse_metrics[1]+=count;
+    SHOEBOX_DIAGNOSTIC(m.reverse_metrics[1]+=count;)
     for(int a=0;a<count;a++){
       auto ref=work[begin+a];const auto&node=*constituent_record(m,ref);
       const float*incoming=constituent_gradient(m,ref.index);
@@ -128,14 +128,14 @@ inline void constituent_update_reference(Model&m,SemanticRef root,const float*gr
           contents[b]->ref.region==contents[a]->ref.region&&contents[b]->expert==contents[a]->expert){
         records[n]=contents[b];inputs[n]=locals[b];outputs[n]=derivatives[b];done[b]=true;n++;
       }
-      content_expert_derivatives(m,records,inputs,outputs,n);m.reverse_metrics[3]+=n;
+      content_expert_derivatives(m,records,inputs,outputs,n);SHOEBOX_DIAGNOSTIC(m.reverse_metrics[3]+=n;)
     }
     for(int a=0;a<count;a++){
     auto ref=work[begin+a];auto&node=*constituent_record(m,ref);int r=ref.region;
     float*local=locals[a],*payload_local=payloads[a];double norm2=norms[a];float gate_gradient=0;
     auto*content=contents[a];
     if(node.encoder){
-      if(!content){m.content_expert_metrics[r][5]++;continue;}
+      if(!content){SHOEBOX_DIAGNOSTIC(m.content_expert_metrics[r][5]++;)continue;}
       for(int j=0;j<D;j++)payload_local[j]+=derivatives[a][j];
     }
     for(int j=0;j<D;j++)gate_gradient+=payload_local[j]*node.payload[j]*node.gain_derivative;
@@ -145,11 +145,11 @@ inline void constituent_update_reference(Model&m,SemanticRef root,const float*gr
       for(int j=0;j<D;j++)for(int k=0;k<8;k++)
         m.composition.symbols[r-2][j][k]-=scale*local[j]*node.features[k];
       m.composition.payload_gates[r-2]-=scale*gate_gradient;
-      m.composition.symbol_updates[r-2]++;
+      SHOEBOX_DIAGNOSTIC(m.composition.symbol_updates[r-2]++;)
       if(node.encoder)content_expert_accumulate(m,*content,local,scale,teaching);
     }
-    stream.completion_metrics[r][0]++;
-    if(r!=receiver){stream.message_metrics[r][0]++;stream.message_metrics[r][1]+=std::sqrt(norm2);}
+    SHOEBOX_DIAGNOSTIC(stream.completion_metrics[r][0]++;)
+    if(r!=receiver){SHOEBOX_DIAGNOSTIC(stream.message_metrics[r][0]++;)SHOEBOX_DIAGNOSTIC(stream.message_metrics[r][1]+=std::sqrt(norm2);)}
     for(int e=0;e<node.count;e++){
       const auto&edge=node.edges[e];auto child=edge.source;
       if(!child.serial||!constituent_record(m,child)||constituent_mark(m,child.index)!=mark)continue;

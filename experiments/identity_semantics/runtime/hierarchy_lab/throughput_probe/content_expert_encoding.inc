@@ -28,5 +28,5 @@ inline void content_expert_encode(Model&m,int r,ConstituentRecord&node,const flo
   for(int i=0;i<D;i++){
     out[i]=b[i]+saved.gate*saved.residual[i];
   }
-  m.content_expert_metrics[r][0]++;
+  SHOEBOX_DIAGNOSTIC(m.content_expert_metrics[r][0]++;)
 }

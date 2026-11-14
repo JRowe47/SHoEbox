@@ -89,19 +89,19 @@ inline bool binding_prepare(Model&m,int r,bool learn,ContentEvent&event,ContentE
     if(binding_source_removed(m,src))continue;
     const auto&child=s.history[src][age];
     if(!child.ref.seq){
-      if(r<15){s.metrics[r][5]++;s.metrics[r][17]++;return false;}
+      if(r<15){SHOEBOX_DIAGNOSTIC(s.metrics[r][5]++;)SHOEBOX_DIAGNOSTIC(s.metrics[r][17]++;)return false;}
       continue;
     }
     if(n>=COMP_MAX||role>=COMP_MAX)return false; // Schema validation also runs at configuration.
     parts[n]=child;parts[n].ref.role=k;n++;
     if(s.fusion_seen[r][role]!=child.ref.seq)fresh|=uint32_t(1)<<role;
   }
-  if((r<15&&n<2)||((r!=17||s.draining)&&(!n||!fresh))){s.metrics[r][5]++;return false;}
+  if((r<15&&n<2)||((r!=17||s.draining)&&(!n||!fresh))){SHOEBOX_DIAGNOSTIC(s.metrics[r][5]++;)return false;}
   if(!fresh){event=n?s.history[r][0]:ContentEvent{};return true;}
   event=binding_compose(m,r,parts,n,learn,fresh);
   for(int i=0;i<n;i++)s.fusion_seen[r][parts[i].ref.role-m.starts[r]]=parts[i].ref.seq;
   int fresh_count=__builtin_popcount(fresh);
-  s.metrics[r][0]+=fresh_count;s.metrics[r][14]++;s.metrics[r][15]+=n-fresh_count;s.metrics[r][16]+=fresh_count;
+  SHOEBOX_DIAGNOSTIC(s.metrics[r][0]+=fresh_count;)SHOEBOX_DIAGNOSTIC(s.metrics[r][14]++;)SHOEBOX_DIAGNOSTIC(s.metrics[r][15]+=n-fresh_count;)SHOEBOX_DIAGNOSTIC(s.metrics[r][16]+=fresh_count;)
   return true;
 }
 inline void binding_bundle(Model&m,int r,const ContentEvent&event,const ContentEvent*parts,int n,
@@ -120,7 +120,7 @@ inline void binding_bundle(Model&m,int r,const ContentEvent&event,const ContentE
 #endif
     if(weight&&nparents<LACE_LINKS){const auto&origin=child.origin;
       parents[nparents++]={origin.region,k,origin.tick,-weight,origin.index};
-      m.composition.stream.metrics[r][12]+=origin.region!=child.ref.region;
+      SHOEBOX_DIAGNOSTIC(m.composition.stream.metrics[r][12]+=origin.region!=child.ref.region;)
     }
   }
   cw=n?1.f:0.f;

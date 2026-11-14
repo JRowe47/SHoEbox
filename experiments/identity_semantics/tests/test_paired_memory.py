@@ -10,7 +10,7 @@ class PairedMemoryTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         path=ROOT/'results'/f'paired_fixture_e{core.E}_{os.getpid()}.so';path.parent.mkdir(exist_ok=True)
-        subprocess.run(['g++','-O2','-march=native','-std=c++17',f'-DSHOEBOX_EXPERTS={core.E}',
+        subprocess.run(['g++','-DSHOEBOX_INLINE_DIAGNOSTICS=1','-O2','-march=native','-std=c++17',f'-DSHOEBOX_EXPERTS={core.E}',
                         '-shared','-fPIC',str(ROOT/'tests/paired_memory_fixture.cpp'),'-o',str(path)],check=True)
         cls.fx=ct.CDLL(str(path));p,i=ct.c_void_p,ct.c_int
         for name,args in dict(paired_fixture_step=[p,i,i,i,i],paired_fixture_commit=[p],

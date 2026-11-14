@@ -10,7 +10,7 @@ inline bool event_recent(const Model&m,const EventKey&key){
 inline bool event_follow(Model&m,SemanticRef parent,int edge){
   if(!m.event.local)return true;
   auto*saved=event_eligibility(m,parent);
-  if(!saved){m.event.metrics[parent.region][9]++;return false;}
+  if(!saved){SHOEBOX_DIAGNOSTIC(m.event.metrics[parent.region][9]++;)return false;}
   return !m.event.local_only&&event_recent(m,saved->children[edge]);
 }
 inline void event_predict(Model&m,const EventKey&key,int teaching,float*out){
@@ -22,16 +22,16 @@ inline void event_predict(Model&m,const EventKey&key,int teaching,float*out){
 }
 inline void event_boundary(Model&m,const EventKey&key,const float*g,float rate,const Model::ReverseRoot&policy){
   int r=key.ref.region,t=policy.teaching;
-  if(!key.ref.serial||r<2||r>=N||!key.ordinal){m.event.metrics[policy.receiver][9]++;return;}
+  if(!key.ref.serial||r<2||r>=N||!key.ordinal){SHOEBOX_DIAGNOSTIC(m.event.metrics[policy.receiver][9]++;)return;}
   // An actual 64-component directional teacher crosses the consolidated
   // interface. Its predictor learns from the exact saved content key.
-  m.event.metrics[r][3]++;m.event.metrics[r][10+t]++;
+  SHOEBOX_DIAGNOSTIC(m.event.metrics[r][3]++;)SHOEBOX_DIAGNOSTIC(m.event.metrics[r][10+t]++;)
   float prediction[D],denominator=1;event_predict(m,key,t,prediction);
   for(float f:key.feature)denominator+=f*f;
   double priority=0;
   for(int j=0;j<D;j++){
     float target=std::clamp(g[j],-2.f,2.f),error=target-prediction[j];priority+=double(error)*error;
-    m.event.teacher_norm[r][t]+=std::abs(double(g[j]));
+    SHOEBOX_DIAGNOSTIC(m.event.teacher_norm[r][t]+=std::abs(double(g[j]));)
     if(!m.frozen_region[r]&&policy.scales[r]!=0)for(int a=0;a<MK_DIM;a++)
       m.event.parameters.credit[r][t][j][a]+=m.event.credit_lr*error*key.feature[a]/denominator;
   }
@@ -41,9 +41,9 @@ inline void event_boundary(Model&m,const EventKey&key,const float*g,float rate,c
   // One hardest outstanding record per region and objective. Every displaced
   // signal already trained the compact predictor; displacement is counted.
   if(!slot.request.ref.serial||score>slot.priority){
-    m.event.metrics[r][7]+=slot.request.ref.serial!=0;
+    SHOEBOX_DIAGNOSTIC(m.event.metrics[r][7]+=slot.request.ref.serial!=0;)
     slot=EventReplay{};slot.request=policy;slot.request.ref=key.ref;slot.request.rate=rate*m.event.replay_scale;
-    memcpy(slot.request.gradient,g,D*sizeof(float));slot.priority=score;m.event.metrics[r][5]++;
+    memcpy(slot.request.gradient,g,D*sizeof(float));slot.priority=score;SHOEBOX_DIAGNOSTIC(m.event.metrics[r][5]++;)
   }
 }
 inline void event_register(Model&m,const ConstituentRecord&node){
@@ -60,7 +60,7 @@ inline void event_register(Model&m,const ConstituentRecord&node){
   for(int e=0;e<node.count;e++){
     auto*child=event_eligibility(m,node.edges[e].source);
     if(child)saved.children[e]=child->key;
-    else m.event.metrics[node.ref.region][9]++;
+    else SHOEBOX_DIAGNOSTIC(m.event.metrics[node.ref.region][9]++;)
   }
   if(m.event.training)m.event.new_events.push_back(node.ref);
 }
@@ -78,10 +78,10 @@ inline void event_finish_step(Model&m){
     }
     if(!best)break;
     m.reverse_roots.push_back(best->request);*best=EventReplay{};
-    m.event.metrics[region][6]++;constituent_union_flush(m,true);content_expert_flush(m);
+    SHOEBOX_DIAGNOSTIC(m.event.metrics[region][6]++;)constituent_union_flush(m,true);content_expert_flush(m);
   }
   for(auto ref:m.event.new_events){
-    auto*saved=event_eligibility(m,ref);if(!saved){m.event.metrics[ref.region][9]++;continue;}
+    auto*saved=event_eligibility(m,ref);if(!saved){SHOEBOX_DIAGNOSTIC(m.event.metrics[ref.region][9]++;)continue;}
     for(int t=0;t<2;t++){
       Model::ReverseRoot request{};request.ref=ref;request.receiver=ref.region;request.teaching=t;
       request.rate=m.event.rates[t]*m.event.synthetic_scale*m.reverse_update_scale;
@@ -89,7 +89,7 @@ inline void event_finish_step(Model&m){
       event_predict(m,saved->key,t,request.gradient);float magnitude=0;
       for(float x:request.gradient)magnitude+=x*x;if(magnitude<1e-20f)continue;
       for(int r=0;r<N;r++)request.scales[r]=m.teaching_scale[r][t];
-      m.reverse_roots.push_back(request);m.event.metrics[ref.region][4]++;m.event.metrics[ref.region][14+t]++;
+      m.reverse_roots.push_back(request);SHOEBOX_DIAGNOSTIC(m.event.metrics[ref.region][4]++;)SHOEBOX_DIAGNOSTIC(m.event.metrics[ref.region][14+t]++;)
     }
   }
   // Synthetic predictions are terminal local updates; they must not become

@@ -25,14 +25,14 @@ inline void completion_emit(Model&m,int r,bool learn,ContentEvent&event,ContentE
   else{
     event=content_compose(m,r,parts,n,1,learn);
     event.clock_begin=parts[0].clock_begin;event.clock_end=parts[n-1].clock_end;
-    s.completion_metrics[r][3]++;
+    SHOEBOX_DIAGNOSTIC(s.completion_metrics[r][3]++;)
   }
 }
 inline bool completion_prepare(Model&m,int r,bool learn,ContentEvent&event,ContentEvent*parts,int&n){
   auto&s=m.composition.stream;n=0;
   if(!completion_frame_ready(m,r)){
     if(s.draining&&s.length[r]){completion_emit(m,r,learn,event,parts,n);return true;}
-    s.metrics[r][5]++;return false;
+    SHOEBOX_DIAGNOSTIC(s.metrics[r][5]++;)return false;
   }
   ContentEvent frame{},children[COMP_MAX];int count=0;
   int required=0,driver=completion_driver(m,r,required);
@@ -49,7 +49,7 @@ inline bool completion_prepare(Model&m,int r,bool learn,ContentEvent&event,Conte
   m.semantic_inflight=frame.semantic;
   for(int i=0;i<count;i++)s.fusion_seen[r][children[i].ref.role-m.starts[r]]=children[i].ref.seq;
   int fresh_count=__builtin_popcount(fresh);
-  s.metrics[r][0]+=fresh_count;s.metrics[r][14]++;s.metrics[r][15]+=count-fresh_count;s.metrics[r][16]+=fresh_count;
+  SHOEBOX_DIAGNOSTIC(s.metrics[r][0]+=fresh_count;)SHOEBOX_DIAGNOSTIC(s.metrics[r][14]++;)SHOEBOX_DIAGNOSTIC(s.metrics[r][15]+=count-fresh_count;)SHOEBOX_DIAGNOSTIC(s.metrics[r][16]+=fresh_count;)
   int available=std::min<int64_t>(required,s.history[driver][0].ref.seq-s.seen[r]);
   s.seen[r]=s.history[driver][0].ref.seq;
   // Coverage includes held side constituents. Only the recursively preserved
@@ -73,7 +73,7 @@ inline bool completion_prepare(Model&m,int r,bool learn,ContentEvent&event,Conte
   s.pending[r][s.length[r]++]=frame;
   m.semantic_inflight=SemanticRef{};
   if(!n&&s.length[r]>=int(m.composition.max_children))completion_emit(m,r,learn,event,parts,n);
-  if(!n){s.metrics[r][5]++;return false;}
+  if(!n){SHOEBOX_DIAGNOSTIC(s.metrics[r][5]++;)return false;}
   return true;
 }
 inline void completion_bundle(Model&m,int r,const ContentEvent&event,const ContentEvent*parts,int n,

@@ -15,7 +15,7 @@ class PublicationStorageTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         path=ROOT/'results'/f'publication_fixture_e{core.E}.so'
-        subprocess.run(['g++','-O3','-march=native','-std=c++17','-pthread',
+        subprocess.run(['g++','-DSHOEBOX_INLINE_DIAGNOSTICS=1','-O3','-march=native','-std=c++17','-pthread',
                         f'-DSHOEBOX_EXPERTS={core.E}','-shared','-fPIC',
                         str(ROOT/'tests/publication_fixture.cpp'),'-o',str(path)],check=True)
         cls.fx=ct.CDLL(str(path))

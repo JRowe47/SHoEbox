@@ -43,7 +43,15 @@ def main():
                OPENBLAS_NUM_THREADS='1', OMP_NUM_THREADS='1')
     result = subprocess.run(
         [sys.executable, '-m', 'unittest', 'discover', '-s', 'tests', '-v'],
-        cwd=ROOT / 'experiments' / 'identity_semantics', env=env)
+        cwd=ROOT / 'experiments' / 'identity_semantics', env={**env, 'SHOEBOX_INLINE_DIAGNOSTICS':'1'})
+    if result.returncode:
+        return result.returncode
+    # Production omits observers; exercise that independently of audit coverage.
+    result = subprocess.run(
+        [sys.executable, '-m', 'unittest', 'discover', '-s', 'tests',
+         '-p', 'test_*pipeline.py', '-v'],
+        cwd=ROOT / 'experiments' / 'identity_semantics',
+        env={**env, 'SHOEBOX_INLINE_DIAGNOSTICS': '0'})
     if result.returncode:
         return result.returncode
     if args.legacy:

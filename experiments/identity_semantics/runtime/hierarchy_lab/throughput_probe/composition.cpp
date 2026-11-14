@@ -1,6 +1,7 @@
 // Streaming local updates without autograd or dense optimizer moments.
 // Completion retains live semantic DAG eligibility, not a global temporal tape.
 // No hidden label input. Neural parameter mutation follows computation.
+#include "diagnostics_policy.inc"
 #include <cmath>
 #include <cstring>
 #include <algorithm>
@@ -375,8 +376,8 @@ inline int lookup(Model&m,int a,const float*q,float&sim,bool extra,const int*bs)
   State&s=m.s;int ways=int(m.cfg[13]),best=-1;sim=-1;
   for(int i=0;i<(extra?4:2);i++){
     bool duplicate=false;for(int j=0;j<i;j++)duplicate|=bs[j]==bs[i];if(duplicate)continue;
-    for(int w=0;w<ways;w++){int k=bs[i]*ways+w;s.pc[1]++;
-      if(!s.born[a][k])continue;s.pc[2]++;float z=dot64(q,s.pk[a][k]);
+    for(int w=0;w<ways;w++){int k=bs[i]*ways+w;SHOEBOX_DIAGNOSTIC(s.pc[1]++;)
+      if(!s.born[a][k])continue;SHOEBOX_DIAGNOSTIC(s.pc[2]++;)float z=dot64(q,s.pk[a][k]);
       if(z>sim){sim=z;best=k;}
     }
   }return best;
@@ -387,14 +388,14 @@ inline void commit(Model&m,int a,const float*q,const float*current_key,const int
     // Stable and adaptive associations use disjoint bucket namespaces.
     // Both are content addressed. Neither has a FIFO or a time-to-live.
     for(int tier=0;tier<2;tier++){
-      s.pc[3]++;int ways=int(m.cfg[13]),base=s.pending_buckets[a][tier]*ways,match=-1;float sim=-1;
-      for(int w=0;w<ways;w++){int k=base+w;s.pc[1]++;if(!s.born[a][k])continue;s.pc[2]++;float z=dot64(s.pending_key[a],s.pk[a][k]);if(z>sim){sim=z;match=k;}}
+      SHOEBOX_DIAGNOSTIC(s.pc[3]++;)int ways=int(m.cfg[13]),base=s.pending_buckets[a][tier]*ways,match=-1;float sim=-1;
+      for(int w=0;w<ways;w++){int k=base+w;SHOEBOX_DIAGNOSTIC(s.pc[1]++;)if(!s.born[a][k])continue;SHOEBOX_DIAGNOSTIC(s.pc[2]++;)float z=dot64(s.pending_key[a],s.pk[a][k]);if(z>sim){sim=z;match=k;}}
       float surprise=0,value_norm=1e-6f;
       if(match>=0)for(int j=0;j<D;j++){float d=q[j]-s.pv[a][match][j];surprise+=d*d;value_norm+=q[j]*q[j]+s.pv[a][match][j]*s.pv[a][match][j];}
       surprise/=value_norm;
       if(match>=0&&sim>=m.cfg[15]&&surprise<m.cfg[22]){
         for(int j=0;j<D;j++)s.pv[a][match][j]+=.0625f*(q[j]-s.pv[a][match][j]);
-        s.updated[a][match]=s.tick;s.pc[4]++;
+        s.updated[a][match]=s.tick;SHOEBOX_DIAGNOSTIC(s.pc[4]++;)
       }else if(1-sim>=(tier?.05f:m.cfg[14])||(tier&&surprise>=m.cfg[22])){
         int victim=-1;float weakest=1e30f;
         for(int w=0;w<ways;w++){
@@ -407,11 +408,11 @@ inline void commit(Model&m,int a,const float*q,const float*current_key,const int
         float importance=1+m.cfg[16]*std::min(3.f,transition+surprise);
         float u=(random32(s)+1.0)/4294967297.0,priority=std::pow(u,1.f/importance);
         if(priority>weakest){
-          if(s.born[a][victim])s.pc[6]++;else {s.used++;s.pc[7]++;}
+          if(s.born[a][victim])SHOEBOX_DIAGNOSTIC(s.pc[6]++;)else {s.used++;SHOEBOX_DIAGNOSTIC(s.pc[7]++;)}
           memcpy(s.pk[a][victim],s.pending_key[a],D*sizeof(float));memcpy(s.pv[a][victim],q,D*sizeof(float));
-          s.born[a][victim]=s.updated[a][victim]=s.tick;s.priority[a][victim]=priority;s.utility[a][victim]=0;s.pc[5]++;s.writes++;
-        }else s.pc[8]++;
-      }else s.pc[9]++;
+          s.born[a][victim]=s.updated[a][victim]=s.tick;s.priority[a][victim]=priority;s.utility[a][victim]=0;SHOEBOX_DIAGNOSTIC(s.pc[5]++;)SHOEBOX_DIAGNOSTIC(s.writes++;)
+        }else SHOEBOX_DIAGNOSTIC(s.pc[8]++;)
+      }else SHOEBOX_DIAGNOSTIC(s.pc[9]++;)
     }
   }
   memcpy(s.pending_key[a],current_key,D*sizeof(float));memcpy(s.pending_buckets[a],current_buckets,4*sizeof(int));memcpy(s.previous[a],q,D*sizeof(float));s.pending_valid[a]=1;
@@ -466,7 +467,7 @@ inline void semantic_input_update(Model&m,int r,LaceRecord&v,const float*du,floa
     float g=std::clamp(du[j],-2.f,2.f)*state.symbol_derivative[j]*scale;
     for(int k=0;k<8;k++)m.composition.symbols[r-2][j][k]-=g*state.symbol_features[k];
   }
-  m.composition.symbol_updates[r-2]++;
+  SHOEBOX_DIAGNOSTIC(m.composition.symbol_updates[r-2]++;)
 #endif
 }
 inline void semantic_expert_update(Model&m,int r,LaceRecord*v,const float*g,float rate,int teaching=0){
@@ -496,12 +497,12 @@ inline void expert_update(Model&m,int r,const float*g,float rate,LaceRecord*reco
   State&s=m.s;
   LaceRecord*v=record?record:current_lace(m,r);
   if(v&&v->expert<0)return;
-  if(!valid_bottom_publication(m,r,v)){m.learned.metrics[r][2]++;return;}
+  if(!valid_bottom_publication(m,r,v)){SHOEBOX_DIAGNOSTIC(m.learned.metrics[r][2]++;)return;}
 #ifdef SHOEBOX_LEARNED_COMPLETION
-  m.acceptance.expert_update_calls[r][teaching]++;
+  SHOEBOX_DIAGNOSTIC(m.acceptance.expert_update_calls[r][teaching]++;)
 #endif
-  if(m.utility_observe){double z=0;for(int j=0;j<D;j++)z+=double(g[j])*g[j];
-    m.utility_metrics[r][0]+=std::sqrt(z);m.utility_metrics[r][1]++;}
+  SHOEBOX_DIAGNOSTIC(if(m.utility_observe){double z=0;for(int j=0;j<D;j++)z+=double(g[j])*g[j];
+    SHOEBOX_DIAGNOSTIC(m.utility_metrics[r][0]+=std::sqrt(z);)SHOEBOX_DIAGNOSTIC(m.utility_metrics[r][1]++;)})
 #ifdef SHOEBOX_LEARNED_COMPLETION
   // The historical rule learned the bottom state before semantic work. Bottom
   // regions have no constituent branch; keep that ordering for policy 1.
@@ -528,10 +529,12 @@ inline void expert_update(Model&m,int r,const float*g,float rate,LaceRecord*reco
   // Unity preserves the legacy floating-point operation order.
 
   float*w=m.W+(r*E+e)*D*D,*b=m.bias+(r*E+e)*D;
+  #if SHOEBOX_INLINE_DIAGNOSTICS
   bool sampled=false;float before[D*D+D];
-  if(m.update_observe){auto&z=m.update_metrics[r][teaching];z[0]++;
+#endif
+  SHOEBOX_DIAGNOSTIC(if(m.update_observe){auto&z=m.update_metrics[r][teaching];z[0]++;
     sampled=(uint64_t(z[0])%256)==0;
-    if(sampled){memcpy(before,w,D*D*sizeof(float));memcpy(before+D*D,b,D*sizeof(float));}}
+    SHOEBOX_DIAGNOSTIC(if(sampled){memcpy(before,w,D*D*sizeof(float));memcpy(before+D*D,b,D*sizeof(float));})})
   for(int i=0;i<D;i++){float d=std::clamp(g[i]*(1.f-h[i]*h[i]),-2.f,2.f);b[i]-=a*d;
     if(record&&m.lcfg[9]<D){
       if(d!=0)sparse_weight_update(w+i*D,u,a*d*gate,record->input_mask);
@@ -544,10 +547,10 @@ inline void expert_update(Model&m,int r,const float*g,float rate,LaceRecord*reco
       else for(int j=0;j<D;j++)port[i*D+j]-=a*d*returned[j];
     }
   }
-  if(sampled){double delta=0,weight=0;for(int j=0;j<D*D+D;j++){
+  SHOEBOX_DIAGNOSTIC(if(sampled){double delta=0,weight=0;for(int j=0;j<D*D+D;j++){
     double prior=before[j],now=j<D*D?w[j]:b[j-D*D];delta+=(now-prior)*(now-prior);weight+=prior*prior;}
     auto&z=m.update_metrics[r][teaching];z[1]++;z[2]+=std::sqrt(delta);z[3]+=std::sqrt(weight);
-    z[4]+=std::sqrt(delta/std::max(weight,1e-30));z[5]+=delta;}
+    z[4]+=std::sqrt(delta/std::max(weight,1e-30));z[5]+=delta;})
 #ifdef SHOEBOX_LEARNED_COMPLETION
   if(!paired_enabled(m)){
 #endif
@@ -619,7 +622,7 @@ inline void route_task_update(Model&m,int r,LaceRecord&v,const float*g,float rat
   while(mask){int j=__builtin_ctzll(mask);mask&=mask-1;float d=step*cue[j];chosen[j]-=d;runner[j]+=d;}
   for(float*k:{chosen,runner}){float n=1e-9f;for(int j=0;j<D;j++)n+=k[j]*k[j];n=1/std::sqrt(n);for(int j=0;j<D;j++)k[j]*=n;}
   m.refresh_key(r,v.expert);m.refresh_key(r,v.runner);
-  m.laces.metrics[r][4]++;
+  SHOEBOX_DIAGNOSTIC(m.laces.metrics[r][4]++;)
 }
 inline int content_coord(int,int);
 inline float content_sign(int,int);
@@ -632,21 +635,21 @@ inline void deliver_input_credit(Model&m,int r,LaceRecord&v,const float*du,int d
     const auto&edge=v.parents[k];
     if(edge.region==0&&!m.composition.enabled)continue;
     LaceRecord*p=find_lace(m,edge.region,edge.tick,edge.index);
-    if(!p){m.laces.metrics[r][3]++;continue;}
+    if(!p){SHOEBOX_DIAGNOSTIC(m.laces.metrics[r][3]++;)continue;}
     if(m.composition.enabled&&p->expert<0){
       float gradient[D]{};
       if(edge.slot<=-100){int position=-100-edge.slot;for(int j=0;j<D;j++)gradient[content_coord(j,position)]+=edge.coefficient*content_sign(j,position)*du[j];}
       else if(edge.slot<0){for(int j=0;j<D;j++)gradient[j]=edge.coefficient*du[j];}
       else for(int j=0;j<D;j++)gradient[m.perm[edge.slot*D+j]]+=edge.coefficient*m.signs[edge.slot*D+j]*du[j];
       // Transparent identity relays do not consume a learned-composition hop.
-      deliver_input_credit(m,edge.region,*p,gradient,depth);m.composition.stream.metrics[edge.region][12]++;continue;
+      deliver_input_credit(m,edge.region,*p,gradient,depth);SHOEBOX_DIAGNOSTIC(m.composition.stream.metrics[edge.region][12]++;)continue;
     }
     float*pending_credit=p->credit[depth];
     if(edge.slot<=-100){int position=-100-edge.slot;
       for(int j=0;j<D;j++)pending_credit[content_coord(j,position)]+=edge.coefficient*content_sign(j,position)*du[j];
     }else if(edge.slot<0){for(int j=0;j<D;j++)pending_credit[j]+=edge.coefficient*du[j];}
     else for(int j=0;j<D;j++)pending_credit[m.perm[edge.slot*D+j]]+=edge.coefficient*m.signs[edge.slot*D+j]*du[j];
-    p->uses[depth]++;m.laces.metrics[edge.region][1]++;m.laces.metrics[edge.region][8+depth]++;
+    p->uses[depth]++;SHOEBOX_DIAGNOSTIC(m.laces.metrics[edge.region][1]++;)SHOEBOX_DIAGNOSTIC(m.laces.metrics[edge.region][8+depth]++;)
 #ifdef SHOEBOX_LEARNED_COMPLETION
     neural_pending(m,edge.region,p->tick,depth);
 #endif
@@ -656,13 +659,13 @@ inline void deliver_input_credit(Model&m,int r,LaceRecord&v,const float*du,int d
     auto&state=*saved;
     if(state.tick!=v.tick||!state.previous_tick||state.retention==0)return;
     auto*previous=find_lace(m,r,state.previous_tick,state.previous_index);
-    if(!previous){z.metrics[r][10]++;return;}
+    if(!previous){SHOEBOX_DIAGNOSTIC(z.metrics[r][10]++;)return;}
     auto*saved_target=lace_input(m,r,*previous);
-    if(!saved_target||saved_target->tick!=previous->tick){z.metrics[r][10]++;return;}
+    if(!saved_target||saved_target->tick!=previous->tick){SHOEBOX_DIAGNOSTIC(z.metrics[r][10]++;)return;}
     auto&target=*saved_target;
     float*pending_gradient=target.gradient[depth];
     for(int j=0;j<D;j++)pending_gradient[j]+=state.retention*du[j];
-    target.uses[depth]++;z.metrics[r][8]++;
+    target.uses[depth]++;SHOEBOX_DIAGNOSTIC(z.metrics[r][8]++;)
 #ifdef SHOEBOX_LEARNED_COMPLETION
     neural_pending(m,r,previous->tick,depth,true);
 #endif
@@ -736,7 +739,7 @@ inline void flush_credit(Model&m,int r,float lr){
 #ifdef SHOEBOX_IDENTITY_SEMANTICS
       semantic_input_update(m,r,v,gradient,lr*m.lcfg[1]*m.teaching_scale[r][0]);
 #endif
-      deliver_input_credit(m,r,v,gradient,d+1);z.metrics[r][9]++;
+      deliver_input_credit(m,r,v,gradient,d+1);SHOEBOX_DIAGNOSTIC(z.metrics[r][9]++;)
     }
   };
   auto neural_update=[&](LaceRecord&v){
@@ -755,7 +758,7 @@ inline void flush_credit(Model&m,int r,float lr){
     }
     if(any){
       double normg=0;for(float z:total)normg+=z*z;
-      m.laces.metrics[r][2]++;m.laces.metrics[r][5]+=std::sqrt(normg);
+      SHOEBOX_DIAGNOSTIC(m.laces.metrics[r][2]++;)SHOEBOX_DIAGNOSTIC(m.laces.metrics[r][5]+=std::sqrt(normg);)
       expert_update(m,r,total,lr*m.lcfg[1],&v);
     }
   };
@@ -829,9 +832,9 @@ inline void publish_state(Model&m,int r,float response_gate,int runner=0){
     z.eligibility_a[r][j]=(1-gate)*z.eligibility_a[r][j]+d*s.mem[r][j];
     z.eligibility_b[r][j]=(1-gate)*z.eligibility_b[r][j]+d;
     z.memory[r][j]=(1-gate)*old+gate*s.h[r][j];
-    z.metrics[r][7]+=std::abs(v.read[j]*old);z.metrics[r][8]+=gate;
+    SHOEBOX_DIAGNOSTIC(z.metrics[r][7]+=std::abs(v.read[j]*old);)SHOEBOX_DIAGNOSTIC(z.metrics[r][8]+=gate;)
   }
-  z.metrics[r][9]++;
+  SHOEBOX_DIAGNOSTIC(z.metrics[r][9]++;)
 }
 inline bool valid_bottom_publication(Model&m,int r,LaceRecord*v){
   if(r>=2||!v||!bottom_enabled(m))return true;
@@ -843,7 +846,7 @@ inline void learn_bottom_state(Model&m,int r,LaceRecord*v,const float*g,float ra
   if(r>=2||m.scfg[0]<=0||!v||v->tick%int(m.scfg[6]))return;
   auto*record=temporal_record(m,r,v->tick);if(!record)return;
   auto&z=m.learned;
-  if(record->generation!=z.generation[r][record->expert]){z.metrics[r][2]++;return;}
+  if(record->generation!=z.generation[r][record->expert]){SHOEBOX_DIAGNOSTIC(z.metrics[r][2]++;)return;}
   float pre[D],du[D];for(int i=0;i<D;i++)du[i]=pre[i]=g[i]*(1-v->h[i]*v->h[i]);
   const float*w=m.weight_bank(r*E+v->expert);
   for(int i=0;i<D;i++)for(int j=0;j<D;j++)du[j]+=v->gate*w[i*D+j]*pre[i];
@@ -856,19 +859,19 @@ inline void learn_bottom_state(Model&m,int r,LaceRecord*v,const float*g,float ra
     float ds=gradient*record->read[j];
     wa[j]=std::clamp(wa[j]-step*ds*record->eligibility_a[j],-3.f,3.f);
     wb[j]=std::clamp(wb[j]-step*ds*record->eligibility_b[j],-7.f,2.f);
-    z.metrics[r][6]+=std::abs(gradient*record->before[j]*record->read_derivative[j]);
+    SHOEBOX_DIAGNOSTIC(z.metrics[r][6]+=std::abs(gradient*record->before[j]*record->read_derivative[j]);)
   }
-  z.metrics[r][0]++;
+  SHOEBOX_DIAGNOSTIC(z.metrics[r][0]++;)
   if(m.scfg[5]<=0)return;
   // One sampled temporal lace per teaching event; six geometrically spaced ages.
   // This is bounded local credit through the retained-state path. It does not
   // differentiate through every intervening candidate or discrete route.
   const int ages[6]{1,2,4,8,16,32};int age=ages[(v->tick/int(m.scfg[6]))%6];
   auto*parent=temporal_record(m,r,v->tick-age);
-  if(!parent||parent->generation!=z.generation[r][parent->expert]){z.metrics[r][2]++;return;}
+  if(!parent||parent->generation!=z.generation[r][parent->expert]){SHOEBOX_DIAGNOSTIC(z.metrics[r][2]++;)return;}
   float retention[D];for(int j=0;j<D;j++)retention[j]=parent->write[j];
   for(int k=1;k<age;k++){
-    auto*middle=temporal_record(m,r,v->tick-k);if(!middle){z.metrics[r][2]++;return;}
+    auto*middle=temporal_record(m,r,v->tick-k);if(!middle){SHOEBOX_DIAGNOSTIC(z.metrics[r][2]++;)return;}
     for(int j=0;j<D;j++)retention[j]*=1-middle->write[j];
   }
   float a=rate*m.scfg[5]/norm(parent->u);
@@ -878,14 +881,14 @@ inline void learn_bottom_state(Model&m,int r,LaceRecord*v,const float*g,float ra
     pb[i]-=a*error;
     if(error!=0)sparse_weight_update(pw+i*D,parent->u,a*error*parent->response_gate,parent->input_mask);
   }
-  z.metrics[r][1]++;z.metrics[r][10]+=age;
+  SHOEBOX_DIAGNOSTIC(z.metrics[r][1]++;)SHOEBOX_DIAGNOSTIC(z.metrics[r][10]+=age;)
 }
 inline void bottom_task_update(Model&m,int r,LaceRecord&v,const float*g,float rate){
   if(m.frozen_region[r])return;
   if(m.scfg[8]<=0||v.gate_derivative==0)return;
-  if(!valid_bottom_publication(m,r,&v)){m.learned.metrics[r][2]++;return;}
+  if(!valid_bottom_publication(m,r,&v)){SHOEBOX_DIAGNOSTIC(m.learned.metrics[r][2]++;)return;}
   auto*saved=temporal_record(m,r,v.tick);
-  if(!saved||saved->runner!=v.runner||saved->runner_generation!=m.learned.generation[r][v.runner]){m.learned.metrics[r][2]++;return;}
+  if(!saved||saved->runner!=v.runner||saved->runner_generation!=m.learned.generation[r][v.runner]){SHOEBOX_DIAGNOSTIC(m.learned.metrics[r][2]++;)return;}
   float dg=0;for(int j=0;j<D;j++)dg+=g[j]*(1-v.h[j]*v.h[j])*v.residual[j];
   float step=std::clamp(rate*m.scfg[8]*dg*v.gate_derivative,-.025f,.025f);
   float*chosen=task_offset(m,r,v.expert),*runner=task_offset(m,r,v.runner);
@@ -895,7 +898,7 @@ inline void bottom_task_update(Model&m,int r,LaceRecord&v,const float*g,float ra
     if(n>m.scfg[21]*m.scfg[21]){float a=m.scfg[21]/std::sqrt(n);for(int j=0;j<D;j++)o[j]*=a;}
   }
   auto&u=m.learned.utility[r][v.expert];u+=.01f*(std::clamp(-dg,-1.f,1.f)-u);
-  materialize_key(m,r,v.expert);materialize_key(m,r,v.runner);m.learned.metrics[r][3]++;
+  materialize_key(m,r,v.expert);materialize_key(m,r,v.runner);SHOEBOX_DIAGNOSTIC(m.learned.metrics[r][3]++;)
 }
 inline bool revive_expert(Model&m,int r,int dead,int donor){
   if(m.frozen_region[r])return false;
@@ -916,7 +919,7 @@ inline bool revive_expert(Model&m,int r,int dead,int donor){
   z.last_decay[r][dead]=z.last_decay[r][donor]=z.decay_clock[r];
   z.last_used[r][dead]=z.events[r];z.utility[r][dead]=0;
   z.generation[r][dead]++; // Outstanding laces to the old occupant are rejected.
-  materialize_key(m,r,dead);materialize_key(m,r,donor);z.metrics[r][5]++;return true;
+  materialize_key(m,r,dead);materialize_key(m,r,donor);SHOEBOX_DIAGNOSTIC(z.metrics[r][5]++;)return true;
 }
 inline void update_bottom_prototype(Model&m,int r,int best,uint64_t mask,float route,float lr){
   if(m.frozen_region[r])return;
@@ -949,7 +952,7 @@ inline void update_bottom_prototype(Model&m,int r,int best,uint64_t mask,float r
       z.mass[r][best]=decay*z.mass[r][best]+scale;
       for(int j=0;j<D;j++){z.sums[r][best][j]=decay*z.sums[r][best][j]+scale*cue[j];p[j]=z.sums[r][best][j]/z.mass[r][best];}
     }
-    z.metrics[r][4]++;
+    SHOEBOX_DIAGNOSTIC(z.metrics[r][4]++;)
   }else {
     float effective_route=rate_scale==1.f?route:route*rate_scale;
     for(int j=0;j<D;j++)p[j]+=effective_route*(cue[j]-p[j]);
@@ -1247,22 +1250,22 @@ double run(void*p,const unsigned char*x,const unsigned char*y,int length,int mod
         bool wake=false;
         bool attempt=s.used&&s.ablation!=2&&s.tick%int(m.cfg[17])==0&&(m.cfg[1]>0||m.cfg[21])&&(scheduled||change>=m.cfg[20]);
         if(attempt){
-          s.pc[0]++;float sim;int best=lookup(m,a,key,sim,true,bs);
+          SHOEBOX_DIAGNOSTIC(s.pc[0]++;)float sim;int best=lookup(m,a,key,sim,true,bs);
           wake=best>=0&&sim>=m.cfg[19];
           float gate=best<0?0:std::clamp((sim-m.cfg[8])/std::max(1e-6f,1-m.cfg[8]),0.f,1.f)*m.cfg[1];
           if(gate>0){
-            s.pc[10]++;int64_t age=s.tick-s.updated[a][best];s.age_sum+=age;s.max_age=std::max(s.max_age,age);s.similarity_sum+=sim;
-            s.pc[11]+=age>256;s.pc[12]+=age>4096;s.pc[13]+=age>16384;
+            SHOEBOX_DIAGNOSTIC(s.pc[10]++;)int64_t age=s.tick-s.updated[a][best];SHOEBOX_DIAGNOSTIC(s.age_sum+=age;)SHOEBOX_DIAGNOSTIC(s.max_age=std::max(s.max_age,age);)SHOEBOX_DIAGNOSTIC(s.similarity_sum+=sim;)
+            SHOEBOX_DIAGNOSTIC(s.pc[11]+=age>256;)SHOEBOX_DIAGNOSTIC(s.pc[12]+=age>4096;)SHOEBOX_DIAGNOSTIC(s.pc[13]+=age>16384;)
             if(s.ablation==3||m.cfg[21]||(m.block_before&&s.born[a][best]<=m.block_before))gate=0;
             if(s.ablation==4){int count=int(m.cfg[12])*int(m.cfg[13]);int wrong=(best+count/2)%count;for(int k=0;k<count&&!s.born[a][wrong];k++)wrong=(wrong+1)%count;best=wrong;}
             s.recall_slot[a]=best;s.return_birth[a]=s.born[a][best];
             for(int j=0;j<D;j++){float v=gate*(s.pv[a][best][j]-(m.cfg[5]?s.vmean[a][j]:0));s.returned[a][j]=v;if(!m.cfg[10])c[j]+=v;}
-            s.reads++;
+            SHOEBOX_DIAGNOSTIC(s.reads++;)
           }
         }
         if(s.tick%int(m.cfg[9])==0)commit(m,a,q,key,bs);
-        if(event_ec&&!scheduled&&!wake){active[r]=false;s.pc[14]++;continue;}
-        if(event_ec&&!scheduled)s.pc[15]++;
+        if(event_ec&&!scheduled&&!wake){active[r]=false;SHOEBOX_DIAGNOSTIC(s.pc[14]++;)continue;}
+        if(event_ec&&!scheduled)SHOEBOX_DIAGNOSTIC(s.pc[15]++;)
 #ifdef SHOEBOX_LEARNED_COMPLETION
         }
 #endif
@@ -1278,16 +1281,16 @@ double run(void*p,const unsigned char*x,const unsigned char*y,int length,int mod
          (r<2||m.utility.config[3]>0)){
         float err[D],g[D]{};double mse=0;
         for(int i=0;i<D;i++){float target=q[i];if(r>=2&&m.utility.config[4]>0&&m.utility.have_q[r])target-=m.utility.previous_q[r][i];
-          err[i]=std::clamp(s.pred[r][i]-target,-1.f,1.f);mse+=err[i]*err[i];}
+          err[i]=std::clamp(s.pred[r][i]-target,-1.f,1.f);SHOEBOX_DIAGNOSTIC(mse+=err[i]*err[i];)}
         float*P=m.P+r*D*D,*pb=m.pbias+r*D;
         for(int i=0;i<D;i++)for(int j=0;j<D;j++)g[j]+=P[i*D+j]*err[i];
         float local_rate=lp*(r>=2?m.utility.config[3]:1.f);
-        if(m.utility_observe){double z=0;for(int j=0;j<D;j++)z+=double(g[j])*g[j];
-          m.utility_metrics[r][2]+=std::sqrt(z);m.utility_metrics[r][3]++;}
+        SHOEBOX_DIAGNOSTIC(if(m.utility_observe){double z=0;for(int j=0;j<D;j++)z+=double(g[j])*g[j];
+          SHOEBOX_DIAGNOSTIC(m.utility_metrics[r][2]+=std::sqrt(z);)SHOEBOX_DIAGNOSTIC(m.utility_metrics[r][3]++;)})
         expert_update(m,r,g,local_rate,nullptr,1);
         float a=local_rate*m.teaching_scale[r][1]/norm(s.h[r]);
         if(!m.frozen_region[r])for(int i=0;i<D;i++){pb[i]-=a*err[i];for(int j=0;j<D;j++)P[i*D+j]-=a*err[i]*s.h[r][j];}
-        s.mse[r]+=mse/D;
+        SHOEBOX_DIAGNOSTIC(s.mse[r]+=mse/D;)
       }
       if(mode&&m.utility.config[4]>0){memcpy(m.utility.previous_q[r],q,D*sizeof(float));m.utility.have_q[r]=1;}
       float alpha=r==1?.125f:.5f;
@@ -1381,7 +1384,7 @@ double run(void*p,const unsigned char*x,const unsigned char*y,int length,int mod
       m.contribution_counts[r][1]++;
       contribution_apply(m,CHECK_EXPERT,r);
 #endif
-      if(m.diag.enabled&&s.exec[r]%16==0){
+      SHOEBOX_DIAGNOSTIC(if(m.diag.enabled&&s.exec[r]%16==0){
         auto &d=m.diag;d.n[r]++;
         const float* vectors[4]{q,c,s.u[r],s.h[r]};
         for(int k=0;k<4;k++)for(int i=0;i<D;i++){
@@ -1394,7 +1397,7 @@ double run(void*p,const unsigned char*x,const unsigned char*y,int length,int mod
           d.extra[r][2]+=q[j]*q[j];d.extra[r][3]+=c[j]*c[j];
           if(routing_mask&(uint64_t(1)<<j))d.extra[r][4]+=c[j]*c[j];
         }
-      }
+      })
 #ifdef SHOEBOX_LEARNED_COMPLETION
       if(tracing)neural_archive_slot(m,r,(m.laces.cursor[r]+1)&(LACE_RING-1));
 #endif
@@ -1410,7 +1413,7 @@ double run(void*p,const unsigned char*x,const unsigned char*y,int length,int mod
         auto&v=m.laces.records[r][cursor];
         if(m.composition.enabled){auto&state=m.composition.stream.input[r][cursor];
 #ifndef SHOEBOX_LEARNED_COMPLETION
-          for(int d=0;d<LACE_DEPTH;d++)m.composition.stream.metrics[r][11]+=state.uses[d];
+          for(int d=0;d<LACE_DEPTH;d++)SHOEBOX_DIAGNOSTIC(m.composition.stream.metrics[r][11]+=state.uses[d];)
 #endif
           state=InputCredit{};state.tick=s.tick;
 #ifdef SHOEBOX_LEARNED_COMPLETION
@@ -1436,7 +1439,7 @@ double run(void*p,const unsigned char*x,const unsigned char*y,int length,int mod
           if(r>=2){auto&z=m.composition.stream;state.previous_tick=z.memory_tick[r];state.previous_index=z.memory_index[r];state.retention=small_context?0.f:1-alpha;z.memory_tick[r]=s.tick;z.memory_index[r]=cursor;}
         }
 #ifndef SHOEBOX_LEARNED_COMPLETION
-        for(int d=0;d<LACE_DEPTH;d++)if(v.uses[d])m.laces.metrics[r][11]+=v.uses[d];
+        for(int d=0;d<LACE_DEPTH;d++)if(v.uses[d])SHOEBOX_DIAGNOSTIC(m.laces.metrics[r][11]+=v.uses[d];)
 #endif
         v=LaceRecord{};v.tick=s.tick;v.expert=best;v.runner=runner;v.gate=gate;v.gate_derivative=gate_derivative;
 #ifdef SHOEBOX_LEARNED_COMPLETION
@@ -1448,7 +1451,7 @@ double run(void*p,const unsigned char*x,const unsigned char*y,int length,int mod
         memcpy(m.probe.cues[r][cursor],routing,D*sizeof(float));m.probe.ticks[r][cursor]=v.tick;
         for(int k=0;k<nparents;k++){v.parents[k]=parents[k];v.parents[k].coefficient*=alpha;}
         if(r==15||r==16){memcpy(v.returned,s.returned[r-15],D*sizeof(float));v.recall_slot=s.recall_slot[r-15];v.recall_birth=s.return_birth[r-15];}
-        m.laces.metrics[r][0]++;m.laces.metrics[r][6]+=__builtin_popcountll(prior&v.feature_mask)/16.;
+        SHOEBOX_DIAGNOSTIC(m.laces.metrics[r][0]++;)SHOEBOX_DIAGNOSTIC(m.laces.metrics[r][6]+=__builtin_popcountll(prior&v.feature_mask)/16.;)
       }
       memcpy(s.hist[r][1],s.hist[r][0],D*sizeof(float));memcpy(s.hist[r][0],s.h[r],D*sizeof(float));s.valid[r]++;
       if(m.composition.enabled){if(r<2)content_atom(m,r,x[t]);else if(nparts&&(r!=17||composed.ref.seq==0))content_publish(m,r,composed);}
@@ -1505,7 +1508,7 @@ double run(void*p,const unsigned char*x,const unsigned char*y,int length,int mod
         loss+=std::max(0.f,z)-z*bit+std::log1p(std::exp(-std::abs(z)));
         prob[node]=1.f/(1.f+std::exp(-z))-bit;node=2*node+1+bit;
       }
-      node=0;for(int d=0;d<8;d++)node=2*node+1+int(score(node)>0);guess=node-255;
+      SHOEBOX_DIAGNOSTIC(node=0;for(int d=0;d<8;d++)node=2*node+1+int(score(node)>0);guess=node-255;)
       if(emit){
         float mass[511]{};for(int v=0;v<255;v++){
           float z=score(v),left=-std::max(z,0.f)-std::log1p(std::exp(-std::abs(z)));
@@ -1513,7 +1516,7 @@ double run(void*p,const unsigned char*x,const unsigned char*y,int length,int mod
         }memcpy(out+t*V,mass+255,V*sizeof(float));
       }
     }
-    s.correct+=guess==y[t];
+    SHOEBOX_DIAGNOSTIC(s.correct+=guess==y[t];)
     if(mode){
       if(m.head==0){for(int v=0;v<V;v++)prob[v]/=denom;prob[y[t]]-=1;}
       float base_error[V]{};
@@ -1690,4 +1693,7 @@ extern "C" void check_masks(const float*input,uint64_t*out,int n,int k,int metho
 
 #ifdef SHOEBOX_LEARNED_COMPLETION
 #include "bank_pipeline_api.inc"
+#include "memory_inspection.inc"
 #endif
+
+extern "C" int inline_diagnostics_enabled(){return SHOEBOX_INLINE_DIAGNOSTICS;}

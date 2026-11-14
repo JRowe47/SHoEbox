@@ -17,7 +17,7 @@ class ContributionTests(unittest.TestCase):
     def setUpClass(cls):
         (ROOT/'results').mkdir(exist_ok=True)
         path=ROOT/'results/contribution_fixture.so'
-        subprocess.run(['g++','-O2','-march=native','-std=c++17','-shared','-fPIC',
+        subprocess.run(['g++','-DSHOEBOX_INLINE_DIAGNOSTICS=1','-O2','-march=native','-std=c++17','-shared','-fPIC',
                         str(ROOT/'tests/contribution_fixture.cpp'),'-o',str(path)],check=True)
         cls.fx=ct.CDLL(str(path))
         for name,args in {

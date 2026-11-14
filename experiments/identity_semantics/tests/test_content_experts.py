@@ -15,7 +15,7 @@ class ContentExpertTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         path=ROOT/'results'/f'content_expert_fixture_e{core.E}.so';path.parent.mkdir(exist_ok=True)
-        subprocess.run(['g++','-O2','-march=native','-std=c++17',f'-DSHOEBOX_EXPERTS={core.E}',
+        subprocess.run(['g++','-DSHOEBOX_INLINE_DIAGNOSTICS=1','-O2','-march=native','-std=c++17',f'-DSHOEBOX_EXPERTS={core.E}',
                         '-shared','-fPIC',str(ROOT/'tests/content_expert_fixture.cpp'),'-o',str(path)],check=True)
         cls.fx=ct.CDLL(str(path));p,i,f=ct.c_void_p,ct.c_int,ct.c_float
         for name,args in dict(content_fixture_build=[p,i,i,i,p,p],content_fixture_teach=[p,p,f,i],

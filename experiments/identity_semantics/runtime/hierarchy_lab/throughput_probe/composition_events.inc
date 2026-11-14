@@ -24,7 +24,7 @@ inline uint32_t content_count(CountEntry*table,ContentID key,bool learn,double&e
     if(table[i].count<table[best].count)best=i;
   }
   if(!learn)return 0;
-  evictions+=table[best].count>0;table[best]={key,1,0};return 1;
+  SHOEBOX_DIAGNOSTIC(evictions+=table[best].count>0;)table[best]={key,1,0};return 1;
 }
 inline float content_transition(Model&m,int r,ContentID from,ContentID to,bool learn){
   auto&z=m.composition;auto&metric=z.stream.metrics[r];
@@ -117,13 +117,13 @@ inline void content_publish(Model&m,int r,ContentEvent event,bool relay=false){
 #ifdef SHOEBOX_PRESERVE_RELAYS
   formed=!relay&&event.local_arity>=2;
 #endif
-  auto&d=z.metrics[r];d[1]++;d[2]+=formed;d[3]+=formed&&event.ref.recognized;
-  d[4]+=formed&&!event.ref.recognized;d[7]+=event.ref.end-event.ref.begin;
+  auto&d=z.metrics[r];SHOEBOX_DIAGNOSTIC(d[1]++;)SHOEBOX_DIAGNOSTIC(d[2]+=formed;)SHOEBOX_DIAGNOSTIC(d[3]+=formed&&event.ref.recognized;)
+  SHOEBOX_DIAGNOSTIC(d[4]+=formed&&!event.ref.recognized;)SHOEBOX_DIAGNOSTIC(d[7]+=event.ref.end-event.ref.begin;)
 #ifdef SHOEBOX_LEARNED_COMPLETION
   acceptance_publish(m,r,event,relay,formed);
   if(m.pattern.enabled){
-    auto&metric=m.pattern.metrics[r];metric[13]+=std::max<int64_t>(0,event.clock_end-event.clock_begin);
-    if(!relay&&event.kind==1&&event.count>1){metric[12]++;metric[14]+=event.count;}
+    auto&metric=m.pattern.metrics[r];SHOEBOX_DIAGNOSTIC(metric[13]+=std::max<int64_t>(0,event.clock_end-event.clock_begin);)
+    if(!relay&&event.kind==1&&event.count>1){SHOEBOX_DIAGNOSTIC(metric[12]++;)SHOEBOX_DIAGNOSTIC(metric[14]+=event.count;)}
   }
 #endif
 }
@@ -153,7 +153,7 @@ inline void content_passthrough(Model&m,int r,ContentEvent event,const ContentEv
   memcpy(s.hist[r][1],s.hist[r][0],D*sizeof(float));memcpy(s.hist[r][0],s.h[r],D*sizeof(float));s.valid[r]++;
   // A relay is not a neural execution. Keeping the actual producer avoids
   // both false expert teaching and eviction of useful recurrent eligibility.
-  event.origin=child.origin;z.metrics[r][13]++;
+  event.origin=child.origin;SHOEBOX_DIAGNOSTIC(z.metrics[r][13]++;)
   content_publish(m,r,event,true);
 }
 #ifdef SHOEBOX_MULTI_BINDING
@@ -184,9 +184,9 @@ inline bool content_prepare(Model&m,int r,bool learn,ContentEvent&event,ContentE
         n=s.length[r];for(int i=0;i<n;i++)parts[i]=s.pending[r][i];s.length[r]=0;
         event=content_compose(m,r,parts,n,1,learn);return true;
       }
-      s.metrics[r][5]++;return false;
+      SHOEBOX_DIAGNOSTIC(s.metrics[r][5]++;)return false;
     }
-    s.seen[r]=next.ref.seq;s.metrics[r][0]++;
+    s.seen[r]=next.ref.seq;SHOEBOX_DIAGNOSTIC(s.metrics[r][0]++;)
     int&length=s.length[r];bool boundary=false;
     if(length){
       const auto&last=s.pending[r][length-1];
@@ -207,7 +207,7 @@ inline bool content_prepare(Model&m,int r,bool learn,ContentEvent&event,ContentE
     if(boundary){n=length;for(int i=0;i<n;i++)parts[i]=s.pending[r][i];length=0;}
     s.pending[r][length++]=next;
     if(!n&&length>=int(z.max_children)){n=length;for(int i=0;i<n;i++)parts[i]=s.pending[r][i];length=0;}
-    if(!n){s.metrics[r][5]++;return false;}
+    if(!n){SHOEBOX_DIAGNOSTIC(s.metrics[r][5]++;)return false;}
     event=content_compose(m,r,parts,n,1,learn);return true;
   }
   // Associative EC input is a stable fusion of content events. Y continues to
@@ -222,7 +222,7 @@ inline bool content_prepare(Model&m,int r,bool learn,ContentEvent&event,ContentE
     parts[n]=child;parts[n].ref.role=k;
     fresh|=s.fusion_seen[r][n]!=child.ref.seq;s.fusion_seen[r][n]=child.ref.seq;n++;
   }
-  if((r!=17||s.draining)&&(!n||!fresh)){s.metrics[r][5]++;return false;}
+  if((r!=17||s.draining)&&(!n||!fresh)){SHOEBOX_DIAGNOSTIC(s.metrics[r][5]++;)return false;}
   if(n)event=(r==17&&!fresh)?s.history[r][0]:content_compose(m,r,parts,n,2,learn);
   return true;
 }
@@ -242,7 +242,7 @@ inline void content_bundle(Model&m,int r,const ContentEvent&event,const ContentE
     for(int j=0;j<D;j++)c[j]+=weight*gain*content_sign(j,i)*child.context_data().context[content_coord(j,i)];
     if(gain&&nparents<LACE_LINKS){const auto&origin=child.origin;
       parents[nparents++]={origin.region,-100-i,origin.tick,-weight*gain,origin.index};
-      m.composition.stream.metrics[r][12]+=origin.region!=child.ref.region;
+      SHOEBOX_DIAGNOSTIC(m.composition.stream.metrics[r][12]+=origin.region!=child.ref.region;)
     }
   }
   cw=n?1.f:0.f;

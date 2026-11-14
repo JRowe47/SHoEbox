@@ -34,7 +34,9 @@ def collect(model):
         driver=int(immediate[0][0])
         if sum(int(slot[0])==driver for slot in immediate)>=2:
             primary_edges.append((REGIONS[driver],REGIONS[r]))
-    return dict(capabilities=model.capabilities(), composition=model.composition_metrics(),
+    from memory_inspection import read_memory_index
+    return dict(memory_index=read_memory_index(model) if hasattr(model.lib,'inspect_live_memory') else None,
+                capabilities=model.capabilities(), composition=model.composition_metrics(),
                 completion=model.completion_metrics(), teaching=model.relay_teaching_status(),
                 lace=model.lace_metrics(), messages=model.message_metrics(), neural=model.neural_metrics(),
                 local_credit=model.local_credit_metrics(), content_experts=model.content_expert_metrics(),
@@ -45,6 +47,12 @@ def collect(model):
 
 def check_integrity(row):
     """No activity assumptions: suitable for short evaluation and continuations."""
+    if not row['capabilities'].get('inline_diagnostics',True):
+        require(row.get('memory_index') is not None,'Missing memory inspection')
+        for region,v in row['memory_index'].items():
+            require(v['invalid_retained_spans']==0,f'{region}: invalid retained span')
+            require(v['missing_content_records']==0,f'{region}: missing content record')
+        return True
     for group, fields in ZERO_COUNTERS.items():
         require(set(row[group]) == set(REGIONS), f'{group}: missing regional diagnostics')
         for region, values in row[group].items():
@@ -106,6 +114,7 @@ def objective_deliveries(row):
 def check_training(row):
     """Strict coverage for the fixed repeated-text reference acceptance workload."""
     check_integrity(row)
+    require(row['capabilities'].get('inline_diagnostics',True),'Historical coverage requires an explicit SHOEBOX_INLINE_DIAGNOSTICS=1 audit build')
     require(row['capabilities']['reference_profile'] == 'reference-v1', 'Full reference policy required')
     require(all(row['capabilities']['features'].values()), 'A reference feature is disabled')
     for r,v in row['acceptance'].items():
