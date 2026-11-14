@@ -4,6 +4,7 @@ constexpr size_t PIPELINE_HEADER=12*sizeof(uint64_t),PIPELINE_ENTRY=2*sizeof(uin
 inline size_t pipeline_wire_size(const BankPipeline&p){
   return PIPELINE_HEADER+(p.pending?p.pending->entries.size()*PIPELINE_ENTRY+p.pending->weights.size()*D*D*sizeof(float):0);
 }
+inline size_t epoch_wire_size(const BankPipeline&);
 extern "C" {
 int bank_pipeline_configure(void*ptr,int enabled){
   auto&m=*static_cast<Model*>(ptr);auto&p=m.bank_pipeline;
@@ -11,7 +12,7 @@ int bank_pipeline_configure(void*ptr,int enabled){
      p.pending||p.building->scope_count||m.content_credit_depth||
      (enabled&&(!m.event.heads||!m.event.local||m.reverse_epoch_bytes!=1||m.reverse_policy!=2)))return 0;
   for(int r=0;r<N;r++)if(m.s.valid[r])return 0;
-  p.enabled=enabled;return 1;
+  p.enabled=enabled;p.epochs=false;p.dense=false;p.epoch_bytes=1;p.lag_epochs=1;return 1;
 }
 int bank_pipeline_workers(void*ptr,int count,int cpu,int fused){
   auto&m=*static_cast<Model*>(ptr);auto&p=m.bank_pipeline;
@@ -28,8 +29,8 @@ void bank_pipeline_status(void*ptr,uint64_t*out){
 }
 void bank_pipeline_reset_status(void*){} // retained ABI; no observation window
 void bank_pipeline_finish(void*ptr){pipeline_drain(*static_cast<Model*>(ptr));}
-size_t bank_pipeline_state_size(void*ptr){auto&p=static_cast<Model*>(ptr)->bank_pipeline;p.wait();return pipeline_wire_size(p);}
-void bank_pipeline_export(void*ptr,void*out){
+size_t pipeline_v2_state_size(void*ptr){auto&p=static_cast<Model*>(ptr)->bank_pipeline;p.wait();return pipeline_wire_size(p);}
+void pipeline_v2_export(void*ptr,void*out){
   auto&m=*static_cast<Model*>(ptr);auto&p=m.bank_pipeline;p.wait();pipeline_install(m);
   uint64_t h[12]{2,uint64_t(E),uint64_t(p.enabled),p.version,p.sequence,uint64_t(bool(p.pending)),0,0,0,0,0,0};
   if(p.pending){auto&b=*p.pending;h[6]=b.read_version;h[7]=b.base_version;h[8]=b.sequence;h[9]=b.entries.size();h[10]=b.weights.size();}
@@ -41,9 +42,9 @@ void bank_pipeline_export(void*ptr,void*out){
     if(e.weight>=0){const auto&w=p.pending->weights[e.weight];memcpy(dst,w.weights,sizeof(w.weights));dst+=sizeof(w.weights);}
   }
 }
-int bank_pipeline_import(void*ptr,const void*input,size_t size){
+int pipeline_v2_import(void*ptr,const void*input,size_t size){
   auto&m=*static_cast<Model*>(ptr);auto&p=m.bank_pipeline;
-  if(size<PIPELINE_HEADER||m.content_credit_depth||p.building->scope_count)return 0;
+  if(size<PIPELINE_HEADER||m.content_credit_depth)return 0;
   uint64_t h[12];memcpy(h,input,sizeof(h));bool legacy=h[0]==1;
   if((!legacy&&h[0]!=2)||h[1]!=E||h[2]!=uint64_t(p.enabled)||h[5]>1||h[9]>(N-2)*E||h[11]||
      (legacy?h[10]!=0:h[10]>h[9])||h[3]>h[4]||
@@ -90,7 +91,7 @@ int bank_pipeline_import(void*ptr,const void*input,size_t size){
 void bank_pipeline_inspect(void*ptr,uint64_t*out,uint64_t*rows){
   auto&p=static_cast<Model*>(ptr)->bank_pipeline;p.wait();memset(out,0,24*sizeof(uint64_t));
   out[0]=p.version;out[1]=p.sequence;out[2]=bool(p.pending);out[3]=p.workers;out[4]=p.enabled;out[5]=p.fused;
-  out[6]=pipeline_wire_size(p);out[7]=uintptr_t(p.building.get());out[8]=uintptr_t(p.pending.get());
+  out[6]=p.epochs?epoch_wire_size(p):pipeline_wire_size(p);out[7]=uintptr_t(p.building.get());out[8]=uintptr_t(p.pending.get());
   for(const auto&t:p.visible)out[9]+=p.visible_index[t.bank]>=0;
   auto storage=[&](const PipelineBatch*b){if(!b)return;
     out[10]+=sizeof(*b)+b->scopes.capacity()*sizeof(PipelineScope)+b->inputs.capacity()*sizeof(PipelineInput)+
@@ -112,3 +113,5 @@ void bank_pipeline_inspect(void*ptr,uint64_t*out,uint64_t*rows){
   out[20]=(out[15]-out[14])*D*sizeof(float);
 }
 }
+
+#include "bank_epoch_api.inc"

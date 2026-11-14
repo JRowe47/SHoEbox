@@ -8,7 +8,7 @@ int event_configure(void*p,int heads,int local,int frontier,int replay,float cre
      !std::isfinite(replay_scale)||replay_scale<0||replay_scale>2||m.composition.stream.byte_position||m.composition.stream.semantic_serial||
      !m.reverse_roots.empty()||!m.reverse_bank_version.empty()||
      ((heads||local)&&(m.reverse_epoch_bytes!=1||m.reverse_policy!=2))||
-     (m.bank_pipeline.enabled&&(!heads||!local)))return 0;
+     (m.bank_pipeline.enabled&&(!heads||(!local&&!m.bank_pipeline.epochs))))return 0;
   for(int r=0;r<N;r++)if(m.s.valid[r])return 0;
   // A clean-boundary profile reduction releases the formerly active head.
   // Same-profile resets keep their reusable capacity.

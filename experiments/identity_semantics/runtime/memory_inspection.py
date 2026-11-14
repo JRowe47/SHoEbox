@@ -54,6 +54,12 @@ def decode_pending(state,flat,experts):
     """Expand either v1 or v2 pending state to the same indexed bank results."""
     state=np.ascontiguousarray(state,dtype=np.uint8)
     if not state.size:return dict(header=(),banks={})
+    if int(state[:8].view(np.uint64)[0])==3:
+        h=state[:160].view(np.uint64);length=int(h[7])
+        result=decode_pending(state[160:160+length],flat,experts)
+        result['header']=(tuple(map(int,h)),result['header'])
+        result['building']=state[160+length:].copy()
+        return result
     h=state[:96].view(np.uint64);pos=96;banks={};bank_count=18*experts
     w=flat[:bank_count*4096].reshape(bank_count,4096)
     for _ in range(int(h[9])):
@@ -101,6 +107,8 @@ def compare_memory(before,after,*,atol=0.,rtol=0.):
     """Compare detached data only; never call back into either model."""
     changes={}
     left=dict(before.arrays);right=dict(after.arrays)
+    if 'building' in before.pipeline:left['building_factors']=before.pipeline['building']
+    if 'building' in after.pipeline:right['building_factors']=after.pipeline['building']
     for bank,a in before.pipeline['banks'].items():left[f'pending_bank_{bank}']=a
     for bank,a in after.pipeline['banks'].items():right[f'pending_bank_{bank}']=a
     for name in sorted(left.keys()|right.keys()):
@@ -121,6 +129,7 @@ def memory_fingerprint(snapshot):
     digest=hashlib.sha256()
     for name,value in sorted(snapshot.arrays.items()):digest.update(name.encode());digest.update(value.tobytes())
     digest.update(repr(snapshot.pipeline['header']).encode())
+    if 'building' in snapshot.pipeline:digest.update(snapshot.pipeline['building'].tobytes())
     for bank,value in sorted(snapshot.pipeline['banks'].items()):digest.update(str(bank).encode());digest.update(value.tobytes())
     return digest.hexdigest()
 

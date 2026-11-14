@@ -1125,3 +1125,34 @@ SHOEBOX_EXPERTS=12 python src/profile_frame_policy.py --output results/action5_p
 Run timing and external profiling separately from tests and each other. The
 measurement driver supports `--rates`, `--selected-rates` (a JSON mapping),
 `--variants`, `--seeds`, `--targets`, `--workload`, and an explicit CPU placement.
+
+### Action 6: sparse bank epochs and worker overlap
+
+`profile='epochs'` adds an explicit `sparse-epochs-v1` content-bank schedule.
+Configure `bank_epochs=dict(epoch_bytes=4, lag_epochs=1, storage='sparse')`;
+epoch length accepts 1/4/8/16, independently of zero/one epoch lag. Use
+`pipeline_workers=1` for the serial oracle or 2 for caller plus learning worker.
+Both execute exactly the same arithmetic and commit order. MinKron context is
+required; local event and full ancestry credit are both supported.
+
+Unchanged banks are referenced without copying. Two reusable arenas retain
+shared input values and clipped factors across bytes; workers materialize larger
+jobs in original scope/normalization order. The dense storage option provides
+an arithmetic-identical copying control. Predictors, context and readout keep
+their declared online schedules. See [the complete policy](BANK_EPOCH_POLICY.md).
+
+Checkpoint v46 preserves both the completed pending result and the unfinished
+factor arena. Save, inspection, frozen evaluation and ordinary API returns do
+not commit either. Resets now also commit final replay factors before releasing
+producer records; this fixes a carryover in the earlier compact pipeline.
+
+```bash
+python tests/test_bank_epochs.py
+python tests/run_bank_epoch_sanitizer.py
+python src/measure_bank_epochs.py --rates .08,.16,.32 --output results/action6_screen.json
+```
+
+The [Action-6 report](deliverables/SHoEbox_Action6_Sparse_Bank_Epochs.md) records
+worker/storage selection, loss/time, memory, exact continuation and remaining
+work. Run timings without tests or profiling in parallel. Actions 7 and 8 and
+the longer Action-9 qualification remain.

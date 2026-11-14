@@ -14,7 +14,7 @@ inline Model::ContentBankWorkspace& content_bank(Model&m,int r,int e){
       memset(slot->gradient.bias,0,sizeof(slot->gradient.bias));
       memset(slot->gradient.keys,0,sizeof(slot->gradient.keys));slot->gradient.route=false;
     }else slot->gradient=ContentExpertGradient{};
-    slot->requests.clear();slot->routes.clear();
+    slot->requests.clear();slot->routes.clear();slot->objectives=0;
     slot->generation++;
     slot->active=true;m.content_dirty.push_back(index);
   }
@@ -150,6 +150,7 @@ inline void content_expert_derivatives(Model&m,const ContentExpertRecord*const*v
 inline void content_expert_accumulate(Model&m,const ContentExpertRecord&v,const float*local,float rate,int teaching){
   int r=v.ref.region;if(rate==0||m.frozen_region[r])return;
   auto&bank=content_bank(m,r,v.expert);auto&gradient=bank.gradient;float a=rate/content_input_norm(m,v);
+  bank.objectives|=uint32_t(1)<<teaching;
   if(r>=6&&r<=14&&m.utility.config[7]>0&&m.utility.config[7]!=1.f)a*=m.utility.config[7];
   uint64_t mask=m.lcfg[9]>=D?~uint64_t(0):v.input_mask;
   auto&cache=m.content_input_cache[v.ref.index];auto&location=cache.weights[mask!=~uint64_t(0)];
@@ -175,6 +176,7 @@ inline void content_expert_accumulate(Model&m,const ContentExpertRecord&v,const 
   float step=std::clamp(raw_step,-.05f,.05f);SHOEBOX_DIAGNOSTIC(m.reverse_metrics[7]+=step!=raw_step;)
   if(step==0)return;
   auto add_route=[&](Model::ContentBankWorkspace&target,int expert,int role,float value){
+    target.objectives|=uint32_t(1)<<teaching;
     target.gradient.route=true; // Normalize even when clipped steps cancel.
     auto&saved=cache.routes[role];int destination=r*E+expert;
     if(saved.bank!=destination||saved.generation!=target.generation){

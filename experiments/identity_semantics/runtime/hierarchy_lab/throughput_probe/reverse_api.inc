@@ -7,6 +7,7 @@ int reverse_configure(void*p,int policy,int epoch,float scale){
      (policy==1&&epoch!=1)||!std::isfinite(scale)||scale<0||scale>8||
      ((m.event.heads||m.event.local)&&(policy!=2||epoch!=1))||
      ((m.prediction.compact||m.prediction.stride>1)&&epoch!=1)||
+     (m.bank_pipeline.enabled&&(policy!=2||epoch!=1))||
      m.content_credit_depth||!m.reverse_roots.empty()||!m.reverse_bank_version.empty())return 0;
   m.reverse_policy=policy;m.reverse_epoch_bytes=epoch;m.reverse_update_scale=scale;return 1;
 }

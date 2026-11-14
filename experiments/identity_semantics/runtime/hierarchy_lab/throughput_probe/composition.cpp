@@ -221,6 +221,7 @@ struct Model {
     std::vector<ContentRouteRequest> routes;
     uint64_t generation=0;
     bool active=false;
+    uint32_t objectives=0;
   };
   std::array<std::unique_ptr<ContentBankWorkspace>,N*E> content_banks;
   std::vector<int> content_dirty;
@@ -1036,6 +1037,9 @@ prediction_slow_flush(m);
 reverse_finish_epoch(m);
 pipeline_drain(m);
 event_reset_stream(m);
+// Reset can consume the remaining directional replay queue. Commit those
+// detached factors before clearing their producer records and stream owners.
+pipeline_drain(m);
 prediction_reset_stream(m);
 m.acceptance=AcceptanceObservations{};
 paired_clear(m);
@@ -1102,6 +1106,7 @@ prediction_slow_flush(m);
 reverse_finish_epoch(m);
 pipeline_drain(m);
 event_reset_stream(m);
+pipeline_drain(m); // event_reset_stream may have captured final replay factors
 prediction_reset_stream(m);
 m.acceptance=AcceptanceObservations{};
 paired_reset_stream(m);memset(m.s.return_birth,0,sizeof(m.s.return_birth));

@@ -14,6 +14,7 @@ struct PipelineScope {
   PipelineScope() noexcept {} // arrays are fully overwritten; do not zero-fill
   int next=-1;
   bool route=false;
+  uint32_t objectives=0; // bit 0: task, bit 1: local; clipping stays per scope
   float bias[D],keys[D];
   std::vector<PipelineFactor> factors;
 };
@@ -33,6 +34,7 @@ struct PipelineEntry {
 struct PipelineTileV1 { uint64_t bank;float weights[D*D],bias[D],keys[D]; };
 struct PipelineBatch {
   uint64_t read_version=0,base_version=0,sequence=0,generation=0;
+  uint64_t first_byte=0,last_byte=0,objectives=0;
   size_t scope_count=0;
   std::vector<PipelineScope> scopes; // high-water storage; only scope_count live
   std::vector<PipelineInput> inputs;
@@ -44,7 +46,7 @@ struct PipelineBatch {
   PipelineBatch(){bank_index.fill(-1);}
   void reset(){
     for(const auto&e:entries)bank_index[e.bank]=-1;
-    entries.clear();weights.clear();inputs.clear();scope_count=0;++generation;
+    entries.clear();weights.clear();inputs.clear();scope_count=0;objectives=0;++generation;
   }
 };
 inline void pipeline_compute(PipelineBatch&batch,bool fused){
@@ -105,6 +107,11 @@ public:
 };
 struct BankPipeline {
   bool enabled=false,fused=true;
+  // The historical one-byte schedule remains extension 2. Action 6 explicitly
+  // opts into extension 3, including partial immutable factor jobs.
+  bool epochs=false,dense=false;
+  int epoch_bytes=1,lag_epochs=1,position=0;
+  uint64_t bytes=0;
   int workers=1;
   uint64_t version=0,sequence=0;
   std::unique_ptr<PipelineBatch> building=std::make_unique<PipelineBatch>();

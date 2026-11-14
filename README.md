@@ -79,6 +79,13 @@ replay. It has explicit version-41 checkpoint semantics. `fresh_model()` retains
 the full-ancestry reference comparator. See the measurements before choosing
 between the learning policies.
 
+Development-plan Action 6 adds `fresh_model(profile="epochs")`: selected-bank
+epochs of 1/4/8/16 bytes with an independent zero/one-epoch learning lag,
+immutable multi-byte factor jobs and version-46 partial-epoch checkpoints.
+Serial and worker execution follow the same schedule. See the
+[policy and API](experiments/identity_semantics/BANK_EPOCH_POLICY.md) and
+[qualification report](experiments/identity_semantics/deliverables/SHoEbox_Action6_Sparse_Bank_Epochs.md).
+
 [Current implementation and usage](experiments/identity_semantics/README.md) |
 [MinKron and event learning](experiments/identity_semantics/deliverables/SHoEbox_Structural_Optimization_Stage5.md) |
 [Union reverse and bank epochs](experiments/identity_semantics/deliverables/SHoEbox_Structural_Optimization_Stage4.md) |

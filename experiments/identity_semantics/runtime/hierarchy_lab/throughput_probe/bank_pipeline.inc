@@ -15,6 +15,7 @@ inline void pipeline_capture(Model&m,int index,Model::ContentBankWorkspace&bank)
   size_t position=batch.scope_count++;
   if(position==batch.scopes.size())batch.scopes.emplace_back();
   auto&scope=batch.scopes[position];scope.next=-1;scope.route=bank.gradient.route;
+  scope.objectives=bank.objectives;batch.objectives|=scope.objectives;
   memcpy(scope.bias,bank.gradient.bias,sizeof(scope.bias));memcpy(scope.keys,bank.gradient.keys,sizeof(scope.keys));
   scope.factors.resize(bank.requests.size());
   for(size_t i=0;i<bank.requests.size();i++){
@@ -54,11 +55,18 @@ inline void pipeline_commit(Model&m){
   }
   p.version++;p.spare=std::move(p.pending);
 }
-inline void pipeline_finish_step(Model&m){
+inline void pipeline_submit(Model&m){
   auto&p=m.bank_pipeline;if(!p.enabled)return;
   uint64_t read_version=p.version;pipeline_commit(m);
   auto batch=std::move(p.building);p.building=std::move(p.spare);p.building->reset();
   batch->read_version=read_version;batch->base_version=p.version;batch->sequence=++p.sequence;
+  batch->first_byte=p.bytes-p.position;batch->last_byte=p.bytes;
+  // Dense storage is the comparison oracle: same factors and normalization,
+  // but copies every upper bank. Sparse storage references unchanged banks.
+  if(p.dense)for(int bank=2*E;bank<N*E;bank++){
+    if(batch->bank_index[bank]<0){batch->bank_index[bank]=int(batch->entries.size());batch->entries.emplace_back();batch->entries.back().bank=bank;}
+    batch->entries[batch->bank_index[bank]].weighted=true;
+  }
   std::sort(batch->entries.begin(),batch->entries.end(),[](const auto&a,const auto&b){return a.bank<b.bank;});
   for(size_t i=0;i<batch->entries.size();i++){
     auto&e=batch->entries[i];batch->bank_index[e.bank]=int(i);
@@ -71,9 +79,16 @@ inline void pipeline_finish_step(Model&m){
   // Empty bytes still advance the same delayed version boundary.
   p.pending=std::move(batch);
   if(p.worker)p.worker->submit(p.pending.get(),p.fused);else pipeline_compute(*p.pending,p.fused);
+  p.position=0;
+  if(p.epochs&&!p.lag_epochs)pipeline_commit(m);
+}
+inline void pipeline_finish_step(Model&m){
+  auto&p=m.bank_pipeline;if(!p.enabled)return;
+  ++p.bytes;++p.position;
+  if(p.position==p.epoch_bytes)pipeline_submit(m);
 }
 inline void pipeline_drain(Model&m){
-  if(m.bank_pipeline.enabled&&m.bank_pipeline.building->scope_count)pipeline_finish_step(m);
+  if(m.bank_pipeline.enabled&&(m.bank_pipeline.position||m.bank_pipeline.building->scope_count))pipeline_submit(m);
   pipeline_commit(m);pipeline_install(m);
 }
 // Same AVX reduction as dot64, with the version install using those same loads.
