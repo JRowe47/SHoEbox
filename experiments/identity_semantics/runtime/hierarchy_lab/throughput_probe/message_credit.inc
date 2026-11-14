@@ -31,12 +31,12 @@ inline void message_payload(Model&m,int r,const ContentEvent*parts,int n,float*q
     if(contribution_apply(m,CHECK_PAYLOAD,child.ref.region))continue;
 #endif
     float weight=scale*m.regional_gain[child.ref.region]*(r>=3?m.slots[4*slot+3]:1.f);
-    for(int j=0;j<D;j++){int c=message_coord(m,slot,j);raw[j]+=weight*message_sign(m,slot,j)*(child.code[c]-child.structure[c]);}
+    for(int j=0;j<D;j++){int c=message_coord(m,slot,j);raw[j]+=weight*message_sign(m,slot,j)*(child.values().code[c]-child.values().structure[c]);}
     if(weight==0||child.origin.region<2||child.origin.region>=N)continue;
     auto&e=saved.semantic[saved.semantic_count++];e.producer=child.origin;e.occurrence=child.ref;
     e.slot=slot;e.coefficient=weight;
-    memcpy(e.features,child.symbol_features,sizeof(e.features));
-    memcpy(e.derivative,child.symbol_derivative,sizeof(e.derivative));
+    memcpy(e.features,child.values().symbol_features,sizeof(e.features));
+    memcpy(e.derivative,child.values().symbol_derivative,sizeof(e.derivative));
   }
   for(int j=0;j<D;j++){
     float value=std::tanh(raw[j]);q[j]+=m.message_config[0]*value;
@@ -98,7 +98,8 @@ inline void message_feedback_credit(Model&m,int r,LaceRecord&v,const float*du,co
     if(source.region<0||source.region>=N||!source.tick)continue;
     auto*p=find_lace(m,source.region,source.tick,source.index);
     if(!p){m.composition.stream.message_metrics[r][3]++;continue;}
-    for(int j=0;j<D;j++)p->credit[depth][message_coord(m,source.slot,j)]+=source.coefficient*message_sign(m,source.slot,j)*df[j];
+    float*pending_credit=p->credit[depth];
+    for(int j=0;j<D;j++)pending_credit[message_coord(m,source.slot,j)]+=source.coefficient*message_sign(m,source.slot,j)*df[j];
     // The legacy context edge and the new feedback branch are two Jacobian
     // terms for the same consumed occurrence. Count that use only once, so
     // reuse normalization cannot dilute it merely because a channel was split.

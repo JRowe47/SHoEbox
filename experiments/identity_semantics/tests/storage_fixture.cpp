@@ -9,16 +9,16 @@ void storage_fixture_encode(void*p,int old,int muted,int experts,float*out){
   m.contribution_kind=muted?CHECK_SEMANTIC:CHECK_NONE;m.contribution_region=6;
   ContentEvent child{};child.ref.region=2;child.ref.id={123,456};
   for(int j=0;j<D;j++){
-    child.structure[j]=.1f*std::sin(float(j));child.code[j]=child.structure[j]+.02f;
+    child.edit_values().structure[j]=.1f*std::sin(float(j));child.edit_values().code[j]=child.values().structure[j]+.02f;
     for(int k=0;k<8;k++)m.composition.symbols[4][j][k]=.1f*std::cos(float(j+k));
   }
   ContentEvent event{};event.ref.region=6;event.ref.id={543,876};
-  for(int j=0;j<D;j++)event.structure[j]=.03f*(j%7-3);
+  for(int j=0;j<D;j++)event.edit_values().structure[j]=.03f*(j%7-3);
   if(old)semantic_encode(m,6,event);else semantic_prepare_constituent(m,6,event);
   constituent_encode(m,6,event,&child,1,false);
-  memcpy(out,event.structure,sizeof(event.structure));
-  memcpy(out+D,event.code,sizeof(event.code));
-  memcpy(out+2*D,event.symbol_derivative,sizeof(event.symbol_derivative));
+  memcpy(out,event.values().structure,sizeof(event.values().structure));
+  memcpy(out+D,event.values().code,sizeof(event.values().code));
+  memcpy(out+2*D,event.values().symbol_derivative,sizeof(event.values().symbol_derivative));
   out[3*D]=float(m.contribution_counts[6][4]);
 }
 

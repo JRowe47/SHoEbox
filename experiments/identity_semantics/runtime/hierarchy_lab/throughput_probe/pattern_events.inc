@@ -28,7 +28,7 @@ inline PatternDescriptor pattern_descriptor(Model&m,int r,const ContentEvent&eve
           child.clock_end<=prior.clock_begin?-1:2;
       }
     }
-    pattern_normalize(child.code,x.content[i]);
+    pattern_normalize(child.values().code,x.content[i]);
     x.geometry[i][0]=std::tanh(float(child.clock_begin-begin)/duration);
     x.geometry[i][1]=std::tanh(float(child.clock_end-begin)/duration);
     x.geometry[i][2]=std::tanh(std::log1p(float(std::max<int64_t>(0,child.clock_end-child.clock_begin))/duration));
@@ -103,7 +103,7 @@ inline void pattern_classify(Model&m,int r,ContentEvent&out,const ContentEvent*p
     if(size_t(out.semantic.index)>=z.assignments.size())z.assignments.resize(constituent_capacity(m));
     auto&saved=z.assignments[out.semantic.index];saved=PatternAssignment{};
     saved.ref=out.semantic;saved.id=match?match->id:0;
-    float cue[D]{},exported[D];pattern_normalize(out.code,exported);
+    float cue[D]{},exported[D];pattern_normalize(out.values().code,exported);
     int core=__builtin_popcount(x.shape.core),side=n-core;
     for(int i=0;i<n;i++){
       float weight=x.shape.core&(1u<<i)?1.f/std::sqrt(float(std::max(1,core))):.1f/std::sqrt(float(std::max(1,side)));
@@ -129,7 +129,7 @@ inline float pattern_transition(Model&m,int r,const ContentEvent&from,const Cont
   metric[9]+=categorical>0;
   float prediction=0,next[D];
   if(auto*saved=pattern_assignment(m,to))memcpy(next,saved->prediction,sizeof(next));
-  else pattern_normalize(to.code,next);
+  else pattern_normalize(to.values().code,next);
   PatternClass*entry=a.b==PATTERN_TAG+uint64_t(r)?pattern_find(m,r,a.a):nullptr;
   if(entry&&entry->next_count>=m.composition.min_count){
     float distance=0;for(int j=0;j<D;j++){float d=next[j]-entry->next[j];distance+=.5f*d*d;}

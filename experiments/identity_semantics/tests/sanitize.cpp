@@ -3,6 +3,10 @@
 #include <iostream>
 #include <cassert>
 #include "../runtime/hierarchy_lab/throughput_probe/composition.cpp"
+#ifdef SHOEBOX_LEARNED_COMPLETION
+#define SHOEBOX_PUBLICATION_TYPES_READY 1
+#include "publication_fixture.cpp"
+#endif
 template<class T> std::vector<T> read_array(std::ifstream&f){
   int64_t size;f.read(reinterpret_cast<char*>(&size),8);assert(size>=0&&size<10000000);
   std::vector<T> v(size);f.read(reinterpret_cast<char*>(v.data()),size*sizeof(T));assert(f.good());return v;
@@ -12,6 +16,9 @@ int main(int argc,char**argv){
   auto parameters=read_array<float>(f),embedding=read_array<float>(f),feedback=read_array<float>(f),slots=read_array<float>(f);
   auto starts=read_array<int>(f),perm=read_array<int>(f);auto signs=read_array<float>(f);auto fperm=read_array<int>(f);auto fsign=read_array<float>(f);auto cadence=read_array<int>(f);
   void*p=create(parameters.data(),embedding.data(),feedback.data(),slots.data(),starts.data(),perm.data(),signs.data(),fperm.data(),fsign.data(),cadence.data(),1);
+#ifdef SHOEBOX_LEARNED_COMPLETION
+  assert(publication_fixture_sparse());assert(publication_fixture_handles(p));
+#endif
   float lcfg[12]{3,4,16,.1,.25,.5,0,1,2,64,4,1};configure_laces(p,lcfg);
   auto&m=*static_cast<Model*>(p);m.cfg[12]=256;m.cfg[13]=4;m.scfg[10]=.5;
 #ifdef SHOEBOX_LEARNED_COMPLETION
@@ -79,6 +86,8 @@ int main(int argc,char**argv){
   uint64_t local_updates=0,feedback_deliveries=0;
   for(int r=0;r<N;r++){local_updates+=m.local_credit_metrics[r][4];feedback_deliveries+=m.local_credit_metrics[r][2];}
   assert(local_updates>0&&feedback_deliveries>0);
+  std::vector<unsigned char>laces(lace_state_size());export_laces(p,laces.data());
+  import_laces(p,laces.data());
   std::vector<unsigned char>neural(neural_state_size(p));neural_export(p,neural.data());
   assert(neural_import(p,neural.data(),neural.size()));
   assert(!neural_import(p,neural.data(),neural.size()-1));

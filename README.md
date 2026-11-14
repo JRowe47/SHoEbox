@@ -53,6 +53,7 @@ frozen contributions and held-out generation checks. Failed or skipped checks
 cannot produce an overall passing status. Checkpoints remain v39 / ABI 10.
 
 [Current implementation and usage](experiments/identity_semantics/README.md) |
+[Shared publications and sparse credit](experiments/identity_semantics/deliverables/SHoEbox_Structural_Optimization_Stage2.md) |
 [Compact completion records](experiments/identity_semantics/deliverables/SHoEbox_Structural_Optimization_Stage1.md) |
 [Acceptance contract](experiments/identity_semantics/deliverables/SHoEbox_Reference_Acceptance.md) |
 [Paired episodic memory](experiments/identity_semantics/deliverables/SHoEbox_Paired_Episodic_Memory.md) |

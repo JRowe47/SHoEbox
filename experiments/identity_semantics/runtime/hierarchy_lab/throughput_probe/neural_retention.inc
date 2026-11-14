@@ -33,7 +33,7 @@ inline void neural_collect(Model&m){
   };
   auto event=[&](const ContentEvent&e){
     add(e.origin.region,e.origin.tick,e.origin.index,depth);
-    for(int k=0;k<e.context_count;k++){const auto&edge=e.context_edges[k];
+    for(int k=0;k<e.context_data().context_count;k++){const auto&edge=e.context_data().context_edges[k];
       add(edge.region,edge.tick,edge.index,depth);
     }
   };
@@ -45,11 +45,11 @@ inline void neural_collect(Model&m){
     for(int k=0;k<s.length[r];k++)event(s.pending[r][k]);
     add(r,s.memory_tick[r],s.memory_index[r],depth);
     add(r,s.teaching[r].tick,s.teaching[r].index,depth);
-    for(auto&entry:m.neural_archive[r]){
-      auto&v=entry.second.lace;auto&input=entry.second.input;
-      for(int d=0;d<LACE_DEPTH;d++)if(v.uses[d]||input.uses[d])
-        add(r,v.tick,-1,std::max(0,depth-d-1));
-    }
+    // Sparse pending indices are the roots of unresolved work. Do not scan all
+    // immutable archived producers just to rediscover their empty gradients.
+    for(const auto*pending:{&m.pending_neural[r],&m.pending_input[r]})
+      for(const auto&entry:*pending)for(int d=0;d<LACE_DEPTH;d++)if(entry.second&(1u<<d))
+        add(r,entry.first,-1,std::max(0,depth-d-1));
   }
   for(size_t i=0;i<work.size();i++){
     const auto item=work[i];int r=item.region;

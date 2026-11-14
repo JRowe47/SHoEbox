@@ -5,9 +5,9 @@ inline ContentEvent completion_fixture_leaf(Model&m,int r,int id,int64_t begin=0
   e.ref.region=r;e.ref.seq=id+1;e.ref.begin=begin;e.ref.end=end;
   e.clock_begin=begin;e.clock_end=end;
   e.ref.recognized=1;e.count=e.local_arity=2;e.kind=1;
-  for(int j=0;j<D;j++)e.structure[j]=.2f*std::sin(float(id*7+j));
+  for(int j=0;j<D;j++)e.edit_values().structure[j]=.2f*std::sin(float(id*7+j));
   if(r>=2){semantic_encode(m,r,e);constituent_encode(m,r,e,nullptr,0,false);}
-  else memcpy(e.code,e.structure,sizeof(e.code));
+  else memcpy(e.edit_values().code,e.values().structure,sizeof(e.values().code));
   e.origin=e.ref;return e;
 }
 inline ContentEvent completion_fixture_bind(Model&m,int r,int src,const ContentEvent&child){
@@ -40,11 +40,11 @@ void completion_fixture_update_grown(void*p){
 void completion_fixture_chain(void*p,int coordinate,float pulse,int relay,float*out,uint64_t*ids){
   auto&m=*static_cast<Model*>(p);auto child=completion_fixture_leaf(m,3,21);
   if(relay){auto copy=content_compose(m,2,&child,1,1,false);child=copy;}
-  if(coordinate>=0)child.code[coordinate]+=pulse;
+  if(coordinate>=0)child.edit_values().code[coordinate]+=pulse;
   auto parent=completion_fixture_bind(m,7,3,child);
   auto upper=completion_fixture_bind(m,10,7,parent);
   m.composition.stream.history[10][0]=upper;
-  memcpy(out,upper.code,D*sizeof(float));memcpy(out+D,upper.structure,D*sizeof(float));
+  memcpy(out,upper.values().code,D*sizeof(float));memcpy(out+D,upper.values().structure,D*sizeof(float));
   ids[0]=upper.ref.id.a;ids[1]=upper.ref.id.b;
 }
 void completion_fixture_update(void*p,const float*g,float rate){
@@ -69,7 +69,7 @@ void completion_fixture_prepare(void*p,int r,int draining,int learn,int64_t*out)
   out[0]=ready;out[1]=s.length[r];out[2]=n;out[3]=event.ref.recognized;out[4]=s.seen[r];
   auto&frame=ready?parts[0]:s.pending[r][std::max(0,s.length[r]-1)];
   out[5]=frame.count;out[6]=frame.clock_begin;out[7]=frame.clock_end;
-  for(int i=0;i<frame.count;i++){out[8+3*i]=frame.children[i].region;out[9+3*i]=frame.children[i].seq;out[10+3*i]=frame.children[i].role;}
+  for(int i=0;i<frame.count;i++){out[8+3*i]=frame.values().children[i].region;out[9+3*i]=frame.values().children[i].seq;out[10+3*i]=frame.values().children[i].role;}
 }
 void completion_fixture_erase_patterns(void*p){auto&m=*static_cast<Model*>(p);memset(m.composition.patterns,0,sizeof(m.composition.patterns));}
 }
@@ -80,7 +80,7 @@ void completion_fixture_clock_case(void*p,int overlapping,double*out){
  auto source=[&](int r,int id,int64_t begin,int64_t end,int64_t clock_begin){
   ContentEvent e{};e.ref.id={content_mix(id+13),content_mix(id+71)};e.ref.region=r;e.ref.begin=begin;e.ref.end=end;
   e.clock_begin=clock_begin;e.clock_end=end;e.count=e.local_arity=2;e.kind=1;e.ref.recognized=1;
-  for(int j=0;j<D;j++)e.code[j]=e.structure[j]=.1f*std::sin(float(id+j));content_publish(m,r,e);
+  for(int j=0;j<D;j++)e.edit_values().code[j]=e.edit_values().structure[j]=.1f*std::sin(float(id+j));content_publish(m,r,e);
  };
  auto seed=[&](){ContentEvent parts[COMP_MAX];int n=0;
   for(int k=m.starts[14];k<m.starts[15];k++)if(!m.slots[4*k+2]){parts[n]=s.history[int(m.slots[4*k])][int(m.slots[4*k+1])];parts[n++].ref.role=k;}

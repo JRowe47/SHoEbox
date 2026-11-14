@@ -73,7 +73,7 @@ int composition_import(void*p,const void*in,size_t size,int fitted){
   memcpy(&target,in,size);
 #endif
   if(fitted){
-    memset(&target.stream,0,sizeof(target.stream));
+    reset_composition_stream(target.stream);
 #ifdef SHOEBOX_LEARNED_COMPLETION
     for(auto&archive:m.neural_archive)archive.clear();
     for(auto&archive:m.neural_temporal)archive.clear();
@@ -90,9 +90,9 @@ void composition_events(void*p,uint64_t*out,float*code){
     const auto&e=z.history[r][0];uint64_t*row=out+r*(12+COMP_MAX*9);
     row[0]=e.ref.seq;row[1]=e.ref.id.a;row[2]=e.ref.id.b;row[3]=e.ref.begin;row[4]=e.ref.end;
     row[5]=e.ref.tick;row[6]=e.count;row[7]=e.ref.recognized;row[8]=e.kind;row[9]=z.length[r];row[10]=z.seen[r];row[11]=z.byte_position;
-    for(int i=0;i<COMP_MAX;i++){const auto&c=e.children[i];uint64_t*v=row+12+9*i;
+    for(int i=0;i<COMP_MAX;i++){const auto&c=e.values().children[i];uint64_t*v=row+12+9*i;
       v[0]=c.id.a;v[1]=c.id.b;v[2]=c.seq;v[3]=c.begin;v[4]=c.end;v[5]=c.tick;v[6]=c.region;v[7]=c.role;v[8]=c.recognized;}
-    memcpy(code+r*D,e.code,D*sizeof(float));
+    memcpy(code+r*D,e.values().code,D*sizeof(float));
   }
 }
 int composition_finish(void*p,int mode,float lr,float lp,float route){
@@ -138,7 +138,7 @@ void composition_credit_probe(void*p,int region,const float*gradient,int input_o
 void composition_credit_snapshot(void*p,int r,double*out){
   auto&m=*static_cast<Model*>(p);if(r<0||r>=N)return;
   for(int a=0;a<LACE_RING;a++){
-    int index=(m.laces.cursor[r]-a)&(LACE_RING-1);auto&v=m.laces.records[r][index];auto&t=m.composition.stream.input[r][index];
+    int index=(m.laces.cursor[r]-a)&(LACE_RING-1);const auto&v=m.laces.records[r][index];const auto&t=m.composition.stream.input[r][index];
     double*row=out+a*(8+2*D);row[0]=v.tick;row[1]=t.previous_tick;row[2]=t.retention;row[3]=v.nparents;
     row[4]=t.uses[0];row[5]=v.uses[0];row[6]=v.expert;row[7]=t.tick;
     for(int j=0;j<D;j++){row[8+j]=t.gradient[0][j];row[8+D+j]=v.credit[0][j];}

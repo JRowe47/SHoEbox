@@ -11,10 +11,10 @@ void message_fixture_payload(void*p,int r,int src,int coordinate,float delta,int
    auto child=m.composition.stream.history[int(m.slots[4*k])][int(m.slots[4*k+1])];
    if(!child.ref.seq)continue;child.ref.role=k;
    if(reencode&&child.origin.region>=2)for(int j=0;j<D;j++){
-     float z=0;for(int f=0;f<8;f++)z+=m.composition.symbols[child.origin.region-2][j][f]*child.symbol_features[f];
-     float v=std::tanh(z);child.code[j]=child.structure[j]+.25f*v;child.symbol_derivative[j]=.25f*(1-v*v);
+     float z=0;for(int f=0;f<8;f++)z+=m.composition.symbols[child.origin.region-2][j][f]*child.values().symbol_features[f];
+     float v=std::tanh(z);child.edit_values().code[j]=child.values().structure[j]+.25f*v;child.edit_values().symbol_derivative[j]=.25f*(1-v*v);
    }
-   if(child.ref.region==src)child.code[coordinate]+=delta;
+   if(child.ref.region==src)child.edit_values().code[coordinate]+=delta;
    parts[n++]=child;fresh|=1u<<(k-m.starts[r]);
  }
  auto event=binding_compose(m,r,parts,n,false,fresh);float q[D]{},c[D]{},qw=0,cw=0;LaceParent parents[LACE_LINKS];int np=0;
@@ -25,15 +25,15 @@ void message_fixture_payload(void*p,int r,int src,int coordinate,float delta,int
 #ifdef SHOEBOX_LEARNED_COMPLETION
  state.semantic=event.semantic;
 #else
- memcpy(state.symbol_features,event.symbol_features,sizeof(state.symbol_features));memcpy(state.symbol_derivative,event.symbol_derivative,sizeof(state.symbol_derivative));
+ memcpy(state.symbol_features,event.values().symbol_features,sizeof(state.symbol_features));memcpy(state.symbol_derivative,event.values().symbol_derivative,sizeof(state.symbol_derivative));
 #endif
- memcpy(out,q,D*sizeof(float));memcpy(out+D,event.structure,D*sizeof(float));memcpy(out+2*D,c,D*sizeof(float));ids[0]=event.ref.id.a;ids[1]=event.ref.id.b;
+ memcpy(out,q,D*sizeof(float));memcpy(out+D,event.values().structure,D*sizeof(float));memcpy(out+2*D,c,D*sizeof(float));ids[0]=event.ref.id.a;ids[1]=event.ref.id.b;
 }
 void message_fixture_semantic_credit(void*p,int r,const float*g,float rate){
  auto&m=*static_cast<Model*>(p);auto&v=m.laces.records[r][m.laces.cursor[r]];semantic_input_update(m,r,v,g,rate);
 }
 void message_fixture_pulse(void*p,int src,int j,float delta){
- auto&m=*static_cast<Model*>(p);m.s.hist[src][0][j]+=delta;m.composition.stream.history[src][0].context[j]+=delta;
+ auto&m=*static_cast<Model*>(p);m.s.hist[src][0][j]+=delta;m.composition.stream.history[src][0].edit_context().context[j]+=delta;
 }
 void message_fixture_state(void*p,int r,float*out,int*choices){
  auto&m=*static_cast<Model*>(p);auto*v=current_lace(m,r);memcpy(out,m.s.h[r],D*sizeof(float));
@@ -45,7 +45,7 @@ void message_fixture_feedback_isolate(void*p,int receiver){
  for(int r=2;r<N;r++)if(r!=receiver)for(int k=m.starts[r];k<m.starts[r+1];k++)if(int(slots[4*k])==14&&slots[4*k+2])slots[4*k+3]=0;
 }
 void message_fixture_credit(void*p,int r,int src,const float*g,float*out){
- auto&m=*static_cast<Model*>(p);for(int a=0;a<LACE_RING;a++)memset(m.laces.records[src][a].credit,0,sizeof(LaceRecord::credit));
+ auto&m=*static_cast<Model*>(p);for(int a=0;a<LACE_RING;a++)for(int d=0;d<LACE_DEPTH;d++)memset(m.laces.records[src][a].credit[d],0,D*sizeof(float));
  distribute_credit(m,r,*current_lace(m,r),g,0);
  // Delay edge is the preceding source execution, since the full tick has now run.
  auto&input=m.composition.stream.input[r][m.laces.cursor[r]];

@@ -3,7 +3,7 @@ inline ContentEvent paired_fixture_event(Model&m,int a,int token){
   ContentEvent e{};e.ref.region=15+a;e.ref.seq=m.composition.stream.history[15+a][0].ref.seq+1;
   e.ref.tick=m.s.tick;e.ref.begin=e.clock_begin=m.s.tick-1;e.ref.end=e.clock_end=m.s.tick;
   e.ref.id={uint64_t(token+100),uint64_t(a+1)};e.ref.recognized=1;
-  for(int j=0;j<D;j++)e.code[j]=.125f*((content_mix(uint64_t(token+17)*D+j)&1)?1.f:-1.f);
+  for(int j=0;j<D;j++)e.edit_values().code[j]=.125f*((content_mix(uint64_t(token+17)*D+j)&1)?1.f:-1.f);
   return e;
 }
 extern "C" {
@@ -11,8 +11,8 @@ void paired_fixture_step(void*p,int mask,int content,int context,int commit_now)
   auto&m=*static_cast<Model*>(p);m.s.tick++;
   for(int a=0;a<2;a++)if(mask&(1<<a)){
     auto e=paired_fixture_event(m,a,a?context:content);
-    paired_read(m,a,e.code,e);m.composition.stream.history[15+a][0]=e;
-    paired_stage(m,a,e.code,e);
+    paired_read(m,a,e.values().code,e);m.composition.stream.history[15+a][0]=e;
+    paired_stage(m,a,e.values().code,e);
   }
   if(commit_now)paired_commit(m);
 }

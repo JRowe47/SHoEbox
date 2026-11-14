@@ -28,7 +28,10 @@ constexpr int LACE_RING=16,LACE_LINKS=16;
 // `index` occupies former structure padding. Legacy records remain readable:
 // every fast lookup validates the immutable tick and falls back to a scan.
 struct LaceParent { int region=-1,slot=-1; int64_t tick=0; float coefficient=0; int index=-1; };
-struct LaceRecord {
+#ifdef SHOEBOX_LEARNED_COMPLETION
+#include "sparse_credit.inc"
+#endif
+template<class Credit> struct LaceRecordLayout {
   int64_t tick=0;
   int expert=0,runner=0,nparents=0,recall_slot=-1;
   int64_t recall_birth=0;
@@ -36,16 +39,32 @@ struct LaceRecord {
   uint64_t input_mask=0,feature_mask=0;
   float u[D]{},h[D]{},residual[D]{},returned[D]{};
   LaceParent parents[LACE_LINKS]{};
-  float credit[LACE_DEPTH][D]{};
+  Credit credit{};
   int uses[LACE_DEPTH]{};
 };
-struct LaceState {
-  LaceRecord records[N][LACE_RING]{};
+using LaceRecordWire=LaceRecordLayout<float[LACE_DEPTH][D]>;
+#ifdef SHOEBOX_LEARNED_COMPLETION
+using LaceRecord=LaceRecordLayout<SparseCredit>;
+#else
+using LaceRecord=LaceRecordWire;
+#endif
+template<class Record> struct LaceStateLayout {
+  Record records[N][LACE_RING]{};
   int cursor[N]{};
   // publications, credits, flushes, missed parent IDs, route-gradient updates,
   // credited gradient norm, feature overlap, prior masks, and depth counts.
   double metrics[N][12]{};
 };
+
+using LaceState=LaceStateLayout<LaceRecord>;
+using LaceStateWire=LaceStateLayout<LaceRecordWire>;
+#ifdef SHOEBOX_LEARNED_COMPLETION
+template<class Target,class Source> inline void copy_lace(Target&to,const Source&from){
+  static_assert(offsetof(Target,credit)==offsetof(Source,credit));
+  memcpy(&to,&from,offsetof(Target,credit));copy_credit(to.credit,from.credit);
+  memcpy(to.uses,from.uses,sizeof(to.uses));
+}
+#endif
 
 struct State {
   float hist[N][2][D]{},mem[N][D]{},u[N][D]{},h[N][D]{},pred[N][D]{};
@@ -140,6 +159,14 @@ struct Model {
   std::vector<SemanticRef> constituent_work;
   struct ConstituentRole {bool valid=false;int coord[D]{};float sign[D]{};};
   std::vector<ConstituentRole> constituent_roles;
+  struct PublicationRole {
+    std::shared_ptr<const PublicationPayload> payload;
+    std::shared_ptr<const PublicationContext> contextual;
+    bool have_payload=false,have_context=false;
+    float structure[D]{},delta[D]{},context[D]{};
+  };
+  std::vector<PublicationRole> publication_roles;
+  uint64_t publication_cache_metrics[4]{}; // content hits/misses, context hits/misses
   std::pmr::unsynchronized_pool_resource local_credit_pool;
   // The handle is (region, immutable execution tick); ring index is only a hint.
   // std::map preserves addresses while delayed updates insert other records.
@@ -535,10 +562,11 @@ inline void deliver_input_credit(Model&m,int r,LaceRecord&v,const float*du,int d
       // Transparent identity relays do not consume a learned-composition hop.
       deliver_input_credit(m,edge.region,*p,gradient,depth);m.composition.stream.metrics[edge.region][12]++;continue;
     }
+    float*pending_credit=p->credit[depth];
     if(edge.slot<=-100){int position=-100-edge.slot;
-      for(int j=0;j<D;j++)p->credit[depth][content_coord(j,position)]+=edge.coefficient*content_sign(j,position)*du[j];
-    }else if(edge.slot<0){for(int j=0;j<D;j++)p->credit[depth][j]+=edge.coefficient*du[j];}
-    else for(int j=0;j<D;j++)p->credit[depth][m.perm[edge.slot*D+j]]+=edge.coefficient*m.signs[edge.slot*D+j]*du[j];
+      for(int j=0;j<D;j++)pending_credit[content_coord(j,position)]+=edge.coefficient*content_sign(j,position)*du[j];
+    }else if(edge.slot<0){for(int j=0;j<D;j++)pending_credit[j]+=edge.coefficient*du[j];}
+    else for(int j=0;j<D;j++)pending_credit[m.perm[edge.slot*D+j]]+=edge.coefficient*m.signs[edge.slot*D+j]*du[j];
     p->uses[depth]++;m.laces.metrics[edge.region][1]++;m.laces.metrics[edge.region][8+depth]++;
 #ifdef SHOEBOX_LEARNED_COMPLETION
     neural_pending(m,edge.region,p->tick,depth);
@@ -553,7 +581,8 @@ inline void deliver_input_credit(Model&m,int r,LaceRecord&v,const float*du,int d
     auto*saved_target=lace_input(m,r,*previous);
     if(!saved_target||saved_target->tick!=previous->tick){z.metrics[r][10]++;return;}
     auto&target=*saved_target;
-    for(int j=0;j<D;j++)target.gradient[depth][j]+=state.retention*du[j];
+    float*pending_gradient=target.gradient[depth];
+    for(int j=0;j<D;j++)pending_gradient[j]+=state.retention*du[j];
     target.uses[depth]++;z.metrics[r][8]++;
 #ifdef SHOEBOX_LEARNED_COMPLETION
     neural_pending(m,r,previous->tick,depth,true);
@@ -905,7 +934,7 @@ constituent_invalidate(m);
   neural_invalidate(m);m.content_input_cache.clear();m.content_records.clear();memset(m.content_expert_metrics,0,sizeof(m.content_expert_metrics));
 pattern_reset_stream(m);
 #endif
-memset(&m.composition.stream,0,sizeof(m.composition.stream));m.laces=LaceState{};auto&s=m.s;memset(&s,0,sizeof(s));s.rng=7131587;s.recall_slot[0]=s.recall_slot[1]=-1;initialize_learned(m);}
+reset_composition_stream(m.composition.stream);m.laces=LaceState{};auto&s=m.s;memset(&s,0,sizeof(s));s.rng=7131587;s.recall_slot[0]=s.recall_slot[1]=-1;initialize_learned(m);}
 size_t state_size(){return sizeof(State);}
 void export_state(void*p,void*out){memcpy(out,&static_cast<Model*>(p)->s,sizeof(State));}
 void import_state(void*p,void*in){memcpy(&static_cast<Model*>(p)->s,in,sizeof(State));}
@@ -915,9 +944,24 @@ void hc_observe(void*p,int enabled){auto&m=*static_cast<Model*>(p);m.observe=ena
 void hc_metrics(void*p,double*out){memcpy(out,static_cast<Model*>(p)->hc,2*80*sizeof(double));}
 void set_reference(void*p,float*v){memcpy(static_cast<Model*>(p)->reference,v,2*D*sizeof(float));}
 void configure(void*p,float*cfg){memcpy(static_cast<Model*>(p)->cfg,cfg,24*sizeof(float));}
-size_t lace_state_size(){return sizeof(LaceState);}
-void export_laces(void*p,void*out){memcpy(out,&static_cast<Model*>(p)->laces,sizeof(LaceState));}
-void import_laces(void*p,void*in){auto&m=*static_cast<Model*>(p);memcpy(&m.laces,in,sizeof(LaceState));
+size_t lace_state_size(){return sizeof(LaceStateWire);}
+void export_laces(void*p,void*out){
+  const auto&s=static_cast<Model*>(p)->laces;auto&wire=*static_cast<LaceStateWire*>(out);
+#ifdef SHOEBOX_LEARNED_COMPLETION
+  for(int r=0;r<N;r++)for(int i=0;i<LACE_RING;i++)copy_lace(wire.records[r][i],s.records[r][i]);
+  memcpy(wire.cursor,s.cursor,sizeof(s.cursor));memcpy(wire.metrics,s.metrics,sizeof(s.metrics));
+#else
+  memcpy(out,&s,sizeof(s));
+#endif
+}
+void import_laces(void*p,void*in){auto&m=*static_cast<Model*>(p);
+#ifdef SHOEBOX_LEARNED_COMPLETION
+  const auto&wire=*static_cast<const LaceStateWire*>(in);
+  for(int r=0;r<N;r++)for(int i=0;i<LACE_RING;i++)copy_lace(m.laces.records[r][i],wire.records[r][i]);
+  memcpy(m.laces.cursor,wire.cursor,sizeof(wire.cursor));memcpy(m.laces.metrics,wire.metrics,sizeof(wire.metrics));
+#else
+  memcpy(&m.laces,in,sizeof(LaceState));
+#endif
 #ifdef SHOEBOX_LEARNED_COMPLETION
 neural_invalidate(m);
 #endif
@@ -951,7 +995,7 @@ constituent_invalidate(m);
   neural_invalidate(m);m.content_input_cache.clear();m.content_records.clear();memset(m.content_expert_metrics,0,sizeof(m.content_expert_metrics));
 pattern_reset_stream(m);
 #endif
-memset(&m.composition.stream,0,sizeof(m.composition.stream));m.laces=LaceState{};auto&s=m.s;
+reset_composition_stream(m.composition.stream);m.laces=LaceState{};auto&s=m.s;
  memset(m.learned.memory,0,sizeof(m.learned.memory));memset(m.learned.eligibility_a,0,sizeof(m.learned.eligibility_a));memset(m.learned.eligibility_b,0,sizeof(m.learned.eligibility_b));memset(m.learned.records,0,sizeof(m.learned.records));
  memset(s.hist,0,sizeof(s.hist));memset(s.mem,0,sizeof(s.mem));memset(s.u,0,sizeof(s.u));memset(s.h,0,sizeof(s.h));memset(s.pred,0,sizeof(s.pred));
  memset(s.valid,0,sizeof(s.valid));memset(s.pending,0,sizeof(s.pending));memset(s.pending_valid,0,sizeof(s.pending_valid));memset(s.key_trace,0,sizeof(s.key_trace));
@@ -1000,7 +1044,7 @@ double run(void*p,const unsigned char*x,const unsigned char*y,int length,int mod
          ){
         if(mode)flush_credit(m,r,lr);
 #ifdef SHOEBOX_PRESERVE_RELAYS
-        relay_teach(m,r,composed.code,mode,lp,true);
+        relay_teach(m,r,composed.values().code,mode,lp,true);
 #endif
         content_passthrough(m,r,composed,parts[0]);continue;
       }
@@ -1264,8 +1308,8 @@ double run(void*p,const unsigned char*x,const unsigned char*y,int length,int mod
 #ifdef SHOEBOX_IDENTITY_SEMANTICS
           if(r>=2&&nparts){
 #ifndef SHOEBOX_LEARNED_COMPLETION
-            memcpy(state.symbol_features,composed.symbol_features,sizeof(state.symbol_features));
-            memcpy(state.symbol_derivative,composed.symbol_derivative,sizeof(state.symbol_derivative));
+            memcpy(state.symbol_features,composed.values().symbol_features,sizeof(state.symbol_features));
+            memcpy(state.symbol_derivative,composed.values().symbol_derivative,sizeof(state.symbol_derivative));
 #endif
             state.symbol_scale=alpha*qa;
           }

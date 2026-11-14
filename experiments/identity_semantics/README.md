@@ -112,6 +112,48 @@ recognition behavior. Run `src/validate_pattern_classes.py` for the matched cost
 frozen class-removal intervention and held-out generation checks. See
 [the fourth-fix report](deliverables/SHoEbox_Pattern_Classes.md).
 
+### Structural optimization stage 2
+
+The default completion runtime shares immutable content and context payloads
+between publication histories, pending frames, consumers and relays. Copies
+carry occurrence metadata plus handles; explicit vector edits detach the payload.
+A bounded role cache reuses permuted descriptors, semantic residuals and context
+values. It is keyed by payload handles, so newly learned vectors and interventions
+invalidate it even when exact content IDs remain equal. Receiver weights, source
+gains and accumulation order are still applied at each use.
+
+Neural and retained-input gradients now allocate only for pending records.
+Consumption releases empty arrays, and neural collection finds unresolved work
+through the existing pending indices. Exact identity, producer provenance, local
+and task objectives, depth budgets, update ordering and reference features remain
+unchanged. Historical kernels keep their layouts. Checkpoint v39 / composition
+ABI 10 / neural ABI 1 expand shared payloads and sparse arrays at I/O; existing
+checkpoints remain readable in both directions.
+
+`model.publication_storage()` reports handle sizes, shared payload counts, active
+gradient blocks and cache hits/misses. `model.completion_storage()` includes
+allocated sparse gradients in archive payload bytes. Both exclude allocator
+bookkeeping. Caches are transient and rebuild after loading or resetting.
+
+See [the stage 2 report and remaining updates](deliverables/SHoEbox_Structural_Optimization_Stage2.md).
+
+```bash
+python -m unittest discover -s experiments/identity_semantics/tests -v
+SHOEBOX_EXPERTS=64 python -m unittest discover \
+  -s experiments/identity_semantics/tests -p 'test_*storage*.py' -v
+ASAN_OPTIONS=detect_leaks=0 python experiments/identity_semantics/tests/run_completion_sanitizer.py
+python experiments/identity_semantics/src/compare_optimized_runtime.py \
+  --baseline-runtime /path/to/86a4204/experiments/identity_semantics/runtime \
+  --warmup 1024 --targets 1024 --repeats 5 --output /tmp/stage2_compare.json
+python experiments/identity_semantics/src/check_storage_compatibility.py \
+  --baseline-runtime /path/to/86a4204/experiments/identity_semantics/runtime \
+  --output /tmp/stage2_compatibility.json
+```
+
+Add `--bridge-mode eval` to the compatibility command for an evaluation interval
+followed by resumed training. Leak scanning can be enabled on hosts that support
+LeakSanitizer; the hosted validation run uses ASan and UBSan.
+
 ### Structural optimization stage 1
 
 The completion runtime now builds each structural descriptor once and evaluates

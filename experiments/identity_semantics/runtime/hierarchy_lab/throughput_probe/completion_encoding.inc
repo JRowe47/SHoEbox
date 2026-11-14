@@ -58,7 +58,8 @@ inline void constituent_encode(Model&m,int r,ContentEvent&out,const ContentEvent
   if(size_t(index)<m.content_records.size())m.content_records[index]=ContentExpertRecord{};
   if(size_t(index)<m.pattern.assignments.size())m.pattern.assignments[index]=PatternAssignment{};
   node.ref={++s.semantic_serial,r,index};out.semantic=node.ref;
-  memcpy(node.features,out.symbol_features,sizeof(node.features));
+  auto&published=out.edit_values();
+  memcpy(node.features,published.symbol_features,sizeof(node.features));
   float squared=0,raw[D]{};
   if(binding)for(int k=m.starts[r];k<m.starts[r+1];k++)if(!m.slots[4*k+2])squared+=m.slots[4*k+3]*m.slots[4*k+3];
   float scale=1.f/std::sqrt(binding?std::max(1.f,squared):float(std::max(1,n)));
@@ -68,7 +69,8 @@ inline void constituent_encode(Model&m,int r,ContentEvent&out,const ContentEvent
 #ifdef SHOEBOX_CONTRIBUTION_CHECKS
     if(contribution_apply(m,CHECK_PAYLOAD,child.ref.region))continue;
 #endif
-    for(int j=0;j<D;j++){int c=constituent_coord(m,slot,j);raw[j]+=weight*constituent_sign(m,slot,j)*(child.code[c]-child.structure[c]);}
+    const auto&cached=publication_role(m,slot,child);
+    for(int j=0;j<D;j++)raw[j]+=weight*constituent_sign(m,slot,j)*cached.delta[j];
     if(weight&&child.semantic.serial)node.edges[node.count++]={child.semantic,child.ref,slot,weight};
   }
   float t=std::tanh(m.composition.payload_gates[r-2]);
@@ -83,15 +85,15 @@ inline void constituent_encode(Model&m,int r,ContentEvent&out,const ContentEvent
 #ifdef SHOEBOX_CONTRIBUTION_CHECKS
   if(contribution_apply(m,CHECK_CONTENT_EXPERT,r))encode=false;
 #endif
-  if(encode)content_expert_encode(m,r,node,out.structure,gain,expert);
+  if(encode)content_expert_encode(m,r,node,published.structure,gain,expert);
   for(int j=0;j<D;j++){
     float payload=node.payload[j],value=0;
     for(int k=0;k<8;k++)value+=m.composition.symbols[r-2][j][k]*node.features[k];
     float pre=value+gain*payload;
     if(encode)pre+=expert[j]; // Keep historical floating-point order when disabled.
     float residual=muted?0:std::tanh(pre);
-    out.code[j]=out.structure[j]+.25f*residual;
-    node.derivative[j]=out.symbol_derivative[j]=muted?0:.25f*(1-residual*residual);
+    published.code[j]=published.structure[j]+.25f*residual;
+    node.derivative[j]=published.symbol_derivative[j]=muted?0:.25f*(1-residual*residual);
     node.payload[j]=payload;node.payload_derivative[j]=gain*(1-payload*payload);
   }
 }

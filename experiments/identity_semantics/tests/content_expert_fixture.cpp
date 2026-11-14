@@ -14,7 +14,7 @@ void content_fixture_build(void*p,int same_bank,int repeated,int relay,float*out
   m.composition.stream.history[10][0]=nodes[2];
   for(int k=0;k<3;k++){
     auto&e=nodes[k];auto*v=content_expert_record(m,e.semantic);assert(v);
-    float*a=out+k*(5*D+2);memcpy(a,e.code,sizeof(e.code));memcpy(a+D,e.structure,sizeof(e.structure));
+    float*a=out+k*(5*D+2);memcpy(a,e.values().code,sizeof(e.values().code));memcpy(a+D,e.values().structure,sizeof(e.values().structure));
     memcpy(a+2*D,v->input,sizeof(v->input));memcpy(a+3*D,v->residual,sizeof(v->residual));
     memcpy(a+4*D,v->route_derivative,sizeof(v->route_derivative));a[5*D]=v->gate;a[5*D+1]=v->gate_derivative;
     uint64_t*b=meta+10*k;b[0]=e.semantic.serial;b[1]=e.semantic.index;b[2]=v->expert;b[3]=v->runner;
@@ -35,7 +35,7 @@ void content_fixture_history(void*p){
       m.probe.means[r][j]=.3f*std::cos(float(r-j));
       for(int k=0;k<2;k++){
         m.s.hist[r][k][j]=.6f*std::sin(float(r+j+k));
-        m.composition.stream.history[r][k].context[j]=.8f*std::sin(float(r+j+k));
+        m.composition.stream.history[r][k].edit_context().context[j]=.8f*std::sin(float(r+j+k));
       }
     }
   }

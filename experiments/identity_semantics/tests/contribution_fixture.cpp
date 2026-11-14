@@ -10,7 +10,7 @@ void check_fixture_memory(void*p,int r,float value){
 void check_fixture_vectors(void*p,int r,float*out){
   auto&m=*static_cast<Model*>(p);auto&e=m.composition.stream.history[r][0];
   memcpy(out,m.s.mem[r],D*sizeof(float));memcpy(out+D,m.s.h[r],D*sizeof(float));
-  memcpy(out+2*D,e.structure,D*sizeof(float));memcpy(out+3*D,e.context,D*sizeof(float));
+  memcpy(out+2*D,e.values().structure,D*sizeof(float));memcpy(out+3*D,e.context_data().context,D*sizeof(float));
   memcpy(out+4*D,m.learned.memory[r<2?r:0],D*sizeof(float));
 }
 void check_fixture_relay(void*p,int source,int receiver){

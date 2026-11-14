@@ -4,8 +4,8 @@ void fixture_memory(void*p,int r,int j,float delta){static_cast<Model*>(p)->s.me
 void fixture_flush(void*p,int r){flush_credit(*static_cast<Model*>(p),r,0.f);}
 void fixture_credit_clear(void*p){auto&m=*static_cast<Model*>(p);
   for(int r=0;r<N;r++)for(int i=0;i<LACE_RING;i++){
-    auto&v=m.laces.records[r][i];memset(v.credit,0,sizeof(v.credit));memset(v.uses,0,sizeof(v.uses));
-    auto&t=m.composition.stream.input[r][i];memset(t.gradient,0,sizeof(t.gradient));memset(t.uses,0,sizeof(t.uses));
+    auto&v=m.laces.records[r][i];for(int d=0;d<LACE_DEPTH;d++)memset(v.credit[d],0,D*sizeof(float));memset(v.uses,0,sizeof(v.uses));
+    auto&t=m.composition.stream.input[r][i];for(int d=0;d<LACE_DEPTH;d++)memset(t.gradient[d],0,D*sizeof(float));memset(t.uses,0,sizeof(t.uses));
   }
 }
 void fixture_lace_parents(void*p,int r,int64_t*out,float*weights){

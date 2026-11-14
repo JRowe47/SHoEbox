@@ -46,14 +46,14 @@ inline ContentEvent content_compose(Model&m,int r,const ContentEvent*children,in
 #ifdef SHOEBOX_PRESERVE_RELAYS
     out.local_arity=1;out.relayed=1;
 #else
-    out.children[0]=children[0].ref;out.children[0].role=0;
+    out.edit_values().children[0]=children[0].ref;out.edit_values().children[0].role=0;
     out.count=1;out.kind=3;out.confidence=0;out.ref.recognized=0;
     // Preserve vector/identity exactly. Relay recognition/teaching is step 3.
 #endif
     return out;
   }
 #endif
-  ContentEvent out{};out.count=n;out.kind=n==1&&kind==1?3:kind;
+  ContentEvent out{};auto&published=out.edit_values();out.count=n;out.kind=n==1&&kind==1?3:kind;
 #ifdef SHOEBOX_PRESERVE_RELAYS
   out.local_arity=n;
 #endif
@@ -65,7 +65,7 @@ inline ContentEvent content_compose(Model&m,int r,const ContentEvent*children,in
   ContentID id{content_mix(uint64_t(r)+0x636f6d70),content_mix(uint64_t(kind)+0x726f6c65)};
   float scale=1.f/std::sqrt(float(n));
   for(int i=0;i<n;i++){
-    out.children[i]=children[i].ref;out.children[i].role=i;
+    published.children[i]=children[i].ref;published.children[i].role=i;
     out.ref.begin=std::min(out.ref.begin,children[i].ref.begin);out.ref.end=std::max(out.ref.end,children[i].ref.end);
     // Relative geometry is semantic; absolute byte offsets and event ticks are not.
     uint64_t geometry=uint64_t(children[i].ref.begin-children[0].ref.begin);
@@ -73,10 +73,10 @@ inline ContentEvent content_compose(Model&m,int r,const ContentEvent*children,in
     uint64_t duration=uint64_t(children[i].ref.end-children[i].ref.begin);
     uint64_t shape=content_mix(uint64_t(i)+0x726f6c65)^content_mix(geometry+0x7374617274)^content_mix(duration+0x647572)^content_mix(uint64_t(children[i].ref.region)+0x737263);
     id=content_pair(id,children[i].ref.id,shape);
-    for(int j=0;j<D;j++)out.structure[j]+=scale*content_sign(j,i)*children[i].structure[content_coord(j,i)];
+    for(int j=0;j<D;j++)published.structure[j]+=scale*content_sign(j,i)*children[i].values().structure[content_coord(j,i)];
 #else
     id=content_pair(id,children[i].ref.id,content_mix(uint64_t(i)^geometry));
-    for(int j=0;j<D;j++)out.code[j]+=scale*content_sign(j,i)*children[i].code[content_coord(j,i)];
+    for(int j=0;j<D;j++)published.code[j]+=scale*content_sign(j,i)*children[i].values().code[content_coord(j,i)];
 #endif
   }
   out.ref.id=id;
@@ -88,7 +88,7 @@ inline ContentEvent content_compose(Model&m,int r,const ContentEvent*children,in
   semantic_encode(m,r,out);
 #endif
 #endif
-  if(n==1&&kind==1){out.ref.id=children[0].ref.id;memcpy(out.code,children[0].code,sizeof(out.code));out.confidence=0;}
+  if(n==1&&kind==1){out.ref.id=children[0].ref.id;memcpy(published.code,children[0].values().code,sizeof(published.code));out.confidence=0;}
   else {
     auto&z=m.composition;uint32_t count=content_count(z.patterns[r],id,learn,z.stream.metrics[r][6]);
     out.ref.recognized=count>=z.min_count;out.confidence=std::min(1.f,float(count)/z.min_count);
@@ -105,10 +105,10 @@ inline void content_publish(Model&m,int r,ContentEvent event,bool relay=false){
   auto&z=m.composition.stream;event.ref.seq=z.history[r][0].ref.seq+1;
   event.ref.tick=m.s.tick;event.ref.index=m.laces.cursor[r];
   if(!relay)event.origin=event.ref;
-  memcpy(event.context,m.s.h[r],sizeof(event.context));
+  memcpy(event.edit_context().context,m.s.h[r],sizeof(event.context_data().context));
 #ifdef SHOEBOX_CONTRIBUTION_CHECKS
   if(contribution_apply(m,CHECK_DESCRIPTOR,r)){
-    memset(event.code,0,sizeof(event.code));memset(event.structure,0,sizeof(event.structure));
+    memset(event.edit_values().code,0,sizeof(event.values().code));memset(event.edit_values().structure,0,sizeof(event.values().structure));
   }
   contribution_event(m,r,event);
 #endif
@@ -133,9 +133,9 @@ inline void content_atom(Model&m,int r,int byte){
 #ifdef SHOEBOX_LEARNED_COMPLETION
   event.clock_begin=event.ref.begin;event.clock_end=event.ref.end;
 #endif
-  memcpy(event.code,m.emb+byte*D,sizeof(event.code));
+  memcpy(event.edit_values().code,m.emb+byte*D,sizeof(event.values().code));
 #ifdef SHOEBOX_IDENTITY_SEMANTICS
-  memcpy(event.structure,event.code,sizeof(event.structure));
+  memcpy(event.edit_values().structure,event.values().code,sizeof(event.values().structure));
 #endif
   content_publish(m,r,event);
 }
@@ -143,7 +143,7 @@ inline void content_passthrough(Model&m,int r,ContentEvent event,const ContentEv
   auto&s=m.s;auto&z=m.composition.stream;
   // No new recognition decision, transform or recurrent input update. Public
   // output changes, but the producer's eligibility and teaching stay separate.
-  memcpy(s.h[r],child.context,D*sizeof(float));
+  memcpy(s.h[r],child.context_data().context,D*sizeof(float));
 #ifdef SHOEBOX_CONTRIBUTION_CHECKS
   if(contribution_apply(m,CHECK_RELAY,r))memset(s.h[r],0,sizeof(s.h[r]));
 #endif
@@ -234,12 +234,12 @@ inline void content_bundle(Model&m,int r,const ContentEvent&event,const ContentE
 #endif
   if(r>=3){binding_bundle(m,r,event,parts,n,q,c,qw,cw,parents,nparents);return;}
 #endif
-  if(n){memcpy(q,event.code,D*sizeof(float));qw=1;}
+  if(n){memcpy(q,event.values().code,D*sizeof(float));qw=1;}
   float weight=1.f/std::sqrt(float(std::max(1,n)));
   for(int i=0;i<n;i++){
     const auto&child=parts[i];
     float gain=m.regional_gain[child.ref.region];
-    for(int j=0;j<D;j++)c[j]+=weight*gain*content_sign(j,i)*child.context[content_coord(j,i)];
+    for(int j=0;j<D;j++)c[j]+=weight*gain*content_sign(j,i)*child.context_data().context[content_coord(j,i)];
     if(gain&&nparents<LACE_LINKS){const auto&origin=child.origin;
       parents[nparents++]={origin.region,-100-i,origin.tick,-weight*gain,origin.index};
       m.composition.stream.metrics[r][12]+=origin.region!=child.ref.region;

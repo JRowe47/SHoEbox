@@ -12,7 +12,7 @@ struct ChildEvent {
 #ifdef SHOEBOX_LEARNED_COMPLETION
 #include "completion_types.inc"
 #endif
-struct ContentEvent {
+struct ContentEventWire {
   ChildEvent ref{};
   ChildEvent origin{}; // Actual neural producer; identity relays keep this intact.
   int count=0,kind=0; // 0 atom, 1 sequence, 2 fusion, 3 legacy singleton, 4 role binding
@@ -38,7 +38,51 @@ struct ContentEvent {
   // This prevents stale child embeddings from changing a parent's symbol meaning.
   float structure[D]{},symbol_features[8]{},symbol_derivative[D]{};
 #endif
+  const ContentEventWire&values()const{return *this;}
+  ContentEventWire&edit_values(){return *this;}
+  const ContentEventWire&context_data()const{return *this;}
+  ContentEventWire&edit_context(){return *this;}
+
 };
+#ifdef SHOEBOX_LEARNED_COMPLETION
+struct PublicationPayload {
+  ChildEvent children[COMP_MAX]{};
+  float code[D]{},structure[D]{},symbol_features[8]{},symbol_derivative[D]{};
+};
+struct PublicationContext {
+  float context[D]{};
+  int context_count=0;
+  LaceParent context_edges[COMP_MAX]{};
+};
+// Copies carry occurrence metadata and shared payload handles. Construction and
+// interventions explicitly detach; a published consumer can never mutate its source.
+struct ContentEvent {
+  ChildEvent ref{},origin{};
+  int count=0,kind=0;
+  float confidence=0;
+  int local_arity=0,relayed=0;
+  uint32_t present_mask=0,fresh_mask=0;
+  SemanticRef semantic{};
+  int64_t clock_begin=0,clock_end=0;
+  std::shared_ptr<PublicationPayload> payload;
+  std::shared_ptr<PublicationContext> contextual;
+  const PublicationPayload&values()const{static const PublicationPayload zero{};return payload?*payload:zero;}
+  PublicationPayload&edit_values(){
+    if(!payload)payload=std::make_shared<PublicationPayload>();
+    else if(!payload.unique())payload=std::make_shared<PublicationPayload>(*payload);
+    return *payload;
+  }
+  const PublicationContext&context_data()const{static const PublicationContext zero{};return contextual?*contextual:zero;}
+  PublicationContext&edit_context(){
+    if(!contextual)contextual=std::make_shared<PublicationContext>();
+    else if(!contextual.unique())contextual=std::make_shared<PublicationContext>(*contextual);
+    return *contextual;
+  }
+};
+#else
+using ContentEvent=ContentEventWire;
+#endif
+
 #ifdef SHOEBOX_LEARNED_MESSAGES
 #include "message_types.inc"
 #endif
@@ -58,7 +102,11 @@ struct InputCredit {
 #ifdef SHOEBOX_LEARNED_MESSAGES
   MessageInput message{};
 #endif
+#ifdef SHOEBOX_LEARNED_COMPLETION
+  SparseCredit gradient{};
+#else
   float gradient[LACE_DEPTH][D]{};
+#endif
   int uses[LACE_DEPTH]{};
 };
 #ifdef SHOEBOX_PRESERVE_RELAYS
@@ -70,9 +118,9 @@ struct PendingTeaching {
   float prediction[D]{},input[D]{};
 };
 #endif
-// Only the input layout differs between runtime and historical wire storage.
-// All other fields retain their original order, types and representation.
-template<class Credit> struct CompositionStreamLayout {
+// Runtime events and pending gradients use shared/owned handles. The checkpoint
+// instantiation keeps expanded historical records; scalar sections retain order.
+template<class Credit,class Event=ContentEvent> struct CompositionStreamLayout {
   int64_t byte_position=0;
   uint32_t draining=0,reserved=0;
 #ifdef SHOEBOX_LEARNED_COMPLETION
@@ -85,7 +133,7 @@ template<class Credit> struct CompositionStreamLayout {
   // Semantic deliveries, gradient norm, feedback deliveries, missing feedback.
   double message_metrics[N][4]{};
 #endif
-  ContentEvent history[N][2]{},pending[N][COMP_MAX]{};
+  Event history[N][2]{},pending[N][COMP_MAX]{};
   int length[N]{};
   int64_t seen[N]{},fusion_seen[N][COMP_MAX]{};
   int64_t memory_tick[N]{},event_serial[N]{};
@@ -99,7 +147,7 @@ template<class Credit> struct CompositionStreamLayout {
   uint64_t teaching_metrics[N][6]{};
 #endif
 };
-template<class Credit> struct CompositionRuntimeLayout {
+template<class Credit,class Event=ContentEvent> struct CompositionRuntimeLayout {
 #ifdef SHOEBOX_LEARNED_COMPLETION
   uint32_t version=10,enabled=1; // Explicit content encoder tags; v9 live import is lossless.
 #elif defined(SHOEBOX_LEARNED_MESSAGES)
@@ -124,7 +172,7 @@ template<class Credit> struct CompositionRuntimeLayout {
 #ifdef SHOEBOX_LEARNED_COMPLETION
   float payload_gates[N-2]{}; // gain = 1 + 0.5*tanh(parameter)
 #endif
-  CompositionStreamLayout<Credit> stream{};
+  CompositionStreamLayout<Credit,Event> stream{};
 };
 using CompositionStream=CompositionStreamLayout<InputCredit>;
 using CompositionRuntime=CompositionRuntimeLayout<InputCredit>;
@@ -133,3 +181,12 @@ using CompositionRuntime=CompositionRuntimeLayout<InputCredit>;
 #else
 using CompositionCheckpoint=CompositionRuntime;
 #endif
+
+inline void reset_composition_stream(CompositionStream&stream){
+#ifdef SHOEBOX_LEARNED_COMPLETION
+  // Avoid a 25 MiB stack temporary and release all shared/owned allocations.
+  auto empty=std::make_unique<CompositionStream>();stream=std::move(*empty);
+#else
+  memset(&stream,0,sizeof(stream));
+#endif
+}

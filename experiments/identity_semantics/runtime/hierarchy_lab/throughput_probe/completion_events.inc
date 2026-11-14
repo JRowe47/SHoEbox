@@ -58,8 +58,8 @@ inline bool completion_prepare(Model&m,int r,bool learn,ContentEvent&event,Conte
   frame.clock_end=s.history[driver][0].clock_end;
   frame.ref.seq=++s.frame_serial[r];frame.ref.tick=m.s.tick;
   float q[D]{},qw=0,cw=0;int parents=0;LaceParent links[LACE_LINKS];
-  binding_bundle(m,r,frame,children,count,q,frame.context,qw,cw,links,parents);
-  frame.context_count=parents;for(int i=0;i<parents;i++)frame.context_edges[i]=links[i];
+  binding_bundle(m,r,frame,children,count,q,frame.edit_context().context,qw,cw,links,parents);
+  frame.edit_context().context_count=parents;for(int i=0;i<parents;i++)frame.edit_context().context_edges[i]=links[i];
   int length=s.length[r];bool boundary=false;
   if(length){
     const auto&last=s.pending[r][length-1];
@@ -79,12 +79,12 @@ inline bool completion_prepare(Model&m,int r,bool learn,ContentEvent&event,Conte
 inline void completion_bundle(Model&m,int r,const ContentEvent&event,const ContentEvent*parts,int n,
                               float*q,float*c,float&qw,float&cw,LaceParent*parents,int&nparents){
   if(!n)return;
-  memcpy(q,event.code,D*sizeof(float));qw=1;cw=1;
+  memcpy(q,event.values().code,D*sizeof(float));qw=1;cw=1;
   float scale=1.f/std::sqrt(float(n));
   for(int i=0;i<n;i++){
-    for(int j=0;j<D;j++)c[j]+=scale*parts[i].context[j];
-    for(int k=0;k<parts[i].context_count;k++){
-      auto edge=parts[i].context_edges[k];edge.coefficient*=scale;
+    for(int j=0;j<D;j++)c[j]+=scale*parts[i].context_data().context[j];
+    for(int k=0;k<parts[i].context_data().context_count;k++){
+      auto edge=parts[i].context_data().context_edges[k];edge.coefficient*=scale;
       if(nparents<LACE_LINKS)parents[nparents++]=edge;
     }
   }

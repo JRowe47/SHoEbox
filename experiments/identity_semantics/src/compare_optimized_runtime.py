@@ -56,6 +56,7 @@ def worker(a):
     check_integrity(collect(m));row['credit_integrity']=True
     row['peak_rss_kib']=resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
     if hasattr(m,'completion_storage'):row['storage']=m.completion_storage()
+    if hasattr(m,'publication_storage'):row['publication_storage']=m.publication_storage()
     if a.save_after:m.save(a.save_after)
     m.close();a.output.write_text(json.dumps(row,indent=2)+'\n')
 

@@ -3,7 +3,7 @@ inline void acceptance_publish(Model&m,int r,const ContentEvent&e,bool relay,boo
   bool no_primary=false;
   if(r>=15&&e.kind==4&&e.clock_begin==0&&e.clock_end==0){
     int driver=int(m.slots[4*m.starts[r]]);no_primary=true;
-    for(int i=0;i<e.count&&i<COMP_MAX;i++)if(e.children[i].region==driver&&e.children[i].seq)no_primary=false;
+    for(int i=0;i<e.count&&i<COMP_MAX;i++)if(e.values().children[i].region==driver&&e.values().children[i].seq)no_primary=false;
   }
   bool primary=e.clock_begin>=0&&e.clock_end>e.clock_begin;
   bool coverage=e.ref.begin>=0&&e.ref.end>e.ref.begin;

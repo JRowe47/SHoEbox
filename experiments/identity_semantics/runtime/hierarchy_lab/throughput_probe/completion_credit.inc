@@ -27,6 +27,32 @@ inline const Model::ConstituentRole& constituent_role(Model&m,int slot){
   }
   return role;
 }
+// Cache immutable source values in outgoing role order. Keep each receiver's
+// weight/sign multiplication and accumulation in the original arithmetic order.
+// Handles, not content IDs or ticks, distinguish learned payload versions and
+// intervention-detached vectors. Strong handles prevent recycled-address hits.
+inline Model::PublicationRole& publication_role(Model&m,int slot,const ContentEvent&event,bool context=false){
+  size_t index=slot<0?m.starts[N]+(-100-slot):slot;
+  if(m.publication_roles.size()<=index)m.publication_roles.resize(index+1);
+  auto&cache=m.publication_roles[index];
+  const auto&role=constituent_role(m,slot);
+  if(!context){
+    if(cache.have_payload&&cache.payload==event.payload)m.publication_cache_metrics[0]++;
+    else {
+      m.publication_cache_metrics[1]++;cache.payload=event.payload;cache.have_payload=true;
+      const auto&values=event.values();
+      for(int j=0;j<D;j++){int k=role.coord[j];cache.structure[j]=values.structure[k];cache.delta[j]=values.code[k]-values.structure[k];}
+    }
+  }else{
+    if(cache.have_context&&cache.contextual==event.contextual)m.publication_cache_metrics[2]++;
+    else {
+      m.publication_cache_metrics[3]++;cache.contextual=event.contextual;cache.have_context=true;
+      const auto&values=event.context_data();
+      for(int j=0;j<D;j++)cache.context[j]=values.context[role.coord[j]];
+    }
+  }
+  return cache;
+}
 inline ConstituentRecord* constituent_record(Model&m,SemanticRef ref){
   if(!ref.serial||ref.region<2||ref.region>=N||ref.index<0||ref.index>=constituent_capacity(m))return nullptr;
   auto&node=constituent_slot(m,ref.index);
@@ -35,6 +61,7 @@ inline ConstituentRecord* constituent_record(Model&m,SemanticRef ref){
 inline void constituent_invalidate(Model&m){
   m.semantic_free.clear();m.semantic_free_valid=false;
   m.content_input_cache.clear();m.constituent_work.clear();m.constituent_roles.clear();
+  m.publication_roles.clear();memset(m.publication_cache_metrics,0,sizeof(m.publication_cache_metrics));
   for(auto&plan:m.constituent_plans){plan.root=SemanticRef{};plan.nodes.clear();}
 }
 // Plans contain handles, never owners or weight-dependent derivatives. Bound

@@ -32,8 +32,8 @@ void neural_fixture_setup(void*p,int source,int owner){
     auto relayed=content_compose(m,14,&held,1,1,false);content_passthrough(m,14,relayed,held);
   }else if(owner==1){ // pending completed frame with repeated source roles
     auto&event=m.composition.stream.pending[14][0];event=held;event.origin=ChildEvent{};
-    event.context_count=2;
-    for(int k=0;k<2;k++)event.context_edges[k]={source,-1,held.origin.tick,.5f,held.origin.index};
+    event.edit_context().context_count=2;
+    for(int k=0;k<2;k++)event.edit_context().context_edges[k]={source,-1,held.origin.tick,.5f,held.origin.index};
     m.composition.stream.length[14]=1;
   }else if(owner==2){ // outstanding credit, independent of any publication
     auto*v=current_lace(m,source);v->uses[0]=1;neural_pending(m,source,v->tick,0);
@@ -109,7 +109,7 @@ extern "C" {
 void neural_fixture_semantic_input(void*p){
   auto&m=*static_cast<Model*>(p);auto&input=*lace_input(m,3,*current_lace(m,3));
   ContentEvent event{};event.ref.region=3;event.ref.id={19,37};
-  for(int j=0;j<D;j++)event.structure[j]=.05f*(1+j%3);
+  for(int j=0;j<D;j++)event.edit_values().structure[j]=.05f*(1+j%3);
   semantic_encode(m,3,event);constituent_encode(m,3,event,nullptr,0,false);
   input.semantic=event.semantic;input.symbol_scale=.5f;input.message.qa=1;input.message.alpha=.5f;
 }

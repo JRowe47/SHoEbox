@@ -1,3 +1,4 @@
+inline InputCredit* lace_input(Model&,int,const LaceRecord&);
 #ifdef SHOEBOX_LEARNED_COMPLETION
 inline void neural_invalidate(Model&m){
   m.neural_index_valid=false;
@@ -31,7 +32,17 @@ inline void neural_pending(Model&m,int r,int64_t tick,int depth,bool input=false
 inline void neural_consumed(Model&m,int r,int64_t tick,int depth,bool input=false){
   auto&pending=input?m.pending_input[r]:m.pending_neural[r];
   auto it=pending.find(tick);if(it==pending.end())return;
-  it->second&=~(1u<<depth);if(!it->second)pending.erase(it);
+  it->second&=~(1u<<depth);
+  // Release through the indexed owner. No iterators/pointers to gradient rows
+  // survive this call; propagation may recreate work at the same tick.
+  if(!it->second){
+    auto found=m.neural_index[r].find(tick);
+    if(found!=m.neural_index[r].end()){
+      if(!input)found->second->credit.release_if_zero();
+      else if(auto*saved=lace_input(m,r,*found->second))saved->gradient.release_if_zero();
+    }
+    pending.erase(it);
+  }
 }
 #endif
 // Locate a cache entry without subtracting pointers from unrelated allocations.

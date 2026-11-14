@@ -2,17 +2,17 @@
 #include "binding_fixture.cpp"
 extern "C" {
 void semantic_fixture_structure(void*p,int src,int age){
- auto&e=static_cast<Model*>(p)->composition.stream.history[src][age];memcpy(e.structure,e.code,sizeof(e.structure));
+ auto&e=static_cast<Model*>(p)->composition.stream.history[src][age];memcpy(e.edit_values().structure,e.values().code,sizeof(e.values().structure));
 }
 void semantic_fixture_encode(void*p,int r,int kind,uint64_t*meta,float*code){
  auto&m=*static_cast<Model*>(p);ContentEvent parts[2]{m.composition.stream.history[0][1],m.composition.stream.history[0][0]};
- auto e=content_compose(m,r,parts,2,kind,false);meta[0]=e.ref.id.a;meta[1]=e.ref.id.b;memcpy(code,e.code,sizeof(e.code));
+ auto e=content_compose(m,r,parts,2,kind,false);meta[0]=e.ref.id.a;meta[1]=e.ref.id.b;memcpy(code,e.values().code,sizeof(e.values().code));
 }
 void semantic_fixture_change(void*p,int src,int age,int field,int64_t delta){
  auto&e=static_cast<Model*>(p)->composition.stream.history[src][age];
  if(field==0)e.ref.end+=delta;
  if(field==1)e.ref.region+=int(delta);
- if(field==2)for(int j=0;j<D;j++)e.code[j]+=float(delta);
+ if(field==2)for(int j=0;j<D;j++)e.edit_values().code[j]+=float(delta);
  if(field==3){e.ref.tick+=delta;e.ref.seq+=delta;e.ref.index+=int(delta);}
 }
 void semantic_fixture_weight(void*p,int r,int j,int k,float delta){static_cast<Model*>(p)->composition.symbols[r-2][j][k]+=delta;}
@@ -23,7 +23,7 @@ void semantic_fixture_gradient(void*p,int r,const float*g,float rate){
 #ifdef SHOEBOX_LEARNED_COMPLETION
  s.semantic=e.semantic;
 #else
- memcpy(s.symbol_features,e.symbol_features,sizeof(s.symbol_features));memcpy(s.symbol_derivative,e.symbol_derivative,sizeof(s.symbol_derivative));
+ memcpy(s.symbol_features,e.values().symbol_features,sizeof(s.symbol_features));memcpy(s.symbol_derivative,e.values().symbol_derivative,sizeof(s.symbol_derivative));
 #endif
  semantic_input_update(m,r,v,g,rate);
 }

@@ -183,6 +183,18 @@ class Model(parent.Model):
                'temporal_records','archive_payload_bytes','legacy_archive_payload_bytes')
         return dict(zip(names,map(int,out)))
 
+    def publication_storage(self):
+        """Shared publication payloads, sparse gradients and role-cache reuse."""
+        if not hasattr(self.lib,'publication_storage_status'):return {}
+        self.lib.publication_storage_status.argtypes=[ct.c_void_p,ct.c_void_p]
+        out=np.zeros(16,np.uint64)
+        self.lib.publication_storage_status(self.handle,out.ctypes.data)
+        names=('event_handle_bytes','legacy_event_bytes','content_payload_bytes','context_payload_bytes',
+               'content_references','context_references','unique_content_payloads','unique_context_payloads',
+               'neural_gradient_blocks','input_gradient_blocks','gradient_payload_bytes','role_cache_bytes',
+               'content_cache_hits','content_cache_misses','context_cache_hits','context_cache_misses')
+        return dict(zip(names,map(int,out)))
+
     def neural_state(self):
         if not hasattr(self.lib,'neural_state_size'):return np.zeros(0,np.uint8)
         self.lib.neural_state_size.argtypes=[ct.c_void_p];self.lib.neural_state_size.restype=ct.c_size_t

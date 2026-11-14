@@ -56,7 +56,7 @@ void local_fixture_task_credit(void*p){
 void local_fixture_task_status(void*p,float*out){
   auto&m=*static_cast<Model*>(p);auto*v=find_lace(m,3,101);
   if(!v){for(int j=0;j<LACE_DEPTH*(D+1);j++)out[j]=NAN;return;}
-  memcpy(out,v->credit,sizeof(v->credit));
+  for(int d=0;d<LACE_DEPTH;d++)memcpy(out+d*D,static_cast<const LaceRecord&>(*v).credit[d],D*sizeof(float));
   for(int d=0;d<LACE_DEPTH;d++)out[D*LACE_DEPTH+d]=v->uses[d];
 }
 void local_fixture_live_teach(void*p,int r){

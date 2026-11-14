@@ -3,7 +3,7 @@ inline ContentEvent pattern_fixture_child(int source,int token,int64_t begin,int
   ContentEvent child{};child.ref.region=source;child.ref.id={content_mix(token+1),content_mix(token+713)};
   child.ref.seq=begin+10000;child.ref.begin=child.clock_begin=begin;child.ref.end=child.clock_end=end;
   child.ref.recognized=1;child.origin=child.ref;
-  for(int j=0;j<D;j++)child.code[j]=child.structure[j]=.2f*((content_mix(uint64_t(token)*D+j)&1)?1.f:-1.f);
+  for(int j=0;j<D;j++)child.edit_values().code[j]=child.edit_values().structure[j]=.2f*((content_mix(uint64_t(token)*D+j)&1)?1.f:-1.f);
   return child;
 }
 inline ContentEvent pattern_fixture_frame(Model&m,int context,int swap,int phase,int64_t begin,bool learn){
@@ -78,7 +78,7 @@ void pattern_fixture_regions(void*p,int context,uint64_t*out){
 }
 void pattern_fixture_content(void*p,int reverse,uint64_t*out){
   auto&m=*static_cast<Model*>(p);ContentEvent parts[2]{completion_fixture_leaf(m,3,21),completion_fixture_leaf(m,3,29)};
-  if(reverse)for(float&v:parts[0].code)v=-v;
+  if(reverse)for(float&v:parts[0].edit_values().code)v=-v;
   auto event=content_compose(m,7,parts,2,2,true);auto key=pattern_key(m,event);
   out[0]=key.a;out[1]=event.ref.id.a;out[2]=event.ref.id.b;
 }
