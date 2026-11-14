@@ -8,7 +8,9 @@ scales, ordered composition, top-one sparse experts, eight-event local learning,
 native-scale contrastive prediction, one shared byte decoder and a bounded
 association store. Fresh models now also enable stable content/time addressing,
 fixed native rotary clocks, learned memory queries and local constituent
-reconstruction. Version-1 checkpoints automatically retain the original runtime.
+reconstruction. New version-3 models use residual memory writes, and cold
+inference preserves stored bindings. Version-1 and version-2 checkpoints retain
+their original training runtimes.
 The old cortical runtime below remains reproducible.
 
 ```python
@@ -27,6 +29,7 @@ learned boundaries and promotion of the hierarchy as the selected generalist
 profile have **not** passed the design's acceptance gate.
 
 [Implementation and reproduction](multiscale/README.md) |
+[Memory/recall repair and remaining failure](multiscale/MEMORY_RECALL_REPAIR.md) |
 [Addressed memory and reconstruction results](multiscale/ADDRESSED_MEMORY_REPORT.md) |
 [Results and remaining gates](multiscale/REBUILD_REPORT.md) |
 [Original rebuild plan](multiscale/DESIGN.md).

@@ -68,13 +68,12 @@ struct AddressParameters {
 };
 struct AddressStream {
     AddressMatrix memory{};
-    AddressKey mass{};
     Vec previous_stable{};
     Clock clock{};
 };
 struct AddressEvent {
     AddressMatrix memory{};
-    AddressKey key{},query{},scale{};
+    AddressKey key{},query{};
     AddressValue value{},read{};
     ClockVector clock{};
 };
@@ -98,27 +97,34 @@ inline void address_forward(AddressEvent& e,const Vec& content,const Vec& before
         else z+=dot(p.query_clock.data()+(a-CONTENT_K)*TIME_D,e.clock.data(),TIME_D);
         e.query[a]=std::tanh(z);
         if((mode==2&&a>=CONTENT_K)||(mode==3&&a<CONTENT_K))e.key[a]=e.query[a]=0;
-        e.scale[a]=1/std::sqrt(1+s.mass[a]);
-        for(int b=0;b<ADDRESS_V;++b)e.read[b]+=e.query[a]*s.memory[a*ADDRESS_V+b]*e.scale[a];
+        for(int b=0;b<ADDRESS_V;++b)e.read[b]+=e.query[a]*s.memory[a*ADDRESS_V+b];
     }
     if(mode==1)e.read={};
     const auto& decay=retention();
+    // A coherent repeated write must converge, not grow like sqrt(time).
+    // Predict from the decayed matrix and write only the residual. Keys and
+    // their normalization are fixed input-derived constants for the VJP.
+    AddressValue residual=e.value;float norm=1;
+    for(float k:e.key)norm+=k*k;
+    for(int a=0;a<ADDRESS_K;++a)for(int b=0;b<ADDRESS_V;++b)
+        residual[b]-=e.key[a]*decay[a]*s.memory[a*ADDRESS_V+b];
     for(int a=0;a<ADDRESS_K;++a){
-        for(int b=0;b<ADDRESS_V;++b)s.memory[a*ADDRESS_V+b]=decay[a]*s.memory[a*ADDRESS_V+b]+e.key[a]*e.value[b];
-        s.mass[a]=decay[a]*decay[a]*s.mass[a]+e.key[a]*e.key[a];
+        for(int b=0;b<ADDRESS_V;++b)s.memory[a*ADDRESS_V+b]=decay[a]*s.memory[a*ADDRESS_V+b]+.5f*e.key[a]*residual[b]/norm;
     }
     s.previous_stable=stable;s.clock.advance();
 }
 
-// Exact local derivatives. Keys, clocks and mass are input-derived constants.
+// Exact local derivatives, including the residual write. Keys and clocks are fixed.
 inline void address_backward(const AddressEvent& e,const Vec& content,const Vec& before,
                              const AddressParameters& p,const AddressValue& dr,AddressMatrix& carried,
                              Vec& dc,Vec& dh,AddressParameters& g){
-    AddressMatrix previous{};AddressValue dv{};const auto& decay=retention();
+    AddressMatrix previous{};AddressValue dv{};const auto& decay=retention();float norm=1;
+    for(float k:e.key)norm+=k*k;
+    for(int a=0;a<ADDRESS_K;++a)for(int b=0;b<ADDRESS_V;++b)dv[b]+=.5f*e.key[a]*carried[a*ADDRESS_V+b]/norm;
     for(int a=0;a<ADDRESS_K;++a){float dq=0;
         for(int b=0;b<ADDRESS_V;++b){int j=a*ADDRESS_V+b;
-            dq+=e.memory[j]*e.scale[a]*dr[b];dv[b]+=e.key[a]*carried[j];
-            previous[j]=decay[a]*carried[j]+e.query[a]*e.scale[a]*dr[b];}
+            dq+=e.memory[j]*dr[b];
+            previous[j]=decay[a]*(carried[j]-e.key[a]*dv[b])+e.query[a]*dr[b];}
         float dz=dq*(1-e.query[a]*e.query[a]);
         for(int i=0;i<D;++i){g.query_content[a*D+i]+=dz*content[i];g.query_state[a*D+i]+=dz*before[i];
             dc[i]+=dz*p.query_content[a*D+i];dh[i]+=dz*p.query_state[a*D+i];}

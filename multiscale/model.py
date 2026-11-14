@@ -16,13 +16,13 @@ _LIBS = {}
 
 
 def _library(profile="addressed"):
-    if profile not in ("addressed", "legacy"):
-        raise ValueError("memory_profile must be 'addressed' or 'legacy'")
+    if profile not in ("addressed", "addressed_v2", "legacy"):
+        raise ValueError("memory_profile must be 'addressed', 'addressed_v2' or 'legacy'")
     if profile in _LIBS:
         return _LIBS[profile]
-    directory = HERE / "legacy" if profile == "legacy" else HERE
+    directory = HERE if profile == "addressed" else HERE / profile
     source = (directory / "native.cpp").read_bytes() + (directory / "native.hpp").read_bytes()
-    if profile == "addressed":
+    if profile != "legacy":
         source += (directory / "address_memory.hpp").read_bytes()
     flags = ["-std=c++17", "-O3", "-march=native", "-ffp-contract=off", "-fPIC", "-shared"]
     compiler = os.environ.get("CXX", "g++")
@@ -50,7 +50,7 @@ def _library(profile="addressed"):
         "ms_lookup": ([p, p, n, C.POINTER(C.c_uint64)], i),
         "ms_payload": ([p, C.c_uint64, p, C.POINTER(n)], i),
     }
-    if profile == "addressed":
+    if profile != "legacy":
         specs.update(ms_reconstruction=([p, f], i), ms_memory_intervene=([p, i], i),
                      ms_address_stats=([p, p], i))
     for name, (args, result) in specs.items():
@@ -125,7 +125,7 @@ class Model:
             if self._profile == "legacy" and reconstruction_weight:
                 raise ValueError("legacy checkpoints retain their original learning objectives")
         self._check(self._lib.ms_configure(self._alive(), learning_rate, head_rate, auxiliary_weight, route_rate))
-        if reconstruction_weight is not None and self._profile == "addressed":
+        if reconstruction_weight is not None and self._profile != "legacy":
             self._check(self._lib.ms_reconstruction(self._alive(), reconstruction_weight))
 
     def run(self, inputs, targets):
@@ -159,13 +159,24 @@ class Model:
     def clone(self):
         return self._wrap(self._lib.ms_clone(self._alive(), 0, 0), self._profile)
 
-    def inference_copy(self, *, cold=True):
-        """Freeze a weight snapshot; preserve source pending updates unchanged."""
-        return self._wrap(self._lib.ms_clone(self._alive(), 1, cold), self._profile)
+    def inference_copy(self, *, cold=True, clear_memory=False):
+        """Freeze weights; cold context preserves stored associations by default.
 
-    def evaluate(self, data, *, mask=-1, shuffle=-1, memory="full"):
+        Use clear_memory=True for an explicitly empty episodic store. The
+        source, including pending updates and bindings, is never modified.
+        """
+        if clear_memory and not cold:
+            raise ValueError("clear_memory requires a cold context")
+        # Separate recurrent context from the persistent episode store, also
+        # for older checkpoint backends whose native cold clone cleared both.
+        m = self._wrap(self._lib.ms_clone(self._alive(), 1, 0), self._profile)
+        if cold:
+            m.reset_context(clear_memory=clear_memory)
+        return m
+
+    def evaluate(self, data, *, mask=-1, shuffle=-1, memory="full", clear_memory=False):
         a = _bytes(data)
-        with self.inference_copy() as m:
+        with self.inference_copy(clear_memory=clear_memory) as m:
             m.intervene(mask=mask, shuffle=shuffle)
             if memory != "full":
                 m.intervene_memory(memory)
@@ -213,10 +224,10 @@ class Model:
                     native_targets=a[24:24+levels].astype(int).tolist(),
                     native_loss_sum=a[28:28+levels].tolist(),
                     state_energy=a[32:32+levels].tolist(), memory_profile=self._profile,
-                    checkpoint_version=2 if self._profile == "addressed" else 1,
+                    checkpoint_version={"legacy": 1, "addressed_v2": 2, "addressed": 3}[self._profile],
                     reconstruction_targets=a[40:40+levels].astype(int).tolist(),
                     reconstruction_loss_sum=a[44:44+levels].tolist())
-        if self._profile == "addressed":
+        if self._profile != "legacy":
             b = np.zeros(24, np.float64)
             self._check(self._lib.ms_address_stats(self._alive(), b.ctypes.data))
             result.update(clock_ticks=b[:levels].astype(int).tolist(),
@@ -249,7 +260,7 @@ class Model:
         if len(raw) < 16:
             raise ValueError("truncated native checkpoint")
         version = struct.unpack_from("=I", raw, 8)[0]
-        profiles = {1: "legacy", 2: "addressed"}
+        profiles = {1: "legacy", 2: "addressed_v2", 3: "addressed"}
         if version not in profiles:
             raise ValueError("unsupported multiscale checkpoint version")
         profile = profiles[version]
@@ -282,13 +293,13 @@ class Model:
         self._check(self._lib.ms_payload(self._alive(), handle, a.ctypes.data, C.byref(size)))
         return a[:size.value].tobytes()
 
-    def generate(self, prompt, *, length=256, temperature=.8, seed=7):
+    def generate(self, prompt, *, length=256, temperature=.8, seed=7, clear_memory=False):
         a = _bytes(prompt)
         if not a.size or length < 0 or not np.isfinite(temperature) or temperature <= 0:
             raise ValueError("a nonempty prompt, nonnegative length and positive temperature are required")
         rng = np.random.default_rng(seed)
         result = bytearray(a.tobytes())
-        with self.inference_copy() as m:
+        with self.inference_copy(clear_memory=clear_memory) as m:
             for byte in a:
                 logits = m.observe(int(byte))
             for _ in range(length):

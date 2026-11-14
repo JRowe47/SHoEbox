@@ -82,6 +82,16 @@ Its read and write both receive exact derivatives inside the local block.
 The expert transform, normalized prototype attraction and top-two margin gate
 reuse the reference arithmetic, reimplemented without its regional lifecycle.
 
+## Memory and recall repair
+
+New models use native checkpoint version 3. Repeated writes now use the
+residual against the decayed memory prediction, preventing repeated content
+from accumulating large coherent read magnitudes. Cold inference preserves
+persistent association records; use `clear_memory=True` for an empty store.
+Version-1 and version-2 checkpoints retain their original training arithmetic.
+The delayed AB/BA answer test still fails at 50%; see
+[`MEMORY_RECALL_REPAIR.md`](MEMORY_RECALL_REPAIR.md) for the measured scope.
+
 ## Stable addresses, native clocks and local reconstruction
 
 New models use `memory_profile="addressed"` by default. Each slow scale adds a
@@ -113,17 +123,20 @@ independent: learning a better read does not move old write coordinates.
 For row `a`, the operations are:
 
 ```text
-read[b] = sum_a query[a] * memory[a,b] / sqrt(1 + mass[a])
-memory[a,b] = decay[a] * memory[a,b] + key[a] * value[b]
-mass[a] = decay[a]^2 * mass[a] + key[a]^2
+read[b] = sum_a query[a] * memory[a,b]
+decayed[a,b] = decay[a] * memory[a,b]
+residual[b] = value[b] - sum_a key[a] * decayed[a,b]
+rate = 0.5 / (1 + sum_a key[a]^2)
+memory[a,b] = decayed[a,b] + rate * key[a] * residual[b]
 ```
 
 Reading precedes writing. Fixed retention half-lives range from 32 to 2,048
-native events; each temporal sine/cosine pair shares its decay. Mass tracks
-write energy to normalize reads. These are bounded recurrent summaries, not
-an exact record store. Local derivatives include the learned values, query,
-read projection and carried memory matrix; fixed sketches, clocks and mass
-have no trainable ancestors.
+native events; each temporal sine/cosine pair shares its decay. Residual writes
+reinforce the association only to the extent it is not already predicted.
+The old write-energy normalizer is absent. These are compact recurrent
+summaries, not an exact record store. Local derivatives include the residual
+write, learned values, query, read projection and carried memory matrix;
+fixed sketches and clocks have no trainable ancestors.
 
 Each slow event also reconstructs one of its four detached child contents from
 the same canonical content used for composition. The selected child role rotates
@@ -194,23 +207,27 @@ finishes pending updates, then starts fresh composition, state and eligibility;
 rotary clocks and both recurrent memories reset together. Explicit association
 episodes survive unless `clear_memory=True` is passed.
 
-`inference_copy(cold=True)` snapshots currently fitted weights, clears context
-and episodes, and freezes all learning/admission. `cold=False` retains the causal
-prefix and records. It does **not** commit pending training in the source.
+`inference_copy(cold=True)` snapshots currently fitted weights, clears recurrent
+context, preserves association records, and freezes learning/automatic admission.
+Use `inference_copy(clear_memory=True)` to clear the store as well. The same
+option is available in `evaluate` and `generate`. `cold=False` retains the causal
+prefix and records; combining it with `clear_memory=True` is rejected. It does **not** commit pending training in the source.
 Call `finish()` explicitly if evaluation should include those pending updates.
 Forward-only inference does not populate derivative rings. Training checkpoints
 retain partial child groups, every local record, negative targets, readout,
-recurrent matrices, clocks, address normalization, stable sketches, episode
+recurrent matrices, clocks, stable sketches, episode
 payloads and counters. A version/ABI header and a
 SHA-256 envelope reject mismatched or corrupt saves; exact continuation is
 verified on this native ABI.
 
-Version-1 multiscale checkpoints automatically select the unchanged runtime in
-`legacy/`; they retain their original learning and state semantics. New addressed
-checkpoints use native version 2 within the existing checksum envelope. Use
-`Model(memory_profile="legacy")` or CLI `--memory-profile legacy` for fresh
-comparisons. Resume selects the saved policy automatically. Old cortical
-checkpoints remain a different format.
+Version-1 checkpoints select the unchanged runtime in `legacy/`; version-2
+checkpoints select the unchanged `addressed_v2/` backend. Their original learning,
+matrix meaning and stream continuation are preserved. New addressed checkpoints
+use version 3 within the existing checksum envelope. Use
+`Model(memory_profile="addressed_v2")` or `Model(memory_profile="legacy")`
+(and the corresponding CLI option) for historical comparisons. Resume selects
+the saved policy automatically. The Python cold-copy API preserves association
+records across all versions. Old cortical checkpoints remain a different format.
 
 ## Association store
 
@@ -265,7 +282,8 @@ language curves, full-test loss, memory interventions, throughput and the ordere
 distant-cue task. Use `--memory-profile legacy` with either original runner to
 reproduce the original algorithm.
 
-See `ADDRESSED_MEMORY_REPORT.md` for the latest change and measurements, and
+See `MEMORY_RECALL_REPAIR.md` for the latest repair and measurements,
+`ADDRESSED_MEMORY_REPORT.md` for the version-2 implementation, and
 `REBUILD_REPORT.md` for the original runtime's passed mechanisms and failed
 architecture gates. Learned boundaries, mixed-corpus selection, systematic
 held-out recombination and larger-scale router qualification remain gated work.

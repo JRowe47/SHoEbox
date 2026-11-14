@@ -279,11 +279,11 @@ void Model::inference(bool cold){
     // source to evaluate; pending derivatives are deliberately discarded.
     training=false;memory_writes=false;
     for(auto& l:levels){l.s.count=0;l.s.events={};l.s.address_events={};l.s.negatives={};l.s.negative_count=0;l.s.negative_cursor=0;}
-    if(cold)reset(true);
+    if(cold)reset(false);
 }
 
 std::string save(const Model& m){
-    Writer w;uint64_t magic=0x31534d454f4853ULL;w.pod(magic);uint32_t version=2;w.pod(version);
+    Writer w;uint64_t magic=0x31534d454f4853ULL;w.pod(magic);uint32_t version=3;w.pod(version);
     uint32_t abi=sizeof(Event)^sizeof(Stream)^sizeof(AssociationStore);w.pod(abi);
     int count=int(m.levels.size()),target=int(m.parameter_count());w.pod(count);w.pod(target);w.pod(m.indexed);w.pod(m.associations);
     w.pod(m.training);w.pod(m.memory_writes);w.pod(m.have_query);
@@ -296,7 +296,7 @@ std::string save(const Model& m){
 }
 Model load(const char* p,size_t n){
     Reader r{p,n};uint64_t magic;uint32_t version,abi;r.pod(magic);r.pod(version);r.pod(abi);
-    if(magic!=0x31534d454f4853ULL||version!=2||abi!=(sizeof(Event)^sizeof(Stream)^sizeof(AssociationStore)))throw std::runtime_error("incompatible multiscale checkpoint");
+    if(magic!=0x31534d454f4853ULL||version!=3||abi!=(sizeof(Event)^sizeof(Stream)^sizeof(AssociationStore)))throw std::runtime_error("incompatible multiscale checkpoint");
     int count,target;bool index,assoc;r.pod(count);r.pod(target);r.pod(index);r.pod(assoc);
     Model m(count,target,7,index,assoc);r.pod(m.training);r.pod(m.memory_writes);r.pod(m.have_query);
     r.pod(m.embedding);r.pod(m.decoder);r.pod(m.decoder_bias);r.pod(m.store);

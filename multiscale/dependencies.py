@@ -55,7 +55,7 @@ def main(args):
                 row=dict(seed=seed,levels=levels,memory_profile=args.memory_profile,
                          train_bytes=len(train)-1,seconds=seconds,training_nll=nll,
                          scores=score(m),masks={str(l):score(m,intervention=l) for l in range(1,levels)})
-                if args.memory_profile == "addressed":
+                if args.memory_profile != "legacy":
                     row["memory_interventions"] = {mode:score(m,memory=mode) for mode in ("no_read","no_time","no_content")}
                 rows.append(row);atomic_json(Path(args.out)/"dependencies.json",rows);print(json.dumps(row),flush=True)
     return rows
@@ -66,5 +66,5 @@ if __name__=="__main__":
     p.add_argument("--examples",type=int,default=6000);p.add_argument("--levels",nargs="+",type=int,default=[1,2,4])
     p.add_argument("--seeds",nargs="+",type=int,default=[7,17,29]);p.add_argument("--cpu",type=int,default=1)
     p.add_argument("--lr",type=float,default=.08)
-    p.add_argument("--memory-profile",choices=["addressed","legacy"],default="addressed")
+    p.add_argument("--memory-profile",choices=["addressed","addressed_v2","legacy"],default="addressed")
     main(p.parse_args())

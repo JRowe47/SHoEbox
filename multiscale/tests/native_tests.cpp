@@ -98,21 +98,23 @@ double address_objective(const Vec& c,const Vec& h,const Vec& stable,const Addre
     cn=1/std::sqrt(cn);pn=1/std::sqrt(pn);
     for(int i=0;i<K;++i){key[i]=current[i]*cn*.577350269;key[K+i]=previous[i]*pn*.577350269;}
     for(int i=0;i<TIME_D;++i)key[CONTENT_K+i]=s.clock.phase[i]*.577350269;
-    double result=0;
+    double result=0,norm=1,residual[ADDRESS_V]{};
+    for(int b=0;b<ADDRESS_V;++b)residual[b]=value[b];
+    for(int a=0;a<ADDRESS_K;++a){norm+=key[a]*key[a];
+        for(int b=0;b<ADDRESS_V;++b)residual[b]-=key[a]*retention()[a]*double(s.memory[a*ADDRESS_V+b]);}
     for(int a=0;a<ADDRESS_K;++a){double z=0;
         for(int i=0;i<D;++i)z+=p.query_content[a*D+i]*double(c[i])+p.query_state[a*D+i]*double(h[i]);
         if(a<CONTENT_K)z+=.5*current[a%K]*cn;
         else for(int i=0;i<TIME_D;++i)z+=p.query_clock[(a-CONTENT_K)*TIME_D+i]*s.clock.phase[i];
-        double q=std::tanh(z),scale=1/std::sqrt(1.+s.mass[a]);
+        double q=std::tanh(z);
         for(int b=0;b<ADDRESS_V;++b){int j=a*ADDRESS_V+b;
-            result+=q*s.memory[j]*scale*dr[b]+(retention()[a]*double(s.memory[j])+key[a]*value[b])*dm[j];}}
+            result+=q*s.memory[j]*dr[b]+(retention()[a]*double(s.memory[j])+.5*key[a]*residual[b]/norm)*dm[j];}}
     return result;
 }
 void address_gradients(){
     Vec c{},h{},stable=stable_bytes()[73];AddressStream s;AddressParameters p{},g{};AddressValue dr{};AddressMatrix dm{};
     s.previous_stable=stable_bytes()[29];for(int k=0;k<19;++k)s.clock.advance();
     for(int i=0;i<D;++i){c[i]=.2f*std::sin(float(i));h[i]=.15f*std::cos(float(i));}
-    for(int i=0;i<ADDRESS_K;++i)s.mass[i]=.1f*(i+1);
     for(int i=0;i<ADDRESS_K*ADDRESS_V;++i){s.memory[i]=.1f*std::cos(float(i));dm[i]=.07f*std::sin(float(i));}
     for(int i=0;i<ADDRESS_V;++i)dr[i]=.1f*std::cos(float(i));
     for(int i=0;i<ADDRESS_K*D;++i){p.query_content[i]=.02f*std::sin(float(i));p.query_state[i]=.03f*std::cos(float(i));}
@@ -139,6 +141,33 @@ void address_gradients(){
     Vec changed=c;changed.fill(.8f);auto other=s;AddressEvent altered;address_forward(altered,changed,h,stable,other,p);
     require(e.key==altered.key,"write coordinates independent of learned encoder");
     require(e.value!=altered.value,"addressed values include learned content");
+}
+void bounded_repeated_memory(){
+    AddressStream stream;AddressParameters p{};AddressEvent e;Vec content{},before{};
+    for(int i=0;i<D;++i)content[i]=.3f*std::sin(float(i));
+    for(int i=0;i<TIME_D;++i)p.query_clock[i*TIME_D+i]=.25f;
+    double max_memory=0,max_read=0;
+    for(int t=0;t<10000;++t){
+        address_forward(e,content,before,stable_bytes()[120],stream,p);
+        double memory=0,read=0;for(float x:stream.memory)memory+=double(x)*x;
+        for(float x:e.read)read+=double(x)*x;
+        max_memory=std::max(max_memory,std::sqrt(memory));max_read=std::max(max_read,std::sqrt(read));
+    }
+    require(max_memory<10,"repeated content cannot accumulate unbounded coherent writes");
+    require(max_read<10,"repeated-content read must remain bounded");
+    require(stream.clock.ticks==10000,"residual write retains the native clock");
+    // Removing a channel removes both its write and its read across the prefix.
+    for(int mode:{2,3}){AddressStream s;
+        for(int t=0;t<20;++t)address_forward(e,content,before,stable_bytes()[t],s,p,mode);
+        for(int a=0;a<ADDRESS_K;++a)if((mode==2&&a>=CONTENT_K)||(mode==3&&a<CONTENT_K)){
+            require(e.query[a]==0&&e.key[a]==0,"removed channel has no query or write key");
+            for(int b=0;b<ADDRESS_V;++b)require(s.memory[a*ADDRESS_V+b]==0,"removed write channel remains empty");}
+    }
+    auto m=std::make_unique<Model>(2,200000);uint8_t key[]{1,2},value[]{4,5,6};
+    auto handle=m->store.bind(key,2,value,3);auto copy=std::make_unique<Model>(*m);copy->inference(true);
+    require(copy->store.resolve(handle)!=nullptr,"native cold context preserves persistent records");
+    copy->reset(true);require(copy->store.resolve(handle)==nullptr,"explicit full reset clears persistent records");
+    require(m->store.resolve(handle)!=nullptr,"inference reset leaves source records untouched");
 }
 void reconstruction_gradients(){
     Vec c{},target{};AddressParameters p{};for(int i=0;i<D;++i){c[i]=.2f*std::sin(float(i));target[i]=.3f*std::cos(float(i));}
@@ -216,5 +245,5 @@ void associations(){
     uint8_t long_value[257]{};bool rejected=false;try{s->bind(key,3,long_value,257);}catch(const std::exception&){rejected=true;}
     require(rejected,"oversized payload rejected");
 }
-int main(){try{gradients();address_gradients();reconstruction_gradients();clock_contracts();block_gradient();slow_gradient();contracts();associations();std::cout<<"PASS "<<checks<<" native checks\n";return 0;}
+int main(){try{gradients();address_gradients();bounded_repeated_memory();reconstruction_gradients();clock_contracts();block_gradient();slow_gradient();contracts();associations();std::cout<<"PASS "<<checks<<" native checks\n";return 0;}
 catch(const std::exception& e){std::cerr<<"FAIL after "<<checks<<" checks: "<<e.what()<<"\n";return 1;}}

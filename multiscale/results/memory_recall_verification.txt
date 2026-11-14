@@ -1,0 +1,27 @@
+g++ -std=c++17 -O2 -ffp-contract=off multiscale/native.cpp multiscale/tests/native_tests.cpp -o /tmp/shoe-multiscale-test-bb0k3pks/checks
+/tmp/shoe-multiscale-test-bb0k3pks/checks
+PASS 1897 native checks
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python -m unittest discover -s multiscale/tests -v
+test_addressed_memory_and_native_clocks (test_model.RuntimeTests.test_addressed_memory_and_native_clocks) ... ok
+test_cold_inference_preserves_bindings_and_can_clear_explicitly (test_model.RuntimeTests.test_cold_inference_preserves_bindings_and_can_clear_explicitly) ... ok
+test_errors_and_lifecycle (test_model.RuntimeTests.test_errors_and_lifecycle) ... ok
+test_evaluation_preserves_source (test_model.RuntimeTests.test_evaluation_preserves_source) ... ok
+test_fast_only_profile_keeps_previous_arithmetic (test_model.RuntimeTests.test_fast_only_profile_keeps_previous_arithmetic) ... ok
+test_frozen_interventions (test_model.RuntimeTests.test_frozen_interventions) ... ok
+test_future_targets_cannot_change_current_prediction (test_model.RuntimeTests.test_future_targets_cannot_change_current_prediction) ... ok
+test_learning_and_generation (test_model.RuntimeTests.test_learning_and_generation) ... ok
+test_legacy_checkpoint_automatic_dispatch_and_continuation (test_model.RuntimeTests.test_legacy_checkpoint_automatic_dispatch_and_continuation) ... ok
+test_reconstruction_reaches_local_experts (test_model.RuntimeTests.test_reconstruction_reaches_local_experts) ... ok
+test_reset_invalidates_old_payload_handles (test_model.RuntimeTests.test_reset_invalidates_old_payload_handles) ... ok
+test_store_payload_and_checkpoint (test_model.RuntimeTests.test_store_payload_and_checkpoint) ... ok
+test_streaming_and_checkpoint_at_every_phase (test_model.RuntimeTests.test_streaming_and_checkpoint_at_every_phase) ... ok
+test_version_two_checkpoint_keeps_original_native_policy (test_model.RuntimeTests.test_version_two_checkpoint_keeps_original_native_policy) ... ok
+
+----------------------------------------------------------------------
+Ran 14 tests in 0.799s
+
+OK
+g++ -std=c++17 -O1 -g -fno-omit-frame-pointer -fsanitize=address,undefined -ffp-contract=off multiscale/native.cpp multiscale/tests/native_tests.cpp -o /tmp/shoe-multiscale-test-bb0k3pks/checks
+LeakSanitizer disabled explicitly; ASan and UBSan remain enabled.
+/tmp/shoe-multiscale-test-bb0k3pks/checks
+PASS 1897 native checks

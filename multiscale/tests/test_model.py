@@ -59,6 +59,43 @@ class RuntimeTests(unittest.TestCase):
             self.assertEqual(restored.payload(handle), bytes(range(256)))
         self.assertIsNone(self.m.lookup("missing"))
 
+    def test_cold_inference_preserves_bindings_and_can_clear_explicitly(self):
+        for profile in ("addressed", "addressed_v2", "legacy"):
+            with Model(parameters=200_000, memory_profile=profile, associations=True) as source:
+                source.train(b"previous observed episode content " * 4)
+                handle = source.bind(b"fact-key", b"stored exact payload")
+                before = source.dumps()
+                with source.inference_copy() as frozen:
+                    self.assertEqual(frozen.lookup(b"fact-key"), handle)
+                    self.assertEqual(frozen.payload(handle), b"stored exact payload")
+                    self.assertEqual(frozen.stats()["bytes"], 0)
+                    writes = frozen.stats()["memory_writes"]
+                    frozen.run(b"prompt", b"rompt!")
+                    self.assertEqual(frozen.stats()["memory_writes"], writes)
+                    self.assertEqual(frozen.payload(handle), b"stored exact payload")
+                    with Model.loads(frozen.dumps()) as restored:
+                        self.assertEqual(restored.payload(handle), b"stored exact payload")
+                with source.inference_copy(clear_memory=True) as empty:
+                    self.assertIsNone(empty.lookup(b"fact-key"))
+                    with self.assertRaises(RuntimeError):
+                        empty.payload(handle)
+                with self.assertRaises(ValueError):
+                    source.inference_copy(cold=False, clear_memory=True)
+                self.assertEqual(source.dumps(), before)
+
+    def test_version_two_checkpoint_keeps_original_native_policy(self):
+        data = np.random.default_rng(9).integers(0, 256, 1100, dtype=np.uint8)
+        with Model(parameters=200_000, memory_profile="addressed_v2") as old:
+            old.run(data[:519], data[1:520])
+            saved = old.dumps()
+            with Model.loads(saved) as restored:
+                self.assertEqual(restored.stats()["memory_profile"], "addressed_v2")
+                self.assertEqual(restored.stats()["checkpoint_version"], 2)
+                self.assertEqual(restored.dumps(), saved)
+                self.assertEqual(old.run(data[519:-1], data[520:]),
+                                 restored.run(data[519:-1], data[520:]))
+                self.assertEqual(old.dumps(), restored.dumps())
+
     def test_learning_and_generation(self):
         data = b"The quick brown fox jumps over the lazy dog.\n" * 100
         before = self.m.evaluate(data)
@@ -80,7 +117,7 @@ class RuntimeTests(unittest.TestCase):
         self.m.train(b"four ordered children make a useful local pattern. " * 50)
         self.m.finish()
         s = self.m.stats()
-        self.assertEqual(s["checkpoint_version"], 2)
+        self.assertEqual(s["checkpoint_version"], 3)
         self.assertEqual(s["clock_ticks"], [0] + s["events"][1:])
         self.assertEqual(s["address_rows"], [0, 32, 32, 32])
         self.assertEqual(s["address_values"], [0, 16, 16, 16])
