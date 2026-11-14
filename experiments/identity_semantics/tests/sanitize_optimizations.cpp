@@ -1,7 +1,7 @@
 #include <fstream>
 #include <iostream>
 #include <cassert>
-#include "optimization_fixture.cpp"
+#include "factor_fixture.cpp"
 template<class T> std::vector<T> read_array(std::ifstream&f){
   int64_t n;f.read(reinterpret_cast<char*>(&n),8);assert(n>=0&&n<10000000);
   std::vector<T> v(n);f.read(reinterpret_cast<char*>(v.data()),n*sizeof(T));assert(f.good());return v;
@@ -18,7 +18,11 @@ int main(int argc,char**argv){
     optimization_gradients(p,1,0);optimization_gradients(p,1,1);
   }
   assert(content_workers_configure(p,1,nullptr));
+  for(int sparse:{0,1}){
+    content_factor_reset_status(p);factor_fixture(p,1,3,sparse,0);
+  }
+  content_factor_reset_status(p);factor_cancellation(p);
   optimization_credit_order(p,1,0);optimization_credit_order(p,1,1);
   reset_context(p);destroy(p);
-  std::cout<<"ASan/UBSan passed: ready VJPs, dense/sparse bank tiles, parallel rows, worker replacement and delayed cycles\n";
+  std::cout<<"ASan/UBSan passed: ready VJPs, repeated clipped factors, masks, scopes, cancellation, recycled handles, parallel rows and delayed cycles\n";
 }

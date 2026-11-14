@@ -1,0 +1,121 @@
+{
+  "protocol": "Matched stage-2/3 continuations with numerical drift and routing comparisons.\n\nTimings exclude compilation, checkpoints, verification, route tracing and hashes.\nSnapshots stay in a temporary directory; only compact measurements are retained.\n",
+  "warmup": 1024,
+  "targets": 4096,
+  "repeats": 1,
+  "cpu": 0,
+  "mode": "periodic",
+  "workload": "repeated",
+  "runs": {
+    "stage2": [
+      {
+        "experts": 12,
+        "parameters": 1031952,
+        "targets": 4096,
+        "nll": 2.3339204606116795,
+        "seconds": 51.78627728600259,
+        "cpu_seconds": 51.686973879,
+        "bytes_per_second": 79.09431252180616,
+        "data_sha256": "cfd62bc571a7687828d03b53f6ad92737d69892a7959a14321f82f4ade1f435d",
+        "fingerprint": "b9faa93dcebcd14d8ff2f9a5607106b334ba5defdb98189930e0d7ef6ec66c9b",
+        "credit_integrity": true,
+        "peak_rss_kib": 687336,
+        "hashes": {
+          "logits": "065e4b47191a1303d707aae8f76d86fa36ffec4e24974fb796b87a191520cb2e",
+          "main": "d5e81571500b42553751e9947b09274321edc54d58b280f44ba0fb03a17da70c",
+          "extra": "29b392173381fd415e6aef825e56b231c7759eb38833cfa40210dc9d5b11df7a",
+          "routes": "396af682aa095eed230315b112b156edb8ab0b6acddc1213d5b8c0bc43cca31e",
+          "initial": "163f01ec389ffca08d5f4fdeca5555520344b33290b139616f82a734afb8d4e7",
+          "composition": "e71a1ab9cf327c0fd4d938cddd383e719be182a33ac8042d404ede119b6f2075",
+          "content_routes": "24833bcb257fa4b981b17ea33fdce5ed9fec74bb51dcf933a47293045c90f2a1"
+        },
+        "factor_metrics": {},
+        "route_trace_sha256": "73ff8e3fbde99e7411c99e1a7f22c57dfd5777a2272c4105bb05bff9f4a5c2ea",
+        "chunk_parity": true
+      }
+    ],
+    "stage3": [
+      {
+        "experts": 12,
+        "parameters": 1031952,
+        "targets": 4096,
+        "nll": 2.3339204612820765,
+        "seconds": 42.84808284199971,
+        "cpu_seconds": 42.764555128,
+        "bytes_per_second": 95.59354184185572,
+        "data_sha256": "cfd62bc571a7687828d03b53f6ad92737d69892a7959a14321f82f4ade1f435d",
+        "fingerprint": "2c884194f43e187b064856fb033c36710e4f57d15bc3e509984bd52336319b9e",
+        "credit_integrity": true,
+        "peak_rss_kib": 689552,
+        "hashes": {
+          "logits": "2a98953ed68a6300d94aaf71fc45223ae1124bdb83b3cf11e2a2eb732b0bb525",
+          "main": "0881224908195f805d8e0f297bdacc2edb06c1befbc825f42d8761baecc4e64c",
+          "extra": "baaf24284068eba0d3b694e463063962f0cd19ec8e5f781e34e08f2b672543c1",
+          "routes": "396af682aa095eed230315b112b156edb8ab0b6acddc1213d5b8c0bc43cca31e",
+          "initial": "163f01ec389ffca08d5f4fdeca5555520344b33290b139616f82a734afb8d4e7",
+          "composition": "9296f1d137cad2465f0bb94372baa5957d553acf2275bcd318a7b50efa1c6a85",
+          "content_routes": "24833bcb257fa4b981b17ea33fdce5ed9fec74bb51dcf933a47293045c90f2a1"
+        },
+        "factor_metrics": {
+          "weight_requests": 26238359,
+          "weight_products": 11668839,
+          "route_requests": 52476718,
+          "route_products": 23337678,
+          "scopes": 95009,
+          "peak_bank_factors": 640
+        },
+        "route_trace_sha256": "73ff8e3fbde99e7411c99e1a7f22c57dfd5777a2272c4105bb05bff9f4a5c2ea",
+        "chunk_parity": true
+      }
+    ]
+  },
+  "source_sha256": {
+    "stage2": "8ac08777da4456cfed1969bbe245ad5739d68ffcb32db7b196bc6f7435598fd6",
+    "stage3": "3e7750f7da0ca8b14fb43f4e4503f7813f912e2bb795255e9bfa605ecdc4fbcf"
+  },
+  "cpu_model": "INTEL(R) XEON(R) PLATINUM 8573C",
+  "comparison": {
+    "logits": {
+      "max_abs": 4.76837158203125e-06,
+      "rms": 5.978979408641e-07,
+      "relative_l2": 6.893141553933433e-08
+    },
+    "main": {
+      "max_abs": 1.341104507446289e-06,
+      "rms": 1.3738085337331858e-08,
+      "relative_l2": 3.9157459526656063e-07
+    },
+    "extra": {
+      "max_abs": 2.980232238769531e-07,
+      "rms": 1.7439006485783824e-08,
+      "relative_l2": 3.1672092022623076e-08
+    },
+    "nll_delta": 6.703970711896545e-10,
+    "main_update_drift_relative_l2": 1.8975264177291082e-06,
+    "top_byte_disagreements": 0,
+    "routes": {
+      "expert_disagreements": 0,
+      "mask_disagreements": 0,
+      "regional_decisions": 18
+    },
+    "route_trace": {
+      "expert_disagreements": 0,
+      "mask_disagreements": 0,
+      "regional_decisions": 73728
+    },
+    "retained_content_routes": {
+      "common_handles": 20519,
+      "old_only": 0,
+      "new_only": 0,
+      "expert_disagreements": 0,
+      "runner_disagreements": 0,
+      "mask_disagreements": 0
+    }
+  },
+  "medians": {
+    "stage2": 79.09431252180616,
+    "stage3": 95.59354184185572
+  },
+  "speedup": 1.2086019688899978,
+  "deterministic": true
+}

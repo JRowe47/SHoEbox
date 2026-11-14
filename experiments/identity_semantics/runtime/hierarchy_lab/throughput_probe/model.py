@@ -195,6 +195,20 @@ class Model(parent.Model):
                'content_cache_hits','content_cache_misses','context_cache_hits','context_cache_misses')
         return dict(zip(names,map(int,out)))
 
+    def content_factor_metrics(self):
+        """Per-scope factor reuse; diagnostics excluded from checkpoint state."""
+        if not hasattr(self.lib,'content_factor_status'):return {}
+        self.lib.content_factor_status.argtypes=[ct.c_void_p,ct.c_void_p]
+        out=np.zeros(6,np.uint64)
+        self.lib.content_factor_status(self.handle,out.ctypes.data)
+        return dict(zip(('weight_requests','weight_products','route_requests','route_products',
+                         'scopes','peak_bank_factors'),map(int,out)))
+
+    def reset_content_factor_metrics(self):
+        if not hasattr(self.lib,'content_factor_reset_status'):return
+        self.lib.content_factor_reset_status.argtypes=[ct.c_void_p]
+        self.lib.content_factor_reset_status(self.handle)
+
     def neural_state(self):
         if not hasattr(self.lib,'neural_state_size'):return np.zeros(0,np.uint8)
         self.lib.neural_state_size.argtypes=[ct.c_void_p];self.lib.neural_state_size.restype=ct.c_size_t

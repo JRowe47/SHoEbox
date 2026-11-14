@@ -1,5 +1,7 @@
 struct ContentExpertHeader {uint64_t version=1,count=0;};
 extern "C" {
+void content_factor_status(void*p,uint64_t*out){memcpy(out,static_cast<Model*>(p)->content_factor_metrics,sizeof(Model::content_factor_metrics));}
+void content_factor_reset_status(void*p){memset(static_cast<Model*>(p)->content_factor_metrics,0,sizeof(Model::content_factor_metrics));}
 int content_workers_configure(void*p,int count,const int*cpus){
   auto&m=*static_cast<Model*>(p);
   if(count<1||count>32||m.content_worker_depth||m.content_credit_depth)return 0;

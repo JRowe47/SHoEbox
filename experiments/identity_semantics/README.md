@@ -112,6 +112,55 @@ recognition behavior. Run `src/validate_pattern_classes.py` for the matched cost
 frozen class-removal intervention and held-out generation checks. See
 [the fourth-fix report](deliverables/SHoEbox_Pattern_Classes.md).
 
+### Structural optimization stage 3
+
+The default completion runtime combines final clipped weight factors for the
+same immutable content input, target bank and feature mask inside each existing
+outer credit scope. It then forms one dense outer product per group. Router
+steps are individually clipped before grouping by destination bank, input and
+routing mask. Bias updates, saved-input derivatives, per-objective teaching
+scales and bank mutation boundaries retain their original order and policy.
+
+Groups use first-occurrence order and never span outer scopes. Nested scopes
+share their outer owner's workspace; the workspace grows with unique inputs,
+not repeated requests. Matrix work still uses 64-request tiles and disjoint
+worker rows. Input masks and full serial/region/index handles are explicit keys.
+Cancelled router factors still trigger the original bank normalization.
+Scope-tagged indices in the saved-input cache avoid hashing and allocation on
+repeated requests. The two weight masks and winner/runner destinations are fixed
+by the immutable input record; bank generations prevent reuse across scopes.
+
+This is floating-point reassociation: the mathematical update is unchanged,
+but old/new training is not promised to be bitwise identical. Same-runtime
+chunking and save/load remain exact. Historical kernels and checkpoint v39 /
+composition ABI 10 / content ABI 1 / neural ABI 1 retain their formats.
+
+`model.content_factor_metrics()` exposes requested and materialized weight and
+router products, nonempty scopes and peak unique factors in one bank.
+`model.reset_content_factor_metrics()` clears only those diagnostics.
+
+See [the stage 3 report and remaining updates](deliverables/SHoEbox_Structural_Optimization_Stage3.md).
+
+```bash
+python -m unittest discover -s experiments/identity_semantics/tests -v
+SHOEBOX_EXPERTS=64 python -m unittest discover \
+  -s experiments/identity_semantics/tests -p test_factor_aggregation.py -v
+python experiments/identity_semantics/tests/run_optimization_sanitizer.py
+ASAN_OPTIONS=detect_leaks=0 python experiments/identity_semantics/tests/run_completion_sanitizer.py
+python experiments/identity_semantics/src/compare_factor_aggregation.py \
+  --baseline-runtime /path/to/69ca740/experiments/identity_semantics/runtime \
+  --warmup 1024 --targets 1024 --repeats 5 --output /tmp/stage3_compare.json
+python experiments/identity_semantics/src/check_factor_compatibility.py \
+  --baseline-runtime /path/to/69ca740/experiments/identity_semantics/runtime \
+  --output /tmp/stage3_compatibility.json
+```
+
+The comparison records numerical drift, update norms, every byte's regional
+expert/mask decisions, retained content expert decisions and product counts.
+Route tracing is an untimed replay that also checks exact chunk independence.
+`src/run_factor_regressions.py --jobs 4 --output /tmp/stage3_tests.txt` runs the
+same test modules in independent subprocess groups and records their full logs.
+
 ### Structural optimization stage 2
 
 The default completion runtime shares immutable content and context payloads

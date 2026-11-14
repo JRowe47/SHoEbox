@@ -192,18 +192,35 @@ struct Model {
     uint64_t mask=0;
     float factor[D]{};
   };
+  struct ContentRouteRequest {
+    SemanticRef ref{};
+    uint64_t mask=0;
+    float step=0;
+  };
   struct ContentBankWorkspace {
     ContentExpertGradient gradient{};
     std::vector<ContentWeightRequest> requests;
+    std::vector<ContentRouteRequest> routes;
+    uint64_t generation=0;
     bool active=false;
   };
   std::array<std::unique_ptr<ContentBankWorkspace>,N*E> content_banks;
   std::vector<int> content_dirty;
   std::unique_ptr<RowWorkers> content_workers;
   int content_worker_depth=0;
-  struct ContentInputCache {uint64_t serial=0;float norm=0;};
+  struct ContentFactorLocation {uint64_t generation=0;size_t index=0;int bank=-1;};
+  struct ContentInputCache {
+    uint64_t serial=0;float norm=0;int region=-1;
+    // An immutable input has only two possible weight masks (dense / saved)
+    // and two router destinations (winner / runner). Generation tags avoid
+    // per-request hashing and allocation, and never alias across bank scopes.
+    ContentFactorLocation weights[2]{},routes[2]{};
+  };
   std::vector<ContentInputCache> content_input_cache;
   uint64_t content_expert_metrics[N][6]{}; // encodes, updates, local, task, routes, missing
+  // Requested/materialized weight and router products, nonempty scopes, peak
+  // unique factors in one bank. Diagnostics only, never checkpoint state.
+  uint64_t content_factor_metrics[6]{};
 #endif
 #ifdef SHOEBOX_LEARNED_MESSAGES
   // Payload, feedback activation, feedback routing, semantic learning scale.
