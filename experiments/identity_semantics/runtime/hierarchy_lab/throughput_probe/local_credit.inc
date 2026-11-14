@@ -1,19 +1,8 @@
+#include "local_adjoint.inc"
 // A local forecast owns its learning rate and objective. Finish its bounded
 // reverse pass synchronously: never enqueue it in the language/DFA buffers,
 // whose eventual flush has a different rate and teaching policy. No work from
 // this pass survives an API call, so the retained-event checkpoint ABI is intact.
-using LocalKey=std::pair<int,int64_t>;
-struct LocalSignal {
-  std::array<float,D> neural{},input{};
-  int neural_uses=0,input_uses=0;
-};
-struct LocalCredit {
-  using Map=std::pmr::map<LocalKey,LocalSignal>;
-  Map pending[LACE_DEPTH],updates;
-  explicit LocalCredit(std::pmr::memory_resource*pool):pending{Map{pool},Map{pool},Map{pool}},updates(pool){
-    static_assert(LACE_DEPTH==3);
-  }
-};
 inline void local_deliver_input(Model&,int,LaceRecord&,const float*,const float*,int,LocalCredit&);
 inline void local_transform(Model&m,const LaceParent&edge,const float*gradient,float*out){
   if(edge.slot<=-100){
@@ -82,23 +71,27 @@ inline void local_prediction_update(Model&m,int r,LaceRecord&v,const float*g,flo
   if(rate==0||issuer_scale==0||m.frozen_region[r])return;
   ContentCreditScope content_scope(m);
   SHOEBOX_DIAGNOSTIC(m.local_credit_metrics[r][0]++;)
-  LocalCredit work(&m.local_credit_pool);float upstream[D];
+  auto&work=m.local_credit_work;work.reset();float upstream[D];
   for(int j=0;j<D;j++)upstream[j]=issuer_scale*g[j];
   local_distribute(m,r,v,upstream,0,work);
   // Match lace reuse policy: mean derivative for onward neural propagation,
   // uses^-reuse_exponent for parameter updates and retained-input propagation.
   // Frozen recipients still transmit derivatives to their causal ancestors.
   for(int d=0;d<std::clamp(int(m.lcfg[0]),0,LACE_DEPTH);d++){
-    for(auto&entry:work.pending[d]){
-      int source=entry.first.first;auto*producer=find_lace(m,source,entry.first.second);
+    work.pending[d].sort();local_prepare_adjoints(m,work,d);
+    for(size_t i=0;i<work.pending[d].order.size();i++){
+      auto&entry=work.pending[d].entries[work.pending[d].order[i]];auto&job=work.adjoints[i];
+      int source=entry.first.first;auto*producer=job.producer;
       if(!producer){SHOEBOX_DIAGNOSTIC(m.local_credit_metrics[source][7]++;)continue;}
       auto&signal=entry.second;auto&total=work.updates[entry.first];
       if(signal.neural_uses){
-        float mean[D],scale=1.f/std::pow(float(signal.neural_uses),m.lcfg[5]);
+        float scale=1.f/std::pow(float(signal.neural_uses),m.lcfg[5]);
         for(int j=0;j<D;j++){
-          mean[j]=signal.neural[j]/signal.neural_uses;total.neural[j]+=signal.neural[j]*scale;
+          total.neural[j]+=signal.neural[j]*scale;
         }
-        total.neural_uses++;local_distribute(m,source,*producer,mean,d+1,work);
+        total.neural_uses++;
+        if(producer->expert<0)local_distribute(m,source,*producer,job.mean,d+1,work);
+        else local_deliver_input(m,source,*producer,job.du,job.dcue,d+1,work);
       }
       if(signal.input_uses){
         float gradient[D],scale=1.f/std::pow(float(signal.input_uses),m.lcfg[5]);
@@ -110,8 +103,10 @@ inline void local_prediction_update(Model&m,int r,LaceRecord&v,const float*g,flo
   // Calculate semantic derivatives before any expert/router mutation too.
   // This replaces expert_update's semantic side effect exactly once; neural
   // transport itself never adds a second copy of the constituent-code branch.
+  work.updates.sort();
   semantic_expert_update(m,r,&v,g,rate*issuer_scale,1);
-  for(auto&entry:work.updates){
+  for(auto index:work.updates.order){
+    auto&entry=work.updates.entries[index];
     int source=entry.first.first;auto*producer=find_lace(m,source,entry.first.second);
     auto&total=entry.second;float scale=rate*m.lcfg[1]*m.teaching_scale[source][1];
     if(total.neural_uses)semantic_expert_update(m,source,producer,total.neural.data(),scale,1);
@@ -119,7 +114,8 @@ inline void local_prediction_update(Model&m,int r,LaceRecord&v,const float*g,flo
   }
   constituent_union_flush(m,false);
   expert_update(m,r,g,rate,&v,1,false);
-  for(auto&entry:work.updates){
+  for(auto index:work.updates.order){
+    auto&entry=work.updates.entries[index];
     int source=entry.first.first;auto*producer=find_lace(m,source,entry.first.second);auto&total=entry.second;
     if(total.neural_uses){
       expert_update(m,source,total.neural.data(),rate*m.lcfg[1],producer,1,false);

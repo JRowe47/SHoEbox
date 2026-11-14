@@ -141,6 +141,7 @@ struct UtilityRuntime {
 #include "event_types.inc"
 #include "bank_pipeline_types.inc"
 #include "semantic_retention.inc"
+#include "execution_types.inc"
 struct RetainedNeural {
   LaceRecord lace{};
   InputCredit input{};
@@ -175,7 +176,9 @@ struct Model {
   };
   std::vector<PublicationRole> publication_roles;
   uint64_t publication_cache_metrics[4]{}; // content hits/misses, context hits/misses
-  std::pmr::unsynchronized_pool_resource local_credit_pool;
+  LocalCredit local_credit_work;
+  ReverseExecution reverse_execution;
+  RegionalExecution execution;
   // The handle is (region, immutable execution tick); ring index is only a hint.
   // std::map preserves addresses while delayed updates insert other records.
   // Archive allocation belongs to this model, not to temporary evaluation
@@ -352,6 +355,9 @@ struct Model {
     refresh_keys(); // Content encoding can precede the first recurrent run.
   }
 };
+#ifdef SHOEBOX_LEARNED_COMPLETION
+#include "ready_execution.inc"
+#endif
 #ifdef SHOEBOX_CONTRIBUTION_CHECKS
 #include "contribution_hooks.inc"
 #endif
@@ -1118,6 +1124,7 @@ double run(void*p,const unsigned char*x,const unsigned char*y,int length,int mod
   Model&m=*static_cast<Model*>(p);State&s=m.s;double loss=0;ContentEvent composed{},parts[COMP_MAX]{};m.refresh_keys();m.cached_read_valid[0]=m.cached_read_valid[1]=false;
 #ifdef SHOEBOX_LEARNED_COMPLETION
   ContentWorkerScope worker_scope(m);
+  execution_begin_run(m);
   m.event.training=mode!=0&&mode!=4;m.event.rates[0]=lr;m.event.rates[1]=lp;
 #endif
   for(int t=0;t<length;t++){
@@ -1147,10 +1154,18 @@ double run(void*p,const unsigned char*x,const unsigned char*y,int length,int mod
     }
     bool active[N]{};float qgain[N]{},hcderiv[N][D],hcvalue[N][D];
     if(mode==5){memset(hcderiv,0,sizeof(hcderiv));memset(hcvalue,0,sizeof(hcvalue));}
+#ifdef SHOEBOX_LEARNED_COMPLETION
+    execution_begin_step(m,x[t]);
+    for(int r=execution_next(m,0);r<N;r=execution_next(m,r+1)){
+#else
     for(int r=0;r<N;r++){
+#endif
       if(m.composition.stream.draining&&r<2)continue;
       int nparts=0;
       bool composition_learning=mode!=0&&mode!=4&&!m.frozen_region[r];
+#ifdef SHOEBOX_LEARNED_COMPLETION
+      if(r>=3&&r<=5)execution_prepare_family(m);
+#endif
       if(m.composition.enabled&&r>=2&&!content_prepare(m,r,composition_learning,composed,parts,nparts))continue;
       if(m.composition.enabled&&r>=2&&r<=14&&nparts==1
 #ifdef SHOEBOX_LEARNED_COMPLETION
@@ -1169,11 +1184,15 @@ double run(void*p,const unsigned char*x,const unsigned char*y,int length,int mod
       active[r]=true;
       if(mode&&!m.lcfg[11])flush_credit(m,r,lr);
       LaceParent parents[LACE_LINKS];int nparents=0;
-      float q[D]{},c[D]{},portcue[D]{};float qw=0,cw=0;
+      float q_storage[D]{},c[D]{},portcue[D]{};float qw=0,cw=0;
+      float*q=q_storage;
+#ifdef SHOEBOX_LEARNED_COMPLETION
+      if(r<2&&m.starts[r]==m.starts[r+1])q=m.execution.byte;
+#endif
 #ifdef SHOEBOX_LEARNED_MESSAGES
       MessageInput message{};float feedback_input[D]{},feedback_value[D]{},feedback_weight=0;
 #endif
-      if(r<2){memcpy(q,m.emb+x[t]*D,D*sizeof(float));qw=1;}
+      if(r<2){if(q==q_storage)memcpy(q,m.emb+x[t]*D,D*sizeof(float));qw=1;}
       if(m.composition.enabled&&r>=2)content_bundle(m,r,composed,parts,nparts,q,c,qw,cw,parents,nparents);
 #ifdef SHOEBOX_LEARNED_MESSAGES
       if(m.composition.enabled&&r>=2)message_payload(m,r,parts,nparts,q,message);
@@ -1197,7 +1216,20 @@ double run(void*p,const unsigned char*x,const unsigned char*y,int length,int mod
 #endif
         const float*v=delay?snapshot[src]:s.hist[src][age];float*dest=delay?c:q;
         float gain=m.regional_gain[src],effective_w=gain==1.f?w:w*gain;
-        for(int j=0;j<D;j++)dest[j]+=effective_w*m.signs[k*D+j]*v[m.perm[k*D+j]];
+        bool feedback_edge=false;
+#ifdef SHOEBOX_LEARNED_MESSAGES
+        feedback_edge=contextual&&slot[2]&&message_feedback_enabled(m);
+#ifdef SHOEBOX_CONTRIBUTION_CHECKS
+        if(feedback_edge&&contribution_apply(m,CHECK_FEEDBACK,src))feedback_edge=false;
+#endif
+#endif
+        for(int j=0;j<D;j++){
+          float weight=effective_w*m.signs[k*D+j],value=v[m.perm[k*D+j]];
+          dest[j]+=weight*value;
+#ifdef SHOEBOX_LEARNED_MESSAGES
+          if(feedback_edge)feedback_input[j]+=weight*value;
+#endif
+        }
 #ifdef SHOEBOX_LEARNED_MESSAGES
         // Only declared delayed feedback uses this channel. Legacy context is
         // retained as a separate path so zero new gains are bitwise compatible.
@@ -1205,11 +1237,7 @@ double run(void*p,const unsigned char*x,const unsigned char*y,int length,int mod
           // Normalize by the same available recipe even when a diagnostic
           // mutes one source; removing it must not amplify the other sources.
           feedback_weight+=w*w;
-#ifdef SHOEBOX_CONTRIBUTION_CHECKS
-          if(!contribution_apply(m,CHECK_FEEDBACK,src))
-#endif
-          {
-            for(int j=0;j<D;j++)feedback_input[j]+=effective_w*m.signs[k*D+j]*v[m.perm[k*D+j]];
+          if(feedback_edge){
             if(effective_w&&message.feedback_count<COMP_MAX)
               message.feedback[message.feedback_count++]={snapshot_region[src],k,snapshot_tick[src],effective_w,snapshot_index[src]};
           }
@@ -1248,15 +1276,15 @@ double run(void*p,const unsigned char*x,const unsigned char*y,int length,int mod
         for(int j=0;j<D;j++){
           s.query[a][j]=q[j];
           s.qmean[a][j]+=.01f*(q[j]-s.qmean[a][j]);
+#ifdef SHOEBOX_LEARNED_COMPLETION
+          if(!paired_enabled(m))
+#endif
+          s.returned[a][j]=0;
         }
         if(r==15&&mode&&int(m.cfg[6])==2&&s.credit_count){
           float g[D];for(int j=0;j<D;j++)g[j]=s.credit[j]/s.credit_count;
           expert_update(m,15,g,lr*m.cfg[7]);memset(s.credit,0,sizeof(s.credit));s.credit_count=0;
         }
-#ifdef SHOEBOX_LEARNED_COMPLETION
-        if(!paired_enabled(m))
-#endif
-        memset(s.returned[a],0,D*sizeof(float));
       }
       // Completion uses one joint episodic read; historical kernels retain
       // their previous-cue -> current-input associative transition contract.

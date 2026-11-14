@@ -1,3 +1,4 @@
+#include "reverse_execution.inc"
 // Policy 2: a weighted mean of root adjoints is differentiated once per unique
 // node and regional teaching-policy group. Multiply by the group's absolute
 // rate mass at the update. Clipping is applied to that mean and the combined
@@ -9,12 +10,10 @@ inline bool reverse_same_policy(const Model::ReverseRoot&a,const Model::ReverseR
 inline void constituent_union_flush(Model&m,bool force){
   if(m.reverse_flushing||m.reverse_roots.empty()||(!force&&!m.reverse_bank_version.empty()))return;
   m.reverse_flushing=true;SHOEBOX_DIAGNOSTIC(m.reverse_metrics[4]++;)
-  auto&roots=m.reverse_roots;std::vector<bool> used(roots.size(),false);
-  for(size_t first=0;first<roots.size();first++)if(!used[first]){
-    const auto&policy=roots[first];std::vector<size_t> group;float mass=0;
-    for(size_t q=first;q<roots.size();q++)if(!used[q]&&reverse_same_policy(policy,roots[q])){
-      used[q]=true;group.push_back(q);mass+=std::abs(roots[q].rate);
-    }
+  auto&roots=m.reverse_roots;reverse_group_roots(m);
+  for(size_t g=0;g<m.reverse_execution.count;g++){
+    const auto&batch=m.reverse_execution.groups[g];const auto&group=batch.roots;
+    size_t first=group[0];const auto&policy=roots[first];float mass=batch.mass;
     SHOEBOX_DIAGNOSTIC(m.reverse_metrics[5]++;)
     // Keep the common singleton case in its original arithmetic order.
     if(group.size()==1&&!m.event.local){
@@ -22,33 +21,16 @@ inline void constituent_union_flush(Model&m,bool force){
       constituent_update_reference(m,root.ref,root.gradient,root.rate,root.receiver,root.teaching);
       continue;
     }
-    uint64_t mark=++m.semantic_work_serial;auto&work=m.reverse_work;work.clear();
-    auto admit=[&](SemanticRef ref){
-      if(!ref.serial)return;
-      if(!constituent_record(m,ref)){SHOEBOX_DIAGNOSTIC(m.composition.stream.completion_metrics[policy.receiver][1]++;)return;}
-      if(constituent_mark(m,ref.index)==mark)return;
-      constituent_mark(m,ref.index)=mark;
-      memset(constituent_gradient(m,ref.index),0,D*sizeof(float));work.push_back(ref);
-    };
-    for(auto q:group)admit(roots[q].ref);
-    for(size_t i=0;i<work.size();i++){
-      const auto&node=*constituent_record(m,work[i]);
-      for(int e=0;e<node.count;e++)if(event_follow(m,node.ref,e))admit(node.edges[e].source);
-    }
-    std::sort(work.begin(),work.end(),[](SemanticRef a,SemanticRef b){return a.serial>b.serial;});
+    uint64_t mark=++m.semantic_work_serial;
+    const auto&plan=reverse_schedule(m,batch,mark);const auto&work=plan.nodes;
     for(auto q:group){const auto&root=roots[q];if(!constituent_record(m,root.ref))continue;
       float*out=constituent_gradient(m,root.ref.index),factor=root.rate/mass;
       for(int j=0;j<D;j++)out[j]+=factor*root.gradient[j];
     }
     SHOEBOX_DIAGNOSTIC(m.reverse_metrics[2]+=work.size();)
     // As in the reference pass, independent ready nodes share a bank tile.
-    for(size_t begin=0;begin<work.size();){
-      size_t end=begin;uint64_t newest_child=0;
-      while(end<work.size()&&end-begin<16&&(end==begin||work[end].serial>newest_child)){
-        const auto&node=*constituent_record(m,work[end]);
-        for(int e=0;e<node.count;e++)newest_child=std::max(newest_child,node.edges[e].source.serial);
-        ++end;
-      }
+    size_t begin=0;
+    for(size_t end:plan.batch_ends){
       float locals[16][D],derivatives[16][D];
       const ContentExpertRecord*contents[16]{};bool done[16]{};int count=int(end-begin);
       for(int a=0;a<count;a++){

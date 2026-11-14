@@ -956,3 +956,59 @@ python experiments/identity_semantics/src/check_indexed_checkpoint.py \
 `memory_inspection.read_indexed_storage(model)` reports live context storage and
 reserved ownership-vector payload at quiescent boundaries. Its sizes exclude
 allocator and hash-table overhead; process RSS remains the total-memory measure.
+
+### Action 3: reusable learning and ready-event execution
+
+Local objectives now use retained indexed accumulators with generation-tagged
+lookup and the original region/tick reduction order. Compatible dense local
+adjoints share bank row loads before any parameter mutation; sparse and MinKron
+derivatives retain their existing kernels. Teaching-policy keys retain the exact
+scale bits and objective identity. Reverse groups, traversal plans and ready
+batches reuse storage. Plans validate constituent generations and, for event
+learning, frontier clocks and replay traversal mode. They cache topology only;
+all derivatives still read the bank version belonging to their credit scope.
+
+Publications populate a regional ready bitset, drained in ascending causal
+order at most once per step. Late lower-index publications remain pending for
+the next step. The byte clocks for A1/B1/Y, previous-tick feedback snapshots,
+relay teaching and document drains keep their original schedules. Fixed recipe
+metadata is packed together, A1/B1 share byte preparation, and compatible
+S2/R2/F2 child handles are gathered together. Encoders and online teachers still
+execute at their original regional boundaries. EC bookkeeping and common
+context/feedback edge reads are fused without changing reductions.
+
+The new workspaces are derived, never serialized. The existing learning and
+checkpoint policies remain unchanged. The dedicated contribution-intervention
+kernel preserves exhaustive source probing for its observation contract;
+ordinary production and audit completion use ready scheduling. Production has
+no new historical counters or inline observers.
+
+Validation: 299 regression tests at the nominal 1M size, seven selected 5M
+checks, production ASan/UBSan, and actual Action-2 checkpoints continued exactly
+for 8,192 bytes in reference, one/two-head event and compact pipeline profiles.
+All 64 paired production runs matched logits, fitted parameters, held-out NLL
+and logical continuation. At 16,384 measured natural-text bytes, throughput was
+486.5 -> 500.6 B/s for reference, 1101.8 -> 1125.7 for event, 1141.3 -> 1180.5
+for compact serial, and 1161.7 -> 1166.9 for compact threaded. The compact
+values are medians of three rotated pairs; reference/event each use one pair.
+Short document-boundary reference and threaded medians declined 2.9% and 1.4%,
+respectively, so the results do not establish a uniform workload speedup.
+
+`memory_inspection.read_execution_storage(model)` reports reserved local/reverse
+workspace payload and handle-valid cached traversal layouts at API boundaries.
+Its batch histogram describes retained plans, not a historical execution count.
+The separate external instruction samples still identify reverse learning as
+the largest classified caller component (36.5% of compact-serial samples).
+The best long-run median is 1180.5 B/s, leaving a 12.71x gap to 15,000 B/s.
+
+```bash
+python experiments/identity_semantics/src/compare_ready_execution.py \
+  --baseline /path/to/action2-checkout --output comparison.json
+python experiments/identity_semantics/src/check_ready_checkpoint.py \
+  --baseline /path/to/action2-checkout --output checkpoint_checks.json
+python experiments/identity_semantics/tests/run_ready_sanitizer.py
+```
+
+Source/build hashes, per-trial quality and memory results, external sampling and
+test logs are in `results/action3_*`. Action 4 (compact prediction and fast/slow
+Y) is next; Actions 5-8 and the progressive Action-9 qualification remain.

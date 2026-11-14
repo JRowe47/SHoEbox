@@ -30,7 +30,8 @@ def category(name):
     if any(s in name for s in ('collect', 'retention', 'constituent_retain', 'ensure_index', 'archive_slot', 'prune')):
         return 'collection / retention'
     if any(s in name for s in ('derivative', 'adjoint', 'backward', 'union_flush', 'neural_credit', 'teach', 'backprop', 'event_boundary',
-                              'constituent_update', 'expert_update', 'accumulate', 'local_prediction_update', 'context_update', 'learn_bottom')):
+                              'constituent_update', 'expert_update', 'accumulate', 'local_prediction_update', 'context_update', 'learn_bottom',
+                              'reverse_schedule', 'reverse_group_roots')):
         return 'reverse / derivatives / credit'
     if any(s in name for s in ('bank_compute', 'pipeline_compute', 'content_bank', 'content_rows', 'content_materialize', 'content_expert_flush', 'pipeline_commit', 'pipeline_capture')):
         return 'bank update / versions'

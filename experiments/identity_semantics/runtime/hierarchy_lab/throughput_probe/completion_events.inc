@@ -1,14 +1,12 @@
 inline int completion_driver(Model&m,int r,int&multiplicity){
-  int driver=int(m.slots[4*m.starts[r]]);multiplicity=0;
-  for(int k=m.starts[r];k<m.starts[r+1];k++)if(!m.slots[4*k+2]&&int(m.slots[4*k])==driver)multiplicity++;
-  return driver;
+  const auto&recipe=execution_recipe(m,r);multiplicity=recipe.multiplicity;return recipe.driver;
 }
 inline bool completion_frame_ready(Model&m,int r){
   auto&s=m.composition.stream;int required=0,driver=completion_driver(m,r,required);
   if(binding_source_removed(m,driver))return false;
   auto seq=s.history[driver][0].ref.seq;
   if(seq-s.seen[r]<(s.draining?1:required))return false;
-  for(int k=m.starts[r];k<m.starts[r+1];k++)if(!m.slots[4*k+2]){
+  for(int k:execution_recipe(m,r).immediate){
     int src=int(m.slots[4*k]),age=int(m.slots[4*k+1]);
     if(!s.draining&&!binding_source_removed(m,src)&&!s.history[src][age].ref.seq)return false;
   }
@@ -17,6 +15,29 @@ inline bool completion_frame_ready(Model&m,int r){
 inline bool completion_ready(Model&m,int r){
   auto&s=m.composition.stream;
   return completion_frame_ready(m,r)||(s.draining&&s.length[r]);
+}
+inline void execution_prepare_family(Model&m){
+  auto&x=m.execution;auto&s=m.composition.stream;
+  if(!m.composition.enabled||s.draining||!x.family_compatible||x.family_tick==m.s.tick)return;
+#ifdef SHOEBOX_CONTRIBUTION_CHECKS
+  return; // The intervention oracle observes each attempted source access.
+#endif
+  x.family_tick=m.s.tick;
+  // All three recipes use already-published lower sources. Gather immutable
+  // handles together, then encode and teach each region in the original order.
+  for(int r=3;r<=5;r++){
+    auto&frame=x.bottom_family[r-3];frame.ready=completion_frame_ready(m,r);
+    if(!frame.ready)continue;
+    const auto&recipe=x.recipe[r];
+    for(int k:recipe.immediate){
+      int src=int(m.slots[4*k]),age=int(m.slots[4*k+1]),role=k-m.starts[r];
+      const auto&child=s.history[src][age];
+      if(binding_source_removed(m,src)||!child.ref.seq||(src==recipe.driver&&child.ref.seq<=s.seen[r]))continue;
+      frame.children[frame.count]=child;frame.children[frame.count++].ref.role=k;
+      if(s.fusion_seen[r][role]!=child.ref.seq)frame.fresh|=1u<<role;
+    }
+    frame.available=std::min<int64_t>(recipe.multiplicity,s.history[recipe.driver][0].ref.seq-s.seen[r]);
+  }
 }
 inline void completion_emit(Model&m,int r,bool learn,ContentEvent&event,ContentEvent*parts,int&n){
   auto&s=m.composition.stream;n=s.length[r];
@@ -30,18 +51,20 @@ inline void completion_emit(Model&m,int r,bool learn,ContentEvent&event,ContentE
 }
 inline bool completion_prepare(Model&m,int r,bool learn,ContentEvent&event,ContentEvent*parts,int&n){
   auto&s=m.composition.stream;n=0;
-  if(!completion_frame_ready(m,r)){
+  const auto*packed=r>=3&&r<=5&&m.execution.family_tick==m.s.tick?&m.execution.bottom_family[r-3]:nullptr;
+  if(!(packed?packed->ready:completion_frame_ready(m,r))){
     if(s.draining&&s.length[r]){completion_emit(m,r,learn,event,parts,n);return true;}
     SHOEBOX_DIAGNOSTIC(s.metrics[r][5]++;)return false;
   }
-  ContentEvent frame{},children[COMP_MAX];int count=0;
+  ContentEvent frame{},storage[COMP_MAX];int count=packed?packed->count:0;
+  const ContentEvent*children=packed?packed->children:storage;
   int required=0,driver=completion_driver(m,r,required);
-  uint32_t fresh=0;
-  for(int k=m.starts[r];k<m.starts[r+1];k++)if(!m.slots[4*k+2]){
+  uint32_t fresh=packed?packed->fresh:0;
+  if(!packed)for(int k:execution_recipe(m,r).immediate){
     int src=int(m.slots[4*k]),age=int(m.slots[4*k+1]),role=k-m.starts[r];
     const auto&child=s.history[src][age];
     if(binding_source_removed(m,src)||!child.ref.seq||(src==driver&&child.ref.seq<=s.seen[r]))continue;
-    children[count]=child;children[count++].ref.role=k;
+    storage[count]=child;storage[count++].ref.role=k;
     if(s.fusion_seen[r][role]!=child.ref.seq)fresh|=1u<<role;
   }
   if(!count)return false;
@@ -50,7 +73,7 @@ inline bool completion_prepare(Model&m,int r,bool learn,ContentEvent&event,Conte
   for(int i=0;i<count;i++)s.fusion_seen[r][children[i].ref.role-m.starts[r]]=children[i].ref.seq;
   int fresh_count=__builtin_popcount(fresh);
   SHOEBOX_DIAGNOSTIC(s.metrics[r][0]+=fresh_count;)SHOEBOX_DIAGNOSTIC(s.metrics[r][14]++;)SHOEBOX_DIAGNOSTIC(s.metrics[r][15]+=count-fresh_count;)SHOEBOX_DIAGNOSTIC(s.metrics[r][16]+=fresh_count;)
-  int available=std::min<int64_t>(required,s.history[driver][0].ref.seq-s.seen[r]);
+  int available=packed?packed->available:std::min<int64_t>(required,s.history[driver][0].ref.seq-s.seen[r]);
   s.seen[r]=s.history[driver][0].ref.seq;
   // Coverage includes held side constituents. Only the recursively preserved
   // primary clock determines adjacency, never that all-source coverage union.

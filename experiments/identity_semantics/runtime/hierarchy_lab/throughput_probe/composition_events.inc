@@ -113,6 +113,9 @@ inline void content_publish(Model&m,int r,ContentEvent event,bool relay=false){
   contribution_event(m,r,event);
 #endif
   z.history[r][1]=z.history[r][0];z.history[r][0]=event;
+#ifdef SHOEBOX_LEARNED_COMPLETION
+  execution_publish(m,r);
+#endif
   bool formed=event.count>=2;
 #ifdef SHOEBOX_PRESERVE_RELAYS
   formed=!relay&&event.local_arity>=2;

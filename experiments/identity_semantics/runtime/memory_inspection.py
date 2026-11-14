@@ -132,3 +132,15 @@ def read_indexed_storage(model):
             'semantic_workspace_bytes','semantic_owned_records','bytes_per_context_head','legacy_context_record_bytes',
             'archive_free_bytes')
     return dict(zip(fields,map(int,values)))
+
+
+def read_execution_storage(model):
+    """Retained payload sizes and current plan batches, outside training."""
+    values=np.zeros(32,np.uint64)
+    model.lib.execution_storage_status.argtypes=[ct.c_void_p,ct.c_void_p]
+    model.lib.execution_storage_status(model.handle,values.ctypes.data)
+    fields=('local_workspace_bytes','local_entries','local_adjoints','teaching_keys','last_policy_groups',
+            'reverse_workspace_bytes','valid_cached_plans','cached_nodes','pending_regions','recipe_bytes')
+    result=dict(zip(fields,map(int,values[:10])))
+    result['ready_batch_histogram']={str(i+1):int(n) for i,n in enumerate(values[16:]) if n}
+    return result

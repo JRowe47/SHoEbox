@@ -59,3 +59,28 @@ extern "C" void indexed_storage_status(void*p,uint64_t*out){
   out[10]=sizeof(ContextHead);out[11]=sizeof(ContextEligibilityV1);
   out[12]=m.neural_record_pool.reserved_bytes();
 }
+
+// Inspect retained workspace and plans, not historical counters. Batch-size
+// bins describe currently valid cached traversal plans at this API boundary.
+extern "C" void execution_storage_status(void*p,uint64_t*out){
+  auto&m=*static_cast<Model*>(p);memset(out,0,32*sizeof(uint64_t));
+  auto signals=[&](const LocalSignals&s){
+    out[0]+=s.entries.capacity()*sizeof(LocalSignals::Entry)+s.table.capacity()*sizeof(LocalSignals::Slot)+s.order.capacity()*sizeof(size_t);
+    out[1]+=s.entries.size();
+  };
+  auto&local=m.local_credit_work;for(const auto&s:local.pending)signals(s);signals(local.updates);
+  out[0]+=local.adjoints.capacity()*sizeof(LocalAdjoint);out[2]=local.adjoints.size();
+  auto&reverse=m.reverse_execution;out[3]=reverse.policies.size();out[4]=reverse.count;
+  out[5]=reverse.groups.capacity()*sizeof(ReverseExecution::Group)+reverse.policies.capacity()*sizeof(ReverseExecution::Policy);
+  for(const auto&g:reverse.groups)out[5]+=g.roots.capacity()*sizeof(size_t);
+  auto plan=[&](const ReverseExecution::Plan&p,bool cached){
+    out[5]+=(p.roots.capacity()+p.nodes.capacity())*sizeof(SemanticRef)+p.batch_ends.capacity()*sizeof(size_t);
+    if(!cached||!p.valid)return;
+    for(auto ref:p.nodes)if(!constituent_record(m,ref))return;
+    out[6]++;out[7]+=p.nodes.size();size_t begin=0;
+    for(auto end:p.batch_ends){if(end>begin&&end-begin<=16)out[16+end-begin-1]++;begin=end;}
+  };
+  for(const auto&p:reverse.plans)plan(p,true);plan(reverse.scratch,false);
+  out[8]=m.execution.pending;
+  for(const auto&r:m.execution.recipe)out[9]+=r.immediate.capacity()*sizeof(int);
+}

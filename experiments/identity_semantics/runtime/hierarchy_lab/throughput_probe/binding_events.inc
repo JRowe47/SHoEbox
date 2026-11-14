@@ -37,9 +37,13 @@ inline ContentEvent binding_compose(Model&m,int r,const ContentEvent*children,in
   if(first>=0){out.clock_begin=children[first].clock_begin;out.clock_end=children[last].clock_end;}
 #endif
   ContentID id{content_mix(uint64_t(r)+0x62696e64),content_mix(0x726f6c657631)};
+#ifdef SHOEBOX_LEARNED_COMPLETION
+  float scale=execution_recipe(m,r).scale;
+#else
   float squared=0;
   for(int k=m.starts[r];k<m.starts[r+1];k++)if(!m.slots[4*k+2])squared+=m.slots[4*k+3]*m.slots[4*k+3];
   float scale=1.f/std::sqrt(std::max(1.f,squared));
+#endif
   for(int i=0;i<n;i++){
     const auto&child=children[i];int k=child.ref.role,role=k-m.starts[r];
     published.children[i]=child.ref;out.present_mask|=uint32_t(1)<<role;
@@ -107,8 +111,12 @@ inline bool binding_prepare(Model&m,int r,bool learn,ContentEvent&event,ContentE
 inline void binding_bundle(Model&m,int r,const ContentEvent&event,const ContentEvent*parts,int n,
                            float*q,float*c,float&qw,float&cw,LaceParent*parents,int&nparents){
   if(n){memcpy(q,event.values().code,D*sizeof(float));qw=1;}
+#ifdef SHOEBOX_LEARNED_COMPLETION
+  float scale=execution_recipe(m,r).scale;
+#else
   float squared=0;for(int k=m.starts[r];k<m.starts[r+1];k++)if(!m.slots[4*k+2])squared+=m.slots[4*k+3]*m.slots[4*k+3];
   float scale=1.f/std::sqrt(std::max(1.f,squared));
+#endif
   for(int i=0;i<n;i++){
     const auto&child=parts[i];int k=child.ref.role;
     float weight=scale*m.slots[4*k+3]*m.regional_gain[child.ref.region];
