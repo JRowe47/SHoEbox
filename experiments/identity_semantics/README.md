@@ -112,6 +112,41 @@ recognition behavior. Run `src/validate_pattern_classes.py` for the matched cost
 frozen class-removal intervention and held-out generation checks. See
 [the fourth-fix report](deliverables/SHoEbox_Pattern_Classes.md).
 
+### Current baseline comparison (development plan, Action 1)
+
+`src/measure_current_baseline.py` compares the production full-ancestry
+reference, event learning, compact serial and compact threaded profiles. It
+pins model/data/build policy, exports logits in 512-target chunks, and records
+wall/process CPU time, held-out curves and live storage at API boundaries.
+The document fixture never trains a target across a document boundary.
+
+Run these commands sequentially, without overlapping tests or profiling:
+
+```bash
+SHOEBOX_EXPERTS=12 python src/measure_current_baseline.py --suite short --output results/action1_short.json
+SHOEBOX_EXPERTS=12 python src/measure_current_baseline.py --suite continuation --output results/action1_continuation.json
+SHOEBOX_EXPERTS=12 python src/measure_current_baseline.py --suite retention --output results/action1_retention.json
+SHOEBOX_EXPERTS=12 python src/check_baseline_continuation.py --output results/action1_continuation_checks.json
+SHOEBOX_EXPERTS=12 python src/profile_current_baseline.py --output results/action1_profile.json
+```
+
+Short and continuation suites use three rotated-order repeats per workload;
+retention uses one 32,768-target uninterrupted natural-text stream per profile.
+The default caller/learning-worker CPUs are 0/1; use `--cpu` and `--worker-cpu`
+for another pair. Data comes from the pinned `70ea7b0` revision, independently
+of subsequent documentation edits. `action1_selection.json` fixes attainable
+quality targets for subsequent actions. Dynamic dictionaries and retained
+state are inventoried separately from fixed fitted coefficients.
+If using a shallow checkout that lacks the pinned data commit, first run
+`git fetch origin 70ea7b0b4f203c94aabcaaae58a06e213f698031`.
+
+The external Linux x86-64 sampler uses an asynchronous signal attachment and
+the unchanged production binary. Its runs are diagnostic only; instruction
+samples include waiting and unresolved library work and are not inclusive CPU
+costs. No observer is added to the model loop. Tests cover benchmark target
+boundaries and rejection of repeat/worker divergence. The continuation checker
+also exercises irregular chunks, pending save/load and worker changes.
+
 ### Compact versioning and external inspection
 
 Router-only jobs carry bias/key vectors, with an optional 64x64 tile only for

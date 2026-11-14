@@ -54,6 +54,11 @@ the complete gate: native regressions, sanitizers, exact continuation, matched
 frozen contributions and held-out generation checks. Failed or skipped checks
 cannot produce an overall passing status. Checkpoints use v40 / ABI 10.
 
+The optimization plan's Action 1 now has a [reusable baseline comparison suite](experiments/identity_semantics/README.md#current-baseline-comparison-development-plan-action-1):
+four production profiles, isolated timing, held-out curves, live memory inventories,
+exact continuation checks and external instruction sampling. Compact evidence is
+recorded in `experiments/identity_semantics/results/action1_*.json`.
+
 The pipeline now uses compact router-only versions, two reusable job buffers,
 shared immutable inputs, and indexed bank scopes. Production completion builds
 omit inline diagnostic collection. Use `capture_memory`, `compare_memory` and

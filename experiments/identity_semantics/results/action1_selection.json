@@ -1,0 +1,74 @@
+{
+  "source_revision": "70ea7b0b4f203c94aabcaaae58a06e213f698031",
+  "model_experts": 12,
+  "seed": 7,
+  "target_selection": "Worst profile endpoint plus >=0.01 nats; all profiles still meet it at the endpoint. Fixed for subsequent actions.",
+  "targets": {
+    "repeated": {
+      "nll": 2.62,
+      "first_observed_seconds": {
+        "reference": 19.718508838006528,
+        "event": 3.3941143460106105,
+        "compact_serial": 3.45343855896499,
+        "compact_threaded": 3.465595770001528
+      },
+      "first_observed_training_bytes": {
+        "reference": 3072,
+        "event": 3072,
+        "compact_serial": 3072,
+        "compact_threaded": 3072
+      }
+    },
+    "natural": {
+      "nll": 3.33,
+      "first_observed_seconds": {
+        "reference": 49.83168662201206,
+        "event": 22.092197325982852,
+        "compact_serial": 20.580246359008015,
+        "compact_threaded": 20.210199709967128
+      },
+      "first_observed_training_bytes": {
+        "reference": 17408,
+        "event": 17408,
+        "compact_serial": 17408,
+        "compact_threaded": 17408
+      }
+    },
+    "documents": {
+      "nll": 3.32,
+      "first_observed_seconds": {
+        "reference": 47.903097021961,
+        "event": 21.12287280902092,
+        "compact_serial": 19.17210608696041,
+        "compact_threaded": 18.987862657013466
+      },
+      "first_observed_training_bytes": {
+        "reference": 17408,
+        "event": 17408,
+        "compact_serial": 17408,
+        "compact_threaded": 17408
+      }
+    }
+  },
+  "workloads": [
+    {
+      "workload": "repeated",
+      "fastest_throughput": "event",
+      "lowest_final_nll": "event",
+      "fastest_observed_target": "event"
+    },
+    {
+      "workload": "natural",
+      "fastest_throughput": "compact_threaded",
+      "lowest_final_nll": "compact_serial",
+      "fastest_observed_target": "compact_threaded"
+    },
+    {
+      "workload": "documents",
+      "fastest_throughput": "compact_threaded",
+      "lowest_final_nll": "reference",
+      "fastest_observed_target": "compact_threaded"
+    }
+  ],
+  "production_default_changed": false
+}
