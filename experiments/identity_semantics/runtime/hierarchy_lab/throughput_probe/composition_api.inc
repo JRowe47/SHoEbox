@@ -127,6 +127,9 @@ int composition_finish(void*p,int mode,float lr,float lp,float route){
     if(!pending)break;
     run(p,&byte,&byte,1,mode,lr,lp,route,0,&unused);
   }
+#ifdef SHOEBOX_LEARNED_COMPLETION
+  if(mode)prediction_slow_flush(m);
+#endif
   if(mode)for(int i=0;i<LACE_DEPTH+1;i++)for(int r=N-1;r>=0;r--)flush_credit(m,r,lr);
 #ifdef SHOEBOX_LEARNED_COMPLETION
   // A document drain is an explicit learning boundary; no root may remain

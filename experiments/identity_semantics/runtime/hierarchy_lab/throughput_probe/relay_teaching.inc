@@ -7,6 +7,9 @@ inline void relay_schedule(Model&m,int r,const float*q){
   auto*v=current_lace(m,r);if(!v||v->expert<0)return;
   t.tick=v->tick;t.index=m.laces.cursor[r];
   memcpy(t.input,q,sizeof(t.input));
+  #ifdef SHOEBOX_LEARNED_COMPLETION
+  if(m.prediction.compact&&prediction_region(r)>=0){prediction_forecast(m,r,*v,t.prediction);return;}
+  #endif
   for(int i=0;i<D;i++){
     float value=m.pbias[r*D+i];
     for(int j=0;j<D;j++)value+=m.P[(r*D+i)*D+j]*v->h[j];
@@ -31,6 +34,10 @@ inline void relay_teach(Model&m,int r,const float*q,int mode,float lp,bool relay
     err[i]=std::clamp(t.prediction[i]-target,-1.f,1.f);SHOEBOX_DIAGNOSTIC(mse+=err[i]*err[i];)
   }
   float*P=m.P+r*D*D,*pb=m.pbias+r*D;
+#ifdef SHOEBOX_LEARNED_COMPLETION
+  if(m.prediction.compact&&prediction_region(r)>=0)prediction_gradient(m,r,err,g);
+  else
+#endif
   for(int i=0;i<D;i++)for(int j=0;j<D;j++)g[j]+=P[i*D+j]*err[i];
   float rate=lp*m.utility.config[3];
   SHOEBOX_DIAGNOSTIC(if(m.utility_observe){double norm2=0;for(int j=0;j<D;j++)norm2+=double(g[j])*g[j];
@@ -43,6 +50,10 @@ inline void relay_teach(Model&m,int r,const float*q,int mode,float lp,bool relay
 #endif
   expert_update(m,r,g,rate,&v,1);
   float a=rate*m.teaching_scale[r][1]/norm(v.h);
+#ifdef SHOEBOX_LEARNED_COMPLETION
+  if(m.prediction.compact&&prediction_region(r)>=0)prediction_update(m,r,err,rate*m.teaching_scale[r][1]);
+  else
+#endif
   if(a!=0)for(int i=0;i<D;i++){
     pb[i]-=a*err[i];for(int j=0;j<D;j++)P[i*D+j]-=a*err[i]*v.h[j];
   }

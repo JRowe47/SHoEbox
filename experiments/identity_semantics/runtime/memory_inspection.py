@@ -86,6 +86,9 @@ def capture_memory(model,*,include_stream=True):
                     'composition_state','precision_state','traffic_state','gate_bias_state','activation_state'):
             arrays[key]=getattr(model,key)()
         if model.retention_policy():arrays['retention_state']=model.retention_state()
+    if getattr(model,'prediction_enabled',lambda:False)():
+        arrays['prediction_fitted']=model.prediction_state(fitted=True)
+        if include_stream:arrays['prediction_state']=model.prediction_state()
     arrays=normalize_observations(arrays,diagnostic_ranges(model))
     # The fitted composition prefix includes the legacy symbol-update counter.
     for name,offset,size in diagnostic_ranges(model):

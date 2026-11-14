@@ -139,6 +139,7 @@ struct UtilityRuntime {
 #include "acceptance_types.inc"
 #include "thread_pool.inc"
 #include "event_types.inc"
+#include "prediction_types.inc"
 #include "bank_pipeline_types.inc"
 #include "semantic_retention.inc"
 #include "execution_types.inc"
@@ -240,6 +241,7 @@ struct Model {
   // Learning policy 1 preserves request-wise reverse passes. Policy 2 unites
   // roots with the same regional teaching policy before differentiating.
   EventRuntime event;
+  PredictionRuntime prediction;
   BankPipeline bank_pipeline;
   int reverse_policy=2,reverse_epoch_bytes=1,reverse_epoch_position=0;
   float reverse_update_scale=1.f;
@@ -515,6 +517,7 @@ inline void expert_update(Model&m,int r,const float*g,float rate,LaceRecord*reco
   if(v&&v->expert<0)return;
   if(!valid_bottom_publication(m,r,v)){SHOEBOX_DIAGNOSTIC(m.learned.metrics[r][2]++;)return;}
 #ifdef SHOEBOX_LEARNED_COMPLETION
+  if(m.prediction.compact||m.prediction.stride>1)++m.prediction.response_version[r];
   SHOEBOX_DIAGNOSTIC(m.acceptance.expert_update_calls[r][teaching]++;)
 #endif
   SHOEBOX_DIAGNOSTIC(if(m.utility_observe){double z=0;for(int j=0;j<D;j++)z+=double(g[j])*g[j];
@@ -730,6 +733,9 @@ inline void distribute_credit(Model&m,int r,LaceRecord&v,const float*g,int depth
 #include "local_credit.inc"
 #endif
 #ifdef SHOEBOX_PRESERVE_RELAYS
+#ifdef SHOEBOX_LEARNED_COMPLETION
+#include "prediction.inc"
+#endif
 #include "relay_teaching.inc"
 #endif
 // Apply accumulated downstream teaching only when this region next runs.
@@ -1024,9 +1030,11 @@ void* create(float*p,float*em,float*fb,float*sl,int*st,int*pe,float*si,int*fp,fl
 void destroy(void*p){delete static_cast<Model*>(p);}
 void reset(void*p){auto&m=*static_cast<Model*>(p);
 #ifdef SHOEBOX_LEARNED_COMPLETION
+prediction_slow_flush(m);
 reverse_finish_epoch(m);
 pipeline_drain(m);
 event_reset_stream(m);
+prediction_reset_stream(m);
 m.acceptance=AcceptanceObservations{};
 paired_clear(m);
 constituent_resize(m,0);
@@ -1088,9 +1096,11 @@ paired_clear(m);
 }
 void reset_context(void*p){auto&m=*static_cast<Model*>(p);
 #ifdef SHOEBOX_LEARNED_COMPLETION
+prediction_slow_flush(m);
 reverse_finish_epoch(m);
 pipeline_drain(m);
 event_reset_stream(m);
+prediction_reset_stream(m);
 m.acceptance=AcceptanceObservations{};
 paired_reset_stream(m);memset(m.s.return_birth,0,sizeof(m.s.return_birth));
 constituent_resize(m,0);
@@ -1111,7 +1121,11 @@ reset_composition_stream(m.composition.stream);m.laces=LaceState{};auto&s=m.s;
 int draw(void*p,float temp,float*uniform){
   Model&m=*static_cast<Model*>(p);int node=0;
   for(int d=0;d<8;d++){
-    float z=m.rbias[node];for(int j=0;j<D;j++)z+=m.readout[node*2*D+j]*m.s.h[0][j]+(m.utility.config[6]>0?0.f:m.readout[node*2*D+D+j]*((m.utility_ablation?m.utility.ymean[j]:m.s.h[17][j])-m.utility.config[0]*m.utility.ymean[j]));
+    float z=m.rbias[node];for(int j=0;j<D;j++)z+=m.readout[node*2*D+j]*m.s.h[0][j]+(m.utility.config[6]>0?0.f:m.readout[node*2*D+D+j]*((m.utility_ablation?m.utility.ymean[j]:
+#ifdef SHOEBOX_LEARNED_COMPLETION
+      m.prediction.stride>1?m.prediction.stream.output[j]:
+#endif
+      m.s.h[17][j])-m.utility.config[0]*m.utility.ymean[j]));
     float prob=1.f/(1.f+std::exp(-z/temp));node=2*node+1+int(uniform[d]<prob);
   }return node-255;
 }
@@ -1155,12 +1169,19 @@ double run(void*p,const unsigned char*x,const unsigned char*y,int length,int mod
     bool active[N]{};float qgain[N]{},hcderiv[N][D],hcvalue[N][D];
     if(mode==5){memset(hcderiv,0,sizeof(hcderiv));memset(hcvalue,0,sizeof(hcvalue));}
 #ifdef SHOEBOX_LEARNED_COMPLETION
+    prediction_begin_step(m,mode,lr);
     execution_begin_step(m,x[t]);
     for(int r=execution_next(m,0);r<N;r=execution_next(m,r+1)){
 #else
     for(int r=0;r<N;r++){
 #endif
       if(m.composition.stream.draining&&r<2)continue;
+#ifdef SHOEBOX_LEARNED_COMPLETION
+      if(r==17&&m.prediction.stride>1){
+        if(!m.composition.stream.draining&&!prediction_slow_ready(m))continue;
+        if(mode)prediction_slow_flush(m);
+      }
+#endif
       int nparts=0;
       bool composition_learning=mode!=0&&mode!=4&&!m.frozen_region[r];
 #ifdef SHOEBOX_LEARNED_COMPLETION
@@ -1254,7 +1275,11 @@ double run(void*p,const unsigned char*x,const unsigned char*y,int length,int mod
         }
       }
       // Previous emitted byte in Y is the currently observed prefix byte.
-      if(r==17&&!m.composition.stream.draining){for(int j=0;j<D;j++)q[j]+=.25f*m.emb[x[t]*D+j];qw+=.0625f;}
+      if(r==17&&!m.composition.stream.draining
+#ifdef SHOEBOX_LEARNED_COMPLETION
+         &&m.prediction.stride==1
+#endif
+      ){for(int j=0;j<D;j++)q[j]+=.25f*m.emb[x[t]*D+j];qw+=.0625f;}
       // An optional ordinary A1 publication gives EC a byte-clock cue while
       // preserving all original higher-order source connections.
       if(!m.composition.enabled&&(r==15||r==16)&&m.cfg[11]){
@@ -1508,6 +1533,9 @@ double run(void*p,const unsigned char*x,const unsigned char*y,int length,int mod
 #ifdef SHOEBOX_LEARNED_COMPLETION
       if(paired_enabled(m)&&(r==15||r==16))paired_stage(m,r-15,q,m.composition.stream.history[r][0]);
 #endif
+      #ifdef SHOEBOX_LEARNED_COMPLETION
+      if(r==17&&m.prediction.stride>1)prediction_slow_publish(m);
+      #endif
       if(mode&&mode!=4&&route>0&&!m.frozen_region[r]&&r<2&&(m.scfg[8]>0||m.scfg[11]>0))update_bottom_prototype(m,r,best,routing_mask,route,lr);
       else if(mode&&mode!=4&&route>0&&!m.frozen_region[r]&&!small_context){
         float*k=m.keys+(r*E+best)*D;float n=std::sqrt(norm(routing)-1.f+1e-6f),kn=0;
@@ -1535,8 +1563,15 @@ double run(void*p,const unsigned char*x,const unsigned char*y,int length,int mod
 #endif
       continue;
     }
+#ifdef SHOEBOX_LEARNED_COMPLETION
+    if(m.prediction.stride>1)prediction_fast_forward(m,x[t],snapshot,valid);
+#endif
     float features[2*D],logits[V],prob[V],maxlog=-1e30f;int selected[V],nout=V;
-    for(int j=0;j<D;j++){features[j]=s.h[0][j];features[D+j]=m.utility.config[6]>0?0.f:(m.utility_ablation?m.utility.ymean[j]:s.h[17][j])-m.utility.config[0]*m.utility.ymean[j];}
+    for(int j=0;j<D;j++){features[j]=s.h[0][j];features[D+j]=m.utility.config[6]>0?0.f:(m.utility_ablation?m.utility.ymean[j]:
+#ifdef SHOEBOX_LEARNED_COMPLETION
+      m.prediction.stride>1?m.prediction.stream.output[j]:
+#endif
+      s.h[17][j])-m.utility.config[0]*m.utility.ymean[j];}
 #ifdef SHOEBOX_CONTRIBUTION_CHECKS
     for(int r:{0,17})if(contribution_apply(m,CHECK_SOURCE,r))memset(features+(r?D:0),0,D*sizeof(float));
 #endif
@@ -1596,10 +1631,18 @@ double run(void*p,const unsigned char*x,const unsigned char*y,int length,int mod
         if(int(m.cfg[6])==2){for(int j=0;j<D;j++)s.credit[j]+=gec[j];s.credit_count++;}
         else if(active[15])expert_update(m,15,gec,lr*m.cfg[7]);
       }
+#ifdef SHOEBOX_LEARNED_COMPLETION
+      if(m.prediction.stride>1)prediction_fast_teach(m,x[t],direct,mode,lr,snapshot_tick,snapshot_region,snapshot_index);
+      else
+#endif
       if(m.lcfg[0]&&s.tick%int(m.lcfg[7])==0){auto*v=current_lace(m,17);if(v)distribute_credit(m,17,*v,direct+D,0);}
       // Exact local task derivative at A1 and Y; DFA elsewhere uses an
       // independent random error sketch and region-specific signed permutation.
-      if(mode!=4&&mode!=5){expert_update(m,0,direct,lr);expert_update(m,17,direct+D,lr);}
+      if(mode!=4&&mode!=5){expert_update(m,0,direct,lr);
+#ifdef SHOEBOX_LEARNED_COMPLETION
+        if(m.prediction.stride==1)
+#endif
+        expert_update(m,17,direct+D,lr);}
       if(mode==5){
         // Exact current-tick spatial chain, with previous events detached.
         // The router is discrete and uses the same competitive update as DFA.
@@ -1639,7 +1682,13 @@ double run(void*p,const unsigned char*x,const unsigned char*y,int length,int mod
       }
       // Estimate preprocessing means only after this prediction and teaching.
       // Frozen evaluation never updates these fitted statistics.
-      for(int j=0;j<D;j++)m.utility.ymean[j]+=m.utility.config[5]*(s.h[17][j]-m.utility.ymean[j]);
+      for(int j=0;j<D;j++)m.utility.ymean[j]+=m.utility.config[5]*(
+#ifdef SHOEBOX_LEARNED_COMPLETION
+        (m.prediction.stride>1?m.prediction.stream.output[j]:s.h[17][j])
+#else
+        s.h[17][j]
+#endif
+        -m.utility.ymean[j]);
     }
 #ifdef SHOEBOX_LEARNED_COMPLETION
     if(m.event.training)event_finish_step(m);
@@ -1739,6 +1788,7 @@ extern "C" void check_masks(const float*input,uint64_t*out,int n,int k,int metho
 #ifdef SHOEBOX_LEARNED_COMPLETION
 #include "reverse_api.inc"
 #include "event_api.inc"
+#include "prediction_api.inc"
 #endif
 
 #ifdef SHOEBOX_LEARNED_COMPLETION

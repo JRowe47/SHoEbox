@@ -1010,5 +1010,68 @@ python experiments/identity_semantics/tests/run_ready_sanitizer.py
 ```
 
 Source/build hashes, per-trial quality and memory results, external sampling and
-test logs are in `results/action3_*`. Action 4 (compact prediction and fast/slow
-Y) is next; Actions 5-8 and the progressive Action-9 qualification remain.
+test logs are in `results/action3_*`.
+
+### Action 4: compact prediction and fast/slow Y
+
+The explicit `compact-y-v1` policy shares immutable compact publication features
+between upper next-event forecasting and a slower Y contribution. Feature views
+retain separate content/context values, publication identity and parameter
+versions. Fourteen optional low-rank forecast heads still learn from the next
+actual completed event, independently of the directional credit predictor.
+
+Y can refresh every 2, 4, 8 or 16 bytes while a learned diagonal correction uses
+the observed prefix, current A1 and required previous-byte feedback each byte.
+Slow gradients accumulate against the saved publication and are applied as a
+mean before the next slow forward. Learning-rate/mode transitions and document
+drain/reset close the partial interval; ordinary run/save calls preserve it.
+Checkpoint version 44 saves this policy, its weights and the partial interval.
+Call `finish_prediction()` before an in-place transition to frozen evaluation,
+or use an independent `evaluation_copy(memory="cold_frozen")`.
+
+```python
+from shoebox_reference import fresh_model
+
+model = fresh_model(profile="event", prediction={
+    "policy": "compact-y-v1", "compact": True,
+    "rank": 16, "slow_stride": 8, "slow_scale": 1.0,
+})
+```
+
+The four-way natural-text ablation compared baseline, predictor-only, Y-only and
+combined policies. Main/local rate sweeps at 0.5x/1x/2x and Y cadences 2/4/8
+advanced the combined rank-16, eight-byte candidate with main LR 0.08 and local
+LR 0.08/3. On three matched seeds at the nominal 1M size, 17,408 training bytes
+and separate 1,024-byte validation, its median throughput was 1,522.9 B/s versus
+1,074.5 B/s for the rate-matched Action-3 event control (+41.7%). It reached the
+preselected 3.33 NLL target in 10.75 s versus 15.15 s (-29.1%); final median NLL
+was 3.18385 versus 3.27342. Full-logit export is timed; evaluation is excluded.
+The fixtures are pinned repository documentation, not a FineWeb training run.
+
+The repeated-text check reached its 2.62 target sooner but ended 0.24974 NLL
+above the control. Existing defaults therefore remain unchanged, and longer
+learning/scale qualification remains Action 9. The combined candidate has
+1,014,800 active fitted parameters versus 1,057,552; displaced dense forecast
+arrays remain allocated for flat-layout compatibility. The selected natural
+rate still leaves a 9.85x gap to 15,000 B/s single-stream training.
+
+Validation includes 312 full-suite tests plus two subsequent targeted tests
+(314 distinct checks), all 15 dedicated policy tests, six selected 5M checks,
+production ASan/UBSan, and exact 8,192-byte continuation of published Action-3
+checkpoints in four legacy profiles. The final diagnostic-only source change
+produces the same production binary as the timed runs.
+
+```bash
+python experiments/identity_semantics/src/measure_prediction_policy.py \
+  --output ablation.json
+python experiments/identity_semantics/src/measure_prediction_policy.py \
+  --variants baseline,y,combined --rates 0.08 --stride 8 --output selected.json
+python experiments/identity_semantics/tests/test_prediction_policy.py
+python experiments/identity_semantics/tests/run_prediction_sanitizer.py
+```
+
+Raw curves, source/build hashes, parameter accounting and test logs are in
+`results/action4_*`. `src/summarize_prediction_policy.py` regenerates the result
+summary, and `src/report_prediction_policy.py` exports Markdown/PDF reports.
+Action 5 (lightweight binding frames) is next; Actions 6-8 and progressive
+Action-9 qualification remain.
