@@ -112,6 +112,48 @@ recognition behavior. Run `src/validate_pattern_classes.py` for the matched cost
 frozen class-removal intervention and held-out generation checks. See
 [the fourth-fix report](deliverables/SHoEbox_Pattern_Classes.md).
 
+### Structural optimization stage 6
+
+The `pipeline` profile adds a one-byte delay to stage-5 content-bank updates.
+Forward execution and reverse traversal read the committed W/bias/key version
+throughout a byte. Each existing credit scope exports owned inputs, occurrence
+handles, masks and final clipped factors. A single bank owner applies scopes in
+order, including router normalization at each scope. At the end of the next
+training byte, its result becomes visible and the current byte's work is queued.
+Native readout-only training also advances this boundary; evaluation leaves it parked.
+Bottom banks, context/credit predictors, adapters, readout and reverse traversal
+stay on the stream thread. The background worker handles content-bank numerical
+updates; it is not a second owner of the model or its live records.
+
+```python
+from shoebox_reference import fresh_model, Model
+model = fresh_model(seed=7, profile="pipeline")  # serial schedule, fused kernels
+model.configure_pipeline_workers(2)            # caller + persistent learning thread
+model.run(inputs, targets, mode="periodic", lr=.04, lp=.04/3)
+model.save("checkpoint.npz")                  # retain pending version, do not commit
+resumed = Model.load("checkpoint.npz")         # serial by default, same schedule
+resumed.configure_pipeline_workers(2)
+```
+
+`configure_pipeline_workers(1, fused=False)` selects the unfused serial oracle.
+Worker count, affinity and fusion are execution settings; they do not change the
+saved learning contract. `pipeline_metrics()` reports versions, queued work,
+bank computation, blocking waits and fused forward rows. `finish_pipeline()` is
+an explicit commit boundary; ordinary API chunk ends, snapshots and saves are
+not. Document drain and reset retire all captured work exactly once. Checkpoint
+v42 includes the committed version and one pending sparse bank result. Old v40
+and v41 checkpoints do not opt into the delayed schedule.
+
+Fusion removes the full dense gradient write/read between factor reduction and
+bank update, and shares loads between a committed row's install and its next
+content forward product. Selected bank tiles are reserved once per job; no full
+model snapshot is copied per byte. The immutable queue owns inputs, so record
+collection cannot invalidate worker pointers. Two workers must be benchmarked
+against the serial delayed schedule: much of learning remains on the caller.
+
+See [the stage 6 report](deliverables/SHoEbox_Structural_Optimization_Stage6.md),
+`tests/test_bank_pipeline.py`, and `src/measure_bank_pipeline.py`.
+
 ### Structural optimization stage 5
 
 The `event` profile implements native one/two-head 8 x 8 MinKron context,
@@ -161,7 +203,8 @@ identity, learned composition or hippocampal retrieval.
 
 `event` adds 25,600 active fitted parameters with one head, or 33,792 with two,
 and keeps all 18 logical regions and the paired EC store. It uses scope-union
-updates; fixed bank epochs are rejected until stage 6 defines their interaction.
+updates; fixed bank epochs remain a separate learning rule. Stage 6 uses the
+explicit one-byte-delayed `pipeline` profile described above.
 Local MinKron readout/input derivatives are exact at the saved event. The fixed
 memory-write recurrence does not create a backward temporal tape.
 
@@ -172,8 +215,7 @@ context. Snapshot copies preserve pending replay; document draining commits it.
 Fitted evaluation copies freeze these parameters and start with an empty context.
 
 See [the stage 5 report](deliverables/SHoEbox_Structural_Optimization_Stage5.md)
-for matched throughput, placement and learning-rate comparisons, validation,
-and the remaining stage 6 worker/fusion update.
+for its matched throughput, placement and learning-rate comparisons, and validation.
 
 ### Structural optimization stage 4
 

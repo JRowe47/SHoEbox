@@ -84,6 +84,7 @@ inline void content_expert_flush(Model&m){
   std::sort(m.content_dirty.begin(),m.content_dirty.end());
   for(int index:m.content_dirty){
     int r=index/E,e=index%E;auto&bank=*m.content_banks[index];
+    if(m.bank_pipeline.enabled){pipeline_capture(m,index,bank);continue;}
     content_materialize(m,bank);auto&g=bank.gradient;
     float*w=m.W+index*D*D,*b=m.bias+index*D;
     for(int j=0;j<D*D;j++)w[j]-=g.weights[j];
@@ -114,7 +115,7 @@ struct ContentCreditScope {
   ContentCreditScope(const ContentCreditScope&)=delete;
 };
 inline void content_expert_derivative(Model&m,const ContentExpertRecord&v,const float*local,float*dx){
-  const float*w=m.read_weights()+(v.ref.region*E+v.expert)*D*D;
+  const float*w=m.weight_bank(v.ref.region*E+v.expert);
   float dg=0;for(int j=0;j<D;j++)dg+=local[j]*v.residual[j];
   for(int j=0;j<D;j++)dx[j]=dg*v.route_derivative[j];
   for(int i=0;i<D;i++)for(int j=0;j<D;j++)dx[j]+=v.gate*w[i*D+j]*local[i];
@@ -129,7 +130,7 @@ inline void content_expert_derivatives(Model&m,const ContentExpertRecord*const*v
       float dg=0;for(int j=0;j<D;j++)dg+=local[a][j]*v[a]->residual[j];
       for(int j=0;j<D;j++)dx[a][j]=dg*v[a]->route_derivative[j];
     }
-    const float*w=m.read_weights()+(v[q]->ref.region*E+v[q]->expert)*D*D;
+    const float*w=m.weight_bank(v[q]->ref.region*E+v[q]->expert);
     float g0=v[q]->gate,g1=v[q+1]->gate,g2=v[q+2]->gate,g3=v[q+3]->gate;
     for(int i=0;i<D;i++){
       float l0=local[q][i],l1=local[q+1][i],l2=local[q+2][i],l3=local[q+3][i];

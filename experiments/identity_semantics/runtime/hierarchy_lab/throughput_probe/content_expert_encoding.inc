@@ -23,9 +23,9 @@ inline void content_expert_encode(Model&m,int r,ConstituentRecord&node,const flo
     for(int j=0;j<D;j++)if(saved.input_mask&(uint64_t(1)<<j))
       saved.route_derivative[j]=saved.gate_derivative*(m.read_keys()[(r*E+best)*D+j]-m.read_keys()[(r*E+runner)*D+j]);
   }
-  const float*w=m.read_weights()+(r*E+best)*D*D,*b=m.read_bias()+(r*E+best)*D;
+  const float*w=m.weight_bank(r*E+best),*b=m.read_bias()+(r*E+best)*D;
+  pipeline_content_forward(m,r*E+best,saved.input,saved.residual);
   for(int i=0;i<D;i++){
-    saved.residual[i]=dot64(w+i*D,saved.input);
     out[i]=b[i]+saved.gate*saved.residual[i];
   }
   m.content_expert_metrics[r][0]++;

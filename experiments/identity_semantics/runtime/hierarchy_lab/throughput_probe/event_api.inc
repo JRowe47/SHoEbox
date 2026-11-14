@@ -7,7 +7,8 @@ int event_configure(void*p,int heads,int local,int frontier,int replay,float cre
      !std::isfinite(credit_lr)||credit_lr<0||credit_lr>1||!std::isfinite(synthetic)||synthetic<0||synthetic>2||
      !std::isfinite(replay_scale)||replay_scale<0||replay_scale>2||m.composition.stream.byte_position||m.composition.stream.semantic_serial||
      !m.reverse_roots.empty()||!m.reverse_bank_version.empty()||
-     ((heads||local)&&(m.reverse_epoch_bytes!=1||m.reverse_policy!=2)))return 0;
+     ((heads||local)&&(m.reverse_epoch_bytes!=1||m.reverse_policy!=2))||
+     (m.bank_pipeline.enabled&&(!heads||!local)))return 0;
   for(int r=0;r<N;r++)if(m.s.valid[r])return 0;
   e.heads=heads;e.local=local;e.frontier=frontier;e.replay_budget=replay;
   e.credit_lr=credit_lr;e.synthetic_scale=synthetic;e.replay_scale=replay_scale;

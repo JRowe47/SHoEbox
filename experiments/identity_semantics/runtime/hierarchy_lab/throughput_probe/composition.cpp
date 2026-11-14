@@ -134,6 +134,7 @@ struct UtilityRuntime {
 #include "acceptance_types.inc"
 #include "thread_pool.inc"
 #include "event_types.inc"
+#include "bank_pipeline_types.inc"
 struct RetainedNeural {
   LaceRecord lace{};
   InputCredit input{};
@@ -225,6 +226,7 @@ struct Model {
   // Learning policy 1 preserves request-wise reverse passes. Policy 2 unites
   // roots with the same regional teaching policy before differentiating.
   EventRuntime event;
+  BankPipeline bank_pipeline;
   int reverse_policy=2,reverse_epoch_bytes=1,reverse_epoch_position=0;
   float reverse_update_scale=1.f;
   uint64_t reverse_version=0,reverse_metrics[8]{};
@@ -308,6 +310,13 @@ struct Model {
     if(!reverse_bank_version.empty())return reverse_bank_version.data();
 #endif
     return W;
+  }
+  const float* weight_bank(int index)const{
+#ifdef SHOEBOX_LEARNED_COMPLETION
+    int visible=bank_pipeline.visible_index[index];
+    if(visible>=0)return bank_pipeline.visible[visible].weights;
+#endif
+    return read_weights()+index*D*D;
   }
   const float* read_bias()const{
 #ifdef SHOEBOX_LEARNED_COMPLETION
@@ -426,6 +435,7 @@ inline void bottom_task_update(Model&,int,LaceRecord&,const float*,float);
 inline float norm(const float*x){float z=1.f;for(int i=0;i<D;i++)z+=x[i]*x[i];return z;}
 #ifdef SHOEBOX_LEARNED_COMPLETION
 #include "minkron_context.inc"
+#include "bank_pipeline.inc"
 #include "content_expert_credit.inc"
 #include "completion_credit.inc"
 #endif
@@ -465,7 +475,7 @@ inline void semantic_expert_update(Model&m,int r,LaceRecord*v,const float*g,floa
 #ifdef SHOEBOX_LEARNED_COMPLETION
   if(context_input_gradient(m,r,*v,g,du)){semantic_input_update(m,r,*v,du,rate,nullptr,teaching);return;}
 #endif
-  const float*w=m.read_weights()+(r*E+v->expert)*D*D;
+  const float*w=m.weight_bank(r*E+v->expert);
   for(int j=0;j<D;j++)du[j]=pre[j]=g[j]*(1-v->h[j]*v->h[j]);
   for(int i=0;i<D;i++)for(int j=0;j<D;j++)du[j]+=v->gate*w[i*D+j]*pre[i];
 #ifdef SHOEBOX_LEARNED_MESSAGES
@@ -665,7 +675,7 @@ inline void neural_input_gradient(Model&m,int r,const LaceRecord&v,const float*g
   float pre[D];
   bool sparse=m.lcfg[9]<D;
   for(int i=0;i<D;i++){pre[i]=g[i]*(1-v.h[i]*v.h[i]);du[i]=(!sparse||(v.input_mask&(uint64_t(1)<<i)))?pre[i]:0;}
-  const float*w=m.read_weights()+(r*E+v.expert)*D*D;
+  const float*w=m.weight_bank(r*E+v.expert);
   if(sparse){
     // Input SDR coordinates admit synapses for both upstream task credit and
     // plasticity. The forward expert still receives the complete payload.
@@ -835,7 +845,7 @@ inline void learn_bottom_state(Model&m,int r,LaceRecord*v,const float*g,float ra
   auto&z=m.learned;
   if(record->generation!=z.generation[r][record->expert]){z.metrics[r][2]++;return;}
   float pre[D],du[D];for(int i=0;i<D;i++)du[i]=pre[i]=g[i]*(1-v->h[i]*v->h[i]);
-  const float*w=m.read_weights()+(r*E+v->expert)*D*D;
+  const float*w=m.weight_bank(r*E+v->expert);
   for(int i=0;i<D;i++)for(int j=0;j<D;j++)du[j]+=v->gate*w[i*D+j]*pre[i];
   m.cached_read_valid[r]=false;
   float step=rate*m.scfg[1]/norm(v->u);
@@ -996,6 +1006,7 @@ void destroy(void*p){delete static_cast<Model*>(p);}
 void reset(void*p){auto&m=*static_cast<Model*>(p);
 #ifdef SHOEBOX_LEARNED_COMPLETION
 reverse_finish_epoch(m);
+pipeline_drain(m);
 event_reset_stream(m);
 m.acceptance=AcceptanceObservations{};
 paired_clear(m);
@@ -1059,6 +1070,7 @@ paired_clear(m);
 void reset_context(void*p){auto&m=*static_cast<Model*>(p);
 #ifdef SHOEBOX_LEARNED_COMPLETION
 reverse_finish_epoch(m);
+pipeline_drain(m);
 event_reset_stream(m);
 m.acceptance=AcceptanceObservations{};
 paired_reset_stream(m);memset(m.s.return_birth,0,sizeof(m.s.return_birth));
@@ -1345,7 +1357,7 @@ double run(void*p,const unsigned char*x,const unsigned char*y,int length,int mod
         memcpy(context_output,m.event.parameters.bias[r],sizeof(context_output));
 #endif
 #endif
-      const float*w=m.read_weights()+(r*E+best)*D*D,*b=m.read_bias()+(r*E+best)*D;
+      const float*w=m.weight_bank(r*E+best),*b=m.read_bias()+(r*E+best)*D;
       for(int i=0;i<D;i++){
         float z=s.u[r][i]+b[i];
 #ifdef SHOEBOX_LEARNED_COMPLETION
@@ -1465,6 +1477,7 @@ double run(void*p,const unsigned char*x,const unsigned char*y,int length,int mod
     if(m.composition.stream.draining){
 #ifdef SHOEBOX_LEARNED_COMPLETION
       if(m.event.training)event_finish_step(m);
+      if(mode)pipeline_finish_step(m);
     if(mode&&m.reverse_epoch_bytes>1&&++m.reverse_epoch_position==m.reverse_epoch_bytes)reverse_finish_epoch(m);
 #endif
       continue;
@@ -1522,7 +1535,7 @@ double run(void*p,const unsigned char*x,const unsigned char*y,int length,int mod
       float gec[D]{};
       if(!m.lcfg[0]&&m.cfg[6]&&s.valid[15]&&(int(m.cfg[6])==2||active[15])){
         float pre[D],du[D];for(int j=0;j<D;j++){pre[j]=direct[D+j]*(1-s.h[17][j]*s.h[17][j]);du[j]=pre[j];}
-        const float*w=m.read_weights()+(17*E+s.chosen[17])*D*D;
+        const float*w=m.weight_bank(17*E+s.chosen[17]);
         for(int i=0;i<D;i++)for(int j=0;j<D;j++)du[j]+=w[i*D+j]*pre[i];
         for(int k=m.starts[17];k<m.starts[18];k++)if(int(m.slots[4*k])==15){
           for(int j=0;j<D;j++)gec[m.perm[k*D+j]]+=.5f*qgain[17]*m.slots[4*k+3]*m.signs[k*D+j]*du[j];
@@ -1540,7 +1553,7 @@ double run(void*p,const unsigned char*x,const unsigned char*y,int length,int mod
         float g[N][D]{};memcpy(g[0],direct,D*sizeof(float));memcpy(g[17],direct+D,D*sizeof(float));
         for(int r=N-1;r>=0;r--)if(active[r]){
           float pre[D],du[D];for(int j=0;j<D;j++){pre[j]=g[r][j]*(1-s.h[r][j]*s.h[r][j]);du[j]=pre[j];}
-          const float*w=m.read_weights()+(r*E+s.chosen[r])*D*D;
+          const float*w=m.weight_bank(r*E+s.chosen[r]);
           for(int i=0;i<D;i++)for(int j=0;j<D;j++)du[j]+=w[i*D+j]*pre[i];
           float hcdot=0;for(int j=0;j<D;j++)hcdot+=du[j]*hcvalue[r][j];
           float alpha=r==1?.125f:.5f;
@@ -1577,9 +1590,15 @@ double run(void*p,const unsigned char*x,const unsigned char*y,int length,int mod
     }
 #ifdef SHOEBOX_LEARNED_COMPLETION
     if(m.event.training)event_finish_step(m);
+    if(mode)pipeline_finish_step(m);
     if(mode&&m.reverse_epoch_bytes>1&&++m.reverse_epoch_position==m.reverse_epoch_bytes)reverse_finish_epoch(m);
 #endif
   }
+#ifdef SHOEBOX_LEARNED_COMPLETION
+  // Public calls leave arrays current and the pending job quiescent, without
+  // committing it. Thus save/load, one-byte chunks and worker changes agree.
+  m.bank_pipeline.wait();pipeline_install(m);
+#endif
   return loss/std::max(1,length);
 }
 }
@@ -1667,4 +1686,8 @@ extern "C" void check_masks(const float*input,uint64_t*out,int n,int k,int metho
 #ifdef SHOEBOX_LEARNED_COMPLETION
 #include "reverse_api.inc"
 #include "event_api.inc"
+#endif
+
+#ifdef SHOEBOX_LEARNED_COMPLETION
+#include "bank_pipeline_api.inc"
 #endif

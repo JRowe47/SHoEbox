@@ -118,6 +118,21 @@ int main(int argc,char**argv){
     assert(composition_finish(p,6,.012,.004,.002));
     for(int r=0;r<N;r++)for(int t=0;t<2;t++)assert(!m.event.replay[r][t].request.ref.serial);
   }
+  // Stage 6: immutable worker jobs, pending-result import and exact boundaries.
+  for(int workers:{1,2}){
+    reset_context(p);assert(event_configure(p,1,1,4,2,.05f,.1f,.25f));
+    assert(bank_pipeline_configure(p,1));assert(bank_pipeline_workers(p,workers,-1,1));
+    loss=run(p,x.data(),y.data(),257,6,.012,.004,.002,0,&out);assert(std::isfinite(loss));
+    assert(m.bank_pipeline.pending&&m.bank_pipeline.version+1==m.bank_pipeline.sequence);
+    std::vector<unsigned char>queue(bank_pipeline_state_size(p));bank_pipeline_export(p,queue.data());
+    assert(bank_pipeline_import(p,queue.data(),queue.size()));
+    assert(!bank_pipeline_import(p,queue.data(),queue.size()-1));
+    loss=run(p,x.data(),y.data(),33,6,.012,.004,.002,0,&out);assert(std::isfinite(loss));
+    loss=run(p,x.data(),y.data(),33,4,.012,.004,.002,0,&out);assert(std::isfinite(loss));
+    assert(m.bank_pipeline.building.empty());
+    assert(composition_finish(p,6,.012,.004,.002));assert(!m.bank_pipeline.pending);
+    reset_context(p);assert(bank_pipeline_workers(p,1,-1,1));assert(bank_pipeline_configure(p,0));
+  }
   reset_context(p);assert(event_configure(p,1,1,4,2,.05f,.1f,.25f));
   {
     ContentEvent child{};child.ref.region=3;semantic_encode(m,3,child);constituent_encode(m,3,child,nullptr,0,false);

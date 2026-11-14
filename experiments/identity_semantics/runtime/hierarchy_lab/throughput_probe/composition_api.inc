@@ -131,7 +131,7 @@ int composition_finish(void*p,int mode,float lr,float lp,float route){
 #ifdef SHOEBOX_LEARNED_COMPLETION
   // A document drain is an explicit learning boundary; no root may remain
   // parked in an incomplete epoch after the final delayed-credit flush.
-  if(mode){event_drain(m);reverse_finish_epoch(m);}
+  if(mode){event_drain(m);reverse_finish_epoch(m);pipeline_drain(m);}
 #endif
   z.draining=0;return passes<2*N+2;
 }
