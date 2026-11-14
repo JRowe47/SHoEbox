@@ -1,5 +1,26 @@
 # SHoEbox handoff
 
+## 2026-11-14 - Action 6 sparse bank epochs
+
+Implemented `sparse-epochs-v1`: selected-bank 1/4/8/16-step intervals,
+independent zero/one-epoch lag, multi-byte immutable factor jobs and v46
+partial-epoch checkpoints. Serial, worker and dense-copy controls preserve
+arithmetic for the same schedule. Resets also commit final replay before
+releasing producer records. Full-ancestry MinKron credit is supported.
+
+The preferred measured CPU profile is four-byte sparse epochs with one epoch
+of lag and one learning worker, plus Action-4 rank-16 prediction / Y stride 8.
+Across three matched natural-text seeds at LR .16 it reaches 1,697 B/s versus
+1,512 B/s for Action 4, with 12.2% median paired throughput gain and 11.2%
+faster time to NLL 3.33. Median final NLL is 3.08759 versus 3.08863.
+The full reference default remains available unchanged; profile selection is
+explicit. [Policy](experiments/identity_semantics/BANK_EPOCH_POLICY.md) and
+[report](experiments/identity_semantics/deliverables/SHoEbox_Action6_Sparse_Bank_Epochs.md).
+
+Next are Action 7 (forward-only runtime), Action 8 (resident GPU / stream
+batching) and longer Action-9 qualification. Compact evidence is under
+`experiments/identity_semantics/results/action6_*`.
+
 ## 2026-11-13 - current reference defaults and primary clocks
 
 The canonical entry point is `from shoebox_reference import fresh_model`.
