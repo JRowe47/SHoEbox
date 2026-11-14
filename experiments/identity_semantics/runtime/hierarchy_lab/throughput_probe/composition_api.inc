@@ -128,6 +128,11 @@ int composition_finish(void*p,int mode,float lr,float lp,float route){
     run(p,&byte,&byte,1,mode,lr,lp,route,0,&unused);
   }
   if(mode)for(int i=0;i<LACE_DEPTH+1;i++)for(int r=N-1;r>=0;r--)flush_credit(m,r,lr);
+#ifdef SHOEBOX_LEARNED_COMPLETION
+  // A document drain is an explicit learning boundary; no root may remain
+  // parked in an incomplete epoch after the final delayed-credit flush.
+  if(mode)reverse_finish_epoch(m);
+#endif
   z.draining=0;return passes<2*N+2;
 }
 void composition_credit_probe(void*p,int region,const float*gradient,int input_only,int depth){

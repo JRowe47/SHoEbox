@@ -1,4 +1,4 @@
-"""Convert v31 relays/v32 messages/v33/v34 completion to v39 completion at a fresh stream boundary."""
+"""Convert v31 relays/v32 messages/v33/v34 completion to v40 completion at a fresh stream boundary."""
 import argparse,ctypes as ct,json,sys
 from pathlib import Path
 import numpy as np
@@ -17,7 +17,7 @@ def convert(source,destination):
  try:
   policies={k:getattr(old,k) for k in ('config','lace','state_config','probe','utility','teaching','regional_gains','frozen_regions','task_route_lr_scale','a1_learning','f3_task_route_gain','exploration','traffic','composition')}
   if old.runtime_kernel=='messages':policies['messages']=old.messages
-  new=Model(params=core.unflatten(old.flat.copy()),extra=old.extra_flat.copy(),fixed={k:v.copy() for k,v in old.fixed.items()},kernel='completion',local_credit=False,content_experts=False,pattern_classes=False,paired_memory=False,**policies)
+  new=Model(params=core.unflatten(old.flat.copy()),extra=old.extra_flat.copy(),fixed={k:v.copy() for k,v in old.fixed.items()},kernel='completion',local_credit=False,content_experts=False,pattern_classes=False,paired_memory=False,reverse=dict(policy="root"),**policies)
   try:
    previous=old.composition_state(fitted=True);fitted=new.composition_state(fitted=True)
    if fitted.size!=previous.size+16*4 or previous[:4].view(np.uint32)[0] not in (5,6):raise ValueError('Unexpected fitted layout')
@@ -28,7 +28,7 @@ def convert(source,destination):
    destination.parent.mkdir(parents=True,exist_ok=True);new.save(destination)
   finally:new.close()
  finally:old.close()
- return dict(version=39,abi=10,exact_continuation=False,preserved='neural/semantic weights, fitted dictionaries, fixed transports, policies and preprocessing means',reset='all event/working/associative memory, pending teaching and eligibility',added='16 neutral payload-gate parameters')
+ return dict(version=40,abi=10,exact_continuation=False,preserved='neural/semantic weights, fitted dictionaries, fixed transports, policies and preprocessing means',reset='all event/working/associative memory, pending teaching and eligibility',added='16 neutral payload-gate parameters')
 
 def convert_coverage_checkpoint(a,destination):
  """Import fitted v33/v34 data; expired eligibility cannot be recovered."""
@@ -40,7 +40,7 @@ def convert_coverage_checkpoint(a,destination):
   frozen_regions=a['frozen_regions'],task_route_lr_scale=float(a['task_route_lr_scale']),
   a1_learning=a['a1_learning_scales'],f3_task_route_gain=float(a['f3_task_route_gain']),
   exploration=json.loads(str(a['exploration_json'])),traffic=json.loads(str(a['traffic_json'])))
- new=Model(params=core.unflatten(a['flat']),extra=a['extra'],fixed={k[6:]:a[k] for k in a.files if k.startswith('fixed_')},kernel='completion',local_credit=False,content_experts=False,pattern_classes=False,paired_memory=False,**policies)
+ new=Model(params=core.unflatten(a['flat']),extra=a['extra'],fixed={k[6:]:a[k] for k in a.files if k.startswith('fixed_')},kernel='completion',local_credit=False,content_experts=False,pattern_classes=False,paired_memory=False,reverse=dict(policy="root"),**policies)
  try:
   old=np.ascontiguousarray(a['composition_state'],np.uint8);fitted=new.composition_state(fitted=True)
   if old.size<new.composition_state().size or old[:4].view(np.uint32)[0] not in (7,8):
@@ -56,7 +56,7 @@ def convert_coverage_checkpoint(a,destination):
    getattr(new.lib,method)(new.handle,clean.ctypes.data)
   destination.parent.mkdir(parents=True,exist_ok=True);new.save(destination)
  finally:new.close()
- return dict(version=39,abi=10,exact_continuation=False,
+ return dict(version=40,abi=10,exact_continuation=False,
   preserved='neural/semantic weights, payload gates, fitted dictionaries, policies and preprocessing means',
   reset='all event/working/associative memory, pending teaching and eligibility',
   changed='primary occurrence clocks and lifetime-owned neural eligibility')

@@ -128,7 +128,7 @@ class PatternClassTests(unittest.TestCase):
                 with self.assertRaisesRegex(ValueError,'pattern-class policy'):Model.load(path)
 
     def test_v37_checkpoint_preserves_exact_recognition_policy(self):
-        m=self.make();m.configure_pattern_classes(False);m.configure_paired_memory(False);m.run(self.data[:431],mode='periodic')
+        m=self.make();m.configure_reverse(dict(policy="root"));m.configure_pattern_classes(False);m.configure_paired_memory(False);m.run(self.data[:431],mode='periodic')
         with tempfile.TemporaryDirectory() as tmp:
             path=Path(tmp)/'old.npz';m.save(path)
             with np.load(path,allow_pickle=False) as saved:arrays={k:saved[k].copy() for k in saved.files if not k.startswith(('pattern_class_','paired_memory_'))}

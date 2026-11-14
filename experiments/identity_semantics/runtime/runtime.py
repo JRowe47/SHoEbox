@@ -31,4 +31,5 @@ def fresh_model(seed=1, kernel=REFERENCE_KERNEL, *, profile=None):
                  local_credit=False if profile == 'historical' else None,
                  content_experts=False if profile == 'historical' else None,
                  pattern_classes=False if profile == 'historical' else None,
-                 paired_memory=False if profile == 'historical' else None, **settings)
+                 paired_memory=False if profile == 'historical' else None,
+                 reverse=dict(policy='root') if profile == 'historical' else None, **settings)

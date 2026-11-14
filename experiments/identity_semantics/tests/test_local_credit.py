@@ -150,7 +150,7 @@ class LocalCreditTests(unittest.TestCase):
             self.assertTrue(all(v['missing_producers']==0 for v in c.local_credit_metrics().values()))
 
     def test_v35_preserves_old_policy_and_v36_requires_explicit_saved_policy(self):
-        m=self.make(pattern_classes=False) # v35 predates learned class recognition.
+        m=self.make(pattern_classes=False);m.configure_reverse(dict(policy="root")) # v35 predates learned class recognition.
         with tempfile.TemporaryDirectory() as tmp:
             path=Path(tmp)/'model.npz';m.save(path)
             with np.load(path,allow_pickle=False) as saved:arrays={k:saved[k].copy() for k in saved.files}

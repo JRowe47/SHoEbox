@@ -31,7 +31,7 @@ def build():
             os.replace(tmp,lib)
     return lib
 class Model(parent.Model):
-    def __init__(self,*args,utility=None,kernel=None,teaching=None,regional_gains=None,frozen_regions=None,task_route_lr_scale=1.,a1_learning=None,f3_task_route_gain=1.,exploration=None,traffic=None,composition=None,messages=None,local_credit=None,content_experts=None,pattern_classes=None,paired_memory=None,**kwargs):
+    def __init__(self,*args,utility=None,kernel=None,teaching=None,regional_gains=None,frozen_regions=None,task_route_lr_scale=1.,a1_learning=None,f3_task_route_gain=1.,exploration=None,traffic=None,composition=None,messages=None,local_credit=None,content_experts=None,pattern_classes=None,paired_memory=None,reverse=None,**kwargs):
         global KERNEL
         with _CONSTRUCTION_LOCK:
             previous=KERNEL
@@ -75,6 +75,7 @@ class Model(parent.Model):
                 self.configure_content_experts(self.runtime_kernel in COMPLETION_KERNELS if content_experts is None else content_experts)
                 self.configure_pattern_classes(self.runtime_kernel in COMPLETION_KERNELS if pattern_classes is None else pattern_classes)
                 self.configure_paired_memory(self.runtime_kernel in COMPLETION_KERNELS if paired_memory is None else paired_memory)
+                self.configure_reverse(reverse)
             finally:KERNEL=previous
     def _initialize(self,*args,utility=None,**kwargs):
         self.runtime_kernel=KERNEL
@@ -93,7 +94,55 @@ class Model(parent.Model):
         cfg=np.array([self.utility[k] for k in FIELDS],np.float32)
         self.lib.utility_configure(self.handle,cfg.ctypes.data_as(fp))
         self._utility_ready=True
+    def configure_reverse(self,policy=None):
+        cfg=dict(policy='union' if self.runtime_kernel in COMPLETION_KERNELS else 'root',epoch_bytes=1,update_scale=1.)
+        if policy is not None:
+            if set(policy)-set(cfg):raise ValueError('Unknown reverse-learning policy field')
+            cfg.update(policy)
+        if cfg['policy'] not in ('root','union'):raise ValueError('Reverse policy must be root or union')
+        if isinstance(cfg['epoch_bytes'],(bool,np.bool_)) or cfg['epoch_bytes'] not in (1,4,8,16):raise ValueError('Epoch bytes must be 1, 4, 8 or 16')
+        if cfg['policy']=='root' and cfg['epoch_bytes']!=1:raise ValueError('Root policy requires scope updates')
+        if not np.isfinite(cfg['update_scale']) or not 0<=cfg['update_scale']<=8:raise ValueError('Reverse update scale must be in [0,8]')
+        cfg['epoch_bytes']=int(cfg['epoch_bytes']);cfg['update_scale']=float(np.float32(cfg['update_scale']))
+        if hasattr(self.lib,'reverse_configure'):
+            self.lib.reverse_configure.argtypes=[ct.c_void_p,ct.c_int,ct.c_int,ct.c_float];self.lib.reverse_configure.restype=ct.c_int
+            if not self.lib.reverse_configure(self.handle,1 if cfg['policy']=='root' else 2,cfg['epoch_bytes'],cfg['update_scale']):
+                raise ValueError('Finish the pending learning epoch before changing its policy')
+        elif cfg!=dict(policy='root',epoch_bytes=1,update_scale=1.):raise ValueError('Completion kernel required for union reverse')
+        self.reverse=cfg
+    def reverse_metrics(self):
+        if not hasattr(self.lib,'reverse_status'):return {}
+        a=np.zeros(12,np.uint64);self.lib.reverse_status.argtypes=[ct.c_void_p,ct.c_void_p]
+        self.lib.reverse_status(self.handle,a.ctypes.data)
+        fields=('roots','reference_nodes','union_nodes','content_vjps','flushes','policy_groups',
+                'clipped_coordinates','clipped_router_steps','bank_version','epoch_position','pending_roots','version_bytes')
+        return dict(zip(fields,map(int,a)))
+    def reset_reverse_metrics(self):
+        if hasattr(self.lib,'reverse_reset_status'):
+            self.lib.reverse_reset_status.argtypes=[ct.c_void_p];self.lib.reverse_reset_status(self.handle)
+    def finish_learning_epoch(self):
+        """Explicitly commit a partial bank epoch, e.g. at a document boundary."""
+        if hasattr(self.lib,'reverse_finish'):
+            self.lib.reverse_finish.argtypes=[ct.c_void_p];self.lib.reverse_finish(self.handle)
+    def reverse_state(self):
+        if not hasattr(self.lib,'reverse_state_size'):return np.zeros(0,np.uint8)
+        self.lib.reverse_state_size.argtypes=[ct.c_void_p];self.lib.reverse_state_size.restype=ct.c_size_t
+        a=np.zeros(self.lib.reverse_state_size(self.handle),np.uint8)
+        self.lib.reverse_export.argtypes=[ct.c_void_p,ct.c_void_p];self.lib.reverse_export(self.handle,a.ctypes.data);return a
+    def import_reverse(self,state):
+        a=np.ascontiguousarray(state,np.uint8)
+        if not a.size:return
+        if not hasattr(self.lib,'reverse_import'):raise ValueError('Completion reverse state required')
+        self.lib.reverse_import.argtypes=[ct.c_void_p,ct.c_void_p,ct.c_size_t];self.lib.reverse_import.restype=ct.c_int
+        if not self.lib.reverse_import(self.handle,a.ctypes.data,a.size):raise ValueError('Invalid reverse epoch state')
+    def visible_parameters(self):
+        """Parameters read by forward execution, including a partial epoch."""
+        if not self.reverse_metrics().get('version_bytes',0):return self.params
+        flat=self.flat.copy();self.lib.reverse_visible_banks.argtypes=[ct.c_void_p,ct.c_void_p]
+        self.lib.reverse_visible_banks(self.handle,flat.ctypes.data);return core.unflatten(flat)
+
     def configure_composition(self,policy=None):
+        if getattr(self,"reverse",None) and self.reverse_metrics().get("epoch_position",0):raise ValueError("Finish the pending learning epoch before changing training policy")
         cfg=dict(enabled=self.runtime_kernel in ('composition','binding','semantics','semantics_fixed',*RELAY_KERNELS),threshold=.35,min_count=3,max_children=8,context_gain=.2)
         if policy is not None:
             if set(policy)-set(cfg):raise ValueError('Unknown composition policy field')
@@ -109,6 +158,7 @@ class Model(parent.Model):
         elif cfg['enabled']:raise ValueError('Composition kernel required')
         self.composition=cfg
     def configure_messages(self,policy=None):
+        if getattr(self,"reverse",None) and self.reverse_metrics().get("epoch_position",0):raise ValueError("Finish the pending learning epoch before changing training policy")
         cfg=dict(MESSAGE_DEFAULT if self.runtime_kernel in MESSAGE_KERNELS else dict.fromkeys(MESSAGE_DEFAULT,0.))
         if policy is not None:
             if set(policy)-set(cfg):raise ValueError('Unknown learned-message policy field')
@@ -229,6 +279,7 @@ class Model(parent.Model):
         fields=('archived','reclaimed','peak_archived','missing_live_dependencies','live_archived')
         return {name:dict(zip(fields,map(int,row))) for name,row in zip(core.NAMES,out)}
     def configure_local_credit(self,enabled=True):
+        if getattr(self,"reverse",None) and self.reverse_metrics().get("epoch_position",0):raise ValueError("Finish the pending learning epoch before changing training policy")
         if not isinstance(enabled,(bool,np.bool_)):raise ValueError('local_credit must be boolean')
         if hasattr(self.lib,'local_credit_configure'):
             self.lib.local_credit_configure.argtypes=[ct.c_void_p,ct.c_int]
@@ -264,6 +315,7 @@ class Model(parent.Model):
             raise ValueError('Invalid content worker configuration')
 
     def configure_content_experts(self,enabled=True):
+        if getattr(self,"reverse",None) and self.reverse_metrics().get("epoch_position",0):raise ValueError("Finish the pending learning epoch before changing training policy")
         if not isinstance(enabled,(bool,np.bool_)):raise ValueError('content_experts must be boolean')
         if hasattr(self.lib,'content_expert_configure'):
             self.lib.content_expert_configure.argtypes=[ct.c_void_p,ct.c_int]
@@ -290,6 +342,7 @@ class Model(parent.Model):
         fields=('encodes','updates','local_updates','task_updates','router_updates','missing_producers')
         return {name:dict(zip(fields,map(int,row))) for name,row in zip(core.NAMES,out)}
     def configure_pattern_classes(self,enabled=True):
+        if getattr(self,"reverse",None) and self.reverse_metrics().get("epoch_position",0):raise ValueError("Finish the pending learning epoch before changing training policy")
         """Change recognition policy only at a clean stream boundary."""
         if not isinstance(enabled,(bool,np.bool_)):raise ValueError('pattern_classes must be boolean')
         if hasattr(self.lib,'pattern_configure'):
@@ -327,6 +380,7 @@ class Model(parent.Model):
         self.lib.pattern_events(self.handle,out.ctypes.data)
         return {name:tuple(map(int,row)) for name,row in zip(core.NAMES,out)}
     def configure_paired_memory(self,enabled=True):
+        if getattr(self,"reverse",None) and self.reverse_metrics().get("epoch_position",0):raise ValueError("Finish the pending learning epoch before changing training policy")
         """Select the episodic contract at a fresh stream with empty memory."""
         if not isinstance(enabled,(bool,np.bool_)):raise ValueError('paired_memory must be boolean')
         if hasattr(self.lib,'paired_memory_configure'):
@@ -365,7 +419,8 @@ class Model(parent.Model):
         reference=completion and all(all(getattr(self,group).get(k)==v for k,v in policy.items())
             for group,policy in settings_for(core.E).items()) and self.messages==MESSAGE_DEFAULT and self.local_credit and self.content_experts and self.pattern_classes and self.paired_memory
         return dict(kernel=self.runtime_kernel,reference_profile=REFERENCE_PROFILE if reference else 'custom' if completion else None,
-            checkpoint_version=39 if self.runtime_kernel in COMPLETION_KERNELS else None,
+            checkpoint_version=40 if self.runtime_kernel in COMPLETION_KERNELS else None,
+            reverse_learning=dict(self.reverse),
             composition_abi=10 if self.runtime_kernel in COMPLETION_KERNELS else None,
             features=dict(multi_source_binding=self.composition['enabled'] and self.runtime_kernel in ('binding','semantics','semantics_fixed',*RELAY_KERNELS),
                 relay_provenance=self.runtime_kernel in RELAY_KERNELS and self.composition['enabled'],
@@ -377,6 +432,8 @@ class Model(parent.Model):
                 reusable_pattern_classes=completion and self.pattern_classes,
                 class_predictive_completion=completion and self.pattern_classes,
                 paired_episodic_memory=completion and self.paired_memory,
+                union_reverse=completion and self.reverse["policy"]=="union",
+
                 recursive_constituent_content=completion and self.messages['payload_gain']>0,
                 semantic_credit=self.composition['enabled'] and self.messages['semantic_lr']>0,
                 feedback_activation=self.composition['enabled'] and self.messages['feedback_activation']>0,
@@ -645,6 +702,7 @@ class Model(parent.Model):
     def utility_state(self):
         a=np.zeros(self.lib.utility_state_size(),np.uint8);self.lib.utility_export(self.handle,a.ctypes.data);return a
     def configure_teaching(self,scales):
+        if getattr(self,"reverse",None) and self.reverse_metrics().get("epoch_position",0):raise ValueError("Finish the pending learning epoch before changing training policy")
         a=np.ascontiguousarray(scales,np.float32)
         if a.shape!=(18,2) or not np.isfinite(a).all() or np.any(a<0) or np.any(a>64):
             raise ValueError('Teaching scales must be finite 18 x 2 values in [0,64]')
@@ -672,6 +730,7 @@ class Model(parent.Model):
         a=np.ascontiguousarray(a,dtype=np.float32);assert a.shape==(64,)
         self.lib.utility_set_mean(self.handle,a.ctypes.data_as(ct.POINTER(ct.c_float)))
     def configure_training_policy(self,frozen_regions,task_route_lr_scale=1.):
+        if getattr(self,"reverse",None) and self.reverse_metrics().get("epoch_position",0):raise ValueError("Finish the pending learning epoch before changing training policy")
         a=np.ascontiguousarray(frozen_regions,np.int32)
         scale=float(np.float32(task_route_lr_scale))
         if a.shape!=(18,) or np.any((a!=0)&(a!=1)) or np.any(a[6:]) or not 0<scale<=32:
@@ -688,6 +747,7 @@ class Model(parent.Model):
         a=np.zeros(self.lib.bottom_fitted_state_size(),np.uint8)
         self.lib.bottom_fitted_state(self.handle,a.ctypes.data);return a
     def configure_a1_learning(self,policy=None):
+        if getattr(self,"reverse",None) and self.reverse_metrics().get("epoch_position",0):raise ValueError("Finish the pending learning epoch before changing training policy")
         """Scale A1 prototypes and decoder weights without freezing experts.
 
         Effective A1 prototype scale is its inherited scale times
@@ -719,7 +779,7 @@ class Model(parent.Model):
         if self.runtime_kernel in DIAGNOSTIC_KERNELS:raise ValueError('Create independent contribution checks from the original model')
         if kernel is not None and (self.runtime_kernel,kernel) not in (('relays','contributions'),('messages','message_checks'),('completion','completion_checks')):
             raise ValueError('Use the diagnostic kernel matching the production kernel')
-        m=Model(config=self.config,params=self.params,fixed=self.fixed,lace=self.lace,state_config=self.state_config,extra=self.extra_flat,probe=self.probe,utility=self.utility,kernel=kernel or self.runtime_kernel,teaching=self.teaching,regional_gains=self.regional_gains,frozen_regions=self.frozen_regions,task_route_lr_scale=self.task_route_lr_scale,a1_learning=self.a1_learning,f3_task_route_gain=self.f3_task_route_gain,exploration=self.exploration,traffic=self.traffic,composition=self.composition,messages=self.messages,local_credit=self.local_credit,content_experts=self.content_experts,pattern_classes=self.pattern_classes,paired_memory=self.paired_memory)
+        m=Model(config=self.config,params=self.visible_parameters(),fixed=self.fixed,lace=self.lace,state_config=self.state_config,extra=self.extra_flat,probe=self.probe,utility=self.utility,kernel=kernel or self.runtime_kernel,teaching=self.teaching,regional_gains=self.regional_gains,frozen_regions=self.frozen_regions,task_route_lr_scale=self.task_route_lr_scale,a1_learning=self.a1_learning,f3_task_route_gain=self.f3_task_route_gain,exploration=self.exploration,traffic=self.traffic,composition=self.composition,messages=self.messages,local_credit=self.local_credit,content_experts=self.content_experts,pattern_classes=self.pattern_classes,paired_memory=self.paired_memory,reverse=self.reverse)
         m.configure_path_prototypes(self.path_prototypes)
         m.configure_boundaries(self.boundary_policy)
         m.configure_precision(self.precision_policy)
@@ -782,7 +842,7 @@ class Model(parent.Model):
     def snapshot_copy(self):
         if self.runtime_kernel in DIAGNOSTIC_KERNELS:raise ValueError('Diagnostic copies cannot be resumed; start from the original checkpoint')
         # Own every mutable array before dispatching an immutable snapshot.
-        m=Model(config=self.config,params=core.unflatten(self.flat.copy()),fixed={k:v.copy() for k,v in self.fixed.items()},lace=self.lace,state_config=self.state_config,extra=self.extra_flat.copy(),probe=self.probe,utility=self.utility,kernel=self.runtime_kernel,teaching=self.teaching,regional_gains=self.regional_gains,frozen_regions=self.frozen_regions,task_route_lr_scale=self.task_route_lr_scale,a1_learning=self.a1_learning,f3_task_route_gain=self.f3_task_route_gain,exploration=self.exploration,traffic=self.traffic,composition=self.composition,messages=self.messages,local_credit=self.local_credit,content_experts=self.content_experts,pattern_classes=self.pattern_classes,paired_memory=self.paired_memory)
+        m=Model(config=self.config,params=core.unflatten(self.flat.copy()),fixed={k:v.copy() for k,v in self.fixed.items()},lace=self.lace,state_config=self.state_config,extra=self.extra_flat.copy(),probe=self.probe,utility=self.utility,kernel=self.runtime_kernel,teaching=self.teaching,regional_gains=self.regional_gains,frozen_regions=self.frozen_regions,task_route_lr_scale=self.task_route_lr_scale,a1_learning=self.a1_learning,f3_task_route_gain=self.f3_task_route_gain,exploration=self.exploration,traffic=self.traffic,composition=self.composition,messages=self.messages,local_credit=self.local_credit,content_experts=self.content_experts,pattern_classes=self.pattern_classes,paired_memory=self.paired_memory,reverse=self.reverse)
         for arr,method in [(parent.legacy.base.state(self),'import_state'),(self.lace_state(),'import_laces'),(self.learned_state(),'import_learned'),(self.probe_state(),'probe_import'),(self.utility_state(),'utility_import')]:
             getattr(m.lib,method)(m.handle,arr.ctypes.data)
         m.configure_path_prototypes(self.path_prototypes)
@@ -799,6 +859,7 @@ class Model(parent.Model):
         m.import_content_experts(self.content_expert_state())
         m.import_pattern_classes(self.pattern_state())
         m.import_paired_memory(self.paired_memory_state())
+        m.import_reverse(self.reverse_state())
         return m
     def base_fingerprint(self):
         digest=hashlib.sha256(super().fingerprint().encode()+self.probe_state().tobytes()+self.utility_state().tobytes()).hexdigest()
@@ -822,18 +883,20 @@ class Model(parent.Model):
         if self.exploration['enabled']:digest=hashlib.sha256(digest.encode()+json.dumps(self.exploration,sort_keys=True).encode()).hexdigest()
         if self.f3_task_route_gain!=1.:digest=hashlib.sha256(digest.encode()+np.float32(self.f3_task_route_gain).tobytes()).hexdigest()
         if self.retention_policy():digest=hashlib.sha256(digest.encode()+self.retention_state().tobytes()).hexdigest()
+        if self.reverse!=dict(policy='root',epoch_bytes=1,update_scale=1.):
+            digest=hashlib.sha256(digest.encode()+json.dumps(self.reverse,sort_keys=True).encode()+self.reverse_state().tobytes()).hexdigest()
         return digest
     def save(self,path):
         if self.runtime_kernel in DIAGNOSTIC_KERNELS:raise ValueError('Evaluation interventions cannot be saved as training checkpoints')
         parent.legacy.base.atomic_checkpoint(path,flat=self.flat,extra=self.extra_flat,state=parent.legacy.base.state(self),lace_state=self.lace_state(),learned_state=self.learned_state(),probe_state=self.probe_state(),utility_state=self.utility_state(),
-            version=np.array([39 if self.runtime_kernel=="completion" else 32 if self.runtime_kernel=="messages" else 31 if self.runtime_kernel=="relays" else 30 if self.runtime_kernel.startswith("semantics") else 29 if self.runtime_kernel=="binding" else 28 if self.runtime_kernel=="composition" else 27 if self.runtime_kernel.startswith("r05") else 26 if self.runtime_kernel.startswith("r04") else 25 if self.runtime_kernel.startswith("r03") else 24 if self.runtime_kernel.startswith("r02") and (self.activation_policy()["enabled"] or self.gate_bias_policy()["enabled"]) else 23 if self.gate_bias_policy()["enabled"] else 21 if self.traffic['enabled'] else (20 if self.retention_policy() else 19)],np.int32),experts=np.array([core.E],np.int32),config_json=np.array(json.dumps(self.config)),lace_json=np.array(json.dumps(self.lace)),state_config_json=np.array(json.dumps(self.state_config)),probe_json=np.array(json.dumps(self.probe)),utility_json=np.array(json.dumps(self.utility)),teaching_scales=self.teaching,regional_gains=self.regional_gains,frozen_regions=self.frozen_regions,task_route_lr_scale=np.array(self.task_route_lr_scale,np.float32),a1_learning_scales=self.a1_learning_array,f3_task_route_gain=np.array(self.f3_task_route_gain,np.float32),exploration_json=np.array(json.dumps(self.exploration)),traffic_json=np.array(json.dumps(self.traffic)),traffic_state=self.traffic_state(),
+            version=np.array([40 if self.runtime_kernel=="completion" else 32 if self.runtime_kernel=="messages" else 31 if self.runtime_kernel=="relays" else 30 if self.runtime_kernel.startswith("semantics") else 29 if self.runtime_kernel=="binding" else 28 if self.runtime_kernel=="composition" else 27 if self.runtime_kernel.startswith("r05") else 26 if self.runtime_kernel.startswith("r04") else 25 if self.runtime_kernel.startswith("r03") else 24 if self.runtime_kernel.startswith("r02") and (self.activation_policy()["enabled"] or self.gate_bias_policy()["enabled"]) else 23 if self.gate_bias_policy()["enabled"] else 21 if self.traffic['enabled'] else (20 if self.retention_policy() else 19)],np.int32),experts=np.array([core.E],np.int32),config_json=np.array(json.dumps(self.config)),lace_json=np.array(json.dumps(self.lace)),state_config_json=np.array(json.dumps(self.state_config)),probe_json=np.array(json.dumps(self.probe)),utility_json=np.array(json.dumps(self.utility)),teaching_scales=self.teaching,regional_gains=self.regional_gains,frozen_regions=self.frozen_regions,task_route_lr_scale=np.array(self.task_route_lr_scale,np.float32),a1_learning_scales=self.a1_learning_array,f3_task_route_gain=np.array(self.f3_task_route_gain,np.float32),exploration_json=np.array(json.dumps(self.exploration)),traffic_json=np.array(json.dumps(self.traffic)),traffic_state=self.traffic_state(),
             **({'gate_bias_state':self.gate_bias_state(),'gate_bias_kernel':np.array('r02' if self.runtime_kernel.startswith('r02') else 'e14_calibrated' if self.gate_bias_policy()['gain']>10000 else 'e14'),'gate_bias_json':np.array(json.dumps(self.gate_bias_policy()))} if self.gate_bias_policy()['enabled'] else {}),
             **({'activation_state':self.activation_state(),'activation_json':np.array(json.dumps(self.activation_policy())),'activation_kernel':np.array('r02' if self.runtime_kernel.startswith('r02') else 'e13')} if self.activation_policy()['enabled'] else {}),
             **({"path_prototypes":self.path_prototypes} if self.runtime_kernel.startswith("r03") else {}),
             **({"precision_policy":self.precision_policy,"precision_state":self.precision_state()} if self.runtime_kernel.startswith(("r04","r05")) else {}),
             **({"boundary_policy":self.boundary_policy,"boundary_metrics":self.boundary_metrics()} if self.runtime_kernel.startswith("r05") else {}),
             **({'r08_kernel':np.array('r04_credit')} if self.runtime_kernel.startswith('r04_credit') else {}),
-            **({'neural_state':self.neural_state(),'local_credit_policy':np.array(self.local_credit),'content_expert_policy':np.array(self.content_experts),'content_expert_state':self.content_expert_state(),'pattern_class_policy':np.array(self.pattern_classes),'pattern_class_state':self.pattern_state(),'paired_memory_policy':np.array(self.paired_memory),'paired_memory_state':self.paired_memory_state()} if self.runtime_kernel in COMPLETION_KERNELS else {}),
+            **({'neural_state':self.neural_state(),'local_credit_policy':np.array(self.local_credit),'content_expert_policy':np.array(self.content_experts),'content_expert_state':self.content_expert_state(),'pattern_class_policy':np.array(self.pattern_classes),'pattern_class_state':self.pattern_state(),'paired_memory_policy':np.array(self.paired_memory),'paired_memory_state':self.paired_memory_state(),'reverse_json':np.array(json.dumps(self.reverse)),'reverse_state':self.reverse_state()} if self.runtime_kernel in COMPLETION_KERNELS else {}),
             **({'messages_json':np.array(json.dumps(self.messages))} if self.runtime_kernel in MESSAGE_KERNELS else {}),
             composition_state=self.composition_state(),composition_json=np.array(json.dumps(self.composition)),experiment_kernel=np.array(self.runtime_kernel),
             kernel_sha256=np.array(hashlib.sha256((ROOT/(self.runtime_kernel+'.cpp')).read_bytes()).hexdigest()),**({'retention_state':self.retention_state(),'retention_version':np.array([1],np.int32)} if self.retention_policy() else {}),**{'fixed_'+k:v for k,v in self.fixed.items()})
@@ -844,32 +907,35 @@ class Model(parent.Model):
                 raise ValueError('Version-33 completion uses coverage clocks; convert_to_completion.py starts a fresh stream with primary clocks')
             if int(a['version'][0])==34:
                 raise ValueError('Version-34 completion has expiring neural producers; convert_to_completion.py starts a fresh stream with neural ownership')
-            if int(a['version'][0]) in (35,36,37,38,39) and ('neural_state' not in a):
+            if int(a['version'][0]) in (35,36,37,38,39,40) and ('neural_state' not in a):
                 raise ValueError('Completion checkpoints require saved neural ownership')
-            if int(a['version'][0]) in (35,36,37,38,39) and ('messages_json' not in a or str(a['experiment_kernel'])!='completion'):
+            if int(a['version'][0]) in (35,36,37,38,39,40) and ('messages_json' not in a or str(a['experiment_kernel'])!='completion'):
                 raise ValueError('Completion checkpoints require their saved policy and production kernel')
             if int(a['version'][0])==32 and ('messages_json' not in a or str(a['experiment_kernel'])!='messages'):
                 raise ValueError('Message checkpoints require their saved policy and production kernel')
-            assert int(a['version'][0]) in (16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,35,36,37,38,39) and int(a['experts'][0])==core.E
-            m=cls(config=json.loads(str(a['config_json'])),params=core.unflatten(a['flat']),fixed={k[6:]:a[k] for k in a.files if k.startswith('fixed_')},lace=json.loads(str(a['lace_json'])),state_config=json.loads(str(a['state_config_json'])),extra=a['extra'],probe=json.loads(str(a['probe_json'])),utility=json.loads(str(a['utility_json'])),composition=json.loads(str(a['composition_json'])) if 'composition_json' in a else None,kernel=str(a['experiment_kernel']) if 'experiment_kernel' in a else str(a['r08_kernel']) if 'r08_kernel' in a else 'r05' if int(a['version'][0])==27 else 'r04' if int(a['version'][0])==26 else 'r03' if int(a['version'][0])==25 else 'r02' if int(a['version'][0])==24 else ('e14_calibrated' if 'gate_bias_kernel' in a and str(a['gate_bias_kernel'])=='e14_calibrated' else 'e14') if 'gate_bias_state' in a else 'e13' if 'activation_state' in a else ('credit' if 'retention_state' in a else 'native'))
-            if int(a['version'][0]) in (36,37,38,39):
+            assert int(a['version'][0]) in (16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,35,36,37,38,39,40) and int(a['experts'][0])==core.E
+            if int(a['version'][0])==40 and ('reverse_json' not in a or 'reverse_state' not in a):
+                raise ValueError('Version-40 requires its reverse policy and pending epoch state')
+            reverse=json.loads(str(a['reverse_json'])) if int(a['version'][0])==40 else dict(policy='root',epoch_bytes=1,update_scale=1.)
+            m=cls(reverse=reverse,config=json.loads(str(a['config_json'])),params=core.unflatten(a['flat']),fixed={k[6:]:a[k] for k in a.files if k.startswith('fixed_')},lace=json.loads(str(a['lace_json'])),state_config=json.loads(str(a['state_config_json'])),extra=a['extra'],probe=json.loads(str(a['probe_json'])),utility=json.loads(str(a['utility_json'])),composition=json.loads(str(a['composition_json'])) if 'composition_json' in a else None,kernel=str(a['experiment_kernel']) if 'experiment_kernel' in a else str(a['r08_kernel']) if 'r08_kernel' in a else 'r05' if int(a['version'][0])==27 else 'r04' if int(a['version'][0])==26 else 'r03' if int(a['version'][0])==25 else 'r02' if int(a['version'][0])==24 else ('e14_calibrated' if 'gate_bias_kernel' in a and str(a['gate_bias_kernel'])=='e14_calibrated' else 'e14') if 'gate_bias_state' in a else 'e13' if 'activation_state' in a else ('credit' if 'retention_state' in a else 'native'))
+            if int(a['version'][0]) in (36,37,38,39,40):
                 if 'local_credit_policy' not in a or a['local_credit_policy'].shape!=() or a['local_credit_policy'].dtype!=np.dtype(bool):
                     m.close();raise ValueError('Checkpoint requires its saved local-credit policy')
                 m.configure_local_credit(bool(a['local_credit_policy']))
             elif m.runtime_kernel in COMPLETION_KERNELS:m.configure_local_credit(False)
-            if int(a['version'][0]) in (37,38,39):
+            if int(a['version'][0]) in (37,38,39,40):
                 if ('content_expert_state' not in a or 'content_expert_policy' not in a or
                     a['content_expert_policy'].shape!=() or a['content_expert_policy'].dtype!=np.dtype(bool)):
                     m.close();raise ValueError('Version-37 requires saved content-expert policy and eligibility')
                 m.configure_content_experts(bool(a['content_expert_policy']))
             elif m.runtime_kernel in COMPLETION_KERNELS:m.configure_content_experts(False)
-            if int(a['version'][0]) in (38,39):
+            if int(a['version'][0]) in (38,39,40):
                 if ('pattern_class_state' not in a or 'pattern_class_policy' not in a or
                     a['pattern_class_policy'].shape!=() or a['pattern_class_policy'].dtype!=np.dtype(bool)):
                     m.close();raise ValueError('Version-38 requires saved pattern-class policy and state')
                 m.configure_pattern_classes(bool(a['pattern_class_policy']))
             elif m.runtime_kernel in COMPLETION_KERNELS:m.configure_pattern_classes(False)
-            if int(a['version'][0])==39:
+            if int(a['version'][0]) in (39,40):
                 if ('paired_memory_state' not in a or 'paired_memory_policy' not in a or
                     a['paired_memory_policy'].shape!=() or a['paired_memory_policy'].dtype!=np.dtype(bool)):
                     m.close();raise ValueError('Version-39 requires saved paired-memory policy and state')
@@ -903,9 +969,13 @@ class Model(parent.Model):
                     m.close();raise ValueError('Invalid version-9 composition snapshot')
             elif 'composition_state' in a:m.import_composition(a['composition_state'])
             if 'neural_state' in a:m.import_neural(a['neural_state'])
-            if int(a['version'][0]) in (37,38,39):m.import_content_experts(a['content_expert_state'])
-            if int(a['version'][0]) in (38,39):m.import_pattern_classes(a['pattern_class_state'])
-            if int(a['version'][0])==39:m.import_paired_memory(a['paired_memory_state'])
+            if int(a['version'][0]) in (37,38,39,40):m.import_content_experts(a['content_expert_state'])
+            if int(a['version'][0]) in (38,39,40):m.import_pattern_classes(a['pattern_class_state'])
+            if int(a['version'][0]) in (39,40):m.import_paired_memory(a['paired_memory_state'])
+            if int(a['version'][0])==40:
+                try:m.import_reverse(a['reverse_state'])
+                except Exception:
+                    m.close();raise
             if 'retention_state' in a:
                 assert int(a['retention_version'][0])==1
                 m.import_retention(a['retention_state'])

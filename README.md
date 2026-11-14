@@ -35,8 +35,10 @@ forecast; held context remains bound while equivalent patterns can reuse a class
 EC-C and EC-X now share immutable content/context episodes. Retrieval selects
 one episode for both learned return ports; asynchronous updates pair the latest
 completed observations within the same document stream. Admission and utility
-remain content addressed. New checkpoints are version 39 / composition ABI 10,
-with versioned class and paired-memory state. Versions 35-38 preserve their
+remain content addressed. New checkpoints are version 40 / composition ABI 10,
+with versioned class, paired-memory and reverse-learning state. Version 39 and
+earlier completion checkpoints retain request-wise reverse learning unless
+explicitly upgraded. Versions 35-38 preserve their
 independent associative-memory policy when loaded.
 Versions 35-37 retain exact-key recognition when loaded. Versions 35/36 preserve
 their previous content behavior; version 35 also retains its old local-teaching
@@ -50,9 +52,10 @@ span distributions, all-source coverage, local sequence lengths and recognition.
 Run `python experiments/identity_semantics/src/run_reference_acceptance.py` for
 the complete gate: native regressions, sanitizers, exact continuation, matched
 frozen contributions and held-out generation checks. Failed or skipped checks
-cannot produce an overall passing status. Checkpoints remain v39 / ABI 10.
+cannot produce an overall passing status. Checkpoints use v40 / ABI 10.
 
 [Current implementation and usage](experiments/identity_semantics/README.md) |
+[Union reverse and bank epochs](experiments/identity_semantics/deliverables/SHoEbox_Structural_Optimization_Stage4.md) |
 [Shared publications and sparse credit](experiments/identity_semantics/deliverables/SHoEbox_Structural_Optimization_Stage2.md) |
 [Compact completion records](experiments/identity_semantics/deliverables/SHoEbox_Structural_Optimization_Stage1.md) |
 [Acceptance contract](experiments/identity_semantics/deliverables/SHoEbox_Reference_Acceptance.md) |

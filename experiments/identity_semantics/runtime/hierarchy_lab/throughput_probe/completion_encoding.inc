@@ -32,6 +32,7 @@ inline int constituent_allocate(Model&m,int r,const ContentEvent*parts,int n){
   }
   for(int k=0;k<n;k++)add(parts[k].semantic);
   add(m.semantic_inflight);
+  for(const auto&root:m.reverse_roots)add(root.ref);
   for(size_t i=0;i<work.size();i++){
     auto&node=*constituent_record(m,work[i]);for(int k=0;k<node.count;k++)add(node.edges[k].source);
   }

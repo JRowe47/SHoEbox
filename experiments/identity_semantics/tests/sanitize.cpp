@@ -95,6 +95,18 @@ int main(int argc,char**argv){
   assert(paired_occupied(m)>0&&!m.paired.stream.latest[0].stream&&!m.paired.stream.latest[1].stream);
   for(auto&archive:m.neural_archive)assert(archive.empty());
   for(auto&archive:m.neural_temporal)assert(archive.empty());
+  for(int epoch:{4,8,16}){
+    assert(reverse_configure(p,2,epoch,1.f));
+    loss=run(p,x.data(),y.data(),65,6,.012,.004,.002,0,&out);assert(std::isfinite(loss));
+    assert(m.reverse_epoch_position==1&&!m.reverse_roots.empty());
+    std::vector<unsigned char>reverse(reverse_state_size(p));reverse_export(p,reverse.data());
+    assert(reverse_import(p,reverse.data(),reverse.size()));
+    assert(!reverse_import(p,reverse.data(),reverse.size()-1));
+    assert(composition_finish(p,6,.012,.004,.002));
+    assert(m.reverse_roots.empty()&&m.reverse_bank_version.empty());
+    reset_context(p);
+  }
+  assert(reverse_configure(p,2,1,1.f));
   std::cerr<<"Growing live constituent DAG\n";
   ContentEvent child{};child.ref.region=3;semantic_encode(m,3,child);
   constituent_encode(m,3,child,nullptr,0,false);m.composition.stream.history[3][0]=child;
@@ -104,6 +116,15 @@ int main(int argc,char**argv){
     m.composition.stream.history[3][0]=child;
   }
   assert(constituent_capacity(m)>SEM_RING);
+  assert(reverse_configure(p,2,4,1.f));reverse_begin_epoch(m);m.reverse_epoch_position=1;
+  float pending_gradient[D]{};pending_gradient[0]=.001f;
+  constituent_update(m,child.semantic,pending_gradient,.01f,3);
+  auto held=child.semantic;m.composition.stream.history[3][0]=ContentEvent{};
+  m.semantic_free.clear();m.semantic_free_valid=true;
+  constituent_allocate(m,3,nullptr,0);assert(constituent_record(m,held));
+  m.composition.stream.history[3][0]=child;reverse_finish(p);
+  assert(reverse_configure(p,2,1,1.f));
+
   std::cerr<<"Growth passed; credit and checkpoint continuation\n";
   float gradient[D];for(float&g:gradient)g=.1f;
   constituent_update(m,child.semantic,gradient,.01f,3);

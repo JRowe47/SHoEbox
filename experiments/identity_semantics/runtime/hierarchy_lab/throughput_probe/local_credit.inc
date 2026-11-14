@@ -117,6 +117,7 @@ inline void local_prediction_update(Model&m,int r,LaceRecord&v,const float*g,flo
     if(total.neural_uses)semantic_expert_update(m,source,producer,total.neural.data(),scale,1);
     if(total.input_uses)semantic_input_update(m,source,*producer,total.input.data(),scale,nullptr,1);
   }
+  constituent_union_flush(m,false);
   expert_update(m,r,g,rate,&v,1,false);
   for(auto&entry:work.updates){
     int source=entry.first.first;auto*producer=find_lace(m,source,entry.first.second);auto&total=entry.second;

@@ -112,6 +112,61 @@ recognition behavior. Run `src/validate_pattern_classes.py` for the matched cost
 frozen class-removal intervention and held-out generation checks. See
 [the fourth-fix report](deliverables/SHoEbox_Pattern_Classes.md).
 
+### Structural optimization stage 4
+
+Fresh reference models use `reverse={"policy": "union", "epoch_bytes": 1,
+"update_scale": 1.0}`. Within each credit scope, roots with the same teaching
+objective and regional policy share one reverse traversal of their constituent
+DAG. Saved gates, role transforms, masks and frozen-region derivative transport
+remain active. Singleton groups keep the original arithmetic path. Semantic
+VJPs finish before the first shared expert-bank mutation in the scope.
+
+This is learning policy 2: root adjoints are weighted by their learning rates,
+normalized by the sum of absolute rates, and differentiated together. Parameter
+updates multiply that mean by the same rate mass. Content-coordinate clipping
+acts on the group mean; router clipping acts on the combined step. The reverse derivatives and unclipped update factors combine linearly, with
+changed floating-point reduction order. Router normalization follows the
+combined nonzero step; a cancelled group does not normalize its router banks. Policy 1 (`"root"`) retains request-level clipping and traversal.
+Groups with different regional scales or teaching objectives stay separate.
+
+The epoch experiment accepts 4, 8 or 16 training steps. All shared expert
+W/bias/router reads use one immutable bank snapshot during an epoch, while
+neural bank writes accumulate in the original arrays. Constituent roots wait
+until the boundary, when union reverse and content updates commit. Predictors,
+readout, learned bottom-state parameters, dictionaries and recurrent state stay
+online: this is an expert-bank epoch, not a whole-model frozen minibatch.
+
+```python
+from shoebox_reference import fresh_model, Model
+m = fresh_model()                         # scope union, full reference
+old = Model.load("existing_v39.npz")      # keeps its request-wise rule
+old.configure_reverse({"policy": "union"})  # explicit learning-policy upgrade
+m.configure_reverse({"policy": "union", "epoch_bytes": 8, "update_scale": 1.0})
+m.save("partial_epoch.npz")               # never forces a learning boundary
+m.finish_learning_epoch()                 # explicit early commit
+print(m.reverse_metrics())
+```
+
+Checkpoint v40 persists the policy, bank version, epoch position and pending
+roots; queued roots own their ancestry through collection. Irregular API chunks,
+`snapshot_copy()` and save/load preserve the unfinished epoch. Evaluation does
+not commit it; frozen copies use its visible bank version. Document draining and
+context resets finish pending teaching before clearing owners. Changes to
+training policy require an epoch boundary. Existing constituent, content and
+neural wire layouts are unchanged. Old runtimes reject v40 rather than silently
+loading a different learning rule.
+
+`reverse_metrics()` reports submitted roots, reference/union node visits,
+content VJPs, groups, clipping counts, bank version, pending roots and snapshot
+bytes. Visit counters now measure actual executed work; they are not counts of
+all hypothetical request-wise visits. Semantic gradient-norm diagnostics measure
+the transmitted group mean at those visits, rather than summed per-root norms. Missing-producer diagnostics still report
+unresolved dependencies. Runtime metrics and scratch are not fitted parameters.
+
+See [the stage 4 report](deliverables/SHoEbox_Structural_Optimization_Stage4.md),
+`src/compare_union_reverse.py` and `src/sweep_union_epochs.py` for the matched
+comparison, update-scale sweep, loss/time data and remaining stages 5-6.
+
 ### Structural optimization stage 3
 
 The default completion runtime combines final clipped weight factors for the
@@ -406,7 +461,7 @@ of a bottom expert while its original generation is still retained.
 retained-input edges, and on overwritten outstanding credit.
 
 The expert transform adds no neural parameters: **1,031,952 parameters** at 12 experts.
-Version **39 / composition ABI 10** checkpoints the complete owned archive, pending
+Version **40 / composition ABI 10** checkpoints the complete owned archive, reverse-learning policy, pending
 frames, gates, semantic dependencies, recent eligibility, local neural-credit
 policy, content-expert policy/eligibility, class policy/state, and paired-memory
 policy, immutable episodes, asynchronous observations and joint return cache.

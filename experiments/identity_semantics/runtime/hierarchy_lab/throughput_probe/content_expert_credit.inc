@@ -102,15 +102,19 @@ struct ContentWorkerScope {
   explicit ContentWorkerScope(Model&model):m(model){if(m.content_worker_depth++==0&&m.content_workers)m.content_workers->begin();}
   ~ContentWorkerScope(){if(--m.content_worker_depth==0&&m.content_workers)m.content_workers->end();}
 };
+inline void constituent_union_flush(Model&,bool);
 struct ContentCreditScope {
   Model&m;
   ContentWorkerScope workers;
   explicit ContentCreditScope(Model&model):m(model),workers(model){m.content_credit_depth++;}
-  ~ContentCreditScope(){if(--m.content_credit_depth==0)content_expert_flush(m);}
+  ~ContentCreditScope(){
+    if(m.content_credit_depth==1)constituent_union_flush(m,false);
+    if(--m.content_credit_depth==0&&m.reverse_bank_version.empty())content_expert_flush(m);
+  }
   ContentCreditScope(const ContentCreditScope&)=delete;
 };
 inline void content_expert_derivative(Model&m,const ContentExpertRecord&v,const float*local,float*dx){
-  const float*w=m.W+(v.ref.region*E+v.expert)*D*D;
+  const float*w=m.read_weights()+(v.ref.region*E+v.expert)*D*D;
   float dg=0;for(int j=0;j<D;j++)dg+=local[j]*v.residual[j];
   for(int j=0;j<D;j++)dx[j]=dg*v.route_derivative[j];
   for(int i=0;i<D;i++)for(int j=0;j<D;j++)dx[j]+=v.gate*w[i*D+j]*local[i];
@@ -125,7 +129,7 @@ inline void content_expert_derivatives(Model&m,const ContentExpertRecord*const*v
       float dg=0;for(int j=0;j<D;j++)dg+=local[a][j]*v[a]->residual[j];
       for(int j=0;j<D;j++)dx[a][j]=dg*v[a]->route_derivative[j];
     }
-    const float*w=m.W+(v[q]->ref.region*E+v[q]->expert)*D*D;
+    const float*w=m.read_weights()+(v[q]->ref.region*E+v[q]->expert)*D*D;
     float g0=v[q]->gate,g1=v[q+1]->gate,g2=v[q+2]->gate,g3=v[q+3]->gate;
     for(int i=0;i<D;i++){
       float l0=local[q][i],l1=local[q+1][i],l2=local[q+2][i],l3=local[q+3][i];
@@ -151,16 +155,19 @@ inline void content_expert_accumulate(Model&m,const ContentExpertRecord&v,const 
     bank.requests.emplace_back();bank.requests.back().ref=v.ref;bank.requests.back().mask=mask;
   }
   auto&request=bank.requests[location.index];
+  uint64_t clipped=0;
   for(int i=0;i<D;i++){
-    float d=std::clamp(local[i],-2.f,2.f);gradient.bias[i]+=a*d;
+    float d=std::clamp(local[i],-2.f,2.f);clipped+=d!=local[i];gradient.bias[i]+=a*d;
     float factor=a*d*v.gate;
     if(fresh)request.factor[i]=factor;else request.factor[i]+=factor;
   }
+  m.reverse_metrics[6]+=clipped;
   m.content_factor_metrics[0]++;
   m.content_expert_metrics[r][1]++;m.content_expert_metrics[r][teaching?2:3]++;
   if(m.lcfg[3]<=0||v.gate_derivative==0||v.expert==v.runner)return;
   float dg=0;for(int j=0;j<D;j++)dg+=local[j]*v.residual[j];
-  float step=std::clamp(rate*m.task_route_lr_scale*m.lcfg[3]*dg*v.gate_derivative,-.05f,.05f);
+  float raw_step=rate*m.task_route_lr_scale*m.lcfg[3]*dg*v.gate_derivative;
+  float step=std::clamp(raw_step,-.05f,.05f);m.reverse_metrics[7]+=step!=raw_step;
   if(step==0)return;
   auto add_route=[&](Model::ContentBankWorkspace&target,int expert,int role,float value){
     target.gradient.route=true; // Normalize even when clipped steps cancel.

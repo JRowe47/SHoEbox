@@ -93,7 +93,7 @@ inline const std::vector<SemanticRef>& constituent_schedule(Model&m,SemanticRef 
 // A saved composition is a small DAG: multiple roles may use the same source.
 // Accumulate those paths before updating its actual adapter. Reverse creation
 // order is topological, including a sequence of locally encoded bound frames.
-inline void constituent_update(Model&m,SemanticRef root,const float*gradient,float rate,int receiver,int teaching=0){
+inline void constituent_update_reference(Model&m,SemanticRef root,const float*gradient,float rate,int receiver,int teaching=0){
   if(!root.serial||rate==0)return;
   ContentCreditScope content_scope(m);
   auto&stream=m.composition.stream;
@@ -112,6 +112,7 @@ inline void constituent_update(Model&m,SemanticRef root,const float*gradient,flo
     float locals[16][D],payloads[16][D],derivatives[16][D];double norms[16]{};
     const ContentExpertRecord*contents[16]{};bool done[16]{};
     int count=int(end-begin);
+    m.reverse_metrics[1]+=count;
     for(int a=0;a<count;a++){
       auto ref=work[begin+a];const auto&node=*constituent_record(m,ref);
       const float*incoming=constituent_gradient(m,ref.index);
@@ -127,7 +128,7 @@ inline void constituent_update(Model&m,SemanticRef root,const float*gradient,flo
           contents[b]->ref.region==contents[a]->ref.region&&contents[b]->expert==contents[a]->expert){
         records[n]=contents[b];inputs[n]=locals[b];outputs[n]=derivatives[b];done[b]=true;n++;
       }
-      content_expert_derivatives(m,records,inputs,outputs,n);
+      content_expert_derivatives(m,records,inputs,outputs,n);m.reverse_metrics[3]+=n;
     }
     for(int a=0;a<count;a++){
     auto ref=work[begin+a];auto&node=*constituent_record(m,ref);int r=ref.region;
@@ -160,6 +161,7 @@ inline void constituent_update(Model&m,SemanticRef root,const float*gradient,flo
     begin=end;
   }
 }
+#include "union_reverse.inc"
 inline void completion_semantic_update(Model&m,int r,LaceRecord&v,InputCredit&input,const float*du,const float*dcue,float rate,int teaching=0){
   float gradient[D];
   for(int j=0;j<D;j++)gradient[j]=std::clamp(input.message.qa*(input.message.alpha*du[j]+(dcue?dcue[j]:0.f)),-2.f,2.f);

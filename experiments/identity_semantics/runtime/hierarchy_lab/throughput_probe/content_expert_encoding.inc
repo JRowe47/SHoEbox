@@ -21,9 +21,9 @@ inline void content_expert_encode(Model&m,int r,ConstituentRecord&node,const flo
     float p=1.f/(1.f+std::exp(-(first-second)/m.lcfg[4]));
     saved.gate=2*p;saved.gate_derivative=2*p*(1-p)/m.lcfg[4];
     for(int j=0;j<D;j++)if(saved.input_mask&(uint64_t(1)<<j))
-      saved.route_derivative[j]=saved.gate_derivative*(m.keys[(r*E+best)*D+j]-m.keys[(r*E+runner)*D+j]);
+      saved.route_derivative[j]=saved.gate_derivative*(m.read_keys()[(r*E+best)*D+j]-m.read_keys()[(r*E+runner)*D+j]);
   }
-  const float*w=m.W+(r*E+best)*D*D,*b=m.bias+(r*E+best)*D;
+  const float*w=m.read_weights()+(r*E+best)*D*D,*b=m.read_bias()+(r*E+best)*D;
   for(int i=0;i<D;i++){
     saved.residual[i]=dot64(w+i*D,saved.input);
     out[i]=b[i]+saved.gate*saved.residual[i];

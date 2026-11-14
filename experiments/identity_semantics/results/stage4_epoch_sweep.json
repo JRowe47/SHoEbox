@@ -1,0 +1,834 @@
+{
+  "protocol": "Compare scope union and bank-versioned epochs with a reverse update-scale sweep.\n\nAll variants restore one root-policy checkpoint. Epochs freeze shared expert\nW/bias/router reads and delay constituent updates; predictors, readout and bottom\nstate remain online. Timing is single-worker serial and excludes evaluation,\ncheckpoint IO, generation and compilation. Temporary checkpoints are removed.\n",
+  "cpu": 0,
+  "experts": 12,
+  "warmup": 1024,
+  "targets": 2048,
+  "train_sha256": "b0666942ae61d65f4cf9391864c33bbeb1e2d1126927f114aaf852dbf7c1890b",
+  "validation_sha256": "66f39e1c6000211e645542a3fb0d8d0fb70dede02ee025bc298bec39b684d1f2",
+  "validation_kind": "separate FineWeb split",
+  "source_sha256": "e3b49bbc69c7b343be7670b906574fec67f7813f642ab2cd127d84eec6cb731b",
+  "runs": [
+    {
+      "policy": {
+        "policy": "root",
+        "epoch_bytes": 1,
+        "update_scale": 1.0
+      },
+      "seconds": 7.624748720998468,
+      "bytes_per_second": 268.5990155137614,
+      "train_nll": 3.259441763569072,
+      "heldout_nll": 3.2068778517751184,
+      "curve": [
+        {
+          "targets": 512,
+          "seconds": 2.0494639559983625,
+          "train_nll": 3.324842613970077
+        },
+        {
+          "targets": 1024,
+          "seconds": 3.8021464539997396,
+          "train_nll": 3.270154620088533
+        },
+        {
+          "targets": 1536,
+          "seconds": 5.79221522899752,
+          "train_nll": 3.216073477183727
+        },
+        {
+          "targets": 2048,
+          "seconds": 7.624562668999715,
+          "train_nll": 3.22669634303395
+        }
+      ],
+      "reverse_metrics": {
+        "roots": 284449,
+        "reference_nodes": 2422165,
+        "union_nodes": 0,
+        "content_vjps": 2422165,
+        "flushes": 0,
+        "policy_groups": 0,
+        "clipped_coordinates": 0,
+        "clipped_router_steps": 0,
+        "bank_version": 0,
+        "epoch_position": 0,
+        "pending_roots": 0,
+        "version_bytes": 0
+      },
+      "factor_metrics": {
+        "weight_requests": 2422165,
+        "weight_products": 1216574,
+        "route_requests": 4844330,
+        "route_products": 2433148,
+        "scopes": 100063,
+        "peak_bank_factors": 45
+      },
+      "credit_integrity": true,
+      "fingerprint": "43cbcaf28da39e6cfc460f87aeee319419a099ee14bd82153cf14eeeaee41746",
+      "peak_rss_kib": 333188,
+      "generation": {
+        "prompt": "The river ",
+        "seed": 17,
+        "temperature": 0.8,
+        "bytes": 64,
+        "sampling": "ASCII 32-126 plus newline",
+        "text": "t nh-R`ar dn {t nn baimitqb hs.xk%lle olng t gaenioit ni e e eei",
+        "longest_identical_run": 2
+      }
+    },
+    {
+      "policy": {
+        "policy": "union",
+        "epoch_bytes": 1,
+        "update_scale": 0.5
+      },
+      "seconds": 6.331170165009098,
+      "bytes_per_second": 323.47890620896885,
+      "train_nll": 3.2594152064782804,
+      "heldout_nll": 3.206888385632965,
+      "curve": [
+        {
+          "targets": 512,
+          "seconds": 1.5988100169997779,
+          "train_nll": 3.324901894321556
+        },
+        {
+          "targets": 1024,
+          "seconds": 3.193669040003442,
+          "train_nll": 3.27017272683554
+        },
+        {
+          "targets": 1536,
+          "seconds": 4.7104132380045485,
+          "train_nll": 3.215946511274865
+        },
+        {
+          "targets": 2048,
+          "seconds": 6.331058261006547,
+          "train_nll": 3.226639693481161
+        }
+      ],
+      "reverse_metrics": {
+        "roots": 284449,
+        "reference_nodes": 746372,
+        "union_nodes": 470202,
+        "content_vjps": 1216574,
+        "flushes": 100063,
+        "policy_groups": 100063,
+        "clipped_coordinates": 0,
+        "clipped_router_steps": 0,
+        "bank_version": 0,
+        "epoch_position": 0,
+        "pending_roots": 0,
+        "version_bytes": 0
+      },
+      "factor_metrics": {
+        "weight_requests": 1216574,
+        "weight_products": 1216574,
+        "route_requests": 2433148,
+        "route_products": 2433148,
+        "scopes": 100063,
+        "peak_bank_factors": 45
+      },
+      "credit_integrity": true,
+      "fingerprint": "e817b0ea5c6be3dfc4bc443bf17d4e07564a19656947282750eb520576cf65f0",
+      "peak_rss_kib": 333188
+    },
+    {
+      "policy": {
+        "policy": "union",
+        "epoch_bytes": 16,
+        "update_scale": 0.5
+      },
+      "seconds": 1.822923706000438,
+      "bytes_per_second": 1123.4699473481464,
+      "train_nll": 3.260516730254551,
+      "heldout_nll": 3.207893980129427,
+      "curve": [
+        {
+          "targets": 512,
+          "seconds": 0.46237749900319614,
+          "train_nll": 3.3260775759390526
+        },
+        {
+          "targets": 1024,
+          "seconds": 0.9010505870028283,
+          "train_nll": 3.2701755315482615
+        },
+        {
+          "targets": 1536,
+          "seconds": 1.3546702860039659,
+          "train_nll": 3.216642168693056
+        },
+        {
+          "targets": 2048,
+          "seconds": 1.8227286300025298,
+          "train_nll": 3.229171644837834
+        }
+      ],
+      "reverse_metrics": {
+        "roots": 284449,
+        "reference_nodes": 0,
+        "union_nodes": 97706,
+        "content_vjps": 97706,
+        "flushes": 128,
+        "policy_groups": 256,
+        "clipped_coordinates": 0,
+        "clipped_router_steps": 0,
+        "bank_version": 128,
+        "epoch_position": 0,
+        "pending_roots": 0,
+        "version_bytes": 0
+      },
+      "factor_metrics": {
+        "weight_requests": 97706,
+        "weight_products": 53367,
+        "route_requests": 195412,
+        "route_products": 106734,
+        "scopes": 128,
+        "peak_bank_factors": 55
+      },
+      "credit_integrity": true,
+      "fingerprint": "b426c6c96427f58abbc636336c82e544483c0d70dde454afaf2b7366f0fd33c5",
+      "peak_rss_kib": 345028
+    },
+    {
+      "policy": {
+        "policy": "union",
+        "epoch_bytes": 4,
+        "update_scale": 0.5
+      },
+      "seconds": 2.4434738220079453,
+      "bytes_per_second": 838.1509887906385,
+      "train_nll": 3.2605529152760937,
+      "heldout_nll": 3.207277692839682,
+      "curve": [
+        {
+          "targets": 512,
+          "seconds": 0.6175381860011839,
+          "train_nll": 3.325875668065237
+        },
+        {
+          "targets": 1024,
+          "seconds": 1.2575039720031782,
+          "train_nll": 3.2714334152586844
+        },
+        {
+          "targets": 1536,
+          "seconds": 1.8389010740065714,
+          "train_nll": 3.2168048487403667
+        },
+        {
+          "targets": 2048,
+          "seconds": 2.4433216170073138,
+          "train_nll": 3.228097729040087
+        }
+      ],
+      "reverse_metrics": {
+        "roots": 284769,
+        "reference_nodes": 0,
+        "union_nodes": 267990,
+        "content_vjps": 267990,
+        "flushes": 512,
+        "policy_groups": 1024,
+        "clipped_coordinates": 0,
+        "clipped_router_steps": 0,
+        "bank_version": 512,
+        "epoch_position": 0,
+        "pending_roots": 0,
+        "version_bytes": 0
+      },
+      "factor_metrics": {
+        "weight_requests": 267990,
+        "weight_products": 159930,
+        "route_requests": 535980,
+        "route_products": 319860,
+        "scopes": 512,
+        "peak_bank_factors": 50
+      },
+      "credit_integrity": true,
+      "fingerprint": "9e2148b747e06b2c18bc5899592fad2df9c69d37748daacd5403b42a9afb9d34",
+      "peak_rss_kib": 345028
+    },
+    {
+      "policy": {
+        "policy": "union",
+        "epoch_bytes": 8,
+        "update_scale": 0.5
+      },
+      "seconds": 2.0312562180042733,
+      "bytes_per_second": 1008.2430674413775,
+      "train_nll": 3.2601379776625947,
+      "heldout_nll": 3.2075825943704217,
+      "curve": [
+        {
+          "targets": 512,
+          "seconds": 0.4964749380014837,
+          "train_nll": 3.325615413290052
+        },
+        {
+          "targets": 1024,
+          "seconds": 0.9861043910059379,
+          "train_nll": 3.2700968412464135
+        },
+        {
+          "targets": 1536,
+          "seconds": 1.504904200002784,
+          "train_nll": 3.2171113288472952
+        },
+        {
+          "targets": 2048,
+          "seconds": 2.031189182001981,
+          "train_nll": 3.227728327266618
+        }
+      ],
+      "reverse_metrics": {
+        "roots": 284769,
+        "reference_nodes": 0,
+        "union_nodes": 162619,
+        "content_vjps": 162619,
+        "flushes": 256,
+        "policy_groups": 512,
+        "clipped_coordinates": 0,
+        "clipped_router_steps": 0,
+        "bank_version": 256,
+        "epoch_position": 0,
+        "pending_roots": 0,
+        "version_bytes": 0
+      },
+      "factor_metrics": {
+        "weight_requests": 162619,
+        "weight_products": 90526,
+        "route_requests": 325238,
+        "route_products": 181052,
+        "scopes": 256,
+        "peak_bank_factors": 52
+      },
+      "credit_integrity": true,
+      "fingerprint": "2e49409108c0bee8a5ee7265a0218fbd7bcdd86ce6b423ca1ebccd9487624d8f",
+      "peak_rss_kib": 345028
+    },
+    {
+      "policy": {
+        "policy": "union",
+        "epoch_bytes": 1,
+        "update_scale": 1.0
+      },
+      "seconds": 6.259978315007174,
+      "bytes_per_second": 327.1576828134193,
+      "train_nll": 3.2594417661569253,
+      "heldout_nll": 3.2068778493572836,
+      "curve": [
+        {
+          "targets": 512,
+          "seconds": 1.5439257530015311,
+          "train_nll": 3.324842617411832
+        },
+        {
+          "targets": 1024,
+          "seconds": 3.197957350006618,
+          "train_nll": 3.2701546088596842
+        },
+        {
+          "targets": 1536,
+          "seconds": 4.7601119020037,
+          "train_nll": 3.21607348838063
+        },
+        {
+          "targets": 2048,
+          "seconds": 6.2598734900093405,
+          "train_nll": 3.2266963499755548
+        }
+      ],
+      "reverse_metrics": {
+        "roots": 284449,
+        "reference_nodes": 746372,
+        "union_nodes": 470202,
+        "content_vjps": 1216574,
+        "flushes": 100063,
+        "policy_groups": 100063,
+        "clipped_coordinates": 0,
+        "clipped_router_steps": 0,
+        "bank_version": 0,
+        "epoch_position": 0,
+        "pending_roots": 0,
+        "version_bytes": 0
+      },
+      "factor_metrics": {
+        "weight_requests": 1216574,
+        "weight_products": 1216574,
+        "route_requests": 2433148,
+        "route_products": 2433148,
+        "scopes": 100063,
+        "peak_bank_factors": 45
+      },
+      "credit_integrity": true,
+      "fingerprint": "cc781362980edd62bf6844c4d5ae602b353f5817ca67cb8d88d1776cc5fe2d05",
+      "peak_rss_kib": 345028,
+      "generation": {
+        "prompt": "The river ",
+        "seed": 17,
+        "temperature": 0.8,
+        "bytes": 64,
+        "sampling": "ASCII 32-126 plus newline",
+        "text": "t nh-R`ar dn {t nn baimitqb hs.xk%lle olng t gaenioit ni e e eei",
+        "longest_identical_run": 2
+      }
+    },
+    {
+      "policy": {
+        "policy": "union",
+        "epoch_bytes": 16,
+        "update_scale": 1.0
+      },
+      "seconds": 1.8546083299952443,
+      "bytes_per_second": 1104.2762867377241,
+      "train_nll": 3.2604339321119085,
+      "heldout_nll": 3.2079043221084476,
+      "curve": [
+        {
+          "targets": 512,
+          "seconds": 0.44387831499625463,
+          "train_nll": 3.325980619727261
+        },
+        {
+          "targets": 1024,
+          "seconds": 0.936536426001112,
+          "train_nll": 3.2699167455484712
+        },
+        {
+          "targets": 1536,
+          "seconds": 1.400451889996475,
+          "train_nll": 3.2166310686302495
+        },
+        {
+          "targets": 2048,
+          "seconds": 1.8544767679995857,
+          "train_nll": 3.229207294541652
+        }
+      ],
+      "reverse_metrics": {
+        "roots": 284449,
+        "reference_nodes": 0,
+        "union_nodes": 97706,
+        "content_vjps": 97706,
+        "flushes": 128,
+        "policy_groups": 256,
+        "clipped_coordinates": 0,
+        "clipped_router_steps": 0,
+        "bank_version": 128,
+        "epoch_position": 0,
+        "pending_roots": 0,
+        "version_bytes": 0
+      },
+      "factor_metrics": {
+        "weight_requests": 97706,
+        "weight_products": 53367,
+        "route_requests": 195412,
+        "route_products": 106734,
+        "scopes": 128,
+        "peak_bank_factors": 55
+      },
+      "credit_integrity": true,
+      "fingerprint": "adb2963ce97638dd461c115d124e9554066ace3bae73ffa649d71821686aefca",
+      "peak_rss_kib": 345028,
+      "generation": {
+        "prompt": "The river ",
+        "seed": 17,
+        "temperature": 0.8,
+        "bytes": 64,
+        "sampling": "ASCII 32-126 plus newline",
+        "text": "t nh-Sbio en {t nn bainhtpd hs wianle olni t haeiiogs ni e e eei",
+        "longest_identical_run": 2
+      }
+    },
+    {
+      "policy": {
+        "policy": "union",
+        "epoch_bytes": 4,
+        "update_scale": 1.0
+      },
+      "seconds": 2.523694459006947,
+      "bytes_per_second": 811.508696185778,
+      "train_nll": 3.260551650211738,
+      "heldout_nll": 3.207249931669196,
+      "curve": [
+        {
+          "targets": 512,
+          "seconds": 0.7313555110013112,
+          "train_nll": 3.3258390583614528
+        },
+        {
+          "targets": 1024,
+          "seconds": 1.3031378170053358,
+          "train_nll": 3.2713965778349348
+        },
+        {
+          "targets": 1536,
+          "seconds": 1.9291062830088777,
+          "train_nll": 3.2169999311106494
+        },
+        {
+          "targets": 2048,
+          "seconds": 2.523601928005519,
+          "train_nll": 3.227971033539916
+        }
+      ],
+      "reverse_metrics": {
+        "roots": 284769,
+        "reference_nodes": 0,
+        "union_nodes": 267990,
+        "content_vjps": 267990,
+        "flushes": 512,
+        "policy_groups": 1024,
+        "clipped_coordinates": 0,
+        "clipped_router_steps": 0,
+        "bank_version": 512,
+        "epoch_position": 0,
+        "pending_roots": 0,
+        "version_bytes": 0
+      },
+      "factor_metrics": {
+        "weight_requests": 267990,
+        "weight_products": 159930,
+        "route_requests": 535980,
+        "route_products": 319860,
+        "scopes": 512,
+        "peak_bank_factors": 50
+      },
+      "credit_integrity": true,
+      "fingerprint": "b8c7b17f05b84ba76f24998f924ce7470353d46f9f51ed7c3cd027e360dfbd3b",
+      "peak_rss_kib": 354188,
+      "generation": {
+        "prompt": "The river ",
+        "seed": 17,
+        "temperature": 0.8,
+        "bytes": 64,
+        "sampling": "ASCII 32-126 plus newline",
+        "text": "t nh.Ldip en {t nn baimitre gt%yf ooidmiol t haeiioer ni e e eei",
+        "longest_identical_run": 2
+      }
+    },
+    {
+      "policy": {
+        "policy": "union",
+        "epoch_bytes": 8,
+        "update_scale": 1.0
+      },
+      "seconds": 2.1946201589962584,
+      "bytes_per_second": 933.1910998833997,
+      "train_nll": 3.2600649546056673,
+      "heldout_nll": 3.2075782149045153,
+      "curve": [
+        {
+          "targets": 512,
+          "seconds": 0.5084779070020886,
+          "train_nll": 3.3255811894237013
+        },
+        {
+          "targets": 1024,
+          "seconds": 1.0440516070011654,
+          "train_nll": 3.2698654810393464
+        },
+        {
+          "targets": 1536,
+          "seconds": 1.687789158000669,
+          "train_nll": 3.2170936531977077
+        },
+        {
+          "targets": 2048,
+          "seconds": 2.1945380159959313,
+          "train_nll": 3.2277194947619137
+        }
+      ],
+      "reverse_metrics": {
+        "roots": 284769,
+        "reference_nodes": 0,
+        "union_nodes": 162619,
+        "content_vjps": 162619,
+        "flushes": 256,
+        "policy_groups": 512,
+        "clipped_coordinates": 0,
+        "clipped_router_steps": 0,
+        "bank_version": 256,
+        "epoch_position": 0,
+        "pending_roots": 0,
+        "version_bytes": 0
+      },
+      "factor_metrics": {
+        "weight_requests": 162619,
+        "weight_products": 90526,
+        "route_requests": 325238,
+        "route_products": 181052,
+        "scopes": 256,
+        "peak_bank_factors": 52
+      },
+      "credit_integrity": true,
+      "fingerprint": "7a72e5fa1d968fe3b913c2a52722ac3bece9c0bf4eab5584c56cd48b80d74ab4",
+      "peak_rss_kib": 354188,
+      "generation": {
+        "prompt": "The river ",
+        "seed": 17,
+        "temperature": 0.8,
+        "bytes": 64,
+        "sampling": "ASCII 32-126 plus newline",
+        "text": "t nh-R`ar dn {t nn baimitqb hs.xl poidnfii t haelipit ni e e eei",
+        "longest_identical_run": 2
+      }
+    },
+    {
+      "policy": {
+        "policy": "union",
+        "epoch_bytes": 1,
+        "update_scale": 2.0
+      },
+      "seconds": 6.737458494993916,
+      "bytes_per_second": 303.9721879580721,
+      "train_nll": 3.259455286827773,
+      "heldout_nll": 3.2067520484373517,
+      "curve": [
+        {
+          "targets": 512,
+          "seconds": 1.5344101119990228,
+          "train_nll": 3.32478260445032
+        },
+        {
+          "targets": 1024,
+          "seconds": 3.2653179289991385,
+          "train_nll": 3.2703302328773134
+        },
+        {
+          "targets": 1536,
+          "seconds": 5.247478234996379,
+          "train_nll": 3.216112244898227
+        },
+        {
+          "targets": 2048,
+          "seconds": 6.737364391992742,
+          "train_nll": 3.226596065085232
+        }
+      ],
+      "reverse_metrics": {
+        "roots": 284449,
+        "reference_nodes": 746372,
+        "union_nodes": 470202,
+        "content_vjps": 1216574,
+        "flushes": 100063,
+        "policy_groups": 100063,
+        "clipped_coordinates": 0,
+        "clipped_router_steps": 0,
+        "bank_version": 0,
+        "epoch_position": 0,
+        "pending_roots": 0,
+        "version_bytes": 0
+      },
+      "factor_metrics": {
+        "weight_requests": 1216574,
+        "weight_products": 1216574,
+        "route_requests": 2433148,
+        "route_products": 2433148,
+        "scopes": 100063,
+        "peak_bank_factors": 45
+      },
+      "credit_integrity": true,
+      "fingerprint": "bec94a2add8a4234b736966df0e7bddac1347dd6fbc2d57e087fe29f85d49558",
+      "peak_rss_kib": 354188
+    },
+    {
+      "policy": {
+        "policy": "union",
+        "epoch_bytes": 16,
+        "update_scale": 2.0
+      },
+      "seconds": 2.0259093279964873,
+      "bytes_per_second": 1010.9040773435597,
+      "train_nll": 3.26042830722767,
+      "heldout_nll": 3.207996586109175,
+      "curve": [
+        {
+          "targets": 512,
+          "seconds": 0.4416758339939406,
+          "train_nll": 3.3259093250896967
+        },
+        {
+          "targets": 1024,
+          "seconds": 0.9783151939991512,
+          "train_nll": 3.269964219747294
+        },
+        {
+          "targets": 1536,
+          "seconds": 1.551589051996416,
+          "train_nll": 3.2166952595167686
+        },
+        {
+          "targets": 2048,
+          "seconds": 2.025825671997154,
+          "train_nll": 3.229144424556921
+        }
+      ],
+      "reverse_metrics": {
+        "roots": 284449,
+        "reference_nodes": 0,
+        "union_nodes": 97706,
+        "content_vjps": 97706,
+        "flushes": 128,
+        "policy_groups": 256,
+        "clipped_coordinates": 0,
+        "clipped_router_steps": 0,
+        "bank_version": 128,
+        "epoch_position": 0,
+        "pending_roots": 0,
+        "version_bytes": 0
+      },
+      "factor_metrics": {
+        "weight_requests": 97706,
+        "weight_products": 53367,
+        "route_requests": 195412,
+        "route_products": 106734,
+        "scopes": 128,
+        "peak_bank_factors": 55
+      },
+      "credit_integrity": true,
+      "fingerprint": "8e622f77065319d220c21b090a863d0ddd88bb03d28f008e211cfbb6243173f0",
+      "peak_rss_kib": 354188
+    },
+    {
+      "policy": {
+        "policy": "union",
+        "epoch_bytes": 4,
+        "update_scale": 2.0
+      },
+      "seconds": 2.3856687049992615,
+      "bytes_per_second": 858.4595152329141,
+      "train_nll": 3.26057006968756,
+      "heldout_nll": 3.2072890572823667,
+      "curve": [
+        {
+          "targets": 512,
+          "seconds": 0.6405016459975741,
+          "train_nll": 3.325718083282709
+        },
+        {
+          "targets": 1024,
+          "seconds": 1.2151771609933348,
+          "train_nll": 3.271540823062196
+        },
+        {
+          "targets": 1536,
+          "seconds": 1.7846167019961285,
+          "train_nll": 3.216805671252132
+        },
+        {
+          "targets": 2048,
+          "seconds": 2.3855821619945345,
+          "train_nll": 3.2282157011532036
+        }
+      ],
+      "reverse_metrics": {
+        "roots": 284769,
+        "reference_nodes": 0,
+        "union_nodes": 267990,
+        "content_vjps": 267990,
+        "flushes": 512,
+        "policy_groups": 1024,
+        "clipped_coordinates": 0,
+        "clipped_router_steps": 0,
+        "bank_version": 512,
+        "epoch_position": 0,
+        "pending_roots": 0,
+        "version_bytes": 0
+      },
+      "factor_metrics": {
+        "weight_requests": 267990,
+        "weight_products": 159930,
+        "route_requests": 535980,
+        "route_products": 319860,
+        "scopes": 512,
+        "peak_bank_factors": 50
+      },
+      "credit_integrity": true,
+      "fingerprint": "63b9042f21a485493d86f35c7d734c8748dd5f5b5d932172f3a3f1ea2a354480",
+      "peak_rss_kib": 354188
+    },
+    {
+      "policy": {
+        "policy": "union",
+        "epoch_bytes": 8,
+        "update_scale": 2.0
+      },
+      "seconds": 2.0945966719955322,
+      "bytes_per_second": 977.7538689817839,
+      "train_nll": 3.260061769617778,
+      "heldout_nll": 3.207688656880066,
+      "curve": [
+        {
+          "targets": 512,
+          "seconds": 0.5278232199998456,
+          "train_nll": 3.3254711079057415
+        },
+        {
+          "targets": 1024,
+          "seconds": 1.054640999995172,
+          "train_nll": 3.269866159466801
+        },
+        {
+          "targets": 1536,
+          "seconds": 1.568981692995294,
+          "train_nll": 3.2169924035036956
+        },
+        {
+          "targets": 2048,
+          "seconds": 2.0945039039943367,
+          "train_nll": 3.227917407594873
+        }
+      ],
+      "reverse_metrics": {
+        "roots": 284769,
+        "reference_nodes": 0,
+        "union_nodes": 162619,
+        "content_vjps": 162619,
+        "flushes": 256,
+        "policy_groups": 512,
+        "clipped_coordinates": 0,
+        "clipped_router_steps": 0,
+        "bank_version": 256,
+        "epoch_position": 0,
+        "pending_roots": 0,
+        "version_bytes": 0
+      },
+      "factor_metrics": {
+        "weight_requests": 162619,
+        "weight_products": 90526,
+        "route_requests": 325238,
+        "route_products": 181052,
+        "scopes": 256,
+        "peak_bank_factors": 52
+      },
+      "credit_integrity": true,
+      "fingerprint": "0a21451ee07678d78ab6cfc418ab477c054e216e6487898ffacf2b7e73352a61",
+      "peak_rss_kib": 354188
+    }
+  ],
+  "best_by_epoch": {
+    "1": {
+      "policy": "union",
+      "epoch_bytes": 1,
+      "update_scale": 2.0
+    },
+    "4": {
+      "policy": "union",
+      "epoch_bytes": 4,
+      "update_scale": 1.0
+    },
+    "8": {
+      "policy": "union",
+      "epoch_bytes": 8,
+      "update_scale": 1.0
+    },
+    "16": {
+      "policy": "union",
+      "epoch_bytes": 16,
+      "update_scale": 0.5
+    }
+  }
+}

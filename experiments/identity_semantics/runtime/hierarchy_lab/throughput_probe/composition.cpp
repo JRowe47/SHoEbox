@@ -221,6 +221,24 @@ struct Model {
   // Requested/materialized weight and router products, nonempty scopes, peak
   // unique factors in one bank. Diagnostics only, never checkpoint state.
   uint64_t content_factor_metrics[6]{};
+  // Learning policy 1 preserves request-wise reverse passes. Policy 2 unites
+  // roots with the same regional teaching policy before differentiating.
+  int reverse_policy=2,reverse_epoch_bytes=1,reverse_epoch_position=0;
+  float reverse_update_scale=1.f;
+  uint64_t reverse_version=0,reverse_metrics[8]{};
+  bool reverse_flushing=false;
+  struct ReverseRoot {
+    SemanticRef ref{};
+    float gradient[D]{},rate=0,scales[N]{};
+    int receiver=0,teaching=0;
+    uint32_t reserved=0; // Explicit final padding for deterministic wire bytes.
+  };
+  std::vector<ReverseRoot> reverse_roots;
+  std::vector<SemanticRef> reverse_work;
+  // Epoch experiments hold one immutable W/bias/key version for all bank
+  // reads. The original arrays accumulate updates and become visible together.
+  std::vector<float> reverse_bank_version;
+
 #endif
 #ifdef SHOEBOX_LEARNED_MESSAGES
   // Payload, feedback activation, feedback routing, semantic learning scale.
@@ -288,7 +306,25 @@ struct Model {
     for(int j=0;j<D;j++)cached_read[r][j]=std::tanh(state_parameters[(r*3)*D+j]);
     cached_read_valid[r]=true;
   }
-  void refresh_key(int r,int e){for(int j=0;j<D;j++)transposed_keys[r][j][e]=keys[(r*E+e)*D+j];}
+  const float* read_weights()const{
+#ifdef SHOEBOX_LEARNED_COMPLETION
+    if(!reverse_bank_version.empty())return reverse_bank_version.data();
+#endif
+    return W;
+  }
+  const float* read_bias()const{
+#ifdef SHOEBOX_LEARNED_COMPLETION
+    if(!reverse_bank_version.empty())return reverse_bank_version.data()+N*E*D*D;
+#endif
+    return bias;
+  }
+  const float* read_keys()const{
+#ifdef SHOEBOX_LEARNED_COMPLETION
+    if(!reverse_bank_version.empty())return reverse_bank_version.data()+N*E*D*(D+1);
+#endif
+    return keys;
+  }
+  void refresh_key(int r,int e){for(int j=0;j<D;j++)transposed_keys[r][j][e]=read_keys()[(r*E+e)*D+j];}
   void refresh_keys(){for(int r=0;r<N;r++)for(int e=0;e<E;e++)refresh_key(r,e);}
   Model(float *p,const float *em,const float *fb,const float *sl,const int *st,const int *pe,const float *si,const int *fp,const float *fs,const int *ca,int ht):emb(em),feedback(fb),slots(sl),signs(si),fsign(fs),starts(st),perm(pe),fperm(fp),cadence(ca),head(ht){
     // Canonicalize native padding for deterministic checkpoint fingerprints.
@@ -427,7 +463,7 @@ inline void semantic_input_update(Model&m,int r,LaceRecord&v,const float*du,floa
 }
 inline void semantic_expert_update(Model&m,int r,LaceRecord*v,const float*g,float rate,int teaching=0){
   if(!v||r<2||!m.composition.enabled)return;
-  float du[D]{},pre[D];float*w=m.W+(r*E+v->expert)*D*D;
+  float du[D]{},pre[D];const float*w=m.read_weights()+(r*E+v->expert)*D*D;
   for(int j=0;j<D;j++)du[j]=pre[j]=g[j]*(1-v->h[j]*v->h[j]);
   for(int i=0;i<D;i++)for(int j=0;j<D;j++)du[j]+=v->gate*w[i*D+j]*pre[i];
 #ifdef SHOEBOX_LEARNED_MESSAGES
@@ -454,9 +490,17 @@ inline void expert_update(Model&m,int r,const float*g,float rate,LaceRecord*reco
 #endif
   if(m.utility_observe){double z=0;for(int j=0;j<D;j++)z+=double(g[j])*g[j];
     m.utility_metrics[r][0]+=std::sqrt(z);m.utility_metrics[r][1]++;}
+#ifdef SHOEBOX_LEARNED_COMPLETION
+  // The historical rule learned the bottom state before semantic work. Bottom
+  // regions have no constituent branch; keep that ordering for policy 1.
+  if(semantic)semantic_expert_update(m,r,v,g,rate);
+  constituent_union_flush(m,false);
+  learn_bottom_state(m,r,v,g,rate);
+#else
   learn_bottom_state(m,r,v,g,rate);
 #ifdef SHOEBOX_IDENTITY_SEMANTICS
   if(semantic)semantic_expert_update(m,r,v,g,rate);
+#endif
 #endif
   int e=record?record->expert:s.chosen[r];
   const float*u=record?record->u:s.u[r],*h=record?record->h:s.h[r];
@@ -610,7 +654,7 @@ inline void neural_input_gradient(Model&m,int r,const LaceRecord&v,const float*g
   float pre[D];
   bool sparse=m.lcfg[9]<D;
   for(int i=0;i<D;i++){pre[i]=g[i]*(1-v.h[i]*v.h[i]);du[i]=(!sparse||(v.input_mask&(uint64_t(1)<<i)))?pre[i]:0;}
-  float*w=m.W+(r*E+v.expert)*D*D;
+  const float*w=m.read_weights()+(r*E+v.expert)*D*D;
   if(sparse){
     // Input SDR coordinates admit synapses for both upstream task credit and
     // plasticity. The forward expert still receives the complete payload.
@@ -780,7 +824,7 @@ inline void learn_bottom_state(Model&m,int r,LaceRecord*v,const float*g,float ra
   auto&z=m.learned;
   if(record->generation!=z.generation[r][record->expert]){z.metrics[r][2]++;return;}
   float pre[D],du[D];for(int i=0;i<D;i++)du[i]=pre[i]=g[i]*(1-v->h[i]*v->h[i]);
-  float*w=m.W+(r*E+v->expert)*D*D;
+  const float*w=m.read_weights()+(r*E+v->expert)*D*D;
   for(int i=0;i<D;i++)for(int j=0;j<D;j++)du[j]+=v->gate*w[i*D+j]*pre[i];
   m.cached_read_valid[r]=false;
   float step=rate*m.scfg[1]/norm(v->u);
@@ -928,7 +972,7 @@ static void router_scores(Model&m,int r,const float*input,const int*indices,int 
     _mm256_maskstore_ps(out+e,mask,scores);
   }
 #else
-  for(int e=0;e<E;e++){float v=0;for(int a=0;a<n;a++){int j=indices[a];v+=input[j]*m.keys[(r*E+e)*D+j];}out[e]=v;}
+  for(int e=0;e<E;e++){float v=0;for(int a=0;a<n;a++){int j=indices[a];v+=input[j]*m.read_keys()[(r*E+e)*D+j];}out[e]=v;}
 #endif
 }
 #include "composition_events.inc"
@@ -940,6 +984,7 @@ void* create(float*p,float*em,float*fb,float*sl,int*st,int*pe,float*si,int*fp,fl
 void destroy(void*p){delete static_cast<Model*>(p);}
 void reset(void*p){auto&m=*static_cast<Model*>(p);
 #ifdef SHOEBOX_LEARNED_COMPLETION
+reverse_finish_epoch(m);
 m.acceptance=AcceptanceObservations{};
 paired_clear(m);
 constituent_resize(m,0);
@@ -1001,6 +1046,7 @@ paired_clear(m);
 }
 void reset_context(void*p){auto&m=*static_cast<Model*>(p);
 #ifdef SHOEBOX_LEARNED_COMPLETION
+reverse_finish_epoch(m);
 m.acceptance=AcceptanceObservations{};
 paired_reset_stream(m);memset(m.s.return_birth,0,sizeof(m.s.return_birth));
 constituent_resize(m,0);
@@ -1037,6 +1083,7 @@ double run(void*p,const unsigned char*x,const unsigned char*y,int length,int mod
 #endif
   for(int t=0;t<length;t++){
 #ifdef SHOEBOX_LEARNED_COMPLETION
+    if(mode)reverse_begin_epoch(m);
     // Collect only between byte steps: stack-held snapshots/parts stay owned
     // throughout a step. Cadence uses the saved clock, not API chunk boundaries.
     if(s.tick%64==0)neural_collect(m);
@@ -1267,7 +1314,7 @@ double run(void*p,const unsigned char*x,const unsigned char*y,int length,int mod
         else {float p=1.f/(1.f+std::exp(-(score-second)/m.lcfg[4]));gate=2*p;gate_derivative=2*p*(1-p)/m.lcfg[4];}
       }
       float residual[D];
-      float*w=m.W+(r*E+best)*D*D,*b=m.bias+(r*E+best)*D;
+      const float*w=m.read_weights()+(r*E+best)*D*D,*b=m.read_bias()+(r*E+best)*D;
       for(int i=0;i<D;i++){
         float z=s.u[r][i]+b[i];
         if(!task_route){for(int j=0;j<D;j++)z+=w[i*D+j]*s.u[r][j];residual[i]=0;}
@@ -1335,7 +1382,7 @@ double run(void*p,const unsigned char*x,const unsigned char*y,int length,int mod
           if(m.composition.enabled&&r>=2&&message_enabled(m)){
             message.qa=qa;message.alpha=alpha;
             if(gate_derivative!=0)for(int j=0;j<D;j++)if(routing_mask&(uint64_t(1)<<j))
-              message.route_derivative[j]=gate_derivative*(m.keys[(r*E+best)*D+j]-m.keys[(r*E+runner)*D+j]);
+              message.route_derivative[j]=gate_derivative*(m.read_keys()[(r*E+best)*D+j]-m.read_keys()[(r*E+runner)*D+j]);
             state.message=message;
           }
 #endif
@@ -1379,7 +1426,12 @@ double run(void*p,const unsigned char*x,const unsigned char*y,int length,int mod
 #ifdef SHOEBOX_LEARNED_COMPLETION
     paired_commit(m); // Both completed observations are visible; targets are not.
 #endif
-    if(m.composition.stream.draining)continue;
+    if(m.composition.stream.draining){
+#ifdef SHOEBOX_LEARNED_COMPLETION
+      if(mode&&m.reverse_epoch_bytes>1&&++m.reverse_epoch_position==m.reverse_epoch_bytes)reverse_finish_epoch(m);
+#endif
+      continue;
+    }
     float features[2*D],logits[V],prob[V],maxlog=-1e30f;int selected[V],nout=V;
     for(int j=0;j<D;j++){features[j]=s.h[0][j];features[D+j]=m.utility.config[6]>0?0.f:(m.utility_ablation?m.utility.ymean[j]:s.h[17][j])-m.utility.config[0]*m.utility.ymean[j];}
 #ifdef SHOEBOX_CONTRIBUTION_CHECKS
@@ -1433,7 +1485,7 @@ double run(void*p,const unsigned char*x,const unsigned char*y,int length,int mod
       float gec[D]{};
       if(!m.lcfg[0]&&m.cfg[6]&&s.valid[15]&&(int(m.cfg[6])==2||active[15])){
         float pre[D],du[D];for(int j=0;j<D;j++){pre[j]=direct[D+j]*(1-s.h[17][j]*s.h[17][j]);du[j]=pre[j];}
-        float*w=m.W+(17*E+s.chosen[17])*D*D;
+        const float*w=m.read_weights()+(17*E+s.chosen[17])*D*D;
         for(int i=0;i<D;i++)for(int j=0;j<D;j++)du[j]+=w[i*D+j]*pre[i];
         for(int k=m.starts[17];k<m.starts[18];k++)if(int(m.slots[4*k])==15){
           for(int j=0;j<D;j++)gec[m.perm[k*D+j]]+=.5f*qgain[17]*m.slots[4*k+3]*m.signs[k*D+j]*du[j];
@@ -1451,7 +1503,7 @@ double run(void*p,const unsigned char*x,const unsigned char*y,int length,int mod
         float g[N][D]{};memcpy(g[0],direct,D*sizeof(float));memcpy(g[17],direct+D,D*sizeof(float));
         for(int r=N-1;r>=0;r--)if(active[r]){
           float pre[D],du[D];for(int j=0;j<D;j++){pre[j]=g[r][j]*(1-s.h[r][j]*s.h[r][j]);du[j]=pre[j];}
-          float*w=m.W+(r*E+s.chosen[r])*D*D;
+          const float*w=m.read_weights()+(r*E+s.chosen[r])*D*D;
           for(int i=0;i<D;i++)for(int j=0;j<D;j++)du[j]+=w[i*D+j]*pre[i];
           float hcdot=0;for(int j=0;j<D;j++)hcdot+=du[j]*hcvalue[r][j];
           float alpha=r==1?.125f:.5f;
@@ -1486,6 +1538,9 @@ double run(void*p,const unsigned char*x,const unsigned char*y,int length,int mod
       // Frozen evaluation never updates these fitted statistics.
       for(int j=0;j<D;j++)m.utility.ymean[j]+=m.utility.config[5]*(s.h[17][j]-m.utility.ymean[j]);
     }
+#ifdef SHOEBOX_LEARNED_COMPLETION
+    if(mode&&m.reverse_epoch_bytes>1&&++m.reverse_epoch_position==m.reverse_epoch_bytes)reverse_finish_epoch(m);
+#endif
   }
   return loss/std::max(1,length);
 }
@@ -1570,3 +1625,7 @@ void utility_metrics(void*p,double*out){memcpy(out,static_cast<Model*>(p)->utili
 extern "C" void check_masks(const float*input,uint64_t*out,int n,int k,int method){for(int i=0;i<n;i++)out[i]=method==0?original_feature_mask(input+i*64,k):method==1?rank_feature_mask(input+i*64,k):radix_feature_mask(input+i*64,k);}
 
 #include "composition_api.inc"
+
+#ifdef SHOEBOX_LEARNED_COMPLETION
+#include "reverse_api.inc"
+#endif
