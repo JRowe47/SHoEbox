@@ -21,6 +21,9 @@ HERE = Path(__file__).resolve().parent
 
 def main():
     evidence = json.loads((HERE / "results/addressed_memory.json").read_text())
+    # Older evidence used the then-current alias "addressed" for version 2.
+    for row in evidence["language"]:
+        if row["memory_profile"] == "addressed_v2": row["memory_profile"] = "addressed"
     groups = {p:[r for r in evidence["language"] if r["memory_profile"] == p] for p in ("legacy", "addressed")}
     summary = {p:{k:mean(r[k] for r in rows) for k in ("test_nll", "training_seconds", "bytes_per_second", "teacher_forced_inference_bps")}
                for p,rows in groups.items()}

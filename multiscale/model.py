@@ -16,14 +16,16 @@ _LIBS = {}
 
 
 def _library(profile="addressed"):
-    if profile not in ("addressed", "addressed_v2", "legacy"):
-        raise ValueError("memory_profile must be 'addressed', 'addressed_v2' or 'legacy'")
+    if profile not in ("addressed", "addressed_v3", "addressed_v2", "legacy"):
+        raise ValueError("memory_profile must be 'addressed', 'addressed_v3', 'addressed_v2' or 'legacy'")
     if profile in _LIBS:
         return _LIBS[profile]
     directory = HERE if profile == "addressed" else HERE / profile
     source = (directory / "native.cpp").read_bytes() + (directory / "native.hpp").read_bytes()
     if profile != "legacy":
         source += (directory / "address_memory.hpp").read_bytes()
+    if profile == "addressed":
+        source += (directory / "recall.hpp").read_bytes()
     flags = ["-std=c++17", "-O3", "-march=native", "-ffp-contract=off", "-fPIC", "-shared"]
     compiler = os.environ.get("CXX", "g++")
     signature = subprocess.check_output([compiler, "--version"])
@@ -53,6 +55,8 @@ def _library(profile="addressed"):
     if profile != "legacy":
         specs.update(ms_reconstruction=([p, f], i), ms_memory_intervene=([p, i], i),
                      ms_address_stats=([p, p], i))
+    if profile == "addressed":
+        specs.update(ms_recall_intervene=([p, i], i), ms_recall_stats=([p, p], i))
     for name, (args, result) in specs.items():
         fn = getattr(lib, name)
         fn.argtypes, fn.restype = args, result
@@ -199,6 +203,20 @@ class Model:
             raise ValueError("legacy runtime has no addressed-memory channel")
         self._check(self._lib.ms_memory_intervene(self._alive(), modes[mode]))
 
+    def intervene_recall(self, mode="full"):
+        """Frozen retained-unit controls; set before consuming a cold prefix.
+
+        Modes: full, no_read, recency_only, no_fixed_values, no_learned_values.
+        This controls the v4 retained units, separately from the compact matrix.
+        """
+        modes = {"full": 0, "no_read": 1, "recency_only": 2,
+                 "no_fixed_values": 3, "no_learned_values": 4}
+        if mode not in modes:
+            raise ValueError("unknown recall intervention")
+        if self._profile != "addressed":
+            raise ValueError("retained-unit recall requires a version-4 model")
+        self._check(self._lib.ms_recall_intervene(self._alive(), modes[mode]))
+
     def finish(self):
         """Apply accumulated local gradients at an explicit truncation boundary.
 
@@ -224,7 +242,7 @@ class Model:
                     native_targets=a[24:24+levels].astype(int).tolist(),
                     native_loss_sum=a[28:28+levels].tolist(),
                     state_energy=a[32:32+levels].tolist(), memory_profile=self._profile,
-                    checkpoint_version={"legacy": 1, "addressed_v2": 2, "addressed": 3}[self._profile],
+                    checkpoint_version={"legacy": 1, "addressed_v2": 2, "addressed_v3": 3, "addressed": 4}[self._profile],
                     reconstruction_targets=a[40:40+levels].astype(int).tolist(),
                     reconstruction_loss_sum=a[44:44+levels].tolist())
         if self._profile != "legacy":
@@ -236,6 +254,15 @@ class Model:
                           address_energy=b[12:12+levels].tolist(),
                           query_content_energy=b[16:16+levels].tolist(),
                           reconstruction_weight=float(b[20]), memory_intervention=int(b[21]))
+        result["retained_recall"] = self._profile == "addressed"
+        if self._profile == "addressed":
+            c = np.zeros(16, np.float64)
+            self._check(self._lib.ms_recall_stats(self._alive(), c.ctypes.data))
+            result.update(retained_units=c[:levels].astype(int).tolist(),
+                          retained_occurrences=c[4:4+levels].astype(int).tolist(),
+                          recall_slots_per_level=int(c[8]), recall_intervention=int(c[9]),
+                          retained_stream_bytes=int(c[10]), recall_parameters=int(c[11]),
+                          recall_query_period_bytes=1)
         return result
 
     @property
@@ -260,7 +287,7 @@ class Model:
         if len(raw) < 16:
             raise ValueError("truncated native checkpoint")
         version = struct.unpack_from("=I", raw, 8)[0]
-        profiles = {1: "legacy", 2: "addressed_v2", 3: "addressed"}
+        profiles = {1: "legacy", 2: "addressed_v2", 3: "addressed_v3", 4: "addressed"}
         if version not in profiles:
             raise ValueError("unsupported multiscale checkpoint version")
         profile = profiles[version]

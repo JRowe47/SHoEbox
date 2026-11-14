@@ -110,6 +110,6 @@ if __name__ == "__main__":
     p.add_argument("--router", choices=["indexed","scan"], default="indexed")
     p.add_argument("--associations", action="store_true")
     p.add_argument("--checkpoints", action="store_true")
-    p.add_argument("--memory-profile", choices=["addressed", "addressed_v2", "legacy"], default="addressed")
+    p.add_argument("--memory-profile", choices=["addressed", "addressed_v3", "addressed_v2", "legacy"], default="addressed")
     p.add_argument("--reconstruction-weight", type=float)
     run(p.parse_args())

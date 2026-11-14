@@ -1,6 +1,8 @@
 // Standalone inspection; no diagnostic work is added to the model's hot loop.
 #ifdef SHOE_ADDRESSED_V2
 #include "addressed_v2/native.hpp"
+#elif defined(SHOE_ADDRESSED_V3)
+#include "addressed_v3/native.hpp"
 #else
 #include "native.hpp"
 #endif

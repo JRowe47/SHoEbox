@@ -1,5 +1,17 @@
 # SHoEbox handoff
 
+## 2026-11-14 - Multiscale delayed recall
+
+The rebuilt `shoe_multiscale` runtime now defaults to checkpoint version 4.
+Retained ordered pairs bridge group boundaries; the current byte can query all
+scales and directly condition the shared byte decoder. Queries and delivery
+learn from the actual answer loss without extending local derivative histories.
+The original delayed-cue gate passes at the matched training budget; varied
+changing distractors remain an unresolved boundary. Historical checkpoint
+versions 1/2/3 retain unchanged native backends. See the
+[repair report](multiscale/DELAYED_RECALL_REPAIR.md) and the
+[reproduction runner](multiscale/compare_delayed_recall.py).
+
 ## 2026-11-14 - Action 7 dedicated inference
 
 Implemented `forward-only-v1`, with explicit entry/resume boundaries and

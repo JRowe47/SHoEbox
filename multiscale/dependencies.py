@@ -16,14 +16,16 @@ def example(bit, gap, shift=0, pair=b"AB"):
     return b"." * shift + cue + b"x" * gap + b"?" + bytes([48+bit]) + b"\n"
 
 
-def score(model, *, gaps=(16,48,96,192), intervention=-1, memory="full"):
+def score(model, *, gaps=(16,48,96,192), intervention=-1, memory="full", recall="full"):
     rows=[]
     with model.inference_copy() as frozen:
         frozen.intervene(mask=intervention)
         if memory != "full":
             frozen.intervene_memory(memory)
+        if recall != "full":
+            frozen.intervene_recall(recall)
         for gap in gaps:
-            correct=0;loss=0.;pairs=0;differences=[]
+            correct=0;byte_correct=0;loss=0.;byte_loss=0.;pairs=0;differences=[]
             for shift in range(8):
                 probs=[]
                 for bit in (0,1):
@@ -32,10 +34,12 @@ def score(model, *, gaps=(16,48,96,192), intervention=-1, memory="full"):
                     frozen.run(prefix[:-1],prefix[1:])
                     logits=frozen.observe(prefix[-1])
                     p=logits[[48,49]].astype(float);p=np.exp(p-p.max());p/=p.sum()
+                    byte_correct+=int(np.argmax(logits)==48+bit);byte_loss-=float(logits[48+bit])
                     correct+=int(np.argmax(p)==bit);loss-=np.log(max(1e-30,p[bit]));pairs+=1
                     probs.append(float(p[1]))
                 differences.append(probs[1]-probs[0])
-            rows.append(dict(gap=gap,accuracy=correct/pairs,binary_nll=loss/pairs,
+            rows.append(dict(gap=gap,accuracy=correct/pairs,byte_accuracy=byte_correct/pairs,
+                             binary_nll=loss/pairs,answer_nll=byte_loss/pairs,
                              mean_cue_probability_difference=float(np.mean(differences))))
     return rows
 
@@ -44,7 +48,8 @@ def main(args):
     os.sched_setaffinity(0,{args.cpu});rows=[]
     for seed in args.seeds:
         rng=np.random.default_rng(seed)
-        # Test shifts 4..7 never appear in training. Both cues have exactly the
+        # Explicit prefix lengths 4..7 never appear in training; concatenation
+        # still covers every native grouping phase. Both cues have exactly the
         # same child inventory; only their order identifies the later answer.
         train=b"".join(example(int(rng.integers(2)),int(rng.choice([16,48,96])),int(rng.integers(4)))
                        for _ in range(args.examples))
@@ -66,5 +71,5 @@ if __name__=="__main__":
     p.add_argument("--examples",type=int,default=6000);p.add_argument("--levels",nargs="+",type=int,default=[1,2,4])
     p.add_argument("--seeds",nargs="+",type=int,default=[7,17,29]);p.add_argument("--cpu",type=int,default=1)
     p.add_argument("--lr",type=float,default=.08)
-    p.add_argument("--memory-profile",choices=["addressed","addressed_v2","legacy"],default="addressed")
+    p.add_argument("--memory-profile",choices=["addressed","addressed_v3","addressed_v2","legacy"],default="addressed")
     main(p.parse_args())

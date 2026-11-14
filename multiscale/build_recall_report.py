@@ -14,6 +14,10 @@ HERE=Path(__file__).resolve().parent
 
 def main():
     r=json.loads((HERE/'results/memory_recall_repair.json').read_text())
+    # Preserve the historical report label while accepting an explicit v3 run.
+    for row in r["language"]:
+        if row["memory_profile"] == "addressed_v3": row["memory_profile"] = "addressed"
+    if "addressed_v3" in r["diagnostics"]: r["diagnostics"]["addressed"] = r["diagnostics"]["addressed_v3"]
     groups={p:[x for x in r['language'] if x['memory_profile']==p] for p in ['addressed_v2','addressed']}
     means={p:{k:mean(x[k] for x in rows) for k in ['test_nll','bytes_per_second','training_seconds']} for p,rows in groups.items()}
     old,new=means['addressed_v2'],means['addressed']

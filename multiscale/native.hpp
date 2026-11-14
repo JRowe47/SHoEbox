@@ -37,6 +37,7 @@ template<class T> void step(T& p,const T& g,float lr){
 }
 
 #include "address_memory.hpp"
+#include "recall.hpp"
 
 struct Expert {Mat w{};Vec bias{},key{};};
 struct Shared {
@@ -77,6 +78,9 @@ struct Level {
     std::vector<Expert> experts;
     Shared p{};
     AddressParameters address{};
+    RecallParameters retrieval{};
+    RecallStream retained{};
+    RecallRead read_now{};
     Stream s{};
     // A 16-way hierarchy, stored in bottom-up layers of prototypes. Rebuilt
     // only at local update boundaries; bounded 16 comparisons per tree depth.
@@ -167,7 +171,7 @@ struct Model {
     uint64_t bytes=0,route_comparisons=0;
     float learning_rate=.08f,head_rate=.16f,aux_weight=.1f,route_rate=.002f;
     float reconstruction_weight=.05f;
-    int memory_mode=0;
+    int memory_mode=0,recall_mode=0;
     int mask=-1,shuffle=-1;
     explicit Model(int count=4,int target=1000000,uint32_t seed=7,bool use_index=true,bool memory=false);
     void rebuild_index(Level& l);

@@ -23,10 +23,9 @@ def diagnose(profile, examples, seed, compiler):
         tmp = Path(temporary)
         (tmp / "train.bin").write_bytes(data)
         old = profile == "addressed_v2"
-        source = HERE / "addressed_v2/native.cpp" if old else HERE / "native.cpp"
+        source = HERE / profile / "native.cpp"
         cmd = [compiler, "-std=c++17", "-O3", "-march=native", "-ffp-contract=off"]
-        if old:
-            cmd.append("-DSHOE_ADDRESSED_V2")
+        cmd.append("-DSHOE_ADDRESSED_V2" if old else "-DSHOE_ADDRESSED_V3")
         subprocess.run([*cmd, str(source), str(HERE / "memory_diagnostics.cpp"),
                         "-o", str(tmp / "diagnostics")], check=True)
         return json.loads(subprocess.check_output([str(tmp / "diagnostics"), str(tmp / "train.bin")], text=True))
@@ -48,7 +47,7 @@ def main():
     result = dict(base="4e52beede8ef800e5f7a52ecac612cd75ebb644b", python=platform.python_version(),
                   numpy=np.__version__, cpu=args.cpu, language=[], dependencies=[], diagnostics={})
     for index, seed in enumerate(args.seeds):
-        profiles = ["addressed_v2", "addressed"] if index % 2 == 0 else ["addressed", "addressed_v2"]
+        profiles = ["addressed_v2", "addressed_v3"] if index % 2 == 0 else ["addressed_v3", "addressed_v2"]
         for profile in profiles:
             destination = out / f"{profile}_{seed}"
             a = SimpleNamespace(data=args.data, out=str(destination), targets=args.targets,
@@ -60,11 +59,11 @@ def main():
                                 cpu=args.cpu, lr=.08, memory_profile=profile)
             result["dependencies"].extend(dependencies.main(a))
             benchmark.atomic_json(out / "memory_recall_repair.json", result)
-    for profile in ("addressed_v2", "addressed"):
+    for profile in ("addressed_v2", "addressed_v3"):
         result["diagnostics"][profile] = diagnose(profile, args.examples, args.seeds[0], compiler)
     result["source_sha256"] = {str(p.relative_to(HERE)):hashlib.sha256(p.read_bytes()).hexdigest()
                               for p in [HERE / name for name in ("native.cpp", "native.hpp", "address_memory.hpp")]
-                              + sorted((HERE / "addressed_v2").glob("*.?pp"))}
+                              + sorted((HERE / "addressed_v2").glob("*.?pp")) + sorted((HERE / "addressed_v3").glob("*.?pp"))}
     benchmark.atomic_json(out / "memory_recall_repair.json", result)
     print(json.dumps(result["diagnostics"], indent=2))
 
