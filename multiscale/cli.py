@@ -17,6 +17,9 @@ def main():
     train.add_argument("--targets",type=int);train.add_argument("--learning-rate",type=float,default=.08)
     train.add_argument("--router",choices=["indexed","scan"],default="indexed")
     train.add_argument("--associations",action="store_true")
+    train.add_argument("--memory-profile",choices=["addressed","legacy"],default="addressed",
+                       help="fresh-model policy; resume automatically preserves the saved policy")
+    train.add_argument("--reconstruction-weight",type=float)
     sample=sub.add_parser("generate");sample.add_argument("--checkpoint",required=True)
     sample.add_argument("--prompt",default="ROMEO:\n");sample.add_argument("--length",type=int,default=512)
     sample.add_argument("--temperature",type=float,default=.8);sample.add_argument("--seed",type=int,default=7)
@@ -24,9 +27,9 @@ def main():
     args=parser.parse_args()
     if args.command=="train":
         m=Model.load(args.resume) if args.resume else Model(levels=args.levels,parameters=args.parameters,
-                         seed=args.seed,router=args.router,associations=args.associations)
+                         seed=args.seed,router=args.router,associations=args.associations,memory_profile=args.memory_profile)
         with m:
-            m.configure(learning_rate=args.learning_rate)
+            m.configure(learning_rate=args.learning_rate,reconstruction_weight=args.reconstruction_weight)
             raw=Path(args.data).read_bytes()
             n=min(len(raw)-1,args.targets) if args.targets is not None else len(raw)-1
             if n<=0:parser.error("training requires at least two bytes and a positive target count")

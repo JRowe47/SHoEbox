@@ -6,19 +6,24 @@ import hashlib
 import os
 from pathlib import Path
 import subprocess
+import struct
 import tempfile
 
 import numpy as np
 
 HERE = Path(__file__).resolve().parent
-_LIB = None
+_LIBS = {}
 
 
-def _library():
-    global _LIB
-    if _LIB is not None:
-        return _LIB
-    source = (HERE / "native.cpp").read_bytes() + (HERE / "native.hpp").read_bytes()
+def _library(profile="addressed"):
+    if profile not in ("addressed", "legacy"):
+        raise ValueError("memory_profile must be 'addressed' or 'legacy'")
+    if profile in _LIBS:
+        return _LIBS[profile]
+    directory = HERE / "legacy" if profile == "legacy" else HERE
+    source = (directory / "native.cpp").read_bytes() + (directory / "native.hpp").read_bytes()
+    if profile == "addressed":
+        source += (directory / "address_memory.hpp").read_bytes()
     flags = ["-std=c++17", "-O3", "-march=native", "-ffp-contract=off", "-fPIC", "-shared"]
     compiler = os.environ.get("CXX", "g++")
     signature = subprocess.check_output([compiler, "--version"])
@@ -28,7 +33,7 @@ def _library():
     path = cache / f"native_{key}.so"
     if not path.exists():
         temporary = cache / f"native_{key}.{os.getpid()}.so"
-        subprocess.run([compiler, *flags, str(HERE / "native.cpp"), "-o", str(temporary)], check=True)
+        subprocess.run([compiler, *flags, str(directory / "native.cpp"), "-o", str(temporary)], check=True)
         temporary.replace(path)
     lib = C.CDLL(str(path))
     p, i, n, f = C.c_void_p, C.c_int, C.c_size_t, C.c_float
@@ -45,10 +50,13 @@ def _library():
         "ms_lookup": ([p, p, n, C.POINTER(C.c_uint64)], i),
         "ms_payload": ([p, C.c_uint64, p, C.POINTER(n)], i),
     }
+    if profile == "addressed":
+        specs.update(ms_reconstruction=([p, f], i), ms_memory_intervene=([p, i], i),
+                     ms_address_stats=([p, p], i))
     for name, (args, result) in specs.items():
         fn = getattr(lib, name)
         fn.argtypes, fn.restype = args, result
-    _LIB = lib
+    _LIBS[profile] = lib
     return lib
 
 
@@ -64,10 +72,12 @@ def _bytes(x):
 
 
 class Model:
-    def __init__(self, *, levels=4, parameters=1_000_000, seed=7, router="indexed", associations=False):
+    def __init__(self, *, levels=4, parameters=1_000_000, seed=7, router="indexed", associations=False,
+                 memory_profile="addressed"):
         if router not in ("indexed", "scan"):
             raise ValueError("router must be 'indexed' or 'scan'")
-        self._lib = _library()
+        self._profile = memory_profile
+        self._lib = _library(memory_profile)
         self._handle = self._lib.ms_create(levels, parameters, seed, router == "indexed", associations)
         self._check_pointer()
 
@@ -85,9 +95,10 @@ class Model:
             raise RuntimeError(self._lib.ms_error().decode())
 
     @classmethod
-    def _wrap(cls, handle):
+    def _wrap(cls, handle, profile):
         obj = cls.__new__(cls)
-        obj._lib, obj._handle = _library(), handle
+        obj._profile = profile
+        obj._lib, obj._handle = _library(profile), handle
         obj._check_pointer()
         return obj
 
@@ -106,8 +117,16 @@ class Model:
     def __exit__(self, *exc):
         self.close()
 
-    def configure(self, *, learning_rate=.08, head_rate=.16, auxiliary_weight=.1, route_rate=.002):
+    def configure(self, *, learning_rate=.08, head_rate=.16, auxiliary_weight=.1, route_rate=.002,
+                  reconstruction_weight=None):
+        if reconstruction_weight is not None:
+            if not np.isfinite(reconstruction_weight) or reconstruction_weight < 0:
+                raise ValueError("reconstruction_weight must be finite and nonnegative")
+            if self._profile == "legacy" and reconstruction_weight:
+                raise ValueError("legacy checkpoints retain their original learning objectives")
         self._check(self._lib.ms_configure(self._alive(), learning_rate, head_rate, auxiliary_weight, route_rate))
+        if reconstruction_weight is not None and self._profile == "addressed":
+            self._check(self._lib.ms_reconstruction(self._alive(), reconstruction_weight))
 
     def run(self, inputs, targets):
         x, y = _bytes(inputs), _bytes(targets)
@@ -138,21 +157,36 @@ class Model:
         return a
 
     def clone(self):
-        return self._wrap(self._lib.ms_clone(self._alive(), 0, 0))
+        return self._wrap(self._lib.ms_clone(self._alive(), 0, 0), self._profile)
 
     def inference_copy(self, *, cold=True):
         """Freeze a weight snapshot; preserve source pending updates unchanged."""
-        return self._wrap(self._lib.ms_clone(self._alive(), 1, cold))
+        return self._wrap(self._lib.ms_clone(self._alive(), 1, cold), self._profile)
 
-    def evaluate(self, data, *, mask=-1, shuffle=-1):
+    def evaluate(self, data, *, mask=-1, shuffle=-1, memory="full"):
         a = _bytes(data)
         with self.inference_copy() as m:
             m.intervene(mask=mask, shuffle=shuffle)
+            if memory != "full":
+                m.intervene_memory(memory)
             return m.run(a[:-1], a[1:])
 
     def intervene(self, *, mask=-1, shuffle=-1):
         """Mask or coordinate-permute one slow level during frozen evaluation."""
         self._check(self._lib.ms_intervene(self._alive(), mask, shuffle))
+
+    def intervene_memory(self, mode="full"):
+        """Frozen controls: full, no_read, no_time or no_content.
+
+        Set before consuming the evaluation prefix to remove a write channel
+        throughout that prefix. This never changes a live training policy.
+        """
+        modes = {"full": 0, "no_read": 1, "no_time": 2, "no_content": 3}
+        if mode not in modes:
+            raise ValueError("unknown memory intervention")
+        if self._profile == "legacy":
+            raise ValueError("legacy runtime has no addressed-memory channel")
+        self._check(self._lib.ms_memory_intervene(self._alive(), modes[mode]))
 
     def finish(self):
         """Apply accumulated local gradients at an explicit truncation boundary.
@@ -169,7 +203,7 @@ class Model:
         a = np.zeros(48, np.float64)
         self._check(self._lib.ms_stats(self._alive(), a.ctypes.data))
         levels = int(a[7])
-        return dict(parameters=int(a[0]), bytes=int(a[1]), training=bool(a[2]),
+        result = dict(parameters=int(a[0]), bytes=int(a[1]), training=bool(a[2]),
                     route_comparisons=int(a[3]), memory_queries=int(a[4]),
                     memory_candidates=int(a[5]), memory_writes=int(a[6]),
                     levels=levels, experts=a[8:8+levels].astype(int).tolist(),
@@ -178,7 +212,20 @@ class Model:
                     pending=a[20:20+levels].astype(int).tolist(),
                     native_targets=a[24:24+levels].astype(int).tolist(),
                     native_loss_sum=a[28:28+levels].tolist(),
-                    state_energy=a[32:32+levels].tolist())
+                    state_energy=a[32:32+levels].tolist(), memory_profile=self._profile,
+                    checkpoint_version=2 if self._profile == "addressed" else 1,
+                    reconstruction_targets=a[40:40+levels].astype(int).tolist(),
+                    reconstruction_loss_sum=a[44:44+levels].tolist())
+        if self._profile == "addressed":
+            b = np.zeros(24, np.float64)
+            self._check(self._lib.ms_address_stats(self._alive(), b.ctypes.data))
+            result.update(clock_ticks=b[:levels].astype(int).tolist(),
+                          address_rows=b[4:4+levels].astype(int).tolist(),
+                          address_values=b[8:8+levels].astype(int).tolist(),
+                          address_energy=b[12:12+levels].tolist(),
+                          query_content_energy=b[16:16+levels].tolist(),
+                          reconstruction_weight=float(b[20]), memory_intervention=int(b[21]))
+        return result
 
     @property
     def parameter_count(self):
@@ -199,7 +246,14 @@ class Model:
         if len(data) < 40 or data[:8] != b"SHOEMS01" or hashlib.sha256(data[40:]).digest() != data[8:40]:
             raise ValueError("invalid or corrupted multiscale checkpoint")
         raw = data[40:]
-        return cls._wrap(_library().ms_load(raw, len(raw)))
+        if len(raw) < 16:
+            raise ValueError("truncated native checkpoint")
+        version = struct.unpack_from("=I", raw, 8)[0]
+        profiles = {1: "legacy", 2: "addressed"}
+        if version not in profiles:
+            raise ValueError("unsupported multiscale checkpoint version")
+        profile = profiles[version]
+        return cls._wrap(_library(profile).ms_load(raw, len(raw)), profile)
 
     def save(self, path):
         path = Path(path)

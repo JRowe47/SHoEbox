@@ -9,13 +9,15 @@ Model::Model(int count,int target,uint32_t seed,bool use_index,bool memory):inde
     for(auto& v:embedding)for(auto& x:v)x=.35f*normal(rng);
     for(auto& v:decoder)for(auto& x:v)x=.02f*normal(rng);
     // Level zero fits recurrence/read maps, but no slow composer or projector.
-    int fixed=int(sizeof(embedding)/sizeof(float)+sizeof(decoder)/sizeof(float)+decoder_bias.size()+D*D+D*K+(count-1)*sizeof(Shared)/sizeof(float));
+    int fixed=int(sizeof(embedding)/sizeof(float)+sizeof(decoder)/sizeof(float)+decoder_bias.size()+D*D+D*K+(count-1)*(sizeof(Shared)+sizeof(AddressParameters))/sizeof(float));
     int available=(target-fixed)/int(sizeof(Expert)/sizeof(float));
     if(available<count*2)throw std::invalid_argument("parameter budget too small for this topology");
     const float shares[4]{.5f,.25f,.15f,.1f};float total=0;for(int l=0;l<count;++l)total+=shares[l];
     int left=available;
     for(int scale=0;scale<count;++scale){
-        auto& l=levels[scale];int e=scale==count-1?left:std::max(2,int(available*shares[scale]/total));left-=e;
+        auto& l=levels[scale];
+        int e=scale==count-1?left:std::min(left-2*(count-1-scale),std::max(2,int(available*shares[scale]/total)));
+        left-=e;
         l.experts.resize(e);
         for(auto& expert:l.experts){
             for(auto& x:expert.w)x=.025f*normal(rng);
@@ -31,12 +33,17 @@ Model::Model(int count,int target,uint32_t seed,bool use_index,bool memory):inde
             for(int k=0;k<GROUP;++k)l.p.role[k*D+i]=.5f;
             l.p.length[i]=.01f*normal(rng);
         }
+        if(scale>0){
+            for(auto& x:l.address.read)x=.025f*normal(rng);
+            for(int i=0;i<TIME_D;++i)l.address.query_clock[i*TIME_D+i]=.25f;
+            for(int i=0;i<D;++i)l.address.reconstruct[i*D+i]=.15f;
+        }
         rebuild_index(l);
     }
 }
 size_t Model::parameter_count()const{
     size_t n=sizeof(embedding)/sizeof(float)+sizeof(decoder)/sizeof(float)+decoder_bias.size();
-    for(size_t i=0;i<levels.size();++i)n+=(i?sizeof(Shared)/sizeof(float):D*D+D*K)+levels[i].experts.size()*sizeof(Expert)/sizeof(float);
+    for(size_t i=0;i<levels.size();++i)n+=(i?(sizeof(Shared)+sizeof(AddressParameters))/sizeof(float):D*D+D*K)+levels[i].experts.size()*sizeof(Expert)/sizeof(float);
     return n;
 }
 void Model::rebuild_index(Level& l){
@@ -86,8 +93,10 @@ void Model::forward_event(int scale,const std::array<Vec,GROUP>& child,const std
     // arrive after this update. Cross-block native forecasts are truncated.
     if(training&&s.count==BLOCK)flush(scale);
     int slot=training?s.count:0;auto& e=s.events[slot];e=Event{};e.byte=byte;e.before=s.state;
-    if(scale==0){e.input=embedding[byte];e.span=1;}
+    e.reconstruction_role=int(s.executions%GROUP);
+    if(scale==0){e.input=embedding[byte];e.span=1;s.stable=stable_bytes()[byte];}
     else {
+        s.stable=stable_group(s.stable_children);
         e.children=child;e.lengths=lengths;e.span=0;for(float n:lengths)e.span+=n;
         for(int i=0;i<D;++i){float z=l.p.offset[i];
             for(int k=0;k<GROUP;++k){int j=(i*(2*k+1)+13*k)%D;
@@ -100,8 +109,10 @@ void Model::forward_event(int scale,const std::array<Vec,GROUP>& child,const std
     mv(expert.w,e.input,e.residual);
     for(int i=0;i<D;++i)e.content[i]=std::tanh(e.input[i]+expert.bias[i]+e.gate*e.residual[i]);
     context_forward(e,s.memory);
+    if(scale>0)address_forward(s.address_events[slot],e.content,e.before,s.stable,s.addressed,l.address,memory_mode);
     Vec recurrent{};mv(l.p.recurrent,e.before,recurrent);
-    for(int i=0;i<D;++i)e.state[i]=std::tanh(e.content[i]+recurrent[i]+dot(l.p.read.data()+i*K,e.read.data(),K));
+    for(int i=0;i<D;++i){float a=scale?dot(l.address.read.data()+i*ADDRESS_V,s.address_events[slot].read.data(),ADDRESS_V):0;
+        e.state[i]=std::tanh(e.content[i]+recurrent[i]+dot(l.p.read.data()+i*K,e.read.data(),K)+a);}
     if(training&&scale>0){
         // Same-scale contrastive next-unit objective. Only older published
         // contents enter negatives. Neither target nor negatives receive VJPs.
@@ -131,19 +142,20 @@ void Model::forward_event(int scale,const std::array<Vec,GROUP>& child,const std
     if(scale+1<int(levels.size())){
         auto& parent=levels[scale+1].s;int k=parent.children_count++;
         parent.children[k]=e.content;parent.lengths[k]=e.span;
+        parent.stable_children[k]=s.stable;
         if(parent.children_count==GROUP){parent.children_count=0;forward_event(scale+1,parent.children,parent.lengths,0);}
     }
 }
 
 void Model::flush(int scale){
     auto& l=levels[scale];auto& s=l.s;if(!s.count)return;
-    Shared g{};std::array<Expert,BLOCK> eg{};std::array<int,BLOCK> selected{};int unique=0;
+    Shared g{};AddressParameters ag{};std::array<Expert,BLOCK> eg{};std::array<int,BLOCK> selected{};int unique=0;
     std::array<Vec,BLOCK> embed_grad{};std::array<Vec,BLOCK> key_delta{},runner_delta{};
     int uses=0,targets=0;for(int t=0;t<s.count;++t){uses+=s.events[t].uses;targets+=s.events[t].has_target;}
     // Average task loss over the predictions actually served by this block;
     // native contrastive loss has its own event count and declared weight.
     float task_scale=1.f/std::max(1,uses),native_scale=aux_weight/std::max(1,targets);
-    Vec future{};Memory memory_grad{};
+    Vec future{};Memory memory_grad{};AddressMatrix address_grad{};
     for(int t=s.count-1;t>=0;--t){
         const auto& e=s.events[t];int k=0;for(;k<unique;++k)if(selected[k]==e.expert)break;
         if(k==unique)selected[unique++]=e.expert;
@@ -151,11 +163,17 @@ void Model::flush(int scale){
         for(int i=0;i<D;++i){dh[i]+=task_scale*e.task[i];dgain[i]=task_scale*e.gain_grad[i];dbias[i]=task_scale*e.bias_grad[i];dp[i]=native_scale*e.native[i];}
         if(scale>0){vjp(l.p.gain,dgain,dh);vjp(l.p.bias,dbias,dh);outer(g.gain,dgain,e.state);outer(g.bias,dbias,e.state);
             vjp(l.p.predict,dp,dh);outer(g.predict,dp,e.state);}
-        Vec dz{},dc{};Small dr{};future={};
+        Vec dz{},dc{};Small dr{};AddressValue ar{};future={};
         for(int i=0;i<D;++i){dz[i]=dh[i]*(1-e.state[i]*e.state[i]);dc[i]=dz[i];
-            for(int j=0;j<K;++j){g.read[i*K+j]+=dz[i]*e.read[j];dr[j]+=l.p.read[i*K+j]*dz[i];}}
+            for(int j=0;j<K;++j){g.read[i*K+j]+=dz[i]*e.read[j];dr[j]+=l.p.read[i*K+j]*dz[i];}
+            if(scale>0)for(int j=0;j<ADDRESS_V;++j){ag.read[i*ADDRESS_V+j]+=dz[i]*s.address_events[t].read[j];ar[j]+=l.address.read[i*ADDRESS_V+j]*dz[i];}}
         outer(g.recurrent,dz,e.before);vjp(l.p.recurrent,dz,future);
         context_backward(e,dr,memory_grad,dc);
+        if(scale>0){
+            address_backward(s.address_events[t],e.content,e.before,l.address,ar,address_grad,dc,future,ag);
+            if(reconstruction_weight>0){s.reconstruction_loss+=reconstruct(e.content,e.children[e.reconstruction_role],e.reconstruction_role,
+                    l.address,reconstruction_weight/s.count,dc,ag);++s.reconstruction_targets;}
+        }
         const auto& expert=l.experts[e.expert];Vec pre{},du{};float dgate=0;
         for(int i=0;i<D;++i){pre[i]=dc[i]*(1-e.content[i]*e.content[i]);eg[k].bias[i]+=pre[i];du[i]=pre[i];dgate+=pre[i]*e.residual[i];}
         Vec gated=pre;for(auto& x:gated)x*=e.gate;outer(eg[k].w,gated,e.input);vjp(expert.w,gated,du);
@@ -173,7 +191,10 @@ void Model::flush(int scale){
     }
     step(l.p.recurrent,g.recurrent,learning_rate);step(l.p.read,g.read,learning_rate);
     if(scale>0){step(l.p.gain,g.gain,learning_rate);step(l.p.bias,g.bias,learning_rate);step(l.p.predict,g.predict,learning_rate);
-        step(l.p.role,g.role,learning_rate);step(l.p.length,g.length,learning_rate);step(l.p.offset,g.offset,learning_rate);}
+        step(l.p.role,g.role,learning_rate);step(l.p.length,g.length,learning_rate);step(l.p.offset,g.offset,learning_rate);
+        step(l.address.query_content,ag.query_content,learning_rate);step(l.address.query_state,ag.query_state,learning_rate);
+        step(l.address.query_clock,ag.query_clock,learning_rate);step(l.address.read,ag.read,learning_rate);
+        step(l.address.reconstruct,ag.reconstruct,learning_rate);step(l.address.reconstruct_bias,ag.reconstruct_bias,learning_rate);}
     for(int k=0;k<unique;++k){step(l.experts[selected[k]].w,eg[k].w,learning_rate);step(l.experts[selected[k]].bias,eg[k].bias,learning_rate);}
     for(int t=0;t<s.count;++t){const auto& e=s.events[t];
         if(scale==0)step(embedding[e.byte],embed_grad[t],learning_rate);
@@ -244,7 +265,7 @@ void Model::log_probs(float* out)const{
 }
 double Model::run(const uint8_t* x,const uint8_t* y,size_t n){
     if(!n)throw std::invalid_argument("at least one prediction is required");
-    if(training&&(mask>=0||shuffle>=0))throw std::logic_error("interventions require frozen inference");
+    if(training&&(mask>=0||shuffle>=0||memory_mode))throw std::logic_error("interventions require frozen inference");
     double loss=0;for(size_t t=0;t<n;++t){observe(x[t]);loss+=teach(y[t]);}return loss/n;
 }
 void Model::finish(){if(training)for(size_t l=0;l<levels.size();++l)flush(int(l));}
@@ -257,12 +278,12 @@ void Model::inference(bool cold){
     // Snapshot fitted weights as they stand. Do not silently train/drain the
     // source to evaluate; pending derivatives are deliberately discarded.
     training=false;memory_writes=false;
-    for(auto& l:levels){l.s.count=0;l.s.events={};l.s.negatives={};l.s.negative_count=0;l.s.negative_cursor=0;}
+    for(auto& l:levels){l.s.count=0;l.s.events={};l.s.address_events={};l.s.negatives={};l.s.negative_count=0;l.s.negative_cursor=0;}
     if(cold)reset(true);
 }
 
 std::string save(const Model& m){
-    Writer w;uint64_t magic=0x31534d454f4853ULL;w.pod(magic);uint32_t version=1;w.pod(version);
+    Writer w;uint64_t magic=0x31534d454f4853ULL;w.pod(magic);uint32_t version=2;w.pod(version);
     uint32_t abi=sizeof(Event)^sizeof(Stream)^sizeof(AssociationStore);w.pod(abi);
     int count=int(m.levels.size()),target=int(m.parameter_count());w.pod(count);w.pod(target);w.pod(m.indexed);w.pod(m.associations);
     w.pod(m.training);w.pod(m.memory_writes);w.pod(m.have_query);
@@ -270,21 +291,26 @@ std::string save(const Model& m){
     w.pod(m.recalled);w.pod(m.previous_query);w.pod(m.cached_gain);w.pod(m.cached_bias);w.pod(m.features);
     w.pod(m.payload);w.pod(m.payload_count);w.pod(m.bytes);w.pod(m.route_comparisons);
     w.pod(m.learning_rate);w.pod(m.head_rate);w.pod(m.aux_weight);w.pod(m.route_rate);w.pod(m.mask);w.pod(m.shuffle);
-    for(const auto& l:m.levels){w.vector(l.experts);w.pod(l.p);w.pod(l.s);}return w.out;
+    w.pod(m.reconstruction_weight);w.pod(m.memory_mode);
+    for(const auto& l:m.levels){w.vector(l.experts);w.pod(l.p);w.pod(l.address);w.pod(l.s);}return w.out;
 }
 Model load(const char* p,size_t n){
     Reader r{p,n};uint64_t magic;uint32_t version,abi;r.pod(magic);r.pod(version);r.pod(abi);
-    if(magic!=0x31534d454f4853ULL||version!=1||abi!=(sizeof(Event)^sizeof(Stream)^sizeof(AssociationStore)))throw std::runtime_error("incompatible multiscale checkpoint");
+    if(magic!=0x31534d454f4853ULL||version!=2||abi!=(sizeof(Event)^sizeof(Stream)^sizeof(AssociationStore)))throw std::runtime_error("incompatible multiscale checkpoint");
     int count,target;bool index,assoc;r.pod(count);r.pod(target);r.pod(index);r.pod(assoc);
     Model m(count,target,7,index,assoc);r.pod(m.training);r.pod(m.memory_writes);r.pod(m.have_query);
     r.pod(m.embedding);r.pod(m.decoder);r.pod(m.decoder_bias);r.pod(m.store);
     r.pod(m.recalled);r.pod(m.previous_query);r.pod(m.cached_gain);r.pod(m.cached_bias);r.pod(m.features);
     r.pod(m.payload);r.pod(m.payload_count);r.pod(m.bytes);r.pod(m.route_comparisons);
     r.pod(m.learning_rate);r.pod(m.head_rate);r.pod(m.aux_weight);r.pod(m.route_rate);r.pod(m.mask);r.pod(m.shuffle);
+    r.pod(m.reconstruction_weight);r.pod(m.memory_mode);
+    if(!std::isfinite(m.reconstruction_weight)||m.reconstruction_weight<0||m.memory_mode<0||m.memory_mode>3||(m.training&&m.memory_mode))throw std::runtime_error("invalid addressed-memory configuration");
     if(m.payload_count<0||m.payload_count>=GROUP||m.mask>=count||m.shuffle>=count)throw std::runtime_error("invalid checkpoint counters");
-    for(auto& l:m.levels){r.vector(l.experts);r.pod(l.p);r.pod(l.s);
+    for(size_t level=0;level<m.levels.size();++level){auto& l=m.levels[level];r.vector(l.experts);r.pod(l.p);r.pod(l.address);r.pod(l.s);
         const auto& s=l.s;if(s.count<0||s.count>BLOCK||s.children_count<0||s.children_count>=GROUP||s.negative_count<0||s.negative_count>NEG||s.negative_cursor<0||s.negative_cursor>=NEG)throw std::runtime_error("invalid event ring");
-        for(int t=0;t<s.count;++t)if(s.events[t].expert<0||s.events[t].expert>=int(l.experts.size())||s.events[t].runner<0||s.events[t].runner>=int(l.experts.size())||s.events[t].byte<0||s.events[t].byte>=256)throw std::runtime_error("invalid event route");
+        if(level&&s.addressed.clock.ticks!=s.executions)throw std::runtime_error("invalid native clock");
+        for(double v:s.addressed.clock.phase)if(!std::isfinite(v))throw std::runtime_error("invalid clock phase");
+        for(int t=0;t<s.count;++t)if(s.events[t].expert<0||s.events[t].expert>=int(l.experts.size())||s.events[t].runner<0||s.events[t].runner>=int(l.experts.size())||s.events[t].byte<0||s.events[t].byte>=256||s.events[t].reconstruction_role<0||s.events[t].reconstruction_role>=GROUP)throw std::runtime_error("invalid event route");
         m.rebuild_index(l);
     }
     for(const auto& rec:m.store.records)if(rec.key_size>KEY_BYTES||rec.payload_size>PAYLOAD)throw std::runtime_error("invalid association record");
@@ -310,13 +336,26 @@ int ms_configure(void* p,float lr,float head,float aux,float route){return guard
     if(!std::isfinite(lr)||!std::isfinite(head)||!std::isfinite(aux)||!std::isfinite(route)||lr<0||head<0||aux<0||route<0)throw std::invalid_argument("rates must be finite and nonnegative");
     auto& m=*static_cast<shoe::Model*>(p);m.learning_rate=lr;m.head_rate=head;m.aux_weight=aux;m.route_rate=route;
 });}
+int ms_reconstruction(void* p,float weight){return guard([&]{
+    if(!std::isfinite(weight)||weight<0)throw std::invalid_argument("reconstruction weight must be finite and nonnegative");
+    static_cast<shoe::Model*>(p)->reconstruction_weight=weight;
+});}
+int ms_memory_intervene(void* p,int mode){return guard([&]{auto& m=*static_cast<shoe::Model*>(p);
+    if(m.training||mode<0||mode>3)throw std::invalid_argument("memory interventions require frozen inference and a valid mode");m.memory_mode=mode;
+});}
 int ms_intervene(void* p,int mask,int shuffle){return guard([&]{auto& m=*static_cast<shoe::Model*>(p);
     if(m.training||mask>=int(m.levels.size())||shuffle>=int(m.levels.size())||mask< -1||shuffle< -1||mask==0||shuffle==0)throw std::invalid_argument("interventions require inference and a valid slow scale");
     m.mask=mask;m.shuffle=shuffle;
 });}
 int ms_stats(void* p,double* out){return guard([&]{auto& m=*static_cast<shoe::Model*>(p);std::fill(out,out+48,0.);
     out[0]=m.parameter_count();out[1]=m.bytes;out[2]=m.training;out[3]=m.route_comparisons;out[4]=m.store.queries;out[5]=m.store.candidates;out[6]=m.store.writes;out[7]=m.levels.size();
-    for(size_t i=0;i<m.levels.size();++i){auto& l=m.levels[i];out[8+i]=l.experts.size();out[12+i]=l.s.executions;out[16+i]=l.s.updates;out[20+i]=l.s.count;out[24+i]=l.s.native_targets;out[28+i]=l.s.native_loss;out[32+i]=shoe::energy(l.s.state);out[36+i]=l.s.children_count;}
+    for(size_t i=0;i<m.levels.size();++i){auto& l=m.levels[i];out[8+i]=l.experts.size();out[12+i]=l.s.executions;out[16+i]=l.s.updates;out[20+i]=l.s.count;out[24+i]=l.s.native_targets;out[28+i]=l.s.native_loss;out[32+i]=shoe::energy(l.s.state);out[36+i]=l.s.children_count;out[40+i]=l.s.reconstruction_targets;out[44+i]=l.s.reconstruction_loss;}
+});}
+int ms_address_stats(void* p,double* out){return guard([&]{auto& m=*static_cast<shoe::Model*>(p);std::fill(out,out+24,0.);
+    for(size_t i=1;i<m.levels.size();++i){const auto& l=m.levels[i];out[i]=l.s.addressed.clock.ticks;out[4+i]=shoe::ADDRESS_K;out[8+i]=shoe::ADDRESS_V;
+        for(float x:l.s.addressed.memory)out[12+i]+=double(x)*x;
+        for(float x:l.address.query_content)out[16+i]+=double(x)*x;}
+    out[20]=m.reconstruction_weight;out[21]=m.memory_mode;
 });}
 size_t ms_save_size(void* p){size_t n=0;guard([&]{n=shoe::save(*static_cast<shoe::Model*>(p)).size();});return n;}
 int ms_save(void* p,char* out,size_t n){return guard([&]{auto data=shoe::save(*static_cast<shoe::Model*>(p));if(n!=data.size())throw std::runtime_error("checkpoint buffer size mismatch");std::memcpy(out,data.data(),n);});}

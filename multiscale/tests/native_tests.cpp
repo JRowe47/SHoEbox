@@ -60,6 +60,7 @@ void block_gradient(){
 }
 void slow_gradient(){
     auto base=std::make_unique<Model>(2,150000,7,false,false);
+    base->reconstruction_weight=0; // This oracle measures the byte objective only.
     std::vector<uint8_t> x(32),y(32);for(int t=0;t<32;++t){x[t]=uint8_t(t*7+13);y[t]=uint8_t(t*19+1);}
     auto analytic=std::make_unique<Model>(*base);analytic->learning_rate=0;analytic->head_rate=0;
     analytic->route_rate=0;analytic->aux_weight=0;analytic->run(x.data(),y.data(),32);
@@ -70,9 +71,14 @@ void slow_gradient(){
         if(p.kind==0)return l.p.recurrent[p.index];if(p.kind==1)return l.p.role[p.index];
         if(p.kind==2)return l.experts[expert].w[p.index];if(p.kind==3)return l.p.gain[p.index];
         if(p.kind==4)return l.p.bias[p.index];if(p.kind==5)return l.p.offset[p.index];
-        return l.p.length[p.index];
+        if(p.kind==6)return l.p.length[p.index];
+        if(p.kind==7)return l.address.read[p.index];
+        if(p.kind==8)return l.address.query_content[p.index];
+        if(p.kind==9)return l.address.query_state[p.index];
+        return l.address.query_clock[p.index];
     };
-    for(Probe p:std::array<Probe,10>{{{0,3},{0,65},{1,9},{1,133},{2,7},{3,126},{4,40},{5,12},{6,2},{6,23}}}){
+    for(Probe p:std::array<Probe,16>{{{0,3},{0,65},{1,9},{1,133},{2,7},{3,126},{4,40},{5,12},{6,2},{6,23},
+                                   {7,3},{7,140},{8,3},{8,1042},{9,3},{10,3}}}){
         const float eps=.003f;auto a=std::make_unique<Model>(*base),b=std::make_unique<Model>(*base);
         param(*a,p)+=eps;param(*b,p)-=eps;a->training=b->training=false;
         // The first slow output appears at byte four: 29 served predictions.
@@ -80,6 +86,82 @@ void slow_gradient(){
         float actual=(param(*before,p)-param(*analytic,p))/.01f;
         require(std::abs(numerical-actual)<.0008f,"slow composer/projector VJP mismatch");
     }
+}
+// Independent double arithmetic for the new associative read/write derivative.
+double address_objective(const Vec& c,const Vec& h,const Vec& stable,const AddressStream& s,
+                         const AddressParameters& p,const AddressValue& dr,const AddressMatrix& dm){
+    double current[K]{},previous[K]{},value[ADDRESS_V]{},key[ADDRESS_K]{},cn=1e-8,pn=1e-8;
+    for(int i=0;i<K;++i){double learned=0;
+        for(int j=0;j<K;++j){double sign=((i+j)%3==0?-1.:1.)*.3535533905932738;
+            current[i]+=sign*stable[i*K+j];previous[i]+=sign*s.previous_stable[i*K+j];learned+=sign*c[i*K+j];}
+        value[i]=std::tanh(learned);value[K+i]=current[i];cn+=current[i]*current[i];pn+=previous[i]*previous[i];}
+    cn=1/std::sqrt(cn);pn=1/std::sqrt(pn);
+    for(int i=0;i<K;++i){key[i]=current[i]*cn*.577350269;key[K+i]=previous[i]*pn*.577350269;}
+    for(int i=0;i<TIME_D;++i)key[CONTENT_K+i]=s.clock.phase[i]*.577350269;
+    double result=0;
+    for(int a=0;a<ADDRESS_K;++a){double z=0;
+        for(int i=0;i<D;++i)z+=p.query_content[a*D+i]*double(c[i])+p.query_state[a*D+i]*double(h[i]);
+        if(a<CONTENT_K)z+=.5*current[a%K]*cn;
+        else for(int i=0;i<TIME_D;++i)z+=p.query_clock[(a-CONTENT_K)*TIME_D+i]*s.clock.phase[i];
+        double q=std::tanh(z),scale=1/std::sqrt(1.+s.mass[a]);
+        for(int b=0;b<ADDRESS_V;++b){int j=a*ADDRESS_V+b;
+            result+=q*s.memory[j]*scale*dr[b]+(retention()[a]*double(s.memory[j])+key[a]*value[b])*dm[j];}}
+    return result;
+}
+void address_gradients(){
+    Vec c{},h{},stable=stable_bytes()[73];AddressStream s;AddressParameters p{},g{};AddressValue dr{};AddressMatrix dm{};
+    s.previous_stable=stable_bytes()[29];for(int k=0;k<19;++k)s.clock.advance();
+    for(int i=0;i<D;++i){c[i]=.2f*std::sin(float(i));h[i]=.15f*std::cos(float(i));}
+    for(int i=0;i<ADDRESS_K;++i)s.mass[i]=.1f*(i+1);
+    for(int i=0;i<ADDRESS_K*ADDRESS_V;++i){s.memory[i]=.1f*std::cos(float(i));dm[i]=.07f*std::sin(float(i));}
+    for(int i=0;i<ADDRESS_V;++i)dr[i]=.1f*std::cos(float(i));
+    for(int i=0;i<ADDRESS_K*D;++i){p.query_content[i]=.02f*std::sin(float(i));p.query_state[i]=.03f*std::cos(float(i));}
+    for(int i=0;i<TIME_D*TIME_D;++i)p.query_clock[i]=.03f*std::sin(float(i));
+    auto next=s;AddressEvent e;address_forward(e,c,h,stable,next,p);auto carried=dm;Vec dc{},dh{};
+    address_backward(e,c,h,p,dr,carried,dc,dh,g);
+    constexpr float eps=.001f;
+    for(int i=0;i<D;++i){auto plus=c,minus=c;plus[i]+=eps;minus[i]-=eps;
+        double n=(address_objective(plus,h,stable,s,p,dr,dm)-address_objective(minus,h,stable,s,p,dr,dm))/(2*eps);
+        require(std::abs(n-dc[i])<2e-5,"address content VJP mismatch");
+        plus=h;minus=h;plus[i]+=eps;minus[i]-=eps;
+        n=(address_objective(c,plus,stable,s,p,dr,dm)-address_objective(c,minus,stable,s,p,dr,dm))/(2*eps);
+        require(std::abs(n-dh[i])<2e-5,"address previous-state VJP mismatch");}
+    for(int i=0;i<ADDRESS_K*ADDRESS_V;++i){auto a=s,b=s;a.memory[i]+=eps;b.memory[i]-=eps;
+        double n=(address_objective(c,h,stable,a,p,dr,dm)-address_objective(c,h,stable,b,p,dr,dm))/(2*eps);
+        require(std::abs(n-carried[i])<2e-5,"address carried-matrix VJP mismatch");}
+    for(int kind=0;kind<3;++kind)for(int index:{0,3,29,140}){
+        auto a=p,b=p;auto field=[&](AddressParameters& z)->float&{return kind==0?z.query_content[index]:kind==1?z.query_state[index]:z.query_clock[index];};
+        field(a)+=eps;field(b)-=eps;
+        double n=(address_objective(c,h,stable,s,a,dr,dm)-address_objective(c,h,stable,s,b,dr,dm))/(2*eps);
+        require(std::abs(n-field(g))<2e-5,"learned address query VJP mismatch");}
+    AddressStream empty;AddressEvent first;address_forward(first,c,h,stable,empty,p);
+    require(first.read==AddressValue{},"address reads before writing");
+    Vec changed=c;changed.fill(.8f);auto other=s;AddressEvent altered;address_forward(altered,changed,h,stable,other,p);
+    require(e.key==altered.key,"write coordinates independent of learned encoder");
+    require(e.value!=altered.value,"addressed values include learned content");
+}
+void reconstruction_gradients(){
+    Vec c{},target{};AddressParameters p{};for(int i=0;i<D;++i){c[i]=.2f*std::sin(float(i));target[i]=.3f*std::cos(float(i));}
+    for(int i=0;i<D*D;++i)p.reconstruct[i]=.01f*std::sin(float(i));
+    constexpr float eps=.002f;
+    for(int role=0;role<GROUP;++role){AddressParameters g{};Vec dc{};reconstruct(c,target,role,p,1,dc,g);
+        auto loss=[&](const Vec& v,const AddressParameters& params){AddressParameters dummy{};Vec d{};return reconstruct(v,target,role,params,0,d,dummy);};
+        for(int i=0;i<D;++i){auto a=c,b=c;a[i]+=eps;b[i]-=eps;
+            require(std::abs((loss(a,p)-loss(b,p))/(2*eps)-dc[i])<4e-6,"reconstruction content VJP mismatch");}
+        for(int i:{0,17,140,4095}){auto a=p,b=p;a.reconstruct[i]+=eps;b.reconstruct[i]-=eps;
+            require(std::abs((loss(c,a)-loss(c,b))/(2*eps)-g.reconstruct[i])<4e-6,"reconstruction head VJP mismatch");}
+        auto learned=p;float start=loss(c,learned);
+        for(int n=0;n<100;++n){AddressParameters grad{};Vec d{};reconstruct(c,target,role,learned,1,d,grad);
+            step(learned.reconstruct,grad.reconstruct,1);step(learned.reconstruct_bias,grad.reconstruct_bias,1);}
+        require(loss(c,learned)<start*.1f,"constituent decoder learns its target");}
+}
+void clock_contracts(){
+    Clock clock;for(int t=0;t<1000000;++t)clock.advance();require(clock.ticks==1000000,"persistent native clock count");
+    for(int i=0;i<ROTORS;++i){double theta=1000000*2*std::acos(-1.)/(4*std::pow(64.,double(i)/(ROTORS-1)));
+        require(std::abs(clock.phase[2*i]-std::cos(theta)/std::sqrt(double(ROTORS)))<1e-9,"fixed oscillator phase");
+        require(std::abs(clock.phase[2*i+1]-std::sin(theta)/std::sqrt(double(ROTORS)))<1e-9,"fixed oscillator quadrature");}
+    std::array<Vec,GROUP> child{stable_bytes()[1],stable_bytes()[2],stable_bytes()[3],stable_bytes()[4]};
+    auto original=stable_group(child);std::swap(child[0],child[1]);require(original!=stable_group(child),"stable address preserves constituent order");
 }
 void contracts(){
     auto m=std::make_unique<Model>();std::vector<uint8_t> x(1031),y(1031);
@@ -117,6 +199,10 @@ void contracts(){
     uint64_t events=0;for(auto& l:large->levels)events+=l.s.executions;
     require(large->route_comparisons<=events*48,"indexed routing comparison bound");
     require(large->parameter_count()>=4995000&&large->parameter_count()<=5000000,"5M fitted parameter accounting");
+    auto minimum=std::make_unique<Model>(4,152383);minimum->run(x.data(),y.data(),512);
+    for(const auto& l:minimum->levels)require(l.experts.size()==2,"minimum budget reserves every expert bank");
+    auto bytes=save(*minimum);auto resumed=std::make_unique<Model>(load(bytes.data(),bytes.size()));
+    require(save(*resumed)==bytes,"minimum budget checkpoint topology");
 }
 void associations(){
     auto s=std::make_unique<AssociationStore>();const uint8_t key[]{'n','e','w'},payload[]{0,255,42,12};
@@ -130,5 +216,5 @@ void associations(){
     uint8_t long_value[257]{};bool rejected=false;try{s->bind(key,3,long_value,257);}catch(const std::exception&){rejected=true;}
     require(rejected,"oversized payload rejected");
 }
-int main(){try{gradients();block_gradient();slow_gradient();contracts();associations();std::cout<<"PASS "<<checks<<" native checks\n";return 0;}
+int main(){try{gradients();address_gradients();reconstruction_gradients();clock_contracts();block_gradient();slow_gradient();contracts();associations();std::cout<<"PASS "<<checks<<" native checks\n";return 0;}
 catch(const std::exception& e){std::cerr<<"FAIL after "<<checks<<" checks: "<<e.what()<<"\n";return 1;}}
