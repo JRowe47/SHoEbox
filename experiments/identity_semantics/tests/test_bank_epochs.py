@@ -67,7 +67,7 @@ class BankEpochTests(unittest.TestCase):
             self.assertEqual(p['sequence'],2);self.assertEqual(p['committed_version'],2-lag)
             if lag:
                 self.assertEqual((p['read_version'],p['base_version']),(0,1))
-                self.assertEqual((e['pending_first_byte'],e['pending_last_byte']),(4,8))
+                self.assertEqual((e['pending_first_step'],e['pending_last_step']),(4,8))
                 self.assertGreater(e['pending_objectives'],0)
             m.finish_pipeline();self.assertEqual(m.pipeline_metrics()['committed_version'],2)
     def test_eval_targets_do_not_change_banks_or_partial_jobs(self):

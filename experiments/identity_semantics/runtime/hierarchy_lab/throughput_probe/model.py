@@ -216,9 +216,9 @@ class Model(parent.Model):
         a=np.zeros(20,np.uint64)
         self.lib.bank_epoch_inspect.argtypes=[ct.c_void_p,ct.c_void_p]
         self.lib.bank_epoch_inspect(self.handle,a.ctypes.data)
-        names=('enabled','epoch_bytes','lag_epochs','dense','position','training_bytes',
+        names=('enabled','epoch_bytes','lag_epochs','dense','position','learning_steps',
                'building_banks','building_scopes','building_inputs','building_factors','building_objectives',
-               'pending_first_byte','pending_last_byte','pending_objectives','state_bytes','dense_snapshot_bytes')
+               'pending_first_step','pending_last_step','pending_objectives','state_bytes','dense_snapshot_bytes')
         return dict(zip(names,map(int,a)))
     def configure_pipeline_workers(self,count=1,*,cpu=None,fused=True):
         """Execution only: serial and threaded modes implement identical versions."""

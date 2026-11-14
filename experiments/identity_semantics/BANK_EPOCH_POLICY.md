@@ -28,7 +28,7 @@ profiles keep their schedules and checkpoint policies.
 Epoch length is one of 1, 4, 8 or 16 training bytes. Worker lag is independently
 zero or one **epoch**. Worker count never selects a numerical schedule. Jobs
 store their derivative read version, application base, commit sequence,
-training-byte interval, and task/local objective mask. Task/local scope order,
+learning-step interval, and task/local objective mask. Task/local scope order,
 per-request clipping, factor reduction order and per-scope router normalization
 are preserved. Different epochs intentionally change parameter visibility.
 
@@ -82,6 +82,11 @@ change learning. Inspection and saving also preserve pending work.
 and materializes visible bank arrays. Document drains finish credit before
 draining banks. A deliberate reset uses the same ordered boundary. An empty
 training byte still advances the interval; frozen evaluation does not.
+The bank clock counts training steps: ordinary byte steps plus forced document
+drain passes. Drain passes do not consume bytes or create decoder targets, but
+retain the historical bank-boundary rule while finishing upper publications.
+All remaining jobs are then explicitly committed. `learning_steps` and the
+pending step interval expose this clock separately from primary byte clocks.
 
 Checkpoint version 46 requires the explicit policy. Pipeline wire extension 3
 stores the finished pending result, partial epoch position, captured factors
@@ -96,8 +101,8 @@ the current committed fitted state; it does not drain its source model.
 
 ## Inspection and validation
 
-`inspect_bank_epochs()` reports the training-byte position, partial arena,
-pending byte interval and objectives, and complete checkpoint payload size.
+`inspect_bank_epochs()` reports the learning-step position, partial arena,
+pending step interval and objectives, and complete checkpoint payload size.
 `inspect_pipeline()` reports version numbers, selected bank tiles and reserved
 arena storage. These functions read state at API boundaries; there are no new
 timers, observers or cumulative profiling counters in training.
