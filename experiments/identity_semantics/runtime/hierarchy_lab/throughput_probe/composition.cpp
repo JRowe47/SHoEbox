@@ -14,6 +14,7 @@
 #include <memory>
 #include <memory_resource>
 #include <utility>
+#include <stdexcept>
 #include <immintrin.h>
 #ifndef SHOEBOX_EXPERTS
 #define SHOEBOX_EXPERTS 12
@@ -242,6 +243,7 @@ struct Model {
   // roots with the same regional teaching policy before differentiating.
   EventRuntime event;
   PredictionRuntime prediction;
+  bool lightweight_frames=false; // Action 5: fixed frame descriptor, learned completion.
   BankPipeline bank_pipeline;
   int reverse_policy=2,reverse_epoch_bytes=1,reverse_epoch_position=0;
   float reverse_update_scale=1.f;
@@ -1789,6 +1791,7 @@ extern "C" void check_masks(const float*input,uint64_t*out,int n,int k,int metho
 #include "reverse_api.inc"
 #include "event_api.inc"
 #include "prediction_api.inc"
+#include "frame_api.inc"
 #endif
 
 #ifdef SHOEBOX_LEARNED_COMPLETION

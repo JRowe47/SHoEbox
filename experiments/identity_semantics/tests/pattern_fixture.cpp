@@ -14,7 +14,7 @@ inline ContentEvent pattern_fixture_frame(Model&m,int context,int swap,int phase
     auto child=pattern_fixture_child(src,token,src==2?begin+(1-age)*2:begin-context-10,src==2?begin+(2-age)*2:begin-context+1);
     child.ref.role=k;children[n++]=child;
   }
-  return binding_compose(m,r,children,n,learn,7);
+  return binding_compose(m,r,children,n,learn,7,m.lightweight_frames);
 }
 extern "C" {
 void pattern_fixture_frame(void*p,int context,int swap,int phase,int64_t begin,int learn,uint64_t*out){
@@ -71,7 +71,7 @@ void pattern_fixture_regions(void*p,int context,uint64_t*out){
       auto child=pattern_fixture_child(src,token,core?(1-age)*2: -context-10,core?(2-age)*2:1-context);
       child.ref.role=k;children[n++]=child;
     }
-    auto event=binding_compose(m,r,children,n,true,0);auto key=pattern_key(m,event);
+    auto event=binding_compose(m,r,children,n,true,0,m.lightweight_frames);auto key=pattern_key(m,event);
     out[(r-3)*4]=key.a;out[(r-3)*4+1]=event.ref.recognized;
     out[(r-3)*4+2]=event.ref.id.a;out[(r-3)*4+3]=event.count;
   }

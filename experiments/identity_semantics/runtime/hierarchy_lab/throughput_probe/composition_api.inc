@@ -3,6 +3,7 @@ int composition_configure(void*p,int enabled,float threshold,int count,int maxim
   if((enabled!=0&&enabled!=1)||!std::isfinite(threshold)||threshold<=0||threshold>=1||count<1||count>1000000||maximum<2||maximum>COMP_MAX||!std::isfinite(context)||context<0||context>1)return 0;
   auto&z=static_cast<Model*>(p)->composition;
 #ifdef SHOEBOX_LEARNED_COMPLETION
+  if(static_cast<Model*>(p)->lightweight_frames&&!enabled)return 0;
   if(z.enabled!=enabled&&(z.stream.byte_position||z.stream.semantic_serial||paired_occupied(*static_cast<Model*>(p))))return 0;
   if(z.enabled!=enabled)for(int r=0;r<N;r++)if(static_cast<Model*>(p)->s.valid[r])return 0;
 #endif
@@ -58,9 +59,9 @@ int composition_import(void*p,const void*in,size_t size,int fitted){
 #ifdef SHOEBOX_LEARNED_COMPLETION
   if(!fitted&&z->stream.reserved!=overflow)return 0;
   if(!fitted){
-    for(int i=0;i<SEM_RING;i++)if(z->stream.semantic_records[i].ref.serial&&z->stream.semantic_records[i].encoder>1)return 0;
+    for(int i=0;i<SEM_RING;i++)if(z->stream.semantic_records[i].ref.serial&&z->stream.semantic_records[i].encoder>(static_cast<Model*>(p)->lightweight_frames?2u:1u))return 0;
     const auto*extra=reinterpret_cast<const ConstituentRecord*>(static_cast<const unsigned char*>(in)+sizeof(CompositionCheckpoint));
-    for(size_t i=0;i<overflow;i++)if(extra[i].ref.serial&&extra[i].encoder>1)return 0;
+    for(size_t i=0;i<overflow;i++)if(extra[i].ref.serial&&extra[i].encoder>(static_cast<Model*>(p)->lightweight_frames?2u:1u))return 0;
   }
   auto&m=*static_cast<Model*>(p);constituent_resize(m,overflow);
   m.acceptance=AcceptanceObservations{};

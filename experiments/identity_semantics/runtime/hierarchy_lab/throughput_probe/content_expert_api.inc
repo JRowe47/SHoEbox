@@ -10,7 +10,10 @@ int content_workers_configure(void*p,int count,const int*cpus){
   if(count>1)m.content_workers=std::make_unique<RowWorkers>(count,cpus);
   return 1;
 }
-void content_expert_configure(void*p,int enabled){static_cast<Model*>(p)->content_experts=enabled!=0;}
+int content_expert_configure(void*p,int enabled){
+  auto&m=*static_cast<Model*>(p);if(m.lightweight_frames&&!enabled)return 0;
+  m.content_experts=enabled!=0;return 1;
+}
 void content_expert_status(void*p,uint64_t*out){memcpy(out,static_cast<Model*>(p)->content_expert_metrics,sizeof(Model::content_expert_metrics));}
 size_t content_expert_state_size(void*p){
   auto&m=*static_cast<Model*>(p);size_t count=0;

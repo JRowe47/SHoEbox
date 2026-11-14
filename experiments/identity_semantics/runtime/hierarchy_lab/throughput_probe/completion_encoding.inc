@@ -38,27 +38,8 @@ inline int constituent_allocate(Model&m,int r,const ContentEvent*parts,int n){
   for(int index=2*capacity-1;index>capacity;--index)m.semantic_free.push_back(index);
   s.semantic_cursor=capacity+1;return capacity;
 }
-inline void constituent_encode(Model&m,int r,ContentEvent&out,const ContentEvent*parts,int n,bool binding){
-  auto&s=m.composition.stream;int index=constituent_allocate(m,r,parts,n);
-  auto&node=constituent_slot(m,index);node=ConstituentRecord{};
-  if(size_t(index)<m.content_records.size())m.content_records[index]=ContentExpertRecord{};
-  if(size_t(index)<m.pattern.assignments.size())m.pattern.assignments[index]=PatternAssignment{};
-  node.ref={++s.semantic_serial,r,index};out.semantic=node.ref;
+inline void constituent_learned_encode(Model&m,int r,ContentEvent&out,ConstituentRecord&node,const float*raw){
   auto&published=out.edit_values();
-  memcpy(node.features,published.symbol_features,sizeof(node.features));
-  float squared=0,raw[D]{};
-  if(binding)for(int k=m.starts[r];k<m.starts[r+1];k++)if(!m.slots[4*k+2])squared+=m.slots[4*k+3]*m.slots[4*k+3];
-  float scale=1.f/std::sqrt(binding?std::max(1.f,squared):float(std::max(1,n)));
-  for(int i=0;i<n;i++){
-    const auto&child=parts[i];int slot=binding?child.ref.role:-100-i;
-    float weight=scale*(binding?m.slots[4*slot+3]*m.regional_gain[child.ref.region]:1.f);
-#ifdef SHOEBOX_CONTRIBUTION_CHECKS
-    if(contribution_apply(m,CHECK_PAYLOAD,child.ref.region))continue;
-#endif
-    const auto&cached=publication_role(m,slot,child);
-    for(int j=0;j<D;j++)raw[j]+=weight*constituent_sign(m,slot,j)*cached.delta[j];
-    if(weight&&child.semantic.serial)node.edges[node.count++]={child.semantic,child.ref,slot,weight};
-  }
   float t=std::tanh(m.composition.payload_gates[r-2]);
   float gain=m.message_config[0]*(1.f+.5f*t);
   node.gain_derivative=m.message_config[0]*.5f*(1-t*t);
@@ -83,4 +64,57 @@ inline void constituent_encode(Model&m,int r,ContentEvent&out,const ContentEvent
     node.payload[j]=payload;node.payload_derivative[j]=gain*(1-payload*payload);
   }
   event_register(m,node);
+}
+inline void constituent_encode(Model&m,int r,ContentEvent&out,const ContentEvent*parts,int n,bool binding,bool descriptor=false){
+  auto&s=m.composition.stream;int index=constituent_allocate(m,r,parts,n);
+  auto&node=constituent_slot(m,index);node=ConstituentRecord{};
+  if(size_t(index)<m.content_records.size())m.content_records[index]=ContentExpertRecord{};
+  if(size_t(index)<m.pattern.assignments.size())m.pattern.assignments[index]=PatternAssignment{};
+  node.ref={++s.semantic_serial,r,index};out.semantic=node.ref;
+  auto&published=out.edit_values();
+  memcpy(node.features,published.symbol_features,sizeof(node.features));
+  float squared=0,raw[D]{};
+  if(binding)for(int k=m.starts[r];k<m.starts[r+1];k++)if(!m.slots[4*k+2])squared+=m.slots[4*k+3]*m.slots[4*k+3];
+  float scale=1.f/std::sqrt(binding?std::max(1.f,squared):float(std::max(1,n)));
+  for(int i=0;i<n;i++){
+    const auto&child=parts[i];int slot=binding?child.ref.role:-100-i;
+    float weight=scale*(binding?m.slots[4*slot+3]*m.regional_gain[child.ref.region]:1.f);
+#ifdef SHOEBOX_CONTRIBUTION_CHECKS
+    if(contribution_apply(m,CHECK_PAYLOAD,child.ref.region))continue;
+#endif
+    const auto&cached=publication_role(m,slot,child);
+    for(int j=0;j<D;j++)raw[j]+=weight*constituent_sign(m,slot,j)*cached.delta[j];
+    if(weight&&child.semantic.serial)node.edges[node.count++]={child.semantic,child.ref,slot,weight};
+  }
+  if(descriptor){
+    // No local parameters or expert selection. Preserve the exact child DAG
+    // and the VJP of the fixed signed role sum for subsequent completion credit.
+    node.encoder=2;
+    for(int j=0;j<D;j++){
+      published.code[j]=published.structure[j]+raw[j];
+      node.payload[j]=raw[j];node.derivative[j]=node.payload_derivative[j]=1.f;
+    }
+    event_register(m,node);return;
+  }
+  constituent_learned_encode(m,r,out,node,raw);
+}
+// A single completed frame keeps its exact binding identity/roles. Clone its
+// immutable descriptor into a new learned producer and use the saved role sum;
+// do not invent a one-child temporal wrapper or classify the same binding twice.
+inline ContentEvent constituent_complete_frame(Model&m,int r,const ContentEvent&frame){
+  auto*source=constituent_record(m,frame.semantic);
+  if(!source||source->encoder!=2)throw std::runtime_error("Missing lightweight frame producer");
+  ConstituentRecord saved=*source;PatternAssignment assignment{};
+  if(size_t(frame.semantic.index)<m.pattern.assignments.size())assignment=m.pattern.assignments[frame.semantic.index];
+  int index=constituent_allocate(m,r,&frame,1);auto&node=constituent_slot(m,index);
+  node=saved;node.ref={++m.composition.stream.semantic_serial,r,index};node.encoder=0;
+  if(size_t(index)<m.content_records.size())m.content_records[index]=ContentExpertRecord{};
+  if(size_t(index)<m.pattern.assignments.size())m.pattern.assignments[index]=PatternAssignment{};
+  ContentEvent out=frame;out.semantic=node.ref;out.ref.seq=0;
+  constituent_learned_encode(m,r,out,node,saved.payload);
+  if(assignment.ref.serial==frame.semantic.serial){
+    if(size_t(index)>=m.pattern.assignments.size())m.pattern.assignments.resize(constituent_capacity(m));
+    assignment.ref=node.ref;m.pattern.assignments[index]=assignment;
+  }
+  return out;
 }

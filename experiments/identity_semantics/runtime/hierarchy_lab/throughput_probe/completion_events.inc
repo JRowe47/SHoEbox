@@ -42,7 +42,7 @@ inline void execution_prepare_family(Model&m){
 inline void completion_emit(Model&m,int r,bool learn,ContentEvent&event,ContentEvent*parts,int&n){
   auto&s=m.composition.stream;n=s.length[r];
   for(int i=0;i<n;i++)parts[i]=s.pending[r][i];s.length[r]=0;
-  if(n==1){event=parts[0];event.ref.seq=0;}
+  if(n==1){event=m.lightweight_frames?constituent_complete_frame(m,r,parts[0]):parts[0];event.ref.seq=0;}
   else{
     event=content_compose(m,r,parts,n,1,learn);
     event.clock_begin=parts[0].clock_begin;event.clock_end=parts[n-1].clock_end;
@@ -68,7 +68,7 @@ inline bool completion_prepare(Model&m,int r,bool learn,ContentEvent&event,Conte
     if(s.fusion_seen[r][role]!=child.ref.seq)fresh|=1u<<role;
   }
   if(!count)return false;
-  frame=binding_compose(m,r,children,count,learn,fresh);
+  frame=binding_compose(m,r,children,count,learn,fresh,m.lightweight_frames);
   m.semantic_inflight=frame.semantic;
   for(int i=0;i<count;i++)s.fusion_seen[r][children[i].ref.role-m.starts[r]]=children[i].ref.seq;
   int fresh_count=__builtin_popcount(fresh);

@@ -11,7 +11,7 @@ from pipeline import SnapshotPipeline
 from reference_policy import REFERENCE_KERNEL, REFERENCE_PROFILE, settings_for
 
 
-def fresh_model(seed=1, kernel=REFERENCE_KERNEL, *, profile=None, event=None, pipeline_workers=1, prediction=None):
+def fresh_model(seed=1, kernel=REFERENCE_KERNEL, *, profile=None, event=None, pipeline_workers=1, prediction=None, frames=None):
     """Build the full current reference design with fresh parameters.
 
     Set SHOEBOX_EXPERTS=12 or 64 before importing this module. Fixed arrays
@@ -39,6 +39,6 @@ def fresh_model(seed=1, kernel=REFERENCE_KERNEL, *, profile=None, event=None, pi
                  content_experts=False if profile == 'historical' else None,
                  pattern_classes=False if profile == 'historical' else None,
                  paired_memory=False if profile == 'historical' else None,
-                 reverse=dict(policy='root') if profile == 'historical' else None, bank_pipeline=profile=='pipeline', prediction=prediction, **settings)
+                 reverse=dict(policy='root') if profile == 'historical' else None, bank_pipeline=profile=='pipeline', prediction=prediction, frames=frames, **settings)
     if profile=='pipeline':model.configure_pipeline_workers(pipeline_workers)
     return model

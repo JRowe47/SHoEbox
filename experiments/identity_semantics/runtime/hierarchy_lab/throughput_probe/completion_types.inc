@@ -11,7 +11,7 @@ struct ConstituentEdge {
 struct ConstituentRecord {
   SemanticRef ref{};
   int count=0;
-  uint32_t encoder=0; // Occupies v9 padding; 1 requires saved content eligibility.
+  uint32_t encoder=0; // 0 legacy adapter, 1 learned expert, 2 fixed frame descriptor.
   ConstituentEdge edges[COMP_MAX]{};
   float features[8]{},derivative[D]{},payload[D]{},payload_derivative[D]{};
   float gain_derivative=0;

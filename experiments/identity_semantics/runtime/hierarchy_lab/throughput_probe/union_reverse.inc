@@ -37,7 +37,7 @@ inline void constituent_union_flush(Model&m,bool force){
         auto ref=work[begin+a];const auto&node=*constituent_record(m,ref);
         const float*incoming=constituent_gradient(m,ref.index);
         for(int j=0;j<D;j++)locals[a][j]=incoming[j]*node.derivative[j];
-        if(node.encoder)contents[a]=content_expert_record(m,ref);
+        if(node.encoder==1)contents[a]=content_expert_record(m,ref);
       }
       for(int a=0;a<count;a++)if(contents[a]&&!done[a]){
         const ContentExpertRecord*records[16];const float*inputs[16];float*outputs[16];int n=0;
@@ -50,20 +50,20 @@ inline void constituent_union_flush(Model&m,bool force){
       for(int a=0;a<count;a++){
         auto ref=work[begin+a];const auto&node=*constituent_record(m,ref);int r=ref.region;
         float*local=locals[a],payload[D],gate_gradient=0;double norm2=0;
-        if(node.encoder&&!contents[a]){SHOEBOX_DIAGNOSTIC(m.content_expert_metrics[r][5]++;)continue;}
+        if(node.encoder==1&&!contents[a]){SHOEBOX_DIAGNOSTIC(m.content_expert_metrics[r][5]++;)continue;}
         for(int j=0;j<D;j++){
-          payload[j]=local[j]+(node.encoder?derivatives[a][j]:0.f);
+          payload[j]=local[j]+(node.encoder==1?derivatives[a][j]:0.f);
           gate_gradient+=payload[j]*node.payload[j]*node.gain_derivative;
           SHOEBOX_DIAGNOSTIC(norm2+=double(local[j])*local[j];)
         }
         if(m.event.local){SHOEBOX_DIAGNOSTIC(m.event.metrics[r][2]++;)SHOEBOX_DIAGNOSTIC(m.event.metrics[r][12+policy.teaching]++;)}
         float rate=mass*policy.scales[r];
-        if(!m.frozen_region[r]&&rate!=0){
+        if(node.encoder!=2&&!m.frozen_region[r]&&rate!=0){
           for(int j=0;j<D;j++)for(int k=0;k<8;k++)
             m.composition.symbols[r-2][j][k]-=rate*local[j]*node.features[k];
           m.composition.payload_gates[r-2]-=rate*gate_gradient;
           SHOEBOX_DIAGNOSTIC(m.composition.symbol_updates[r-2]++;)
-          if(node.encoder)content_expert_accumulate(m,*contents[a],local,rate,policy.teaching);
+          if(node.encoder==1)content_expert_accumulate(m,*contents[a],local,rate,policy.teaching);
         }
         auto&stream=m.composition.stream;SHOEBOX_DIAGNOSTIC(stream.completion_metrics[r][0]++;)
         if(r!=policy.receiver){SHOEBOX_DIAGNOSTIC(stream.message_metrics[r][0]++;)SHOEBOX_DIAGNOSTIC(stream.message_metrics[r][1]+=std::sqrt(norm2);)}

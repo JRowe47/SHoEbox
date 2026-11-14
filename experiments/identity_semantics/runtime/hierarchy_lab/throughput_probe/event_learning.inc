@@ -11,6 +11,12 @@ inline bool event_follow(Model&m,SemanticRef parent,int edge){
   if(!m.event.local)return true;
   auto*saved=event_eligibility(m,parent);
   if(!saved){SHOEBOX_DIAGNOSTIC(m.event.metrics[parent.region][9]++;)return false;}
+  // A fixed descriptor has no trainable recipient. Reach it even for a local
+  // completion update, then apply the usual frontier to its learned children.
+  if(m.lightweight_frames){
+    auto*child=constituent_record(m,saved->children[edge].ref);
+    if(child&&child->encoder==2)return true;
+  }
   return !m.event.local_only&&event_recent(m,saved->children[edge]);
 }
 inline void event_predict(Model&m,const EventKey&key,int teaching,float*out){
@@ -62,7 +68,7 @@ inline void event_register(Model&m,const ConstituentRecord&node){
     if(child)saved.children[e]=child->key;
     else SHOEBOX_DIAGNOSTIC(m.event.metrics[node.ref.region][9]++;)
   }
-  if(m.event.training)m.event.new_events.push_back(node.ref);
+  if(m.event.training&&node.encoder!=2)m.event.new_events.push_back(node.ref);
 }
 // At byte boundaries, spend a fixed number of exact local replay VJPs, then
 // predict directional credit once per newly encoded event. Neither operation

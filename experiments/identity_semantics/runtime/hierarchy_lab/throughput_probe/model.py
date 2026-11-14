@@ -35,7 +35,7 @@ def build():
             os.replace(tmp,lib)
     return lib
 class Model(parent.Model):
-    def __init__(self,*args,utility=None,kernel=None,teaching=None,regional_gains=None,frozen_regions=None,task_route_lr_scale=1.,a1_learning=None,f3_task_route_gain=1.,exploration=None,traffic=None,composition=None,messages=None,local_credit=None,content_experts=None,pattern_classes=None,paired_memory=None,reverse=None,event=None,bank_pipeline=False,prediction=None,**kwargs):
+    def __init__(self,*args,utility=None,kernel=None,teaching=None,regional_gains=None,frozen_regions=None,task_route_lr_scale=1.,a1_learning=None,f3_task_route_gain=1.,exploration=None,traffic=None,composition=None,messages=None,local_credit=None,content_experts=None,pattern_classes=None,paired_memory=None,reverse=None,event=None,bank_pipeline=False,prediction=None,frames=None,**kwargs):
         global KERNEL
         with _CONSTRUCTION_LOCK:
             previous=KERNEL
@@ -83,6 +83,7 @@ class Model(parent.Model):
                 self.configure_event(event)
                 self.configure_bank_pipeline(bank_pipeline)
                 self.configure_prediction(prediction)
+                self.configure_frames(frames)
             finally:KERNEL=previous
     def _initialize(self,*args,utility=None,**kwargs):
         self.runtime_kernel=KERNEL
@@ -101,6 +102,27 @@ class Model(parent.Model):
         cfg=np.array([self.utility[k] for k in FIELDS],np.float32)
         self.lib.utility_configure(self.handle,cfg.ctypes.data_as(fp))
         self._utility_ready=True
+    def configure_frames(self,policy=None):
+        """Select a frame representation on an empty, unfitted stream."""
+        policy='learned-frames-v1' if policy is None else policy
+        if policy not in ('learned-frames-v1','lightweight-frames-v1'):
+            raise ValueError('Unknown frame policy')
+        enabled=policy=='lightweight-frames-v1'
+        if hasattr(self.lib,'frame_configure'):
+            self.lib.frame_configure.argtypes=[ct.c_void_p,ct.c_int]
+            self.lib.frame_configure.restype=ct.c_int
+            if not self.lib.frame_configure(self.handle,int(enabled)):
+                raise ValueError('Frame policy requires an empty stream, unchanged fitted recognition, and content experts')
+        elif enabled:raise ValueError('Lightweight frames require completion')
+        self.frames=policy
+    def lightweight_frames(self):return self.frames=='lightweight-frames-v1'
+    def inspect_frames(self):
+        if not hasattr(self.lib,'frame_inspect'):return {}
+        a=np.zeros((18,6),np.uint64)
+        self.lib.frame_inspect.argtypes=[ct.c_void_p,ct.c_void_p]
+        self.lib.frame_inspect(self.handle,a.ctypes.data)
+        fields=('resident_descriptors','resident_experts','descriptor_edges','admitted_frames','publications','pending_frames')
+        return {name:dict(zip(fields,map(int,row))) for name,row in zip(core.NAMES,a)}
     def configure_prediction(self,policy=None):
         """Action-4 policy; changes require an empty stream. None keeps Action 3."""
         cfg={**PREDICTION_DEFAULT}
@@ -492,11 +514,13 @@ class Model(parent.Model):
             raise ValueError('Invalid content worker configuration')
 
     def configure_content_experts(self,enabled=True):
+        if not enabled and getattr(self,'frames',None)=='lightweight-frames-v1':raise ValueError('Lightweight completion requires content experts')
         if getattr(self,"reverse",None) and self.reverse_metrics().get("epoch_position",0):raise ValueError("Finish the pending learning epoch before changing training policy")
         if not isinstance(enabled,(bool,np.bool_)):raise ValueError('content_experts must be boolean')
         if hasattr(self.lib,'content_expert_configure'):
             self.lib.content_expert_configure.argtypes=[ct.c_void_p,ct.c_int]
-            self.lib.content_expert_configure(self.handle,int(enabled))
+            self.lib.content_expert_configure.restype=ct.c_int
+            if not self.lib.content_expert_configure(self.handle,int(enabled)):raise ValueError('Lightweight completion requires content experts')
         elif enabled:raise ValueError('Content experts require the completion kernel')
         self.content_experts=bool(enabled)
     def content_expert_state(self):
@@ -597,9 +621,9 @@ class Model(parent.Model):
         completion=self.runtime_kernel in COMPLETION_KERNELS and self.composition['enabled']
         reference=completion and all(all(getattr(self,group).get(k)==v for k,v in policy.items())
             for group,policy in settings_for(core.E).items()) and self.messages==MESSAGE_DEFAULT and self.local_credit and self.content_experts and self.pattern_classes and self.paired_memory
-        return dict(kernel=self.runtime_kernel,inline_diagnostics=self.inline_diagnostics_enabled(),reference_profile='compact-y-v1' if self.prediction_enabled() else 'pipeline-v1' if self.bank_pipeline else 'event-v1' if self.event_enabled() else REFERENCE_PROFILE if reference else 'custom' if completion else None,
-            checkpoint_version=44 if self.prediction_enabled() else 43 if self.bank_pipeline else 41 if self.event_enabled() else 40 if self.runtime_kernel in COMPLETION_KERNELS else None,
-            reverse_learning=dict(self.reverse),event_learning=dict(self.event),prediction=dict(self.prediction),
+        return dict(kernel=self.runtime_kernel,inline_diagnostics=self.inline_diagnostics_enabled(),reference_profile='lightweight-frames-v1' if self.lightweight_frames() else 'compact-y-v1' if self.prediction_enabled() else 'pipeline-v1' if self.bank_pipeline else 'event-v1' if self.event_enabled() else REFERENCE_PROFILE if reference else 'custom' if completion else None,
+            checkpoint_version=45 if self.lightweight_frames() else 44 if self.prediction_enabled() else 43 if self.bank_pipeline else 41 if self.event_enabled() else 40 if self.runtime_kernel in COMPLETION_KERNELS else None,
+            reverse_learning=dict(self.reverse),event_learning=dict(self.event),prediction=dict(self.prediction),frames=self.frames,
             bank_pipeline=dict(enabled=self.bank_pipeline,delay_bytes=1 if self.bank_pipeline else 0,scope="content bank factors only",workers=self.pipeline_metrics().get("workers",1)),
             prediction_features=dict(compact_event_forecast=completion and self.prediction['compact'],
                 fast_slow_y=completion and self.prediction['slow_stride']>1),
@@ -967,7 +991,7 @@ class Model(parent.Model):
         if self.runtime_kernel in DIAGNOSTIC_KERNELS:raise ValueError('Create independent contribution checks from the original model')
         if kernel is not None and (self.runtime_kernel,kernel) not in (('relays','contributions'),('messages','message_checks'),('completion','completion_checks')):
             raise ValueError('Use the diagnostic kernel matching the production kernel')
-        m=Model(config=self.config,params=self.visible_parameters(),fixed=self.fixed,lace=self.lace,state_config=self.state_config,extra=self.extra_flat,probe=self.probe,utility=self.utility,kernel=kernel or self.runtime_kernel,teaching=self.teaching,regional_gains=self.regional_gains,frozen_regions=self.frozen_regions,task_route_lr_scale=self.task_route_lr_scale,a1_learning=self.a1_learning,f3_task_route_gain=self.f3_task_route_gain,exploration=self.exploration,traffic=self.traffic,composition=self.composition,messages=self.messages,local_credit=self.local_credit,content_experts=self.content_experts,pattern_classes=self.pattern_classes,paired_memory=self.paired_memory,reverse=self.reverse,event=self.event,bank_pipeline=self.bank_pipeline,prediction=self.prediction)
+        m=Model(config=self.config,params=self.visible_parameters(),fixed=self.fixed,lace=self.lace,state_config=self.state_config,extra=self.extra_flat,probe=self.probe,utility=self.utility,kernel=kernel or self.runtime_kernel,teaching=self.teaching,regional_gains=self.regional_gains,frozen_regions=self.frozen_regions,task_route_lr_scale=self.task_route_lr_scale,a1_learning=self.a1_learning,f3_task_route_gain=self.f3_task_route_gain,exploration=self.exploration,traffic=self.traffic,composition=self.composition,messages=self.messages,local_credit=self.local_credit,content_experts=self.content_experts,pattern_classes=self.pattern_classes,paired_memory=self.paired_memory,reverse=self.reverse,event=self.event,bank_pipeline=self.bank_pipeline,prediction=self.prediction,frames=self.frames)
         m.configure_path_prototypes(self.path_prototypes)
         m.configure_boundaries(self.boundary_policy)
         m.configure_precision(self.precision_policy)
@@ -1032,7 +1056,7 @@ class Model(parent.Model):
     def snapshot_copy(self):
         if self.runtime_kernel in DIAGNOSTIC_KERNELS:raise ValueError('Diagnostic copies cannot be resumed; start from the original checkpoint')
         # Own every mutable array before dispatching an immutable snapshot.
-        m=Model(config=self.config,params=core.unflatten(self.flat.copy()),fixed={k:v.copy() for k,v in self.fixed.items()},lace=self.lace,state_config=self.state_config,extra=self.extra_flat.copy(),probe=self.probe,utility=self.utility,kernel=self.runtime_kernel,teaching=self.teaching,regional_gains=self.regional_gains,frozen_regions=self.frozen_regions,task_route_lr_scale=self.task_route_lr_scale,a1_learning=self.a1_learning,f3_task_route_gain=self.f3_task_route_gain,exploration=self.exploration,traffic=self.traffic,composition=self.composition,messages=self.messages,local_credit=self.local_credit,content_experts=self.content_experts,pattern_classes=self.pattern_classes,paired_memory=self.paired_memory,reverse=self.reverse,event=self.event,bank_pipeline=self.bank_pipeline,prediction=self.prediction)
+        m=Model(config=self.config,params=core.unflatten(self.flat.copy()),fixed={k:v.copy() for k,v in self.fixed.items()},lace=self.lace,state_config=self.state_config,extra=self.extra_flat.copy(),probe=self.probe,utility=self.utility,kernel=self.runtime_kernel,teaching=self.teaching,regional_gains=self.regional_gains,frozen_regions=self.frozen_regions,task_route_lr_scale=self.task_route_lr_scale,a1_learning=self.a1_learning,f3_task_route_gain=self.f3_task_route_gain,exploration=self.exploration,traffic=self.traffic,composition=self.composition,messages=self.messages,local_credit=self.local_credit,content_experts=self.content_experts,pattern_classes=self.pattern_classes,paired_memory=self.paired_memory,reverse=self.reverse,event=self.event,bank_pipeline=self.bank_pipeline,prediction=self.prediction,frames=self.frames)
         for arr,method in [(parent.legacy.base.state(self),'import_state'),(self.lace_state(),'import_laces'),(self.learned_state(),'import_learned'),(self.probe_state(),'probe_import'),(self.utility_state(),'utility_import')]:
             getattr(m.lib,method)(m.handle,arr.ctypes.data)
         m.configure_path_prototypes(self.path_prototypes)
@@ -1080,12 +1104,13 @@ class Model(parent.Model):
             digest=hashlib.sha256(digest.encode()+json.dumps(self.reverse,sort_keys=True).encode()+self.reverse_state().tobytes()).hexdigest()
         if self.event_enabled():digest=hashlib.sha256(digest.encode()+json.dumps(self.event,sort_keys=True).encode()+self.event_state().tobytes()).hexdigest()
         if self.bank_pipeline:digest=hashlib.sha256(digest.encode()+self.pipeline_state().tobytes()).hexdigest()
+        if self.lightweight_frames():digest=hashlib.sha256(digest.encode()+self.frames.encode()).hexdigest()
         if self.prediction_enabled():digest=hashlib.sha256(digest.encode()+json.dumps(self.prediction,sort_keys=True).encode()+self.prediction_state().tobytes()).hexdigest()
         return digest
     def save(self,path):
         if self.runtime_kernel in DIAGNOSTIC_KERNELS:raise ValueError('Evaluation interventions cannot be saved as training checkpoints')
         parent.legacy.base.atomic_checkpoint(path,flat=self.flat,extra=self.extra_flat,state=parent.legacy.base.state(self),lace_state=self.lace_state(),learned_state=self.learned_state(),probe_state=self.probe_state(),utility_state=self.utility_state(),
-            version=np.array([44 if self.prediction_enabled() else 43 if self.bank_pipeline else 41 if self.runtime_kernel=="completion" and self.event_enabled() else 40 if self.runtime_kernel=="completion" else 32 if self.runtime_kernel=="messages" else 31 if self.runtime_kernel=="relays" else 30 if self.runtime_kernel.startswith("semantics") else 29 if self.runtime_kernel=="binding" else 28 if self.runtime_kernel=="composition" else 27 if self.runtime_kernel.startswith("r05") else 26 if self.runtime_kernel.startswith("r04") else 25 if self.runtime_kernel.startswith("r03") else 24 if self.runtime_kernel.startswith("r02") and (self.activation_policy()["enabled"] or self.gate_bias_policy()["enabled"]) else 23 if self.gate_bias_policy()["enabled"] else 21 if self.traffic['enabled'] else (20 if self.retention_policy() else 19)],np.int32),experts=np.array([core.E],np.int32),config_json=np.array(json.dumps(self.config)),lace_json=np.array(json.dumps(self.lace)),state_config_json=np.array(json.dumps(self.state_config)),probe_json=np.array(json.dumps(self.probe)),utility_json=np.array(json.dumps(self.utility)),teaching_scales=self.teaching,regional_gains=self.regional_gains,frozen_regions=self.frozen_regions,task_route_lr_scale=np.array(self.task_route_lr_scale,np.float32),a1_learning_scales=self.a1_learning_array,f3_task_route_gain=np.array(self.f3_task_route_gain,np.float32),exploration_json=np.array(json.dumps(self.exploration)),traffic_json=np.array(json.dumps(self.traffic)),traffic_state=self.traffic_state(),
+            version=np.array([45 if self.lightweight_frames() else 44 if self.prediction_enabled() else 43 if self.bank_pipeline else 41 if self.runtime_kernel=="completion" and self.event_enabled() else 40 if self.runtime_kernel=="completion" else 32 if self.runtime_kernel=="messages" else 31 if self.runtime_kernel=="relays" else 30 if self.runtime_kernel.startswith("semantics") else 29 if self.runtime_kernel=="binding" else 28 if self.runtime_kernel=="composition" else 27 if self.runtime_kernel.startswith("r05") else 26 if self.runtime_kernel.startswith("r04") else 25 if self.runtime_kernel.startswith("r03") else 24 if self.runtime_kernel.startswith("r02") and (self.activation_policy()["enabled"] or self.gate_bias_policy()["enabled"]) else 23 if self.gate_bias_policy()["enabled"] else 21 if self.traffic['enabled'] else (20 if self.retention_policy() else 19)],np.int32),experts=np.array([core.E],np.int32),config_json=np.array(json.dumps(self.config)),lace_json=np.array(json.dumps(self.lace)),state_config_json=np.array(json.dumps(self.state_config)),probe_json=np.array(json.dumps(self.probe)),utility_json=np.array(json.dumps(self.utility)),teaching_scales=self.teaching,regional_gains=self.regional_gains,frozen_regions=self.frozen_regions,task_route_lr_scale=np.array(self.task_route_lr_scale,np.float32),a1_learning_scales=self.a1_learning_array,f3_task_route_gain=np.array(self.f3_task_route_gain,np.float32),exploration_json=np.array(json.dumps(self.exploration)),traffic_json=np.array(json.dumps(self.traffic)),traffic_state=self.traffic_state(),
             **({'gate_bias_state':self.gate_bias_state(),'gate_bias_kernel':np.array('r02' if self.runtime_kernel.startswith('r02') else 'e14_calibrated' if self.gate_bias_policy()['gain']>10000 else 'e14'),'gate_bias_json':np.array(json.dumps(self.gate_bias_policy()))} if self.gate_bias_policy()['enabled'] else {}),
             **({'activation_state':self.activation_state(),'activation_json':np.array(json.dumps(self.activation_policy())),'activation_kernel':np.array('r02' if self.runtime_kernel.startswith('r02') else 'e13')} if self.activation_policy()['enabled'] else {}),
             **({"path_prototypes":self.path_prototypes} if self.runtime_kernel.startswith("r03") else {}),
@@ -1094,8 +1119,9 @@ class Model(parent.Model):
             **({'r08_kernel':np.array('r04_credit')} if self.runtime_kernel.startswith('r04_credit') else {}),
             **({'neural_state':self.neural_state(),'local_credit_policy':np.array(self.local_credit),'content_expert_policy':np.array(self.content_experts),'content_expert_state':self.content_expert_state(),'pattern_class_policy':np.array(self.pattern_classes),'pattern_class_state':self.pattern_state(),'paired_memory_policy':np.array(self.paired_memory),'paired_memory_state':self.paired_memory_state(),'reverse_json':np.array(json.dumps(self.reverse)),'reverse_state':self.reverse_state()} if self.runtime_kernel in COMPLETION_KERNELS else {}),
             **({'bank_pipeline_state':self.pipeline_state()} if self.bank_pipeline else {}),
-            **({'event_json':np.array(json.dumps(self.event)),'event_state':self.event_state()} if self.event_enabled() or self.prediction_enabled() else {}),
-            **({'prediction_json':np.array(json.dumps(self.prediction)),'prediction_state':self.prediction_state(),'bank_pipeline_policy':np.array(self.bank_pipeline)} if self.prediction_enabled() else {}),
+            **({'event_json':np.array(json.dumps(self.event)),'event_state':self.event_state()} if self.event_enabled() or self.prediction_enabled() or self.lightweight_frames() else {}),
+            **({'prediction_json':np.array(json.dumps(self.prediction)),'prediction_state':self.prediction_state(),'bank_pipeline_policy':np.array(self.bank_pipeline)} if self.prediction_enabled() or self.lightweight_frames() else {}),
+            **({'frame_policy':np.array(self.frames)} if self.lightweight_frames() else {}),
             **({'messages_json':np.array(json.dumps(self.messages))} if self.runtime_kernel in MESSAGE_KERNELS else {}),
             composition_state=self.composition_state(),composition_json=np.array(json.dumps(self.composition)),experiment_kernel=np.array(self.runtime_kernel),
             kernel_sha256=np.array(hashlib.sha256((ROOT/(self.runtime_kernel+'.cpp')).read_bytes()).hexdigest()),**({'retention_state':self.retention_state(),'retention_version':np.array([1],np.int32)} if self.retention_policy() else {}),**{'fixed_'+k:v for k,v in self.fixed.items()})
@@ -1106,47 +1132,55 @@ class Model(parent.Model):
                 raise ValueError('Version-33 completion uses coverage clocks; convert_to_completion.py starts a fresh stream with primary clocks')
             if int(a['version'][0])==34:
                 raise ValueError('Version-34 completion has expiring neural producers; convert_to_completion.py starts a fresh stream with neural ownership')
-            if int(a['version'][0]) in (35,36,37,38,39,40,41,42,43,44) and ('neural_state' not in a):
+            if int(a['version'][0]) in (35,36,37,38,39,40,41,42,43,44,45) and ('neural_state' not in a):
                 raise ValueError('Completion checkpoints require saved neural ownership')
-            if int(a['version'][0]) in (35,36,37,38,39,40,41,42,43,44) and ('messages_json' not in a or str(a['experiment_kernel'])!='completion'):
+            if int(a['version'][0]) in (35,36,37,38,39,40,41,42,43,44,45) and ('messages_json' not in a or str(a['experiment_kernel'])!='completion'):
                 raise ValueError('Completion checkpoints require their saved policy and production kernel')
             if int(a['version'][0])==32 and ('messages_json' not in a or str(a['experiment_kernel'])!='messages'):
                 raise ValueError('Message checkpoints require their saved policy and production kernel')
-            assert int(a['version'][0]) in (16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,35,36,37,38,39,40,41,42,43,44) and int(a['experts'][0])==core.E
-            if int(a['version'][0]) in (40,41,42,43,44) and ('reverse_json' not in a or 'reverse_state' not in a):
+            assert int(a['version'][0]) in (16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,35,36,37,38,39,40,41,42,43,44,45) and int(a['experts'][0])==core.E
+            if int(a['version'][0]) in (40,41,42,43,44,45) and ('reverse_json' not in a or 'reverse_state' not in a):
                 raise ValueError('Version-40 requires its reverse policy and pending epoch state')
-            reverse=json.loads(str(a['reverse_json'])) if int(a['version'][0]) in (40,41,42,43,44) else dict(policy='root',epoch_bytes=1,update_scale=1.)
-            if int(a['version'][0]) in (41,42,43,44) and ('event_json' not in a or 'event_state' not in a):raise ValueError('Version-41 requires its event policy and state')
-            event=json.loads(str(a['event_json'])) if int(a['version'][0]) in (41,42,43,44) else None
+            reverse=json.loads(str(a['reverse_json'])) if int(a['version'][0]) in (40,41,42,43,44,45) else dict(policy='root',epoch_bytes=1,update_scale=1.)
+            if int(a['version'][0]) in (41,42,43,44,45) and ('event_json' not in a or 'event_state' not in a):raise ValueError('Version-41 requires its event policy and state')
+            event=json.loads(str(a['event_json'])) if int(a['version'][0]) in (41,42,43,44,45) else None
             if int(a['version'][0]) in (42,43) and 'bank_pipeline_state' not in a:raise ValueError('Version-42/43 requires pending bank pipeline state')
             prediction=None
             bank_pipeline=int(a['version'][0]) in (42,43)
-            if int(a['version'][0])==44:
+            if int(a['version'][0]) in (44,45):
                 if ('prediction_json' not in a or 'prediction_state' not in a or 'bank_pipeline_policy' not in a or
                     a['bank_pipeline_policy'].shape!=() or a['bank_pipeline_policy'].dtype!=np.dtype(bool)):
                     raise ValueError('Version-44 requires saved prediction policy, state and bank schedule')
                 prediction=json.loads(str(a['prediction_json']));bank_pipeline=bool(a['bank_pipeline_policy'])
-                if not prediction.get('compact',False) and prediction.get('slow_stride',1)==1:raise ValueError('Inactive version-44 prediction policy')
+                if int(a['version'][0])==44 and not prediction.get('compact',False) and prediction.get('slow_stride',1)==1:raise ValueError('Inactive version-44 prediction policy')
                 if bank_pipeline and 'bank_pipeline_state' not in a:raise ValueError('Missing pending bank pipeline state')
-            m=cls(bank_pipeline=bank_pipeline,prediction=prediction,event=event,reverse=reverse,config=json.loads(str(a['config_json'])),params=core.unflatten(a['flat']),fixed={k[6:]:a[k] for k in a.files if k.startswith('fixed_')},lace=json.loads(str(a['lace_json'])),state_config=json.loads(str(a['state_config_json'])),extra=a['extra'],probe=json.loads(str(a['probe_json'])),utility=json.loads(str(a['utility_json'])),composition=json.loads(str(a['composition_json'])) if 'composition_json' in a else None,kernel=str(a['experiment_kernel']) if 'experiment_kernel' in a else str(a['r08_kernel']) if 'r08_kernel' in a else 'r05' if int(a['version'][0])==27 else 'r04' if int(a['version'][0])==26 else 'r03' if int(a['version'][0])==25 else 'r02' if int(a['version'][0])==24 else ('e14_calibrated' if 'gate_bias_kernel' in a and str(a['gate_bias_kernel'])=='e14_calibrated' else 'e14') if 'gate_bias_state' in a else 'e13' if 'activation_state' in a else ('credit' if 'retention_state' in a else 'native'))
-            if int(a['version'][0]) in (36,37,38,39,40,41,42,43,44):
+            frames=None
+            if int(a['version'][0])==45:
+                if 'frame_policy' not in a or a['frame_policy'].shape!=() or str(a['frame_policy'])!='lightweight-frames-v1':
+                    raise ValueError('Version-45 requires its lightweight frame policy')
+                if ('content_expert_policy' not in a or a['content_expert_policy'].shape!=() or
+                    a['content_expert_policy'].dtype!=np.dtype(bool) or not bool(a['content_expert_policy'])):
+                    raise ValueError('Lightweight completion requires its content-expert policy')
+                frames=str(a['frame_policy'])
+            m=cls(bank_pipeline=bank_pipeline,prediction=prediction,frames=frames,event=event,reverse=reverse,config=json.loads(str(a['config_json'])),params=core.unflatten(a['flat']),fixed={k[6:]:a[k] for k in a.files if k.startswith('fixed_')},lace=json.loads(str(a['lace_json'])),state_config=json.loads(str(a['state_config_json'])),extra=a['extra'],probe=json.loads(str(a['probe_json'])),utility=json.loads(str(a['utility_json'])),composition=json.loads(str(a['composition_json'])) if 'composition_json' in a else None,kernel=str(a['experiment_kernel']) if 'experiment_kernel' in a else str(a['r08_kernel']) if 'r08_kernel' in a else 'r05' if int(a['version'][0])==27 else 'r04' if int(a['version'][0])==26 else 'r03' if int(a['version'][0])==25 else 'r02' if int(a['version'][0])==24 else ('e14_calibrated' if 'gate_bias_kernel' in a and str(a['gate_bias_kernel'])=='e14_calibrated' else 'e14') if 'gate_bias_state' in a else 'e13' if 'activation_state' in a else ('credit' if 'retention_state' in a else 'native'))
+            if int(a['version'][0]) in (36,37,38,39,40,41,42,43,44,45):
                 if 'local_credit_policy' not in a or a['local_credit_policy'].shape!=() or a['local_credit_policy'].dtype!=np.dtype(bool):
                     m.close();raise ValueError('Checkpoint requires its saved local-credit policy')
                 m.configure_local_credit(bool(a['local_credit_policy']))
             elif m.runtime_kernel in COMPLETION_KERNELS:m.configure_local_credit(False)
-            if int(a['version'][0]) in (37,38,39,40,41,42,43,44):
+            if int(a['version'][0]) in (37,38,39,40,41,42,43,44,45):
                 if ('content_expert_state' not in a or 'content_expert_policy' not in a or
                     a['content_expert_policy'].shape!=() or a['content_expert_policy'].dtype!=np.dtype(bool)):
                     m.close();raise ValueError('Version-37 requires saved content-expert policy and eligibility')
                 m.configure_content_experts(bool(a['content_expert_policy']))
             elif m.runtime_kernel in COMPLETION_KERNELS:m.configure_content_experts(False)
-            if int(a['version'][0]) in (38,39,40,41,42,43,44):
+            if int(a['version'][0]) in (38,39,40,41,42,43,44,45):
                 if ('pattern_class_state' not in a or 'pattern_class_policy' not in a or
                     a['pattern_class_policy'].shape!=() or a['pattern_class_policy'].dtype!=np.dtype(bool)):
                     m.close();raise ValueError('Version-38 requires saved pattern-class policy and state')
                 m.configure_pattern_classes(bool(a['pattern_class_policy']))
             elif m.runtime_kernel in COMPLETION_KERNELS:m.configure_pattern_classes(False)
-            if int(a['version'][0]) in (39,40,41,42,43,44):
+            if int(a['version'][0]) in (39,40,41,42,43,44,45):
                 if ('paired_memory_state' not in a or 'paired_memory_policy' not in a or
                     a['paired_memory_policy'].shape!=() or a['paired_memory_policy'].dtype!=np.dtype(bool)):
                     m.close();raise ValueError('Version-39 requires saved paired-memory policy and state')
@@ -1180,14 +1214,14 @@ class Model(parent.Model):
                     m.close();raise ValueError('Invalid version-9 composition snapshot')
             elif 'composition_state' in a:m.import_composition(a['composition_state'])
             if 'neural_state' in a:m.import_neural(a['neural_state'])
-            if int(a['version'][0]) in (37,38,39,40,41,42,43,44):m.import_content_experts(a['content_expert_state'])
-            if int(a['version'][0]) in (38,39,40,41,42,43,44):m.import_pattern_classes(a['pattern_class_state'])
-            if int(a['version'][0]) in (39,40,41,42,43,44):m.import_paired_memory(a['paired_memory_state'])
-            if int(a['version'][0]) in (40,41,42,43,44):
+            if int(a['version'][0]) in (37,38,39,40,41,42,43,44,45):m.import_content_experts(a['content_expert_state'])
+            if int(a['version'][0]) in (38,39,40,41,42,43,44,45):m.import_pattern_classes(a['pattern_class_state'])
+            if int(a['version'][0]) in (39,40,41,42,43,44,45):m.import_paired_memory(a['paired_memory_state'])
+            if int(a['version'][0]) in (40,41,42,43,44,45):
                 try:m.import_reverse(a['reverse_state'])
                 except Exception:
                     m.close();raise
-            if int(a['version'][0]) in (41,42,43,44):
+            if int(a['version'][0]) in (41,42,43,44,45):
                 try:m.import_event(a['event_state'])
                 except Exception:
                     m.close();raise
@@ -1195,7 +1229,7 @@ class Model(parent.Model):
                 try:m.import_pipeline(a['bank_pipeline_state'])
                 except Exception:
                     m.close();raise
-            if int(a['version'][0])==44:
+            if int(a['version'][0]) in (44,45):
                 try:m.import_prediction(a['prediction_state'])
                 except Exception:
                     m.close();raise

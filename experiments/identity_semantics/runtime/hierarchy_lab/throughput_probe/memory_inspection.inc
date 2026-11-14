@@ -34,7 +34,7 @@ void inspect_live_memory(void*ptr,uint64_t*out){
   for(int k=0;k<constituent_capacity(m);k++){
     const auto&v=constituent_slot(m,k);if(!v.ref.serial||v.ref.region<0||v.ref.region>=N)continue;
     auto*row=out+v.ref.region*12;row[10]++;
-    row[11]+=v.encoder&&!content_expert_record(m,v.ref);
+    row[11]+=v.encoder==1&&!content_expert_record(m,v.ref);
   }
 }
 }

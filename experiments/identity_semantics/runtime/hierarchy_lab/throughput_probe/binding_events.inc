@@ -19,7 +19,7 @@ inline bool binding_ready(Model&m,int r){
   }
   return fresh&&n>=(r<15?2:1);
 }
-inline ContentEvent binding_compose(Model&m,int r,const ContentEvent*children,int n,bool learn,uint32_t fresh_mask){
+inline ContentEvent binding_compose(Model&m,int r,const ContentEvent*children,int n,bool learn,uint32_t fresh_mask,bool descriptor=false){
   ContentEvent out{};auto&published=out.edit_values();out.kind=4;out.count=n;out.ref.region=r;out.fresh_mask=fresh_mask;
 #ifdef SHOEBOX_PRESERVE_RELAYS
   out.local_arity=n;
@@ -73,7 +73,7 @@ inline ContentEvent binding_compose(Model&m,int r,const ContentEvent*children,in
 #ifdef SHOEBOX_IDENTITY_SEMANTICS
 #ifdef SHOEBOX_LEARNED_COMPLETION
   semantic_prepare_constituent(m,r,out);
-  constituent_encode(m,r,out,children,n,true);
+  constituent_encode(m,r,out,children,n,true,descriptor);
 #else
   semantic_encode(m,r,out);
 #endif

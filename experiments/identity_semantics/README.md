@@ -1075,3 +1075,53 @@ Raw curves, source/build hashes, parameter accounting and test logs are in
 summary, and `src/report_prediction_policy.py` exports Markdown/PDF reports.
 Action 5 (lightweight binding frames) is next; Actions 6-8 and progressive
 Action-9 qualification remain.
+
+### Action 5: lightweight binding frames
+
+`frames="lightweight-frames-v1"` selects a separately versioned representation
+for S2 through G5. Intermediate frames retain exact child handles, source roles,
+occurrence IDs, coverage and primary clocks. Their code uses the fixed signed
+role sum of learned child residuals; the existing per-role descriptor and learned
+classes determine recognition and completion boundaries.
+
+The full content expert, adapter and payload gate run at completed publication.
+A single-frame completion preserves the binding's exact identity and original
+child links and transforms its saved sum once. Multiple frames are composed in
+order before the learned transform. Fixed frames have no local parameters;
+actual credit follows their saved role Jacobians to child producers. They are
+transparent to the event-credit frontier and are not synthetic-update recipients.
+
+```python
+from shoebox_reference import fresh_model, Model
+m = fresh_model(profile="event", frames="lightweight-frames-v1")
+# To combine with the selected Action-4 predictor/Y policy:
+m.configure_prediction(dict(compact=True, rank=16, slow_stride=8))
+print(m.inspect_frames())  # detached inventory between native calls
+m.save("checkpoint.npz")
+m = Model.load("checkpoint.npz")
+```
+
+Checkpoint v45 records the frame policy alongside existing stream, recognition,
+prediction and bank state. Older checkpoints retain `learned-frames-v1` without
+reinterpretation. Switching representations requires an empty stream with no
+fitted recognition evidence; use a fresh model for comparisons. Content experts
+and composition cannot be disabled while lightweight frames are selected.
+
+The policy reuses the existing semantic slab and does not add fitted parameters.
+It changes frame-level learning timing and can change boundary trajectories, so
+its acceptance is decided by loss/time and boundary checks. Existing defaults
+remain unchanged. See [the Action-5 report](deliverables/SHoEbox_Action5_Lightweight_Frames.md)
+for the measured decision and rates.
+
+```bash
+SHOEBOX_EXPERTS=12 SHOEBOX_INLINE_DIAGNOSTICS=1 python tests/test_frame_policy.py
+SHOEBOX_EXPERTS=12 SHOEBOX_INLINE_DIAGNOSTICS=1 python src/run_factor_regressions.py --output results/action5_regressions.txt
+SHOEBOX_EXPERTS=12 python tests/run_frame_sanitizer.py
+SHOEBOX_EXPERTS=12 python src/check_frame_checkpoint.py --baseline /path/to/action4 --output results/action5_legacy_checkpoint.json
+SHOEBOX_EXPERTS=12 python src/measure_frame_policy.py --output results/action5_selected_natural.json
+SHOEBOX_EXPERTS=12 python src/profile_frame_policy.py --output results/action5_profile.json
+```
+
+Run timing and external profiling separately from tests and each other. The
+measurement driver supports `--rates`, `--selected-rates` (a JSON mapping),
+`--variants`, `--seeds`, `--targets`, `--workload`, and an explicit CPU placement.

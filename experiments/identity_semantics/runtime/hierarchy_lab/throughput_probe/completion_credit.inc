@@ -122,7 +122,7 @@ inline void constituent_update_reference(Model&m,SemanticRef root,const float*gr
         float value=incoming[j]*node.derivative[j];locals[a][j]=payloads[a][j]=value;
         norms[a]+=double(value)*value;
       }
-      if(node.encoder)contents[a]=content_expert_record(m,ref);
+      if(node.encoder==1)contents[a]=content_expert_record(m,ref);
     }
     for(int a=0;a<count;a++)if(contents[a]&&!done[a]){
       const ContentExpertRecord*records[16];const float*inputs[16];float*outputs[16];int n=0;
@@ -136,19 +136,19 @@ inline void constituent_update_reference(Model&m,SemanticRef root,const float*gr
     auto ref=work[begin+a];auto&node=*constituent_record(m,ref);int r=ref.region;
     float*local=locals[a],*payload_local=payloads[a];double norm2=norms[a];float gate_gradient=0;
     auto*content=contents[a];
-    if(node.encoder){
+    if(node.encoder==1){
       if(!content){SHOEBOX_DIAGNOSTIC(m.content_expert_metrics[r][5]++;)continue;}
       for(int j=0;j<D;j++)payload_local[j]+=derivatives[a][j];
     }
     for(int j=0;j<D;j++)gate_gradient+=payload_local[j]*node.payload[j]*node.gain_derivative;
     // Policy affects parameter updates, not the derivative of the saved code.
-    if(!m.frozen_region[r]&&(r==receiver||m.teaching_scale[r][teaching]!=0)){
+    if(node.encoder!=2&&!m.frozen_region[r]&&(r==receiver||m.teaching_scale[r][teaching]!=0)){
       float scale=rate*(r==receiver?1.f:m.teaching_scale[r][teaching]);
       for(int j=0;j<D;j++)for(int k=0;k<8;k++)
         m.composition.symbols[r-2][j][k]-=scale*local[j]*node.features[k];
       m.composition.payload_gates[r-2]-=scale*gate_gradient;
       SHOEBOX_DIAGNOSTIC(m.composition.symbol_updates[r-2]++;)
-      if(node.encoder)content_expert_accumulate(m,*content,local,scale,teaching);
+      if(node.encoder==1)content_expert_accumulate(m,*content,local,scale,teaching);
     }
     SHOEBOX_DIAGNOSTIC(stream.completion_metrics[r][0]++;)
     if(r!=receiver){SHOEBOX_DIAGNOSTIC(stream.message_metrics[r][0]++;)SHOEBOX_DIAGNOSTIC(stream.message_metrics[r][1]+=std::sqrt(norm2);)}
