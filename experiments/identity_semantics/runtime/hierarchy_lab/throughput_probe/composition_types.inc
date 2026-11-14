@@ -66,6 +66,12 @@ struct ContentEvent {
   int64_t clock_begin=0,clock_end=0;
   std::shared_ptr<PublicationPayload> payload;
   std::shared_ptr<PublicationContext> contextual;
+  std::shared_ptr<ForwardPublication> forward;
+  ForwardPublication& edit_forward(){
+    if(!forward)forward=publication_allocate<ForwardPublication>();
+    else if(!forward.unique())forward=publication_allocate<ForwardPublication>(*forward);
+    return *forward;
+  }
   const PublicationPayload&values()const{static const PublicationPayload zero{};return payload?*payload:zero;}
   PublicationPayload&edit_values(){
     if(!payload)payload=publication_allocate<PublicationPayload>();
@@ -125,7 +131,8 @@ template<class Credit,class Event=ContentEvent> struct CompositionStreamLayout {
   uint32_t draining=0,reserved=0;
 #ifdef SHOEBOX_LEARNED_COMPLETION
   uint64_t semantic_serial=0,semantic_cursor=0,frame_serial[N]{};
-  ConstituentRecord semantic_records[SEM_RING]{};
+  std::conditional_t<std::is_same_v<Event,ContentEventWire>,
+    std::array<ConstituentRecord,SEM_RING>,LazyRecordArray<ConstituentRecord,SEM_RING>> semantic_records{};
   // visited nodes, expired handles, work-budget omissions, completed sequences
   uint64_t completion_metrics[N][5]{}; // last: capacity prunes of live eligibility
 #endif

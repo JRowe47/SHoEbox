@@ -1154,5 +1154,23 @@ python src/measure_bank_epochs.py --rates .08,.16,.32 --output results/action6_s
 
 The [Action-6 report](deliverables/SHoEbox_Action6_Sparse_Bank_Epochs.md) records
 worker/storage selection, loss/time, memory, exact continuation and remaining
-work. Run timings without tests or profiling in parallel. Actions 7 and 8 and
-the longer Action-9 qualification remain.
+work. Run timings without tests or profiling in parallel. Action 7 is described
+below; Action 8 and the longer Action-9 qualification remain.
+
+## Dedicated forward-only runtime (development-plan Action 7)
+
+`fresh_model(profile="inference")` enables forward-only execution of the full
+reference; `inference=True` selects it with another established profile.
+`model.inference_copy(memory="warm_frozen")` creates an independent frozen
+stream. Use `warm_adaptive` for causal episodic admission, `cold_*` for empty
+memory, or `continue` to preserve the prefix in an independent snapshot.
+
+The runtime releases derivative slabs and archives, skips collection and local
+adjoint preparation, preserves pattern/frame values in immutable publications,
+and saves dedicated version-47 checkpoints. Returning to training requires
+`resume_training(reset_context=True)`. Ordinary `run(mode="eval")` remains the
+eligibility-retaining frozen comparator. [Policy and lifecycle](INFERENCE_POLICY.md).
+
+Validation: `tests/test_inference.py`, `tests/run_inference_sanitizer.py` and
+`tests/check_inference_legacy.py`. Isolated timing and memory:
+`src/measure_inference.py`; compact results: `results/action7_*`.

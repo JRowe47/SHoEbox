@@ -50,6 +50,7 @@ inline float pattern_distance(const PatternDescriptor&a,const PatternDescriptor&
   return core/std::max(1,nc)+.1f*side/std::max(1,ns)+.025f*geometry/std::max(1u,a.shape.count);
 }
 inline PatternAssignment* pattern_assignment(Model&m,const ContentEvent&e){
+  if(m.forward_only)return e.forward&&e.forward->has_pattern?&e.forward->pattern:nullptr;
   auto ref=e.semantic;
   if(!ref.serial||ref.index<0||size_t(ref.index)>=m.pattern.assignments.size())return nullptr;
   auto&saved=m.pattern.assignments[ref.index];
@@ -100,8 +101,9 @@ inline void pattern_classify(Model&m,int r,ContentEvent&out,const ContentEvent*p
   out.confidence=match?std::min(1.f,float(match->count)/m.composition.min_count):0.f;
   SHOEBOX_DIAGNOSTIC(metric[out.ref.recognized?4:5]++;)
   if(out.semantic.serial){
-    if(size_t(out.semantic.index)>=z.assignments.size())z.assignments.resize(constituent_capacity(m));
-    auto&saved=z.assignments[out.semantic.index];saved=PatternAssignment{};
+    if(!m.forward_only&&size_t(out.semantic.index)>=z.assignments.size())z.assignments.resize(constituent_capacity(m));
+    auto&saved=m.forward_only?out.edit_forward().pattern:z.assignments[out.semantic.index];saved=PatternAssignment{};
+    if(m.forward_only)out.edit_forward().has_pattern=true;
     saved.ref=out.semantic;saved.id=match?match->id:0;
     float cue[D]{},exported[D];pattern_normalize(out.values().code,exported);
     int core=__builtin_popcount(x.shape.core),side=n-core;

@@ -10,11 +10,12 @@ inline ContextEligibility* context_record(Model&m,int r,const LaceRecord&v){
   auto it=m.event.archive[r].find(v.tick);return it==m.event.archive[r].end()?nullptr:&it->second;
 }
 inline void context_forward(Model&m,int r,const float*u,float*out,ContextEligibility&saved){
-  saved.prepare(m.event.heads,m.s.tick);
+  if(!m.forward_only)saved.prepare(m.event.heads,m.s.tick);
+  float reads[MK_FEATURES]{};float*values=m.forward_only?reads:saved.reads();
   const int heads=m.event.heads;const float scale=1/std::sqrt(float(heads));
   for(int h=0;h<heads;h++){
     float key[MK_DIM],value[MK_DIM];float normk=1.f;
-    auto&memory=m.event.memory[r][h];memcpy(saved.before(h),memory,sizeof(memory));
+    auto&memory=m.event.memory[r][h];if(!m.forward_only)memcpy(saved.before(h),memory,sizeof(memory));
     for(int a=0;a<MK_DIM;a++){
       float q=0,v=0;
       for(int b=0;b<8;b++){
@@ -23,11 +24,11 @@ inline void context_forward(Model&m,int r,const float*u,float*out,ContextEligibi
         v+=sign*u[(j+19)%D]*.3535533905932738f;
       }
       key[a]=std::tanh(q);value[a]=std::tanh(v);normk+=key[a]*key[a];
-      saved.query(h)[a]=1-key[a]*key[a];
+      if(!m.forward_only)saved.query(h)[a]=1-key[a]*key[a];
     }
     for(int b=0;b<MK_DIM;b++){
       float read=0;for(int a=0;a<MK_DIM;a++)read+=memory[a][b]*key[a];
-      saved.reads()[h*MK_DIM+b]=scale*read;
+      values[h*MK_DIM+b]=scale*read;
       // Read before write: the response sees prior event memory. The current
       // observed input writes a normalized delta for subsequent publications.
       float error=value[b]-.98f*read;
@@ -36,7 +37,7 @@ inline void context_forward(Model&m,int r,const float*u,float*out,ContextEligibi
   }
   for(int i=0;i<D;i++){
     float z=m.event.parameters.bias[r][i];
-    for(int k=0;k<heads*MK_DIM;k++)z+=m.event.parameters.readout[r][i][k]*saved.reads()[k];
+    for(int k=0;k<heads*MK_DIM;k++)z+=m.event.parameters.readout[r][i][k]*values[k];
     out[i]=z;
   }
   SHOEBOX_DIAGNOSTIC(m.event.metrics[r][0]++;)

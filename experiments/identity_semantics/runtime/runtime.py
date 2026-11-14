@@ -11,12 +11,16 @@ from pipeline import SnapshotPipeline
 from reference_policy import REFERENCE_KERNEL, REFERENCE_PROFILE, settings_for
 
 
-def fresh_model(seed=1, kernel=REFERENCE_KERNEL, *, profile=None, event=None, pipeline_workers=1, prediction=None, frames=None, bank_epochs=None):
+def fresh_model(seed=1, kernel=REFERENCE_KERNEL, *, profile=None, event=None, pipeline_workers=1, prediction=None, frames=None, bank_epochs=None, inference=False):
     """Build the full current reference design with fresh parameters.
 
     Set SHOEBOX_EXPERTS=12 or 64 before importing this module. Fixed arrays
     include the original calibrated hippocampal address center; they are not
     the trained model parameters or a continuation checkpoint.
+
+    profile='inference' selects forward-only-v1 with the full reference policy.
+    inference=True selects it with any other supported profile. Save/load keeps
+    inference active; resume_training(reset_context=True) starts new eligibility.
 
     profile='pipeline' adds versioned delayed content-bank learning (stage 6).
     profile='epochs' selects sparse-epochs-v1; bank_epochs configures 1/4/8/16
@@ -28,6 +32,9 @@ def fresh_model(seed=1, kernel=REFERENCE_KERNEL, *, profile=None, event=None, pi
     profile on completion retains the pre-reference training options, but
     still uses the corrected primary clock. Saved checkpoints keep their policy.
     """
+    if type(inference) is not bool:raise ValueError('inference must be boolean')
+    inference=inference or profile=='inference'
+    if profile=='inference':profile='reference'
     if bank_epochs is not None and profile not in ('pipeline','epochs'):raise ValueError('Bank epochs require the pipeline or epochs profile')
     if profile=='epochs' and bank_epochs is None:bank_epochs={}
     size = '1m' if core.E == 12 else '5m'
@@ -45,4 +52,4 @@ def fresh_model(seed=1, kernel=REFERENCE_KERNEL, *, profile=None, event=None, pi
                  paired_memory=False if profile == 'historical' else None,
                  reverse=dict(policy='root') if profile == 'historical' else None, bank_pipeline=profile in ('pipeline','epochs'), bank_epochs=bank_epochs, prediction=prediction, frames=frames, **settings)
     if profile in ('pipeline','epochs'):model.configure_pipeline_workers(pipeline_workers)
-    return model
+    return model.enter_inference() if inference else model

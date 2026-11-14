@@ -3,6 +3,18 @@
 // Initial slab; live ancestry can extend into the checkpointed overflow pool.
 constexpr int SEM_RING=16384;
 struct SemanticRef { uint64_t serial=0; int region=0,index=0; };
+struct PatternAssignment {
+  SemanticRef ref{};uint64_t id=0;
+  float prediction[D]{};
+};
+// Immutable forward values carried by live publications. No child derivative
+// graph, routing Jacobian, pending adjoint or archive is needed for these.
+struct ForwardPublication {
+  PatternAssignment pattern{};
+  float frame_payload[D]{};
+  int encoder=0,expert=0;
+  uint32_t has_pattern=0;
+};
 struct ConstituentEdge {
   SemanticRef source{};
   ChildEvent occurrence{};

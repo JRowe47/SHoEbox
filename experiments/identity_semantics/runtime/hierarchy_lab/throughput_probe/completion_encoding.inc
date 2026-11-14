@@ -52,7 +52,7 @@ inline void constituent_learned_encode(Model&m,int r,ContentEvent&out,Constituen
 #ifdef SHOEBOX_CONTRIBUTION_CHECKS
   if(contribution_apply(m,CHECK_CONTENT_EXPERT,r))encode=false;
 #endif
-  if(encode)content_expert_encode(m,r,node,published.structure,gain,expert);
+  int selected=encode?content_expert_encode(m,r,node,published.structure,gain,expert):0;
   for(int j=0;j<D;j++){
     float payload=node.payload[j],value=0;
     for(int k=0;k<8;k++)value+=m.composition.symbols[r-2][j][k]*node.features[k];
@@ -63,11 +63,13 @@ inline void constituent_learned_encode(Model&m,int r,ContentEvent&out,Constituen
     node.derivative[j]=published.symbol_derivative[j]=muted?0:.25f*(1-residual*residual);
     node.payload[j]=payload;node.payload_derivative[j]=gain*(1-payload*payload);
   }
-  event_register(m,node);
+  if(m.forward_only){auto&v=out.edit_forward();v.encoder=node.encoder;v.expert=selected;}
+  else event_register(m,node);
 }
 inline void constituent_encode(Model&m,int r,ContentEvent&out,const ContentEvent*parts,int n,bool binding,bool descriptor=false){
-  auto&s=m.composition.stream;int index=constituent_allocate(m,r,parts,n);
-  auto&node=constituent_slot(m,index);node=ConstituentRecord{};
+  auto&s=m.composition.stream;int index=m.forward_only?-1:constituent_allocate(m,r,parts,n);
+  ConstituentRecord transient{};
+  auto&node=m.forward_only?transient:constituent_slot(m,index);node=ConstituentRecord{};
   if(size_t(index)<m.content_records.size())m.content_records[index]=ContentExpertRecord{};
   if(size_t(index)<m.pattern.assignments.size())m.pattern.assignments[index]=PatternAssignment{};
   node.ref={++s.semantic_serial,r,index};out.semantic=node.ref;
@@ -84,7 +86,7 @@ inline void constituent_encode(Model&m,int r,ContentEvent&out,const ContentEvent
 #endif
     const auto&cached=publication_role(m,slot,child);
     for(int j=0;j<D;j++)raw[j]+=weight*constituent_sign(m,slot,j)*cached.delta[j];
-    if(weight&&child.semantic.serial)node.edges[node.count++]={child.semantic,child.ref,slot,weight};
+    if(!m.forward_only&&weight&&child.semantic.serial)node.edges[node.count++]={child.semantic,child.ref,slot,weight};
   }
   if(descriptor){
     // No local parameters or expert selection. Preserve the exact child DAG
@@ -94,7 +96,8 @@ inline void constituent_encode(Model&m,int r,ContentEvent&out,const ContentEvent
       published.code[j]=published.structure[j]+raw[j];
       node.payload[j]=raw[j];node.derivative[j]=node.payload_derivative[j]=1.f;
     }
-    event_register(m,node);return;
+    if(m.forward_only){auto&v=out.edit_forward();v.encoder=2;memcpy(v.frame_payload,raw,sizeof(raw));}
+    else event_register(m,node);return;
   }
   constituent_learned_encode(m,r,out,node,raw);
 }
@@ -102,6 +105,15 @@ inline void constituent_encode(Model&m,int r,ContentEvent&out,const ContentEvent
 // immutable descriptor into a new learned producer and use the saved role sum;
 // do not invent a one-child temporal wrapper or classify the same binding twice.
 inline ContentEvent constituent_complete_frame(Model&m,int r,const ContentEvent&frame){
+  if(m.forward_only){
+    if(!frame.forward||frame.forward->encoder!=2)throw std::runtime_error("Missing forward frame descriptor");
+    ContentEvent out=frame;ConstituentRecord node{};
+    node.ref={++m.composition.stream.semantic_serial,r,-1};out.semantic=node.ref;out.ref.seq=0;
+    memcpy(node.features,out.values().symbol_features,sizeof(node.features));
+    constituent_learned_encode(m,r,out,node,frame.forward->frame_payload);
+    if(out.forward->has_pattern)out.edit_forward().pattern.ref=node.ref;
+    return out;
+  }
   auto*source=constituent_record(m,frame.semantic);
   if(!source||source->encoder!=2)throw std::runtime_error("Missing lightweight frame producer");
   ConstituentRecord saved=*source;PatternAssignment assignment{};

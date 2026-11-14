@@ -35,6 +35,7 @@ size_t composition_state_size(void*p=nullptr){
   return sizeof(CompositionCheckpoint);
 }
 size_t composition_fitted_size(){return offsetof(CompositionRuntime,stream);}
+void composition_export_fitted(void*p,void*out){memcpy(out,&static_cast<Model*>(p)->composition,composition_fitted_size());}
 void composition_export(void*p,void*out){
   auto&m=*static_cast<Model*>(p);
 #ifdef SHOEBOX_LEARNED_COMPLETION
@@ -100,7 +101,11 @@ int composition_finish(void*p,int mode,float lr,float lp,float route){
 #ifdef SHOEBOX_CONTRIBUTION_CHECKS
   if(mode)return 0;
 #endif
-  auto&m=*static_cast<Model*>(p);if(!m.composition.enabled)return 1;
+  auto&m=*static_cast<Model*>(p);
+#ifdef SHOEBOX_LEARNED_COMPLETION
+  if(m.forward_only&&mode)return 0;
+#endif
+  if(!m.composition.enabled)return 1;
   if(mode<0||mode>6||mode==5)return 0;
   auto&z=m.composition.stream;z.draining=1;unsigned char byte=0;float unused=0;
   int passes=0;

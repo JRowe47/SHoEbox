@@ -34,9 +34,12 @@ def build():
             subprocess.run(['g++','-O3','-march=native','-std=c++17','-pthread',f'-DSHOEBOX_EXPERTS={core.E}',*FLAGS,'-shared','-fPIC',str(source),'-o',str(tmp)],check=True)
             os.replace(tmp,lib)
     return lib
-class Model(parent.Model):
+from inference import InferenceMixin
+
+class Model(InferenceMixin,parent.Model):
     def __init__(self,*args,utility=None,kernel=None,teaching=None,regional_gains=None,frozen_regions=None,task_route_lr_scale=1.,a1_learning=None,f3_task_route_gain=1.,exploration=None,traffic=None,composition=None,messages=None,local_credit=None,content_experts=None,pattern_classes=None,paired_memory=None,reverse=None,event=None,bank_pipeline=False,bank_epochs=None,prediction=None,frames=None,**kwargs):
         global KERNEL
+        self.forward_only=False
         with _CONSTRUCTION_LOCK:
             previous=KERNEL
             try:
@@ -651,43 +654,43 @@ class Model(parent.Model):
         completion=self.runtime_kernel in COMPLETION_KERNELS and self.composition['enabled']
         reference=completion and all(all(getattr(self,group).get(k)==v for k,v in policy.items())
             for group,policy in settings_for(core.E).items()) and self.messages==MESSAGE_DEFAULT and self.local_credit and self.content_experts and self.pattern_classes and self.paired_memory
-        return dict(kernel=self.runtime_kernel,inline_diagnostics=self.inline_diagnostics_enabled(),reference_profile='sparse-epochs-v1' if self.bank_epochs is not None else 'lightweight-frames-v1' if self.lightweight_frames() else 'compact-y-v1' if self.prediction_enabled() else 'pipeline-v1' if self.bank_pipeline else 'event-v1' if self.event_enabled() else REFERENCE_PROFILE if reference else 'custom' if completion else None,
-            checkpoint_version=46 if self.bank_epochs is not None else 45 if self.lightweight_frames() else 44 if self.prediction_enabled() else 43 if self.bank_pipeline else 41 if self.event_enabled() else 40 if self.runtime_kernel in COMPLETION_KERNELS else None,
+        return dict(kernel=self.runtime_kernel,inline_diagnostics=self.inline_diagnostics_enabled(),runtime='forward-only-v1' if self.forward_only else 'training',reference_profile='forward-only-v1' if self.forward_only else 'sparse-epochs-v1' if self.bank_epochs is not None else 'lightweight-frames-v1' if self.lightweight_frames() else 'compact-y-v1' if self.prediction_enabled() else 'pipeline-v1' if self.bank_pipeline else 'event-v1' if self.event_enabled() else REFERENCE_PROFILE if reference else 'custom' if completion else None,
+            checkpoint_version=47 if self.forward_only else 46 if self.bank_epochs is not None else 45 if self.lightweight_frames() else 44 if self.prediction_enabled() else 43 if self.bank_pipeline else 41 if self.event_enabled() else 40 if self.runtime_kernel in COMPLETION_KERNELS else None,
             reverse_learning=dict(self.reverse),event_learning=dict(self.event),prediction=dict(self.prediction),frames=self.frames,
-            bank_pipeline=dict(enabled=self.bank_pipeline,delay_bytes=(self.bank_epochs["epoch_bytes"]*self.bank_epochs["lag_epochs"] if self.bank_epochs is not None else 1) if self.bank_pipeline else 0,epoch_policy=self.bank_epochs,scope="content bank factors only",workers=self.pipeline_metrics().get("workers",1)),
-            prediction_features=dict(compact_event_forecast=completion and self.prediction['compact'],
+            bank_pipeline=dict(enabled=self.bank_pipeline and not self.forward_only,delay_bytes=(self.bank_epochs["epoch_bytes"]*self.bank_epochs["lag_epochs"] if self.bank_epochs is not None else 1) if self.bank_pipeline else 0,epoch_policy=self.bank_epochs,scope="content bank factors only",workers=self.pipeline_metrics().get("workers",1)),
+            prediction_features=dict(compact_event_forecast=not self.forward_only and completion and self.prediction['compact'],
                 fast_slow_y=completion and self.prediction['slow_stride']>1),
             event_features=dict(small_head_minkron=completion and self.event['context_heads']>0,
-                local_event_learning=completion and self.event['learning']=='local',
-                directional_delayed_credit=completion and self.event['learning']=='local' and self.event['credit_lr']>0,
-                full_ancestry_credit=completion and self.event['learning']=='ancestry'),
+                local_event_learning=not self.forward_only and completion and self.event['learning']=='local',
+                directional_delayed_credit=not self.forward_only and completion and self.event['learning']=='local' and self.event['credit_lr']>0,
+                full_ancestry_credit=not self.forward_only and completion and self.event['learning']=='ancestry'),
             composition_abi=10 if self.runtime_kernel in COMPLETION_KERNELS else None,
             features=dict(multi_source_binding=self.composition['enabled'] and self.runtime_kernel in ('binding','semantics','semantics_fixed',*RELAY_KERNELS),
                 relay_provenance=self.runtime_kernel in RELAY_KERNELS and self.composition['enabled'],
                 learned_completion=completion,primary_occurrence_clock=completion,
-                retained_neural_producers=completion,
+                retained_neural_producers=not self.forward_only and completion,
                 acceptance_observations=completion,
-                local_neural_prediction_credit=completion and self.local_credit and self.lace['depth']>0,
+                local_neural_prediction_credit=not self.forward_only and completion and self.local_credit and self.lace['depth']>0,
                 expert_constituent_content=completion and self.content_experts,
                 reusable_pattern_classes=completion and self.pattern_classes,
                 class_predictive_completion=completion and self.pattern_classes,
                 paired_episodic_memory=completion and self.paired_memory,
-                union_reverse=completion and self.reverse["policy"]=="union",
+                union_reverse=not self.forward_only and completion and self.reverse["policy"]=="union",
 
                 recursive_constituent_content=completion and self.messages['payload_gain']>0,
-                semantic_credit=self.composition['enabled'] and self.messages['semantic_lr']>0,
+                semantic_credit=not self.forward_only and self.composition['enabled'] and self.messages['semantic_lr']>0,
                 feedback_activation=self.composition['enabled'] and self.messages['feedback_activation']>0,
                 feedback_routing=self.composition['enabled'] and self.messages['feedback_routing']>0 and not self.event['context_heads'],
-                lace_credit=self.lace['depth']>0,retained_input_credit=self.composition['enabled'] and self.lace['depth']>0 and not self.event['context_heads'],
+                lace_credit=not self.forward_only and self.lace['depth']>0,retained_input_credit=not self.forward_only and self.composition['enabled'] and self.lace['depth']>0 and not self.event['context_heads'],
                 learned_bottom_state=bool(self.state_config['enabled']),
                 bottom_task_routing=self.state_config['task_gain']>0,
-                prototype_ema=bool(self.state_config['ema']),prototype_revival=self.state_config['revive_every']>0,
+                prototype_ema=not self.forward_only and bool(self.state_config['ema']),prototype_revival=not self.forward_only and self.state_config['revive_every']>0,
                 ec_content_recall=bool(self.config['port'] and self.config['gain'] and not self.config['no_returns']),
                 ec_context_recall=bool(self.config['port'] and self.config['gain'] and not self.config['no_returns']),
-                memory_key_trace=self.config['key_mix']>0,direct_feedback_alignment=self.lace['dfa_gain']>0,
-                residual_a1_objective=self.utility['residual']>0,local_innovation_objective=self.utility['innovation']>0,
-                full_temporal_credit=self.state_config['credit_stride']==1 and self.state_config['temporal_features']==64,
-                full_deep_credit=self.lace['deep_stride']==1 and self.lace['credit_features']==64),
+                memory_key_trace=self.config['key_mix']>0,direct_feedback_alignment=not self.forward_only and self.lace['dfa_gain']>0,
+                residual_a1_objective=not self.forward_only and self.utility['residual']>0,local_innovation_objective=not self.forward_only and self.utility['innovation']>0,
+                full_temporal_credit=not self.forward_only and self.state_config['credit_stride']==1 and self.state_config['temporal_features']==64,
+                full_deep_credit=not self.forward_only and self.lace['deep_stride']==1 and self.lace['credit_features']==64),
             unavailable_experiment_controls=['exploration','traffic_bias','ec_activation','gate_bias','path_prototypes','precision','boundary_policy','f3_task_multiplier'] if completion else [],
             inactive_legacy_controls=['port_mode','port_gain','balance','route_mode','center_rate','nominal_cadence'] if completion else [],
             semantic_credit_capacity=self.completion_capacity(),
@@ -699,6 +702,10 @@ class Model(parent.Model):
         self.lib.composition_state_size.argtypes=[ct.c_void_p]
         self.lib.composition_fitted_size.restype=ct.c_size_t
         self.lib.composition_export.argtypes=[ct.c_void_p,ct.c_void_p]
+        if fitted and hasattr(self.lib,'composition_export_fitted'):
+            a=np.zeros(self.lib.composition_fitted_size(),np.uint8)
+            self.lib.composition_export_fitted.argtypes=[ct.c_void_p,ct.c_void_p]
+            self.lib.composition_export_fitted(self.handle,a.ctypes.data);return a
         a=np.zeros(self.lib.composition_state_size(self.handle),np.uint8);self.lib.composition_export(self.handle,a.ctypes.data)
         return a[:self.lib.composition_fitted_size()].copy() if fitted else a
     def import_composition(self,state,fitted=False):
@@ -757,6 +764,7 @@ class Model(parent.Model):
         self.lib.binding_role_status(self.handle,a.ctypes.data)
         return {name:dict(present=int(a[r,0]),fresh=int(a[r,1]),kind=int(a[r,2])) for r,name in enumerate(core.NAMES)}
     def finish_document(self,mode='eval',lr=.12,lp=.04,route=.002,reset=False):
+        if self.forward_only and mode!='eval':raise ValueError('Forward-only runtime cannot train; call resume_training(reset_context=True)')
         if self.runtime_kernel in DIAGNOSTIC_KERNELS and mode!='eval':raise ValueError('Contribution checks cannot train at document boundaries')
         if self.composition['enabled']:
             if mode not in core.MODES or mode=='spatial':raise ValueError('Unsupported composition training mode')
@@ -768,6 +776,7 @@ class Model(parent.Model):
         if self.runtime_kernel in DIAGNOSTIC_KERNELS and value!=0:raise ValueError('Use configure_contribution on a fresh diagnostic copy')
         return super().ablate(value)
     def run(self,x,y=None,mode='eval',lr=.12,lp=.04,route=.002,logits=False):
+        if self.forward_only and mode!='eval':raise ValueError('Forward-only runtime cannot train; call resume_training(reset_context=True)')
         if self.runtime_kernel in DIAGNOSTIC_KERNELS and (mode!='eval' or not self.composition['enabled']):
             raise ValueError('Contribution checks require evaluation with composition enabled')
         if self.composition['enabled'] and mode=='spatial':raise ValueError('Legacy spatial mode has no event/state credit; use periodic or hybrid')
@@ -868,6 +877,7 @@ class Model(parent.Model):
         if hasattr(self.lib,'r05_metrics_import'):
             self.lib.r05_metrics_import.argtypes=[ct.c_void_p,ct.c_void_p];self.lib.r05_metrics_import(self.handle,a.ctypes.data)
     def boundary(self,lr=0.,train=False):
+        if self.forward_only and train:raise ValueError('Forward-only runtime cannot train')
         self.lib.r05_boundary.argtypes=[ct.c_void_p,ct.c_float,ct.c_int];self.lib.r05_boundary.restype=ct.c_int
         assert self.lib.r05_boundary(self.handle,float(lr),int(train)), 'undrained boundary credit'
     def configure_f3_task_route(self,gain=1.):
@@ -1084,6 +1094,7 @@ class Model(parent.Model):
         names=('publications','neural_executions','span_sum','max_span','intervention_applications')
         return {name:{**dict(zip(names,map(int,a[r]))),'event_hash':f'{int(h[r]):016x}'} for r,name in enumerate(core.NAMES)}
     def snapshot_copy(self):
+        if self.forward_only:return type(self)._load_inference_arrays(self._inference_arrays())
         if self.runtime_kernel in DIAGNOSTIC_KERNELS:raise ValueError('Diagnostic copies cannot be resumed; start from the original checkpoint')
         # Own every mutable array before dispatching an immutable snapshot.
         m=Model(config=self.config,params=core.unflatten(self.flat.copy()),fixed={k:v.copy() for k,v in self.fixed.items()},lace=self.lace,state_config=self.state_config,extra=self.extra_flat.copy(),probe=self.probe,utility=self.utility,kernel=self.runtime_kernel,teaching=self.teaching,regional_gains=self.regional_gains,frozen_regions=self.frozen_regions,task_route_lr_scale=self.task_route_lr_scale,a1_learning=self.a1_learning,f3_task_route_gain=self.f3_task_route_gain,exploration=self.exploration,traffic=self.traffic,composition=self.composition,messages=self.messages,local_credit=self.local_credit,content_experts=self.content_experts,pattern_classes=self.pattern_classes,paired_memory=self.paired_memory,reverse=self.reverse,event=self.event,bank_pipeline=self.bank_pipeline,bank_epochs=self.bank_epochs,prediction=self.prediction,frames=self.frames)
@@ -1116,6 +1127,7 @@ class Model(parent.Model):
         if not np.array_equal(self.a1_learning_array,A1_DEFAULT):digest=hashlib.sha256(digest.encode()+self.a1_learning_array.tobytes()).hexdigest()
         return digest
     def fingerprint(self):
+        if self.forward_only:return self._inference_fingerprint()
         digest=self.base_fingerprint()
         if self.neural_state().size:digest=hashlib.sha256(digest.encode()+self.neural_state().tobytes()).hexdigest()
         if self.runtime_kernel in COMPLETION_KERNELS:digest=hashlib.sha256(digest.encode()+bytes([self.local_credit,self.content_experts,self.pattern_classes,self.paired_memory])+self.content_expert_state().tobytes()+self.pattern_state().tobytes()+self.paired_memory_state().tobytes()).hexdigest()
@@ -1138,6 +1150,9 @@ class Model(parent.Model):
         if self.prediction_enabled():digest=hashlib.sha256(digest.encode()+json.dumps(self.prediction,sort_keys=True).encode()+self.prediction_state().tobytes()).hexdigest()
         return digest
     def save(self,path):
+        if self.forward_only:
+            if self.runtime_kernel!='completion':raise ValueError('Only production inference can be saved')
+            parent.legacy.base.atomic_checkpoint(path,**self._inference_arrays());return
         if self.runtime_kernel in DIAGNOSTIC_KERNELS:raise ValueError('Evaluation interventions cannot be saved as training checkpoints')
         parent.legacy.base.atomic_checkpoint(path,flat=self.flat,extra=self.extra_flat,state=parent.legacy.base.state(self),lace_state=self.lace_state(),learned_state=self.learned_state(),probe_state=self.probe_state(),utility_state=self.utility_state(),
             version=np.array([46 if self.bank_epochs is not None else 45 if self.lightweight_frames() else 44 if self.prediction_enabled() else 43 if self.bank_pipeline else 41 if self.runtime_kernel=="completion" and self.event_enabled() else 40 if self.runtime_kernel=="completion" else 32 if self.runtime_kernel=="messages" else 31 if self.runtime_kernel=="relays" else 30 if self.runtime_kernel.startswith("semantics") else 29 if self.runtime_kernel=="binding" else 28 if self.runtime_kernel=="composition" else 27 if self.runtime_kernel.startswith("r05") else 26 if self.runtime_kernel.startswith("r04") else 25 if self.runtime_kernel.startswith("r03") else 24 if self.runtime_kernel.startswith("r02") and (self.activation_policy()["enabled"] or self.gate_bias_policy()["enabled"]) else 23 if self.gate_bias_policy()["enabled"] else 21 if self.traffic['enabled'] else (20 if self.retention_policy() else 19)],np.int32),experts=np.array([core.E],np.int32),config_json=np.array(json.dumps(self.config)),lace_json=np.array(json.dumps(self.lace)),state_config_json=np.array(json.dumps(self.state_config)),probe_json=np.array(json.dumps(self.probe)),utility_json=np.array(json.dumps(self.utility)),teaching_scales=self.teaching,regional_gains=self.regional_gains,frozen_regions=self.frozen_regions,task_route_lr_scale=np.array(self.task_route_lr_scale,np.float32),a1_learning_scales=self.a1_learning_array,f3_task_route_gain=np.array(self.f3_task_route_gain,np.float32),exploration_json=np.array(json.dumps(self.exploration)),traffic_json=np.array(json.dumps(self.traffic)),traffic_state=self.traffic_state(),
@@ -1159,6 +1174,7 @@ class Model(parent.Model):
     @classmethod
     def load(cls,path):
         with np.load(path,allow_pickle=False) as a:
+            if int(a['version'][0])==47:return cls._load_inference_arrays(a)
             if int(a['version'][0])==33:
                 raise ValueError('Version-33 completion uses coverage clocks; convert_to_completion.py starts a fresh stream with primary clocks')
             if int(a['version'][0])==34:

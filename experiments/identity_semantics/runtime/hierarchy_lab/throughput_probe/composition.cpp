@@ -14,6 +14,7 @@
 #include <memory>
 #include <memory_resource>
 #include <utility>
+#include <type_traits>
 #include <stdexcept>
 #include <immintrin.h>
 #ifndef SHOEBOX_EXPERTS
@@ -154,8 +155,10 @@ struct Model {
   CompositionRuntime composition;
 #ifdef SHOEBOX_LEARNED_COMPLETION
   // Transient workspace, excluded from checkpoint state and model parameters.
-  uint64_t semantic_mark[SEM_RING]{},semantic_work_serial=0;
-  float semantic_gradient[SEM_RING][D]{};
+  LazyRecordArray<uint64_t,SEM_RING> semantic_mark;
+  uint64_t semantic_work_serial=0;
+  LazyRecordArray<std::array<float,D>,SEM_RING> semantic_gradient;
+  bool forward_only=false;
   // Grow only when every collected record is still reachable. Reference
   // semantics never overwrite live ancestry to meet a fixed memory budget.
   std::vector<ConstituentRecord> semantic_overflow;
@@ -839,7 +842,17 @@ inline void initialize_learned(Model&m){
 }
 inline void publish_state(Model&m,int r,float response_gate,int runner=0){
   if(r>=2||!bottom_enabled(m))return;
-  auto&s=m.s;auto&z=m.learned;auto&v=z.records[r][s.tick&(TEMP_RING-1)];
+  auto&s=m.s;auto&z=m.learned;
+#ifdef SHOEBOX_LEARNED_COMPLETION
+  if(m.forward_only){
+    if(m.scfg[0]>0)for(int j=0;j<D;j++){
+      float gate=1.f/(1.f+std::exp(-std::clamp(state_parameter(m,r,1)[j]*s.mem[r][j]+state_parameter(m,r,2)[j],-8.f,8.f)));
+      z.memory[r][j]=(1-gate)*z.memory[r][j]+gate*s.h[r][j];
+    }
+    return;
+  }
+#endif
+  auto&v=z.records[r][s.tick&(TEMP_RING-1)];
   memset(&v,0,sizeof(v));v.tick=s.tick;v.expert=s.chosen[r];v.generation=z.generation[r][v.expert];
   v.runner=runner;v.runner_generation=z.generation[r][runner];
   v.response_gate=response_gate;v.input_mask=feature_mask(s.u[r],int(m.scfg[7]));
@@ -1144,6 +1157,7 @@ double run(void*p,const unsigned char*x,const unsigned char*y,int length,int mod
 #endif
   Model&m=*static_cast<Model*>(p);State&s=m.s;double loss=0;ContentEvent composed{},parts[COMP_MAX]{};m.refresh_keys();m.cached_read_valid[0]=m.cached_read_valid[1]=false;
 #ifdef SHOEBOX_LEARNED_COMPLETION
+  if(m.forward_only&&mode)return NAN;
   ContentWorkerScope worker_scope(m);
   execution_begin_run(m);
   m.event.training=mode!=0&&mode!=4;m.event.rates[0]=lr;m.event.rates[1]=lp;
@@ -1153,7 +1167,7 @@ double run(void*p,const unsigned char*x,const unsigned char*y,int length,int mod
     if(mode)reverse_begin_epoch(m);
     // Collect only between byte steps: stack-held snapshots/parts stay owned
     // throughout a step. Cadence uses the saved clock, not API chunk boundaries.
-    if(s.tick%64==0)neural_collect(m);
+    if(!m.forward_only&&s.tick%64==0)neural_collect(m);
 #endif
     s.tick++;if(!m.composition.stream.draining)m.composition.stream.byte_position++;float snapshot_storage[N][D];const float*snapshot[N];
 #ifdef SHOEBOX_LEARNED_COMPLETION
@@ -1161,6 +1175,9 @@ double run(void*p,const unsigned char*x,const unsigned char*y,int length,int mod
 #endif
     int valid[N];int64_t snapshot_tick[N]{};int snapshot_index[N]{},snapshot_region[N]{};
     bool tracing=m.composition.enabled||m.lcfg[0]>0||m.lcfg[2]<D||m.lcfg[3]>0;
+#ifdef SHOEBOX_LEARNED_COMPLETION
+    tracing=tracing&&!m.forward_only;
+#endif
     for(int r=0;r<N;r++){
 #ifdef SHOEBOX_LEARNED_COMPLETION
       if(m.composition.enabled&&m.composition.stream.history[r][0].contextual){
@@ -1418,6 +1435,7 @@ double run(void*p,const unsigned char*x,const unsigned char*y,int length,int mod
       float scores[E]{};
       if(!small_context)router_scores(m,r,routing,indices,nindices,scores);
 #ifdef SHOEBOX_LEARNED_COMPLETION
+      else if(m.forward_only){if(composed.forward)best=composed.forward->expert;}
       else if(auto*content=content_expert_record(m,composed.semantic))best=content->expert;
 #endif
       if(!small_context)for(int e=0;e<E;e++){
@@ -1535,6 +1553,10 @@ double run(void*p,const unsigned char*x,const unsigned char*y,int length,int mod
         if(r==15||r==16){memcpy(v.returned,s.returned[r-15],D*sizeof(float));v.recall_slot=s.recall_slot[r-15];v.recall_birth=s.return_birth[r-15];}
         SHOEBOX_DIAGNOSTIC(m.laces.metrics[r][0]++;)SHOEBOX_DIAGNOSTIC(m.laces.metrics[r][6]+=__builtin_popcountll(prior&v.feature_mask)/16.;)
       }
+#ifdef SHOEBOX_LEARNED_COMPLETION
+      // Keep occurrence index clocks without manufacturing an eligibility row.
+      if(m.forward_only)m.laces.cursor[r]=(m.laces.cursor[r]+1)&(LACE_RING-1);
+#endif
       memcpy(s.hist[r][1],s.hist[r][0],D*sizeof(float));memcpy(s.hist[r][0],s.h[r],D*sizeof(float));s.valid[r]++;
       if(m.composition.enabled){if(r<2)content_atom(m,r,x[t]);else if(nparts&&(r!=17||composed.ref.seq==0))content_publish(m,r,composed);}
 #ifdef SHOEBOX_LEARNED_COMPLETION
@@ -1802,6 +1824,7 @@ extern "C" void check_masks(const float*input,uint64_t*out,int n,int k,int metho
 #ifdef SHOEBOX_LEARNED_COMPLETION
 #include "bank_pipeline_api.inc"
 #include "memory_inspection.inc"
+#include "inference_api.inc"
 #endif
 
 extern "C" int inline_diagnostics_enabled(){return SHOEBOX_INLINE_DIAGNOSTICS;}

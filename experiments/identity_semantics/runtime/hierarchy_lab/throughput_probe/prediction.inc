@@ -79,6 +79,11 @@ inline void prediction_begin_step(Model&m,int mode,float rate){
   }
 }
 inline void prediction_slow_publish(Model&m){
+  if(m.forward_only){
+    auto&z=m.prediction;float response[D];prediction_pool(m.s.h[17],response,z.rank);
+    prediction_expand(response,z.stream.slow,z.rank);
+    z.stream.slow_tick=m.s.tick;z.stream.slow_byte=m.composition.stream.byte_position;return;
+  }
   auto*v=current_lace(m,17);if(!v)return;auto&z=m.prediction;auto&s=z.stream;
   const auto&view=prediction_view(m,17,*v);
   prediction_expand(view.response,s.slow,z.rank);

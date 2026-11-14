@@ -86,6 +86,12 @@ Serial and worker execution follow the same schedule. See the
 [policy and API](experiments/identity_semantics/BANK_EPOCH_POLICY.md) and
 [qualification report](experiments/identity_semantics/deliverables/SHoEbox_Action6_Sparse_Bank_Epochs.md).
 
+Development-plan Action 7 adds an explicit [forward-only runtime](experiments/identity_semantics/INFERENCE_POLICY.md).
+Use `model.inference_copy(memory="warm_frozen")` for an independent inference
+stream, or `model.enter_inference()` to drain materialized work and continue the
+current prefix without derivative archives. Version-47 checkpoints preserve
+inference; `resume_training(reset_context=True)` starts new eligibility.
+
 [Current implementation and usage](experiments/identity_semantics/README.md) |
 [MinKron and event learning](experiments/identity_semantics/deliverables/SHoEbox_Structural_Optimization_Stage5.md) |
 [Union reverse and bank epochs](experiments/identity_semantics/deliverables/SHoEbox_Structural_Optimization_Stage4.md) |

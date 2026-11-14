@@ -1,6 +1,6 @@
 inline int content_coord(int,int);
 inline float content_sign(int,int);
-inline int constituent_capacity(const Model&m){return SEM_RING+int(m.semantic_overflow.size());}
+inline int constituent_capacity(const Model&m){return m.forward_only?0:SEM_RING+int(m.semantic_overflow.size());}
 inline ConstituentRecord& constituent_slot(Model&m,int index){
   return index<SEM_RING?m.composition.stream.semantic_records[index]:m.semantic_overflow[index-SEM_RING];
 }
@@ -8,7 +8,7 @@ inline uint64_t& constituent_mark(Model&m,int index){
   return index<SEM_RING?m.semantic_mark[index]:m.semantic_overflow_mark[index-SEM_RING];
 }
 inline float* constituent_gradient(Model&m,int index){
-  return index<SEM_RING?m.semantic_gradient[index]:m.semantic_overflow_gradient[index-SEM_RING].data();
+  return index<SEM_RING?m.semantic_gradient[index].data():m.semantic_overflow_gradient[index-SEM_RING].data();
 }
 inline void constituent_resize(Model&m,size_t overflow){
   m.semantic_overflow.resize(overflow);m.semantic_overflow_mark.resize(overflow);

@@ -16,7 +16,7 @@ static_assert(sizeof(LegacyMessageInput)==4368 && sizeof(LegacyInputCredit)==548
               "Historical completion checkpoint layout changed");
 static_assert(sizeof(ContentEventWire)==1960,"Historical publication layout changed");
 static_assert(offsetof(CompositionRuntime,stream)==offsetof(CompositionCheckpoint,stream));
-static_assert(offsetof(CompositionStream,history)==offsetof(CompositionCheckpointStream,history));
+static_assert(offsetof(CompositionStream,semantic_records)==offsetof(CompositionCheckpointStream,semantic_records));
 
 template<class Target,class Source> inline void completion_copy_input(Target&to,const Source&from){
   to.tick=from.tick;to.previous_tick=from.previous_tick;
@@ -45,8 +45,13 @@ template<class Target,class Source> inline void copy_publication(Target&to,const
 }
 inline void completion_export_storage(const CompositionRuntime&source,void*data){
   auto&wire=*static_cast<CompositionCheckpoint*>(data);
-  constexpr size_t prefix=offsetof(CompositionRuntime,stream)+offsetof(CompositionStream,history);
+  constexpr size_t prefix=offsetof(CompositionRuntime,stream)+offsetof(CompositionStream,semantic_records);
   memcpy(&wire,&source,prefix);
+  if(source.stream.semantic_records.data())memcpy(wire.stream.semantic_records.data(),source.stream.semantic_records.data(),sizeof(wire.stream.semantic_records));
+  else memset(wire.stream.semantic_records.data(),0,sizeof(wire.stream.semantic_records));
+  constexpr size_t observations=offsetof(CompositionStream,history)-offsetof(CompositionStream,completion_metrics);
+  static_assert(observations==offsetof(CompositionCheckpointStream,history)-offsetof(CompositionCheckpointStream,completion_metrics));
+  memcpy(wire.stream.completion_metrics,source.stream.completion_metrics,observations);
   for(int r=0;r<N;r++){
     for(int i=0;i<2;i++)copy_publication(wire.stream.history[r][i],source.stream.history[r][i]);
     for(int i=0;i<COMP_MAX;i++)copy_publication(wire.stream.pending[r][i],source.stream.pending[r][i]);
@@ -63,8 +68,11 @@ inline void completion_export_storage(const CompositionRuntime&source,void*data)
   memcpy(&wire.stream.metrics,&source.stream.metrics,suffix);
 }
 inline void completion_import_storage(CompositionRuntime&target,const CompositionCheckpoint&source){
-  constexpr size_t prefix=offsetof(CompositionRuntime,stream)+offsetof(CompositionStream,history);
+  constexpr size_t prefix=offsetof(CompositionRuntime,stream)+offsetof(CompositionStream,semantic_records);
   memcpy(&target,&source,prefix);
+  memcpy(target.stream.semantic_records.data(),source.stream.semantic_records.data(),sizeof(source.stream.semantic_records));
+  constexpr size_t observations=offsetof(CompositionStream,history)-offsetof(CompositionStream,completion_metrics);
+  memcpy(target.stream.completion_metrics,source.stream.completion_metrics,observations);
   // Intern identical payloads from expanded old checkpoints. Compare bytes as
   // well as identity: equal structural IDs can carry different learned codes.
   std::vector<std::shared_ptr<PublicationPayload>> payloads;

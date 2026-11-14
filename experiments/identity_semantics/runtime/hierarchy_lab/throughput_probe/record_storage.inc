@@ -4,6 +4,17 @@
 inline std::pmr::synchronized_pool_resource& record_pool(){
   static std::pmr::synchronized_pool_resource pool;return pool;
 }
+// The training slab is absent until first use, and can be released when a
+// stream permanently drops its derivative history. Wire arrays stay fixed.
+template<class T,size_t Count> struct LazyRecordArray {
+  std::unique_ptr<T[]> storage;
+  T* data(){if(!storage)storage=std::make_unique<T[]>(Count);return storage.get();}
+  const T* data()const{return storage.get();}
+  T& operator[](size_t i){return data()[i];}
+  const T& operator[](size_t i)const{static const T zero{};return storage?storage[i]:zero;}
+  void release(){storage.reset();}
+  size_t bytes()const{return storage?Count*sizeof(T):0;}
+};
 template<class T> struct RecordArchive:std::pmr::map<int64_t,T>{
   explicit RecordArchive(std::pmr::memory_resource*pool=&record_pool()):std::pmr::map<int64_t,T>(pool){}
 };
@@ -37,10 +48,12 @@ public:
   BoundedRecordPool()=default;
   BoundedRecordPool(const BoundedRecordPool&)=delete;
   size_t reserved_bytes()const{size_t n=0;for(const auto&bin:bins)n+=bin.count*bin.bytes;return n;}
-  ~BoundedRecordPool(){
+  void release(){
     for(auto&bin:bins)while(bin.head){void*p=bin.head;bin.head=*static_cast<void**>(p);
       std::pmr::new_delete_resource()->deallocate(p,bin.bytes,bin.alignment);}
+    bins.clear();
   }
+  ~BoundedRecordPool(){release();}
 };
 template<class T,class...Args> inline std::shared_ptr<T> publication_allocate(Args&&...args){
   return std::allocate_shared<T>(std::pmr::polymorphic_allocator<T>(&record_pool()),std::forward<Args>(args)...);

@@ -1,5 +1,36 @@
 # SHoEbox handoff
 
+## 2026-11-14 - Action 7 dedicated inference
+
+Implemented `forward-only-v1`, with explicit entry/resume boundaries and
+version-47 inference checkpoints. Publications retain the pattern/frame values
+needed for recognition and completion; derivative slabs, archives, replay and
+adjoint plans are omitted. Forward outputs and paired-memory behavior match
+frozen evaluation, including irregular chunks and autoregressive generation.
+
+At nominal 1M on the selected profile, natural-text inference reaches 7,451 B/s
+versus 5,083 B/s with frozen training storage (46.6% faster). Process RSS falls
+from 160.0 to 76.8 MiB (52.0% less). These are medians of three isolated runs;
+all output hashes and held-out losses match. This measures inference separately
+from the 15k B/s training target.
+
+The selected 5M natural-text cross-check reaches 6,823 versus 4,881 B/s
+(39.8% faster), with RSS falling from 175.4 to 92.3 MiB (47.4% less).
+
+Validation: 106 passing 1M tests, four 5M tests, native ASan/UBSan lifecycle
+checks and explicit v40/v45/v46 compatibility. Historical imports are exact;
+event-profile cross-build continuation has at most 3.82e-6 output drift over
+1,025 targets, with exact structural identities and clocks.
+
+Use `model.inference_copy(memory='warm_frozen')`, or `model.enter_inference()`
+after training. Return with `resume_training(reset_context=True)`; no missing
+eligibility is silently treated as successful credit. See the
+[policy](experiments/identity_semantics/INFERENCE_POLICY.md) and
+[report](experiments/identity_semantics/deliverables/SHoEbox_Action7_Forward_Only.md).
+Next: Action 8 resident GPU/stream batching and Action 9 longer multi-scale
+qualification and final training-profile selection.
+
+
 ## 2026-11-14 - Action 6 sparse bank epochs
 
 Implemented `sparse-epochs-v1`: selected-bank 1/4/8/16-step intervals,

@@ -1,9 +1,10 @@
 // Routing uses only this constituent's descriptor and learned child payload.
 // In particular, usage pressure, feedback, running means and recurrent memory
 // cannot choose or change its content transform at fixed parameters.
-inline void content_expert_encode(Model&m,int r,ConstituentRecord&node,const float*structure,float gain,float*out){
-  if(size_t(node.ref.index)>=m.content_records.size())m.content_records.resize(constituent_capacity(m));
-  auto&saved=m.content_records[node.ref.index];saved=ContentExpertRecord{};
+inline int content_expert_encode(Model&m,int r,ConstituentRecord&node,const float*structure,float gain,float*out){
+  if(!m.forward_only&&size_t(node.ref.index)>=m.content_records.size())m.content_records.resize(constituent_capacity(m));
+  ContentExpertRecord transient{};
+  auto&saved=m.forward_only?transient:m.content_records[node.ref.index];saved=ContentExpertRecord{};
   saved.ref=node.ref;node.encoder=1;
   for(int j=0;j<D;j++)saved.input[j]=structure[j]+gain*node.payload[j];
   int sparse=r>=int(m.lcfg[8])?int(m.lcfg[2]):D;
@@ -20,7 +21,7 @@ inline void content_expert_encode(Model&m,int r,ConstituentRecord&node,const flo
   if(m.lcfg[3]>0){
     float p=1.f/(1.f+std::exp(-(first-second)/m.lcfg[4]));
     saved.gate=2*p;saved.gate_derivative=2*p*(1-p)/m.lcfg[4];
-    for(int j=0;j<D;j++)if(saved.input_mask&(uint64_t(1)<<j))
+    if(!m.forward_only)for(int j=0;j<D;j++)if(saved.input_mask&(uint64_t(1)<<j))
       saved.route_derivative[j]=saved.gate_derivative*(m.read_keys()[(r*E+best)*D+j]-m.read_keys()[(r*E+runner)*D+j]);
   }
   const float*w=m.weight_bank(r*E+best),*b=m.read_bias()+(r*E+best)*D;
@@ -29,4 +30,5 @@ inline void content_expert_encode(Model&m,int r,ConstituentRecord&node,const flo
     out[i]=b[i]+saved.gate*saved.residual[i];
   }
   SHOEBOX_DIAGNOSTIC(m.content_expert_metrics[r][0]++;)
+  return best;
 }

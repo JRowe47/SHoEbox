@@ -15,10 +15,6 @@ struct PatternClass {
   PatternDescriptor prototype{};
   float next[D]{};
 };
-struct PatternAssignment {
-  SemanticRef ref{};uint64_t id=0;
-  float prediction[D]{}; // Saved role-aware target, independent of recurrent context.
-};
 struct PatternRuntime {
   bool enabled=true;
   uint64_t serial=0,clock[N]{};
