@@ -59,6 +59,7 @@ inline ConstituentRecord* constituent_record(Model&m,SemanticRef ref){
   return node.ref.serial==ref.serial?&node:nullptr;
 }
 inline void constituent_invalidate(Model&m){
+  m.semantic_retention.invalidate();
   m.semantic_free.clear();m.semantic_free_valid=false;
   m.content_input_cache.clear();m.constituent_work.clear();m.constituent_roles.clear();
   m.publication_roles.clear();memset(m.publication_cache_metrics,0,sizeof(m.publication_cache_metrics));

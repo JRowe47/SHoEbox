@@ -120,3 +120,15 @@ def memory_fingerprint(snapshot):
     digest.update(repr(snapshot.pipeline['header']).encode())
     for bank,value in sorted(snapshot.pipeline['banks'].items()):digest.update(str(bank).encode());digest.update(value.tobytes())
     return digest.hexdigest()
+
+
+def read_indexed_storage(model):
+    """Live sizes and reserved vector payload; excludes allocator/hash overhead."""
+    values=np.zeros(13,np.uint64)
+    model.lib.indexed_storage_status.argtypes=[ct.c_void_p,ct.c_void_p]
+    model.lib.indexed_storage_status(model.handle,values.ctypes.data)
+    fields=('context_heads','context_headers_bytes','context_head_bytes','context_reserved_head_bytes',
+            'context_records','legacy_context_bytes','neural_ownership_records','neural_workspace_bytes',
+            'semantic_workspace_bytes','semantic_owned_records','bytes_per_context_head','legacy_context_record_bytes',
+            'archive_free_bytes')
+    return dict(zip(fields,map(int,values)))

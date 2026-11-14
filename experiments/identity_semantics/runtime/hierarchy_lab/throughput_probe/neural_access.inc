@@ -1,7 +1,7 @@
 inline InputCredit* lace_input(Model&,int,const LaceRecord&);
 #ifdef SHOEBOX_LEARNED_COMPLETION
 inline void neural_invalidate(Model&m){
-  m.neural_index_valid=false;
+  m.neural_index_valid=false;m.neural_retention.invalidate();
   for(int r=0;r<N;r++){
     m.neural_index[r].clear();m.pending_neural[r].clear();m.pending_input[r].clear();
   }

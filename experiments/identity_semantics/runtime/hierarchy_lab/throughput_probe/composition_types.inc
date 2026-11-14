@@ -68,14 +68,14 @@ struct ContentEvent {
   std::shared_ptr<PublicationContext> contextual;
   const PublicationPayload&values()const{static const PublicationPayload zero{};return payload?*payload:zero;}
   PublicationPayload&edit_values(){
-    if(!payload)payload=std::make_shared<PublicationPayload>();
-    else if(!payload.unique())payload=std::make_shared<PublicationPayload>(*payload);
+    if(!payload)payload=publication_allocate<PublicationPayload>();
+    else if(!payload.unique())payload=publication_allocate<PublicationPayload>(*payload);
     return *payload;
   }
   const PublicationContext&context_data()const{static const PublicationContext zero{};return contextual?*contextual:zero;}
   PublicationContext&edit_context(){
-    if(!contextual)contextual=std::make_shared<PublicationContext>();
-    else if(!contextual.unique())contextual=std::make_shared<PublicationContext>(*contextual);
+    if(!contextual)contextual=publication_allocate<PublicationContext>();
+    else if(!contextual.unique())contextual=publication_allocate<PublicationContext>(*contextual);
     return *contextual;
   }
 };

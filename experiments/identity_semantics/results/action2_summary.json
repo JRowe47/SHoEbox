@@ -1,0 +1,393 @@
+{
+  "baseline_revision": "03d174b03c05c1697d7929666865c775a11cea12",
+  "implementation": "Action 2: indexed records and lean state",
+  "tests": {
+    "distinct_passed": 57,
+    "lifecycle": 37,
+    "production_and_protocol": 20,
+    "asan_ubsan": "passed",
+    "leak_detection": "disabled; LeakSanitizer unsupported under host tracing",
+    "legacy_checkpoints": {
+      "cases": 4,
+      "continued_bytes_each": 8192,
+      "exact": true
+    },
+    "paired_arithmetic_and_continuation_exact": true,
+    "serial_threaded_same_schedule_exact": true
+  },
+  "short_comparisons": [
+    {
+      "workload": "repeated",
+      "profile": "reference",
+      "before_bps": 131.5810486683218,
+      "after_bps": 133.05090278654242,
+      "speedup": 1.0111707129035405,
+      "exact": true,
+      "before_rates": [
+        121.65255671918345,
+        131.5810486683218,
+        133.2013163727162
+      ],
+      "after_rates": [
+        136.44380418501518,
+        120.63685472433257,
+        133.05090278654242
+      ]
+    },
+    {
+      "workload": "repeated",
+      "profile": "event",
+      "before_bps": 851.0017650753346,
+      "after_bps": 991.7834609465617,
+      "speedup": 1.1654305568435155,
+      "exact": true,
+      "before_rates": [
+        851.0017650753346,
+        608.3421841318016,
+        873.1142600392021
+      ],
+      "after_rates": [
+        991.7834609465617,
+        966.5808881929706,
+        992.9097805887195
+      ]
+    },
+    {
+      "workload": "repeated",
+      "profile": "compact_serial",
+      "before_bps": 871.3409007890208,
+      "after_bps": 989.9939513164162,
+      "speedup": 1.1361729380773382,
+      "exact": true,
+      "before_rates": [
+        859.5984489377711,
+        871.3409007890208,
+        891.6778668528082
+      ],
+      "after_rates": [
+        668.6518360703162,
+        989.9939513164162,
+        999.0878844786897
+      ]
+    },
+    {
+      "workload": "repeated",
+      "profile": "compact_threaded",
+      "before_bps": 819.1435072758765,
+      "after_bps": 965.7800557192278,
+      "speedup": 1.179012037745379,
+      "exact": true,
+      "before_rates": [
+        616.3814998519307,
+        819.1435072758765,
+        868.3560437582604
+      ],
+      "after_rates": [
+        976.4119022896951,
+        965.7800557192278,
+        952.7773190880364
+      ]
+    },
+    {
+      "workload": "natural",
+      "profile": "reference",
+      "before_bps": 349.45828899194464,
+      "after_bps": 358.93505208178135,
+      "speedup": 1.0271184384184264,
+      "exact": true,
+      "before_rates": [
+        360.61284576187114,
+        311.6413999340592,
+        349.45828899194464
+      ],
+      "after_rates": [
+        361.0391967616486,
+        358.4988442614888,
+        358.93505208178135
+      ]
+    },
+    {
+      "workload": "natural",
+      "profile": "event",
+      "before_bps": 773.8130898653246,
+      "after_bps": 774.698661287737,
+      "speedup": 1.0011444254872537,
+      "exact": true,
+      "before_rates": [
+        773.8130898653246,
+        787.8038282889539,
+        764.271796666112
+      ],
+      "after_rates": [
+        820.8123173618578,
+        774.698661287737,
+        745.8587605361453
+      ]
+    },
+    {
+      "workload": "natural",
+      "profile": "compact_serial",
+      "before_bps": 842.6246820241226,
+      "after_bps": 916.9647118327682,
+      "speedup": 1.0882243677340053,
+      "exact": true,
+      "before_rates": [
+        872.2099110107184,
+        816.5915925065095,
+        842.6246820241226
+      ],
+      "after_rates": [
+        927.3968107078488,
+        912.9733652125614,
+        916.9647118327682
+      ]
+    },
+    {
+      "workload": "natural",
+      "profile": "compact_threaded",
+      "before_bps": 845.4710835406871,
+      "after_bps": 872.4093132350032,
+      "speedup": 1.0318617989647894,
+      "exact": true,
+      "before_rates": [
+        867.5120224782714,
+        802.4035358454079,
+        845.4710835406871
+      ],
+      "after_rates": [
+        872.4093132350032,
+        829.6460532171882,
+        904.9506170193896
+      ]
+    },
+    {
+      "workload": "documents",
+      "profile": "reference",
+      "before_bps": 378.7667982430507,
+      "after_bps": 326.62952974828073,
+      "speedup": 0.8623499505853889,
+      "exact": true,
+      "before_rates": [
+        363.30217498333775,
+        381.76578799920924,
+        378.7667982430507
+      ],
+      "after_rates": [
+        328.0697518510075,
+        307.7386445048927,
+        326.62952974828073
+      ]
+    },
+    {
+      "workload": "documents",
+      "profile": "event",
+      "before_bps": 659.9884193727369,
+      "after_bps": 848.2197813633321,
+      "speedup": 1.2852040376246197,
+      "exact": true,
+      "before_rates": [
+        659.9884193727369,
+        621.9280181767494,
+        719.3497622448328
+      ],
+      "after_rates": [
+        867.7430097633094,
+        848.2197813633321,
+        768.1798291666961
+      ]
+    },
+    {
+      "workload": "documents",
+      "profile": "compact_serial",
+      "before_bps": 909.3771820580982,
+      "after_bps": 854.3923975623542,
+      "speedup": 0.9395357772543811,
+      "exact": true,
+      "before_rates": [
+        921.1017251888916,
+        669.5858683729897,
+        909.3771820580982
+      ],
+      "after_rates": [
+        961.2094587659393,
+        687.4157826307787,
+        854.3923975623542
+      ]
+    },
+    {
+      "workload": "documents",
+      "profile": "compact_threaded",
+      "before_bps": 896.4792604982322,
+      "after_bps": 911.4838669983852,
+      "speedup": 1.0167372600363493,
+      "exact": true,
+      "before_rates": [
+        929.1654789516336,
+        896.4792604982322,
+        796.6973766114935
+      ],
+      "after_rates": [
+        943.7734684426537,
+        911.4838669983852,
+        845.9878523965613
+      ]
+    }
+  ],
+  "long_comparisons": [
+    {
+      "workload": "natural",
+      "profile": "reference",
+      "before_bps": 339.5880953240361,
+      "after_bps": 351.26923490289664,
+      "speedup": 1.03439796547554,
+      "exact": true,
+      "before_rates": [
+        339.5880953240361
+      ],
+      "after_rates": [
+        351.26923490289664
+      ]
+    },
+    {
+      "workload": "natural",
+      "profile": "event",
+      "before_bps": 776.4204531736955,
+      "after_bps": 659.5266091861805,
+      "speedup": 0.8494451768887594,
+      "exact": true,
+      "before_rates": [
+        776.4204531736955
+      ],
+      "after_rates": [
+        659.5266091861805
+      ]
+    },
+    {
+      "workload": "natural",
+      "profile": "compact_serial",
+      "before_bps": 829.4033630090054,
+      "after_bps": 864.612814210044,
+      "speedup": 1.0424515413987492,
+      "exact": true,
+      "before_rates": [
+        721.341095959158,
+        863.0230018488734,
+        829.4033630090054
+      ],
+      "after_rates": [
+        824.839760656213,
+        919.1614614501018,
+        864.612814210044
+      ]
+    },
+    {
+      "workload": "natural",
+      "profile": "compact_threaded",
+      "before_bps": 790.9982783804649,
+      "after_bps": 748.2075360383888,
+      "speedup": 0.9459028628612336,
+      "exact": true,
+      "before_rates": [
+        787.8131671334223,
+        790.9982783804649,
+        793.9054701089085
+      ],
+      "after_rates": [
+        748.2075360383888,
+        895.6902120695828,
+        731.9898435626983
+      ]
+    }
+  ],
+  "memory": {
+    "reference": {
+      "context_before_bytes": 746496,
+      "context_after_bytes": 46080,
+      "context_reduction_percent": 93.82716049382715,
+      "rss_before_median_kib": 208976,
+      "rss_after_median_kib": 231608,
+      "inspection": {
+        "context_heads": 0,
+        "context_headers_bytes": 46080,
+        "context_head_bytes": 0,
+        "context_reserved_head_bytes": 0,
+        "context_records": 0,
+        "legacy_context_bytes": 746496,
+        "neural_ownership_records": 6945,
+        "neural_workspace_bytes": 2183680,
+        "semantic_workspace_bytes": 851968,
+        "semantic_owned_records": 6956,
+        "bytes_per_context_head": 320,
+        "legacy_context_record_bytes": 648,
+        "archive_free_bytes": 0
+      }
+    },
+    "event": {
+      "context_before_bytes": 2808432,
+      "context_after_bytes": 1519280,
+      "context_reduction_percent": 45.90290952389091,
+      "rss_before_median_kib": 225164,
+      "rss_after_median_kib": 249828,
+      "inspection": {
+        "context_heads": 1,
+        "context_headers_bytes": 173360,
+        "context_head_bytes": 1345920,
+        "context_reserved_head_bytes": 1345920,
+        "context_records": 4206,
+        "legacy_context_bytes": 2808432,
+        "neural_ownership_records": 6317,
+        "neural_workspace_bytes": 2117504,
+        "semantic_workspace_bytes": 770816,
+        "semantic_owned_records": 4302,
+        "bytes_per_context_head": 320,
+        "legacy_context_record_bytes": 648,
+        "archive_free_bytes": 0
+      }
+    },
+    "compact_serial": {
+      "context_before_bytes": 2808432,
+      "context_after_bytes": 1519280,
+      "context_reduction_percent": 45.90290952389091,
+      "rss_before_median_kib": 233832,
+      "rss_after_median_kib": 237844,
+      "inspection": {
+        "context_heads": 1,
+        "context_headers_bytes": 173360,
+        "context_head_bytes": 1345920,
+        "context_reserved_head_bytes": 1345920,
+        "context_records": 4206,
+        "legacy_context_bytes": 2808432,
+        "neural_ownership_records": 6317,
+        "neural_workspace_bytes": 2117504,
+        "semantic_workspace_bytes": 770816,
+        "semantic_owned_records": 4302,
+        "bytes_per_context_head": 320,
+        "legacy_context_record_bytes": 648,
+        "archive_free_bytes": 0
+      }
+    },
+    "compact_threaded": {
+      "context_before_bytes": 2808432,
+      "context_after_bytes": 1519280,
+      "context_reduction_percent": 45.90290952389091,
+      "rss_before_median_kib": 233832,
+      "rss_after_median_kib": 258356,
+      "inspection": {
+        "context_heads": 1,
+        "context_headers_bytes": 173360,
+        "context_head_bytes": 1345920,
+        "context_reserved_head_bytes": 1345920,
+        "context_records": 4206,
+        "legacy_context_bytes": 2808432,
+        "neural_ownership_records": 6317,
+        "neural_workspace_bytes": 2117504,
+        "semantic_workspace_bytes": 770816,
+        "semantic_owned_records": 4302,
+        "bytes_per_context_head": 320,
+        "legacy_context_record_bytes": 648,
+        "archive_free_bytes": 0
+      }
+    }
+  },
+  "interpretation": "Exact logical behavior. Workload-dependent throughput, with regressions as well as gains. One-head retained context shrinks about 46%; long-profile total endpoint RSS increases about 4-24 MiB. No overall process-memory reduction or uniform speedup established."
+}

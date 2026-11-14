@@ -1,3 +1,4 @@
+#include "semantic_ownership.inc"
 // Exact IDs and structural descriptors never include floating learned values.
 // Every code has its own saved producer and derivative graph; neural context
 // is excluded. The learned gate is bounded in [0.5,1.5].
@@ -17,28 +18,8 @@ inline int constituent_allocate(Model&m,int r,const ContentEvent*parts,int n){
     int index=m.semantic_free.back();m.semantic_free.pop_back();
     if(!constituent_slot(m,index).ref.serial){s.semantic_cursor=index+1;return index;}
   }
-  // Mark from actual owners before recycling. Long held completed units must
-  // not lose eligibility just because a faster child has published again.
-  uint64_t mark=++m.semantic_work_serial;std::vector<SemanticRef> work;work.reserve(capacity);
-  auto add=[&](SemanticRef ref){
-    if(!constituent_record(m,ref)||constituent_mark(m,ref.index)==mark)return;
-    constituent_mark(m,ref.index)=mark;work.push_back(ref);
-  };
-  for(int a=0;a<N;a++){
-    for(int k=0;k<2;k++)add(s.history[a][k].semantic);
-    for(int k=0;k<s.length[a];k++)add(s.pending[a][k].semantic);
-    for(int k=0;k<LACE_RING;k++)add(s.input[a][k].semantic);
-    for(const auto&entry:m.neural_archive[a])add(entry.second.input.semantic);
-  }
-  for(int k=0;k<n;k++)add(parts[k].semantic);
-  add(m.semantic_inflight);
-  for(const auto&root:m.reverse_roots)add(root.ref);
-  for(auto ref:m.event.new_events)add(ref);
-  for(int a=2;a<N;a++)for(int t=0;t<2;t++)add(m.event.replay[a][t].request.ref);
-  for(size_t i=0;i<work.size();i++){
-    auto&node=*constituent_record(m,work[i]);for(int k=0;k<node.count;k++)if(event_follow(m,node.ref,k))add(node.edges[k].source);
-  }
-  for(int k=0;k<capacity;k++)if(constituent_mark(m,k)!=mark){
+  constituent_retain(m,parts,n);
+  for(int k=0;k<capacity;k++)if(!constituent_retained(m,k)){
     if(m.event.local&&constituent_slot(m,k).ref.serial)SHOEBOX_DIAGNOSTIC(m.event.metrics[constituent_slot(m,k).ref.region][8]++;)
     constituent_slot(m,k).ref=SemanticRef{};
     if(size_t(k)<m.event.eligibility.size())m.event.eligibility[k]=EventEligibility{};
@@ -47,7 +28,7 @@ inline int constituent_allocate(Model&m,int r,const ContentEvent*parts,int n){
   }
   for(int k=capacity-1;k>=0;k--){
     int index=(start+k)%capacity;
-    if(constituent_mark(m,index)!=mark)m.semantic_free.push_back(index);
+    if(!constituent_retained(m,index))m.semantic_free.push_back(index);
   }
   if(!m.semantic_free.empty()){
     int index=m.semantic_free.back();m.semantic_free.pop_back();s.semantic_cursor=index+1;return index;

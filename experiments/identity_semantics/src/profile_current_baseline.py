@@ -27,7 +27,7 @@ from measure_current_baseline import ROOT, PROFILES, PIN, fixtures, make_model, 
 
 
 def category(name):
-    if any(s in name for s in ('collect', 'retention', 'ensure_index', 'archive_slot', 'prune')):
+    if any(s in name for s in ('collect', 'retention', 'constituent_retain', 'ensure_index', 'archive_slot', 'prune')):
         return 'collection / retention'
     if any(s in name for s in ('derivative', 'adjoint', 'backward', 'union_flush', 'neural_credit', 'teach', 'backprop', 'event_boundary',
                               'constituent_update', 'expert_update', 'accumulate', 'local_prediction_update', 'context_update', 'learn_bottom')):

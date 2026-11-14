@@ -103,7 +103,7 @@ inline void event_drain(Model&m){
 inline void event_reset_stream(Model&m){
   event_drain(m);
   memset(m.event.memory,0,sizeof(m.event.memory));memset(m.event.ordinal,0,sizeof(m.event.ordinal));
-  memset(m.event.context,0,sizeof(m.event.context));memset(m.event.replay,0,sizeof(m.event.replay));
+  for(auto&region:m.event.context)for(auto&v:region)v.clear();m.event.workspace.clear();memset(m.event.replay,0,sizeof(m.event.replay));
   for(auto&archive:m.event.archive)archive.clear();m.event.eligibility.clear();m.event.new_events.clear();
   m.event.training=false;m.event.rates[0]=m.event.rates[1]=0;
 }

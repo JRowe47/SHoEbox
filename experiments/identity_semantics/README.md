@@ -920,3 +920,39 @@ python src/restore_artifacts.py --archive /path/to/SHoEbox_Identity_Semantics_So
 Every artifact is verified against `ARTIFACT_MANIFEST.json` before installation. Existing files with different bytes are rejected. To reproduce training without the checkpoint archive, restore the exact corpus split with `python src/restore_artifacts.py --download-data`; `DATA_MANIFEST.json` pins the source hash and split.
 
 The [multi-source binding report](provenance/binding_study/SHoEbox_Multisource_Binding_Report.md) records the first repair. The [identity/vector report](deliverables/SHoEbox_Identity_Semantics_Report.md) records the second. The [relay report](deliverables/SHoEbox_Relay_Preservation_Report.md) records the third. These are frozen study records; their statements about publication describe when the studies finished.
+
+### Action 2: indexed records and lean state
+
+The completion runtime now looks up MinKron eligibility by validated hot-cache
+index or archived tick. Archived neural, temporal and context records and shared
+publication payloads use reusable allocation pools. Archive recycling is owned
+by each model and capped at 64 idle nodes per allocation shape, avoiding large
+retained slabs after evaluation/checkpoint copies. Previous-tick feedback holds
+immutable publication-context handles; deliberate context edits still detach.
+MinKron eligibility allocates exactly zero, one or two active heads. The v1
+checkpoint wire record remains explicit and expanded, with lossless conversion
+of active eligibility at import/export.
+
+Neural retention incrementally reconciles owner changes and propagates the
+maximum supported credit-depth budget. Separate incoming counts at every depth
+preserve overlapping ownership, zero-depth relay traversal, and temporal-only
+Jacobians. Semantic retention tracks generation-checked slab handles, including
+pending encoding, neural input, reverse learning and replay owners; event-frontier
+edge expiry is reconciled independently. Derived indices and workspaces are
+rebuilt after load or reset and never become checkpoint state.
+
+`tests/test_indexed_records.py` compares both collectors to independent full-mark
+oracles outside training. `tests/run_indexed_sanitizer.py` checks ownership,
+context heads and worker lifecycle with ASan/UBSan. Production measurements reuse
+the Action-1 protocol:
+
+```bash
+python experiments/identity_semantics/src/compare_indexed_records.py \
+  --baseline /path/to/action1-checkout --output comparison.json
+python experiments/identity_semantics/src/check_indexed_checkpoint.py \
+  --baseline /path/to/action1-checkout --output checkpoint_checks.json
+```
+
+`memory_inspection.read_indexed_storage(model)` reports live context storage and
+reserved ownership-vector payload at quiescent boundaries. Its sizes exclude
+allocator and hash-table overhead; process RSS remains the total-memory measure.

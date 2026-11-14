@@ -86,8 +86,8 @@ int neural_import(void*p,const void*data,size_t size){
   size_t remaining=(size-sizeof(header))/sizeof(RetainedNeuralV1),count=0;
   for(auto n:header.counts){if(n>remaining-count)return 0;count+=n;}
   if(size!=sizeof(header)+count*sizeof(RetainedNeuralV1))return 0;
-  auto&m=*static_cast<Model*>(p);std::map<int64_t,RetainedNeural> archives[N];
-  std::map<int64_t,TemporalRecord> temporal[STATE_REGIONS];
+  auto&m=*static_cast<Model*>(p);auto archives=record_archives<RetainedNeural,N>(&m.neural_record_pool);
+  auto temporal=record_archives<TemporalRecord,STATE_REGIONS>(&m.neural_record_pool);
   auto*cursor=static_cast<const unsigned char*>(data)+sizeof(header);
   for(int r=0;r<N;r++){
     int64_t previous=0;

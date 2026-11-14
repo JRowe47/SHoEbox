@@ -13,6 +13,7 @@
 #include <unordered_map>
 #include <memory>
 #include <memory_resource>
+#include <utility>
 #include <immintrin.h>
 #ifndef SHOEBOX_EXPERTS
 #define SHOEBOX_EXPERTS 12
@@ -128,6 +129,9 @@ struct UtilityRuntime {
   float ymean[D]{},previous_q[N][D]{};
   int have_q[N]{};
 };
+#ifdef SHOEBOX_LEARNED_COMPLETION
+#include "record_storage.inc"
+#endif
 #include "composition_types.inc"
 #ifdef SHOEBOX_LEARNED_COMPLETION
 #include "pattern_types.inc"
@@ -136,6 +140,7 @@ struct UtilityRuntime {
 #include "thread_pool.inc"
 #include "event_types.inc"
 #include "bank_pipeline_types.inc"
+#include "semantic_retention.inc"
 struct RetainedNeural {
   LaceRecord lace{};
   InputCredit input{};
@@ -173,9 +178,14 @@ struct Model {
   std::pmr::unsynchronized_pool_resource local_credit_pool;
   // The handle is (region, immutable execution tick); ring index is only a hint.
   // std::map preserves addresses while delayed updates insert other records.
-  std::map<int64_t,RetainedNeural> neural_archive[N];
+  // Archive allocation belongs to this model, not to temporary evaluation
+  // copies. Only the owner thread accesses it; workers own separate bank jobs.
+  BoundedRecordPool neural_record_pool;
+  std::array<RecordArchive<RetainedNeural>,N> neural_archive=record_archives<RetainedNeural,N>(&neural_record_pool);
+  NeuralRetention neural_retention;
+  SemanticRetention semantic_retention;
   // Only A1/B1 have temporal Jacobians. Upper records allocate none.
-  std::map<int64_t,TemporalRecord> neural_temporal[STATE_REGIONS];
+  std::array<RecordArchive<TemporalRecord>,STATE_REGIONS> neural_temporal=record_archives<TemporalRecord,STATE_REGIONS>(&neural_record_pool);
   std::unordered_map<int64_t,LaceRecord*> neural_index[N];
   std::map<int64_t,unsigned> pending_neural[N],pending_input[N];
   bool neural_index_valid=false;
@@ -1117,9 +1127,21 @@ double run(void*p,const unsigned char*x,const unsigned char*y,int length,int mod
     // throughout a step. Cadence uses the saved clock, not API chunk boundaries.
     if(s.tick%64==0)neural_collect(m);
 #endif
-    s.tick++;if(!m.composition.stream.draining)m.composition.stream.byte_position++;float snapshot[N][D];int valid[N];int64_t snapshot_tick[N]{};int snapshot_index[N]{},snapshot_region[N]{};
+    s.tick++;if(!m.composition.stream.draining)m.composition.stream.byte_position++;float snapshot_storage[N][D];const float*snapshot[N];
+#ifdef SHOEBOX_LEARNED_COMPLETION
+    std::shared_ptr<const PublicationContext> snapshot_handles[N];
+#endif
+    int valid[N];int64_t snapshot_tick[N]{};int snapshot_index[N]{},snapshot_region[N]{};
     bool tracing=m.composition.enabled||m.lcfg[0]>0||m.lcfg[2]<D||m.lcfg[3]>0;
-    for(int r=0;r<N;r++){memcpy(snapshot[r],s.hist[r][0],D*sizeof(float));valid[r]=s.valid[r];auto*v=current_lace(m,r);snapshot_tick[r]=v?v->tick:0;snapshot_index[r]=m.laces.cursor[r];snapshot_region[r]=r;
+    for(int r=0;r<N;r++){
+#ifdef SHOEBOX_LEARNED_COMPLETION
+      if(m.composition.enabled&&m.composition.stream.history[r][0].contextual){
+        snapshot_handles[r]=m.composition.stream.history[r][0].contextual;
+        snapshot[r]=snapshot_handles[r]->context;
+      }else
+#endif
+      {memcpy(snapshot_storage[r],s.hist[r][0],D*sizeof(float));snapshot[r]=snapshot_storage[r];}
+      valid[r]=s.valid[r];auto*v=current_lace(m,r);snapshot_tick[r]=v?v->tick:0;snapshot_index[r]=m.laces.cursor[r];snapshot_region[r]=r;
       if(m.composition.enabled){const auto&origin=m.composition.stream.history[r][0].origin;
         snapshot_region[r]=origin.region;snapshot_tick[r]=origin.tick;snapshot_index[r]=origin.index;}
     }
@@ -1353,7 +1375,7 @@ double run(void*p,const unsigned char*x,const unsigned char*y,int length,int mod
       }
       float residual[D]{};
 #ifdef SHOEBOX_LEARNED_COMPLETION
-      ContextEligibility context_saved{};float context_output[D]{};
+      auto&context_saved=m.event.workspace;float context_output[D]{};
       if(small_context)context_forward(m,r,s.u[r],context_output,context_saved);
 #ifdef SHOEBOX_CONTRIBUTION_CHECKS
       if(small_context&&contribution_selected(m,CHECK_RETAINED,r))

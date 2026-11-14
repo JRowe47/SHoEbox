@@ -38,3 +38,24 @@ void inspect_live_memory(void*ptr,uint64_t*out){
   }
 }
 }
+
+// Quiescent inventory only: no counters, timers or observers in training.
+extern "C" void indexed_storage_status(void*p,uint64_t*out){
+  auto&m=*static_cast<Model*>(p);for(int i=0;i<13;i++)out[i]=0;
+  out[0]=m.event.heads;out[1]=sizeof(m.event.context);out[5]=N*LACE_RING*sizeof(ContextEligibilityV1);
+  for(int r=0;r<N;r++){
+    for(const auto&v:m.event.context[r]){out[2]+=v.data.size()*sizeof(float);out[3]+=v.data.capacity()*sizeof(float);out[4]+=v.tick!=0;}
+    for(const auto&entry:m.event.archive[r]){
+      out[1]+=sizeof(ContextEligibility);out[2]+=entry.second.data.size()*sizeof(float);
+      out[3]+=entry.second.data.capacity()*sizeof(float);out[4]++;out[5]+=sizeof(ContextEligibilityV1);
+    }
+  }
+  const auto&n=m.neural_retention;out[6]=n.nodes.size()-n.free.size();out[7]=n.nodes.capacity()*sizeof(NeuralRetention::Node);
+  for(const auto&v:n.nodes)out[7]+=v.edges.capacity()*sizeof(NeuralRetention::Edge);
+  for(const auto*v:{&n.free,&n.roots,&n.next_roots,&n.work,&n.candidates})out[7]+=v->capacity()*sizeof(int);
+  const auto&s=m.semantic_retention;out[8]=s.nodes.capacity()*sizeof(SemanticRetention::Node);
+  for(const auto*v:{&s.roots,&s.next_roots,&s.work,&s.expiring,&s.next_expiring})out[8]+=v->capacity()*sizeof(int);
+  for(const auto&v:s.nodes)out[9]+=v.active;
+  out[10]=sizeof(ContextHead);out[11]=sizeof(ContextEligibilityV1);
+  out[12]=m.neural_record_pool.reserved_bytes();
+}

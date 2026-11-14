@@ -1,0 +1,1750 @@
+{
+  "protocol": "External thread-directed instruction sampling of the unchanged production SO.\n\nLinux x86-64 fallback for hosts without perf/ptrace. Only a standalone signal\nattachment runs inside the sampled process, asynchronously; no model source,\nper-byte timers, event counters or training hooks are changed. These diagnostic\nruns are NEVER throughput evidence. Percentages are wall-time IP samples,\nincluding waits, not CPU cost or inclusive stack attribution. Thread CPU time\nis measured separately. Inlined work is attributed to its containing symbol.\n",
+  "hz_per_thread": 100.0,
+  "caller_cpu": 0,
+  "worker_cpu": 1,
+  "controller_sha256": "a409a0ca960e41abd80196fcff8b2dda37eb229d1e41aa0d7ae5d50d7c2d0c68",
+  "attachment_source_sha256": "1bd786bc56c1847f17d6a82b0a4183714dd0cf177103a788043ea85d94bbbfec",
+  "attachment_compiler_flags": [
+    "-O2",
+    "-shared",
+    "-fPIC"
+  ],
+  "runs": [
+    {
+      "profile": "reference",
+      "targets": 8192,
+      "warmup": 1024,
+      "attempted_signals": 2408,
+      "received_samples": 2408,
+      "threads": [
+        {
+          "role": "caller",
+          "samples": 2408,
+          "cpu_seconds": 24.59,
+          "categories": {
+            "other / unresolved": {
+              "samples": 608,
+              "percent": 25.249169435215947
+            },
+            "bank update / versions": {
+              "samples": 850,
+              "percent": 35.29900332225914
+            },
+            "reverse / derivatives / credit": {
+              "samples": 747,
+              "percent": 31.02159468438538
+            },
+            "collection / retention": {
+              "samples": 59,
+              "percent": 2.4501661129568104
+            },
+            "forward / prediction / event": {
+              "samples": 122,
+              "percent": 5.0664451827242525
+            },
+            "allocation / copying": {
+              "samples": 22,
+              "percent": 0.9136212624584718
+            }
+          },
+          "top_symbols": [
+            {
+              "symbol": "content_expert_flush(Model&)",
+              "samples": 472,
+              "percent": 19.601328903654483
+            },
+            {
+              "symbol": "content_materialize(Model&, Model::ContentBankWorkspace&)",
+              "samples": 312,
+              "percent": 12.956810631229235
+            },
+            {
+              "symbol": "content_expert_derivatives(Model&, ContentExpertRecord const* const*, float const* const*, float* const*, int)",
+              "samples": 267,
+              "percent": 11.088039867109634
+            },
+            {
+              "symbol": "libc.so.6:<unresolved>",
+              "samples": 264,
+              "percent": 10.96345514950166
+            },
+            {
+              "symbol": "constituent_update_reference(Model&, SemanticRef, float const*, float, int, int)",
+              "samples": 118,
+              "percent": 4.900332225913621
+            },
+            {
+              "symbol": "pattern_classify(Model&, int, ContentEvent&, ContentEvent const*, int, bool, bool) [clone .constprop.0]",
+              "samples": 98,
+              "percent": 4.069767441860465
+            },
+            {
+              "symbol": "constituent_union_flush(Model&, bool)",
+              "samples": 89,
+              "percent": 3.6960132890365447
+            },
+            {
+              "symbol": "expert_update(Model&, int, float const*, float, LaceRecordLayout<SparseCredit>*, int, bool)",
+              "samples": 73,
+              "percent": 3.03156146179402
+            },
+            {
+              "symbol": "content_bank(Model&, int, int)",
+              "samples": 66,
+              "percent": 2.740863787375415
+            },
+            {
+              "symbol": "content_expert_accumulate(Model&, ContentExpertRecord const&, float const*, float, int) [clone .isra.0]",
+              "samples": 65,
+              "percent": 2.6993355481727574
+            },
+            {
+              "symbol": "local_prediction_update(Model&, int, LaceRecordLayout<SparseCredit>&, float const*, float)",
+              "samples": 58,
+              "percent": 2.4086378737541527
+            },
+            {
+              "symbol": "run",
+              "samples": 53,
+              "percent": 2.200996677740864
+            },
+            {
+              "symbol": "route_task_update(Model&, int, LaceRecordLayout<SparseCredit>&, float const*, float)",
+              "samples": 42,
+              "percent": 1.744186046511628
+            },
+            {
+              "symbol": "semantic_expert_update(Model&, int, LaceRecordLayout<SparseCredit>*, float const*, float, int)",
+              "samples": 40,
+              "percent": 1.6611295681063123
+            },
+            {
+              "symbol": "learn_bottom_state(Model&, int, LaceRecordLayout<SparseCredit>*, float const*, float)",
+              "samples": 30,
+              "percent": 1.2458471760797343
+            },
+            {
+              "symbol": "local_deliver_input(Model&, int, LaceRecordLayout<SparseCredit>&, float const*, float const*, int, LocalCredit&)",
+              "samples": 29,
+              "percent": 1.2043189368770764
+            },
+            {
+              "symbol": "deliver_input_credit(Model&, int, LaceRecordLayout<SparseCredit>&, float const*, int, float const*)",
+              "samples": 28,
+              "percent": 1.1627906976744187
+            },
+            {
+              "symbol": "tanhf@@GLIBC_2.2.5",
+              "samples": 25,
+              "percent": 1.0382059800664452
+            },
+            {
+              "symbol": "neural_archive_slot(Model&, int, int)",
+              "samples": 24,
+              "percent": 0.9966777408637874
+            },
+            {
+              "symbol": "neural_collect(Model&)",
+              "samples": 22,
+              "percent": 0.9136212624584718
+            },
+            {
+              "symbol": "flush_credit(Model&, int, float)::{lambda(LaceRecordLayout<SparseCredit>&)#2}::operator()(LaceRecordLayout<SparseCredit>&) const",
+              "samples": 17,
+              "percent": 0.7059800664451827
+            },
+            {
+              "symbol": "flush_credit(Model&, int, float)",
+              "samples": 16,
+              "percent": 0.6644518272425249
+            },
+            {
+              "symbol": "libstdc++.so.6.0.33:<unresolved>",
+              "samples": 12,
+              "percent": 0.4983388704318937
+            },
+            {
+              "symbol": "constituent_encode(Model&, int, ContentEvent&, ContentEvent const*, int, bool)",
+              "samples": 11,
+              "percent": 0.4568106312292359
+            },
+            {
+              "symbol": "void std::__introsort_loop<__gnu_cxx::__normal_iterator<int*, std::vector<int, std::allocator<int> > >, long, __gnu_cxx::__ops::_Iter_less_iter>(__gnu_cxx::__normal_iterator<int*, std::vector<int, std::allocator<int> > >, __gnu_cxx::__normal_iterator<int*, std::vector<int, std::allocator<int> > >, long, __gnu_cxx::__ops::_Iter_less_iter) [clone .isra.0]",
+              "samples": 10,
+              "percent": 0.4152823920265781
+            },
+            {
+              "symbol": "free@@GLIBC_2.2.5",
+              "samples": 10,
+              "percent": 0.4152823920265781
+            },
+            {
+              "symbol": "libm.so.6:<unresolved>",
+              "samples": 10,
+              "percent": 0.4152823920265781
+            },
+            {
+              "symbol": "content_expert_encode(Model&, int, ConstituentRecord&, float const*, float, float*)",
+              "samples": 9,
+              "percent": 0.37375415282392027
+            },
+            {
+              "symbol": "binding_compose(Model&, int, ContentEvent const*, int, bool, unsigned int)",
+              "samples": 8,
+              "percent": 0.33222591362126247
+            },
+            {
+              "symbol": "std::_Rb_tree_insert_and_rebalance(bool, std::_Rb_tree_node_base*, std::_Rb_tree_node_base*, std::_Rb_tree_node_base&)@@GLIBCXX_3.4",
+              "samples": 8,
+              "percent": 0.33222591362126247
+            },
+            {
+              "symbol": "malloc@@GLIBC_2.2.5",
+              "samples": 7,
+              "percent": 0.29069767441860467
+            },
+            {
+              "symbol": "_completion_e12_839ec7329cb2f757.so:<unresolved>",
+              "samples": 7,
+              "percent": 0.29069767441860467
+            },
+            {
+              "symbol": "std::_Rb_tree_increment(std::_Rb_tree_node_base*)@@GLIBCXX_3.4",
+              "samples": 6,
+              "percent": 0.24916943521594684
+            },
+            {
+              "symbol": "std::_Rb_tree<std::pair<int, long>, std::pair<std::pair<int, long> const, LocalSignal>, std::_Select1st<std::pair<std::pair<int, long> const, LocalSignal> >, std::less<std::pair<int, long> >, std::pmr::polymorphic_allocator<std::pair<std::pair<int, long> const, LocalSignal> > >::_M_erase(std::_Rb_tree_node<std::pair<std::pair<int, long> const, LocalSignal> >*)",
+              "samples": 5,
+              "percent": 0.20764119601328904
+            },
+            {
+              "symbol": "retention_node(Model&, int, long)",
+              "samples": 5,
+              "percent": 0.20764119601328904
+            },
+            {
+              "symbol": "pattern_transition(Model&, int, ContentEvent const&, ContentEvent const&, bool)",
+              "samples": 5,
+              "percent": 0.20764119601328904
+            },
+            {
+              "symbol": "neural_ensure_index(Model&)",
+              "samples": 4,
+              "percent": 0.16611295681063123
+            },
+            {
+              "symbol": "operator delete(void*, unsigned long)@@CXXABI_1.3.9",
+              "samples": 4,
+              "percent": 0.16611295681063123
+            },
+            {
+              "symbol": "materialize_key(Model&, int, int)",
+              "samples": 4,
+              "percent": 0.16611295681063123
+            },
+            {
+              "symbol": "paired_read(Model&, int, float const*, ContentEvent const&)",
+              "samples": 4,
+              "percent": 0.16611295681063123
+            },
+            {
+              "symbol": "neural_consumed(Model&, int, long, int, bool)",
+              "samples": 4,
+              "percent": 0.16611295681063123
+            },
+            {
+              "symbol": "logp1f@@GLIBC_2.40",
+              "samples": 4,
+              "percent": 0.16611295681063123
+            },
+            {
+              "symbol": "content_count(CountEntry*, ContentID, bool, double&) [clone .isra.0]",
+              "samples": 4,
+              "percent": 0.16611295681063123
+            },
+            {
+              "symbol": "paired_utility_credit(Model&, int, LaceRecordLayout<SparseCredit> const*, float const*, float const*, float const*)",
+              "samples": 4,
+              "percent": 0.16611295681063123
+            },
+            {
+              "symbol": "constituent_record(Model&, SemanticRef)",
+              "samples": 3,
+              "percent": 0.12458471760797342
+            },
+            {
+              "symbol": "paired_lookup(Model&, PairedObservation const*, int const*, float&)",
+              "samples": 3,
+              "percent": 0.12458471760797342
+            },
+            {
+              "symbol": "std::_Rb_tree_decrement(std::_Rb_tree_node_base*)@@GLIBCXX_3.4",
+              "samples": 3,
+              "percent": 0.12458471760797342
+            },
+            {
+              "symbol": "expert_update(Model&, int, float const*, float, LaceRecordLayout<SparseCredit>*, int, bool) [clone .constprop.0]",
+              "samples": 3,
+              "percent": 0.12458471760797342
+            },
+            {
+              "symbol": "std::_Rb_tree_rebalance_for_erase(std::_Rb_tree_node_base*, std::_Rb_tree_node_base&)@@GLIBCXX_3.4",
+              "samples": 3,
+              "percent": 0.12458471760797342
+            },
+            {
+              "symbol": "void std::__introsort_loop<__gnu_cxx::__normal_iterator<SemanticRef*, std::vector<SemanticRef, std::allocator<SemanticRef> > >, long, __gnu_cxx::__ops::_Iter_comp_iter<constituent_union_flush(Model&, bool)::{lambda(SemanticRef, SemanticRef)#2}> >(__gnu_cxx::__normal_iterator<SemanticRef*, std::vector<SemanticRef, std::allocator<SemanticRef> > >, __gnu_cxx::__normal_iterator<SemanticRef*, std::vector<SemanticRef, std::allocator<SemanticRef> > >, long, __gnu_cxx::__ops::_Iter_comp_iter<constituent_union_flush(Model&, bool)::{lambda(SemanticRef, SemanticRef)#2}>)",
+              "samples": 3,
+              "percent": 0.12458471760797342
+            },
+            {
+              "symbol": "std::_Rb_tree_iterator<std::pair<std::pair<int, long> const, LocalSignal> > std::_Rb_tree<std::pair<int, long>, std::pair<std::pair<int, long> const, LocalSignal>, std::_Select1st<std::pair<std::pair<int, long> const, LocalSignal> >, std::less<std::pair<int, long> >, std::pmr::polymorphic_allocator<std::pair<std::pair<int, long> const, LocalSignal> > >::_M_emplace_hint_unique<std::piecewise_construct_t const&, std::tuple<std::pair<int, long>&&>, std::tuple<> >(std::_Rb_tree_const_iterator<std::pair<std::pair<int, long> const, LocalSignal> >, std::piecewise_construct_t const&, std::tuple<std::pair<int, long>&&>&&, std::tuple<>&&) [clone .isra.0]",
+              "samples": 3,
+              "percent": 0.12458471760797342
+            },
+            {
+              "symbol": "neural_collect(Model&)::{lambda(int, long, int, int)#3}::operator()(int, long, int, int) const",
+              "samples": 2,
+              "percent": 0.08305647840531562
+            },
+            {
+              "symbol": "std::__detail::_Map_base<long, std::pair<long const, LaceRecordLayout<SparseCredit>*>, std::allocator<std::pair<long const, LaceRecordLayout<SparseCredit>*> >, std::__detail::_Select1st, std::equal_to<long>, std::hash<long>, std::__detail::_Mod_range_hashing, std::__detail::_Default_ranged_hash, std::__detail::_Prime_rehash_policy, std::__detail::_Hashtable_traits<false, false, true>, true>::operator[](long const&)",
+              "samples": 2,
+              "percent": 0.08305647840531562
+            },
+            {
+              "symbol": "find_lace(Model&, int, long, int)",
+              "samples": 2,
+              "percent": 0.08305647840531562
+            },
+            {
+              "symbol": "update_bottom_prototype(Model&, int, int, unsigned long, float, float)",
+              "samples": 2,
+              "percent": 0.08305647840531562
+            },
+            {
+              "symbol": "completion_prepare(Model&, int, bool, ContentEvent&, ContentEvent*, int&)",
+              "samples": 2,
+              "percent": 0.08305647840531562
+            },
+            {
+              "symbol": "pattern_classify(Model&, int, ContentEvent&, ContentEvent const*, int, bool, bool) [clone .constprop.1]",
+              "samples": 2,
+              "percent": 0.08305647840531562
+            },
+            {
+              "symbol": "constituent_retain(Model&, ContentEvent const*, int)",
+              "samples": 2,
+              "percent": 0.08305647840531562
+            },
+            {
+              "symbol": "router_scores(Model&, int, float const*, int const*, int, float*)",
+              "samples": 2,
+              "percent": 0.08305647840531562
+            },
+            {
+              "symbol": "binding_bundle(Model&, int, ContentEvent const&, ContentEvent const*, int, float*, float*, float&, float&, LaceParent*, int&)",
+              "samples": 2,
+              "percent": 0.08305647840531562
+            },
+            {
+              "symbol": "operator delete(void*)@@GLIBCXX_3.4",
+              "samples": 1,
+              "percent": 0.04152823920265781
+            },
+            {
+              "symbol": "pthread_rwlock_unlock@GLIBC_2.2.5",
+              "samples": 1,
+              "percent": 0.04152823920265781
+            },
+            {
+              "symbol": "std::_Rb_tree<std::pair<int, long>, std::pair<std::pair<int, long> const, LocalSignal>, std::_Select1st<std::pair<std::pair<int, long> const, LocalSignal> >, std::less<std::pair<int, long> >, std::pmr::polymorphic_allocator<std::pair<std::pair<int, long> const, LocalSignal> > >::_M_get_insert_hint_unique_pos(std::_Rb_tree_const_iterator<std::pair<std::pair<int, long> const, LocalSignal> >, std::pair<int, long> const&)",
+              "samples": 1,
+              "percent": 0.04152823920265781
+            },
+            {
+              "symbol": "std::pmr::synchronized_pool_resource::do_allocate(unsigned long, unsigned long)@@GLIBCXX_3.4.26",
+              "samples": 1,
+              "percent": 0.04152823920265781
+            },
+            {
+              "symbol": "std::pmr::synchronized_pool_resource::do_deallocate(void*, unsigned long, unsigned long)@@GLIBCXX_3.4.26",
+              "samples": 1,
+              "percent": 0.04152823920265781
+            },
+            {
+              "symbol": "pthread_getspecific@GLIBC_2.2.5",
+              "samples": 1,
+              "percent": 0.04152823920265781
+            },
+            {
+              "symbol": "distribute_credit(Model&, int, LaceRecordLayout<SparseCredit>&, float const*, int) [clone .part.0]",
+              "samples": 1,
+              "percent": 0.04152823920265781
+            },
+            {
+              "symbol": "std::_Rb_tree_iterator<std::pair<long const, unsigned int> > std::_Rb_tree<long, std::pair<long const, unsigned int>, std::_Select1st<std::pair<long const, unsigned int> >, std::less<long>, std::allocator<std::pair<long const, unsigned int> > >::_M_emplace_hint_unique<std::piecewise_construct_t const&, std::tuple<long const&>, std::tuple<> >(std::_Rb_tree_const_iterator<std::pair<long const, unsigned int> >, std::piecewise_construct_t const&, std::tuple<long const&>&&, std::tuple<>&&) [clone .isra.0]",
+              "samples": 1,
+              "percent": 0.04152823920265781
+            },
+            {
+              "symbol": "std::_Rb_tree_increment(std::_Rb_tree_node_base const*)@@GLIBCXX_3.4",
+              "samples": 1,
+              "percent": 0.04152823920265781
+            },
+            {
+              "symbol": "void std::__insertion_sort<__gnu_cxx::__normal_iterator<SemanticRef*, std::vector<SemanticRef, std::allocator<SemanticRef> > >, __gnu_cxx::__ops::_Iter_comp_iter<constituent_schedule(Model&, SemanticRef, int, unsigned long)::{lambda(SemanticRef, SemanticRef)#2}> >(__gnu_cxx::__normal_iterator<SemanticRef*, std::vector<SemanticRef, std::allocator<SemanticRef> > >, __gnu_cxx::__normal_iterator<SemanticRef*, std::vector<SemanticRef, std::allocator<SemanticRef> > >, __gnu_cxx::__ops::_Iter_comp_iter<constituent_schedule(Model&, SemanticRef, int, unsigned long)::{lambda(SemanticRef, SemanticRef)#2}>)",
+              "samples": 1,
+              "percent": 0.04152823920265781
+            },
+            {
+              "symbol": "radix_feature_mask(float const*, int)",
+              "samples": 1,
+              "percent": 0.04152823920265781
+            },
+            {
+              "symbol": "pthread_rwlock_rdlock@GLIBC_2.2.5",
+              "samples": 1,
+              "percent": 0.04152823920265781
+            },
+            {
+              "symbol": "std::_Sp_counted_ptr_inplace<PublicationPayload, std::pmr::polymorphic_allocator<PublicationPayload>, (__gnu_cxx::_Lock_policy)2>::_M_dispose()",
+              "samples": 1,
+              "percent": 0.04152823920265781
+            },
+            {
+              "symbol": "relay_teach(Model&, int, float const*, int, float, bool) [clone .isra.0]",
+              "samples": 1,
+              "percent": 0.04152823920265781
+            },
+            {
+              "symbol": "paired_buckets(Model&, PairedObservation const*, int*)",
+              "samples": 1,
+              "percent": 0.04152823920265781
+            },
+            {
+              "symbol": "record_pool()",
+              "samples": 1,
+              "percent": 0.04152823920265781
+            }
+          ]
+        }
+      ],
+      "process_cpu_seconds": 24.596971139,
+      "native_library_sha256": "f44788a862ce965ef9b212d3708ce2a282b318d041d4376badc426c399d75736",
+      "data": {
+        "sources": [
+          "70ea7b0b4f203c94aabcaaae58a06e213f698031:README.md",
+          "70ea7b0b4f203c94aabcaaae58a06e213f698031:STATUS.md",
+          "70ea7b0b4f203c94aabcaaae58a06e213f698031:docs/cortical_fineweb.md (held out)"
+        ],
+        "documents": 1,
+        "document_lengths": [
+          9217
+        ],
+        "training_sha256": "b0dc5876c593101a6a2a33e23ec084a9e18fa2669b98c1d2c94ed65bc476e35c",
+        "validation_sha256": "46fa481f8c6afc78dd9b0aa83ba3cbc976880033b50e3c6ea1917e4e5cfa7c51"
+      }
+    },
+    {
+      "profile": "event",
+      "targets": 8192,
+      "warmup": 1024,
+      "attempted_signals": 1099,
+      "received_samples": 1099,
+      "threads": [
+        {
+          "role": "caller",
+          "samples": 1099,
+          "cpu_seconds": 11.21,
+          "categories": {
+            "other / unresolved": {
+              "samples": 326,
+              "percent": 29.663330300272975
+            },
+            "bank update / versions": {
+              "samples": 220,
+              "percent": 20.018198362147405
+            },
+            "forward / prediction / event": {
+              "samples": 120,
+              "percent": 10.91901728844404
+            },
+            "reverse / derivatives / credit": {
+              "samples": 369,
+              "percent": 33.57597816196542
+            },
+            "collection / retention": {
+              "samples": 48,
+              "percent": 4.367606915377616
+            },
+            "allocation / copying": {
+              "samples": 16,
+              "percent": 1.4558689717925386
+            }
+          },
+          "top_symbols": [
+            {
+              "symbol": "constituent_union_flush(Model&, bool)",
+              "samples": 156,
+              "percent": 14.194722474977253
+            },
+            {
+              "symbol": "content_expert_flush(Model&)",
+              "samples": 121,
+              "percent": 11.010009099181074
+            },
+            {
+              "symbol": "libc.so.6:<unresolved>",
+              "samples": 94,
+              "percent": 8.553230209281164
+            },
+            {
+              "symbol": "pattern_classify(Model&, int, ContentEvent&, ContentEvent const*, int, bool, bool) [clone .constprop.0]",
+              "samples": 91,
+              "percent": 8.280254777070065
+            },
+            {
+              "symbol": "content_materialize(Model&, Model::ContentBankWorkspace&)",
+              "samples": 68,
+              "percent": 6.1874431301182895
+            },
+            {
+              "symbol": "content_expert_derivatives(Model&, ContentExpertRecord const* const*, float const* const*, float* const*, int)",
+              "samples": 65,
+              "percent": 5.914467697907188
+            },
+            {
+              "symbol": "context_update(Model&, int, LaceRecordLayout<SparseCredit>&, float const*, float)",
+              "samples": 51,
+              "percent": 4.640582347588717
+            },
+            {
+              "symbol": "run",
+              "samples": 48,
+              "percent": 4.367606915377616
+            },
+            {
+              "symbol": "local_prediction_update(Model&, int, LaceRecordLayout<SparseCredit>&, float const*, float)",
+              "samples": 34,
+              "percent": 3.0937215650591448
+            },
+            {
+              "symbol": "content_bank(Model&, int, int)",
+              "samples": 31,
+              "percent": 2.820746132848044
+            },
+            {
+              "symbol": "neural_archive_slot(Model&, int, int)",
+              "samples": 25,
+              "percent": 2.2747952684258417
+            },
+            {
+              "symbol": "context_input_gradient(Model&, int, LaceRecordLayout<SparseCredit> const&, float const*, float*)",
+              "samples": 23,
+              "percent": 2.092811646951774
+            },
+            {
+              "symbol": "learn_bottom_state(Model&, int, LaceRecordLayout<SparseCredit>*, float const*, float)",
+              "samples": 21,
+              "percent": 1.910828025477707
+            },
+            {
+              "symbol": "content_expert_accumulate(Model&, ContentExpertRecord const&, float const*, float, int) [clone .isra.0]",
+              "samples": 18,
+              "percent": 1.637852593266606
+            },
+            {
+              "symbol": "local_deliver_input(Model&, int, LaceRecordLayout<SparseCredit>&, float const*, float const*, int, LocalCredit&)",
+              "samples": 17,
+              "percent": 1.5468607825295724
+            },
+            {
+              "symbol": "tanhf@@GLIBC_2.2.5",
+              "samples": 17,
+              "percent": 1.5468607825295724
+            },
+            {
+              "symbol": "expert_update(Model&, int, float const*, float, LaceRecordLayout<SparseCredit>*, int, bool)",
+              "samples": 15,
+              "percent": 1.364877161055505
+            },
+            {
+              "symbol": "neural_collect(Model&)",
+              "samples": 15,
+              "percent": 1.364877161055505
+            },
+            {
+              "symbol": "event_finish_step(Model&)",
+              "samples": 14,
+              "percent": 1.2738853503184713
+            },
+            {
+              "symbol": "flush_credit(Model&, int, float)::{lambda(LaceRecordLayout<SparseCredit>&)#2}::operator()(LaceRecordLayout<SparseCredit>&) const",
+              "samples": 13,
+              "percent": 1.1828935395814377
+            },
+            {
+              "symbol": "deliver_input_credit(Model&, int, LaceRecordLayout<SparseCredit>&, float const*, int, float const*)",
+              "samples": 12,
+              "percent": 1.091901728844404
+            },
+            {
+              "symbol": "malloc@@GLIBC_2.2.5",
+              "samples": 10,
+              "percent": 0.9099181073703366
+            },
+            {
+              "symbol": "binding_compose(Model&, int, ContentEvent const*, int, bool, unsigned int)",
+              "samples": 9,
+              "percent": 0.818926296633303
+            },
+            {
+              "symbol": "libm.so.6:<unresolved>",
+              "samples": 8,
+              "percent": 0.7279344858962693
+            },
+            {
+              "symbol": "flush_credit(Model&, int, float)",
+              "samples": 7,
+              "percent": 0.6369426751592356
+            },
+            {
+              "symbol": "content_expert_encode(Model&, int, ConstituentRecord&, float const*, float, float*)",
+              "samples": 7,
+              "percent": 0.6369426751592356
+            },
+            {
+              "symbol": "constituent_encode(Model&, int, ContentEvent&, ContentEvent const*, int, bool)",
+              "samples": 6,
+              "percent": 0.545950864422202
+            },
+            {
+              "symbol": "std::_Rb_tree_increment(std::_Rb_tree_node_base*)@@GLIBCXX_3.4",
+              "samples": 6,
+              "percent": 0.545950864422202
+            },
+            {
+              "symbol": "libstdc++.so.6.0.33:<unresolved>",
+              "samples": 6,
+              "percent": 0.545950864422202
+            },
+            {
+              "symbol": "retention_node(Model&, int, long)",
+              "samples": 5,
+              "percent": 0.4549590536851683
+            },
+            {
+              "symbol": "std::_Rb_tree<std::pair<int, long>, std::pair<std::pair<int, long> const, LocalSignal>, std::_Select1st<std::pair<std::pair<int, long> const, LocalSignal> >, std::less<std::pair<int, long> >, std::pmr::polymorphic_allocator<std::pair<std::pair<int, long> const, LocalSignal> > >::_M_erase(std::_Rb_tree_node<std::pair<std::pair<int, long> const, LocalSignal> >*)",
+              "samples": 5,
+              "percent": 0.4549590536851683
+            },
+            {
+              "symbol": "semantic_expert_update(Model&, int, LaceRecordLayout<SparseCredit>*, float const*, float, int)",
+              "samples": 5,
+              "percent": 0.4549590536851683
+            },
+            {
+              "symbol": "free@@GLIBC_2.2.5",
+              "samples": 5,
+              "percent": 0.4549590536851683
+            },
+            {
+              "symbol": "paired_utility_credit(Model&, int, LaceRecordLayout<SparseCredit> const*, float const*, float const*, float const*)",
+              "samples": 4,
+              "percent": 0.36396724294813465
+            },
+            {
+              "symbol": "neural_ensure_index(Model&)",
+              "samples": 3,
+              "percent": 0.272975432211101
+            },
+            {
+              "symbol": "std::vector<float, std::pmr::polymorphic_allocator<float> >::operator=(std::vector<float, std::pmr::polymorphic_allocator<float> > const&) [clone .isra.0]",
+              "samples": 3,
+              "percent": 0.272975432211101
+            },
+            {
+              "symbol": "std::_Rb_tree_rebalance_for_erase(std::_Rb_tree_node_base*, std::_Rb_tree_node_base&)@@GLIBCXX_3.4",
+              "samples": 3,
+              "percent": 0.272975432211101
+            },
+            {
+              "symbol": "ContentCreditScope::~ContentCreditScope()",
+              "samples": 3,
+              "percent": 0.272975432211101
+            },
+            {
+              "symbol": "materialize_key(Model&, int, int)",
+              "samples": 3,
+              "percent": 0.272975432211101
+            },
+            {
+              "symbol": "logp1f@@GLIBC_2.40",
+              "samples": 3,
+              "percent": 0.272975432211101
+            },
+            {
+              "symbol": "binding_bundle(Model&, int, ContentEvent const&, ContentEvent const*, int, float*, float*, float&, float&, LaceParent*, int&)",
+              "samples": 3,
+              "percent": 0.272975432211101
+            },
+            {
+              "symbol": "route_task_update(Model&, int, LaceRecordLayout<SparseCredit>&, float const*, float)",
+              "samples": 3,
+              "percent": 0.272975432211101
+            },
+            {
+              "symbol": "constituent_record(Model&, SemanticRef)",
+              "samples": 3,
+              "percent": 0.272975432211101
+            },
+            {
+              "symbol": "std::_Rb_tree_iterator<std::pair<std::pair<int, long> const, LocalSignal> > std::_Rb_tree<std::pair<int, long>, std::pair<std::pair<int, long> const, LocalSignal>, std::_Select1st<std::pair<std::pair<int, long> const, LocalSignal> >, std::less<std::pair<int, long> >, std::pmr::polymorphic_allocator<std::pair<std::pair<int, long> const, LocalSignal> > >::_M_emplace_hint_unique<std::piecewise_construct_t const&, std::tuple<std::pair<int, long>&&>, std::tuple<> >(std::_Rb_tree_const_iterator<std::pair<std::pair<int, long> const, LocalSignal> >, std::piecewise_construct_t const&, std::tuple<std::pair<int, long>&&>&&, std::tuple<>&&) [clone .isra.0]",
+              "samples": 3,
+              "percent": 0.272975432211101
+            },
+            {
+              "symbol": "std::_Rb_tree_insert_and_rebalance(bool, std::_Rb_tree_node_base*, std::_Rb_tree_node_base*, std::_Rb_tree_node_base&)@@GLIBCXX_3.4",
+              "samples": 2,
+              "percent": 0.18198362147406733
+            },
+            {
+              "symbol": "std::vector<Model::ContentInputCache, std::allocator<Model::ContentInputCache> >::_M_default_append(unsigned long)",
+              "samples": 2,
+              "percent": 0.18198362147406733
+            },
+            {
+              "symbol": "content_count(CountEntry*, ContentID, bool, double&) [clone .isra.0]",
+              "samples": 2,
+              "percent": 0.18198362147406733
+            },
+            {
+              "symbol": "paired_buckets(Model&, PairedObservation const*, int*)",
+              "samples": 2,
+              "percent": 0.18198362147406733
+            },
+            {
+              "symbol": "std::__detail::_Map_base<long, std::pair<long const, LaceRecordLayout<SparseCredit>*>, std::allocator<std::pair<long const, LaceRecordLayout<SparseCredit>*> >, std::__detail::_Select1st, std::equal_to<long>, std::hash<long>, std::__detail::_Mod_range_hashing, std::__detail::_Default_ranged_hash, std::__detail::_Prime_rehash_policy, std::__detail::_Hashtable_traits<false, false, true>, true>::operator[](long const&)",
+              "samples": 2,
+              "percent": 0.18198362147406733
+            },
+            {
+              "symbol": "void std::__introsort_loop<__gnu_cxx::__normal_iterator<int*, std::vector<int, std::allocator<int> > >, long, __gnu_cxx::__ops::_Iter_less_iter>(__gnu_cxx::__normal_iterator<int*, std::vector<int, std::allocator<int> > >, __gnu_cxx::__normal_iterator<int*, std::vector<int, std::allocator<int> > >, long, __gnu_cxx::__ops::_Iter_less_iter) [clone .isra.0]",
+              "samples": 2,
+              "percent": 0.18198362147406733
+            },
+            {
+              "symbol": "_completion_e12_839ec7329cb2f757.so:<unresolved>",
+              "samples": 2,
+              "percent": 0.18198362147406733
+            },
+            {
+              "symbol": "constituent_role(Model&, int)",
+              "samples": 2,
+              "percent": 0.18198362147406733
+            },
+            {
+              "symbol": "expert_update(Model&, int, float const*, float, LaceRecordLayout<SparseCredit>*, int, bool) [clone .constprop.0]",
+              "samples": 2,
+              "percent": 0.18198362147406733
+            },
+            {
+              "symbol": "paired_commit(Model&)",
+              "samples": 2,
+              "percent": 0.18198362147406733
+            },
+            {
+              "symbol": "void std::__introsort_loop<__gnu_cxx::__normal_iterator<SemanticRef*, std::vector<SemanticRef, std::allocator<SemanticRef> > >, long, __gnu_cxx::__ops::_Iter_comp_iter<constituent_union_flush(Model&, bool)::{lambda(SemanticRef, SemanticRef)#2}> >(__gnu_cxx::__normal_iterator<SemanticRef*, std::vector<SemanticRef, std::allocator<SemanticRef> > >, __gnu_cxx::__normal_iterator<SemanticRef*, std::vector<SemanticRef, std::allocator<SemanticRef> > >, long, __gnu_cxx::__ops::_Iter_comp_iter<constituent_union_flush(Model&, bool)::{lambda(SemanticRef, SemanticRef)#2}>)",
+              "samples": 2,
+              "percent": 0.18198362147406733
+            },
+            {
+              "symbol": "update_bottom_prototype(Model&, int, int, unsigned long, float, float)",
+              "samples": 2,
+              "percent": 0.18198362147406733
+            },
+            {
+              "symbol": "completion_prepare(Model&, int, bool, ContentEvent&, ContentEvent*, int&)",
+              "samples": 2,
+              "percent": 0.18198362147406733
+            },
+            {
+              "symbol": "pattern_transition(Model&, int, ContentEvent const&, ContentEvent const&, bool)",
+              "samples": 2,
+              "percent": 0.18198362147406733
+            },
+            {
+              "symbol": "PyArray_IntpFromIndexSequence",
+              "samples": 1,
+              "percent": 0.09099181073703366
+            },
+            {
+              "symbol": "std::pmr::synchronized_pool_resource::do_allocate(unsigned long, unsigned long)@@GLIBCXX_3.4.26",
+              "samples": 1,
+              "percent": 0.09099181073703366
+            },
+            {
+              "symbol": "router_scores(Model&, int, float const*, int const*, int, float*)",
+              "samples": 1,
+              "percent": 0.09099181073703366
+            },
+            {
+              "symbol": "std::_Rb_tree<std::pair<int, long>, std::pair<std::pair<int, long> const, LocalSignal>, std::_Select1st<std::pair<std::pair<int, long> const, LocalSignal> >, std::less<std::pair<int, long> >, std::pmr::polymorphic_allocator<std::pair<std::pair<int, long> const, LocalSignal> > >::_M_get_insert_hint_unique_pos(std::_Rb_tree_const_iterator<std::pair<std::pair<int, long> const, LocalSignal> >, std::pair<int, long> const&)",
+              "samples": 1,
+              "percent": 0.09099181073703366
+            },
+            {
+              "symbol": "paired_read(Model&, int, float const*, ContentEvent const&)",
+              "samples": 1,
+              "percent": 0.09099181073703366
+            },
+            {
+              "symbol": "ContentEvent::~ContentEvent()",
+              "samples": 1,
+              "percent": 0.09099181073703366
+            },
+            {
+              "symbol": "paired_lookup(Model&, PairedObservation const*, int const*, float&)",
+              "samples": 1,
+              "percent": 0.09099181073703366
+            },
+            {
+              "symbol": "operator delete(void*)@@GLIBCXX_3.4",
+              "samples": 1,
+              "percent": 0.09099181073703366
+            },
+            {
+              "symbol": "std::_Sp_counted_ptr_inplace<PublicationPayload, std::pmr::polymorphic_allocator<PublicationPayload>, (__gnu_cxx::_Lock_policy)2>::_M_dispose()",
+              "samples": 1,
+              "percent": 0.09099181073703366
+            }
+          ]
+        }
+      ],
+      "process_cpu_seconds": 11.206153983,
+      "native_library_sha256": "f44788a862ce965ef9b212d3708ce2a282b318d041d4376badc426c399d75736",
+      "data": {
+        "sources": [
+          "70ea7b0b4f203c94aabcaaae58a06e213f698031:README.md",
+          "70ea7b0b4f203c94aabcaaae58a06e213f698031:STATUS.md",
+          "70ea7b0b4f203c94aabcaaae58a06e213f698031:docs/cortical_fineweb.md (held out)"
+        ],
+        "documents": 1,
+        "document_lengths": [
+          9217
+        ],
+        "training_sha256": "b0dc5876c593101a6a2a33e23ec084a9e18fa2669b98c1d2c94ed65bc476e35c",
+        "validation_sha256": "46fa481f8c6afc78dd9b0aa83ba3cbc976880033b50e3c6ea1917e4e5cfa7c51"
+      }
+    },
+    {
+      "profile": "compact_serial",
+      "targets": 8192,
+      "warmup": 1024,
+      "attempted_signals": 884,
+      "received_samples": 884,
+      "threads": [
+        {
+          "role": "caller",
+          "samples": 884,
+          "cpu_seconds": 9.06,
+          "categories": {
+            "other / unresolved": {
+              "samples": 282,
+              "percent": 31.900452488687783
+            },
+            "reverse / derivatives / credit": {
+              "samples": 297,
+              "percent": 33.5972850678733
+            },
+            "forward / prediction / event": {
+              "samples": 109,
+              "percent": 12.330316742081449
+            },
+            "bank update / versions": {
+              "samples": 155,
+              "percent": 17.533936651583712
+            },
+            "collection / retention": {
+              "samples": 36,
+              "percent": 4.072398190045249
+            },
+            "allocation / copying": {
+              "samples": 5,
+              "percent": 0.5656108597285068
+            }
+          },
+          "top_symbols": [
+            {
+              "symbol": "pipeline_compute(PipelineBatch&, bool)",
+              "samples": 121,
+              "percent": 13.687782805429864
+            },
+            {
+              "symbol": "constituent_union_flush(Model&, bool)",
+              "samples": 121,
+              "percent": 13.687782805429864
+            },
+            {
+              "symbol": "pattern_classify(Model&, int, ContentEvent&, ContentEvent const*, int, bool, bool) [clone .constprop.0]",
+              "samples": 76,
+              "percent": 8.597285067873303
+            },
+            {
+              "symbol": "content_expert_derivatives(Model&, ContentExpertRecord const* const*, float const* const*, float* const*, int)",
+              "samples": 53,
+              "percent": 5.995475113122172
+            },
+            {
+              "symbol": "libc.so.6:<unresolved>",
+              "samples": 49,
+              "percent": 5.542986425339366
+            },
+            {
+              "symbol": "run",
+              "samples": 49,
+              "percent": 5.542986425339366
+            },
+            {
+              "symbol": "context_update(Model&, int, LaceRecordLayout<SparseCredit>&, float const*, float)",
+              "samples": 35,
+              "percent": 3.9592760180995477
+            },
+            {
+              "symbol": "context_input_gradient(Model&, int, LaceRecordLayout<SparseCredit> const&, float const*, float*)",
+              "samples": 29,
+              "percent": 3.2805429864253393
+            },
+            {
+              "symbol": "local_prediction_update(Model&, int, LaceRecordLayout<SparseCredit>&, float const*, float)",
+              "samples": 27,
+              "percent": 3.0542986425339365
+            },
+            {
+              "symbol": "pipeline_capture(Model&, int, Model::ContentBankWorkspace&)",
+              "samples": 26,
+              "percent": 2.9411764705882355
+            },
+            {
+              "symbol": "learn_bottom_state(Model&, int, LaceRecordLayout<SparseCredit>*, float const*, float)",
+              "samples": 24,
+              "percent": 2.7149321266968327
+            },
+            {
+              "symbol": "content_expert_accumulate(Model&, ContentExpertRecord const&, float const*, float, int) [clone .isra.0]",
+              "samples": 20,
+              "percent": 2.262443438914027
+            },
+            {
+              "symbol": "flush_credit(Model&, int, float)",
+              "samples": 17,
+              "percent": 1.9230769230769231
+            },
+            {
+              "symbol": "neural_archive_slot(Model&, int, int)",
+              "samples": 17,
+              "percent": 1.9230769230769231
+            },
+            {
+              "symbol": "neural_collect(Model&)",
+              "samples": 16,
+              "percent": 1.8099547511312217
+            },
+            {
+              "symbol": "local_deliver_input(Model&, int, LaceRecordLayout<SparseCredit>&, float const*, float const*, int, LocalCredit&)",
+              "samples": 14,
+              "percent": 1.583710407239819
+            },
+            {
+              "symbol": "tanhf@@GLIBC_2.2.5",
+              "samples": 13,
+              "percent": 1.4705882352941178
+            },
+            {
+              "symbol": "content_expert_encode(Model&, int, ConstituentRecord&, float const*, float, float*)",
+              "samples": 13,
+              "percent": 1.4705882352941178
+            },
+            {
+              "symbol": "deliver_input_credit(Model&, int, LaceRecordLayout<SparseCredit>&, float const*, int, float const*)",
+              "samples": 10,
+              "percent": 1.1312217194570136
+            },
+            {
+              "symbol": "binding_compose(Model&, int, ContentEvent const*, int, bool, unsigned int)",
+              "samples": 9,
+              "percent": 1.0180995475113122
+            },
+            {
+              "symbol": "expert_update(Model&, int, float const*, float, LaceRecordLayout<SparseCredit>*, int, bool)",
+              "samples": 9,
+              "percent": 1.0180995475113122
+            },
+            {
+              "symbol": "pipeline_finish_step(Model&)",
+              "samples": 8,
+              "percent": 0.9049773755656109
+            },
+            {
+              "symbol": "content_bank(Model&, int, int)",
+              "samples": 7,
+              "percent": 0.7918552036199095
+            },
+            {
+              "symbol": "logp1f@@GLIBC_2.40",
+              "samples": 7,
+              "percent": 0.7918552036199095
+            },
+            {
+              "symbol": "libstdc++.so.6.0.33:<unresolved>",
+              "samples": 7,
+              "percent": 0.7918552036199095
+            },
+            {
+              "symbol": "constituent_encode(Model&, int, ContentEvent&, ContentEvent const*, int, bool)",
+              "samples": 7,
+              "percent": 0.7918552036199095
+            },
+            {
+              "symbol": "std::_Rb_tree_increment(std::_Rb_tree_node_base*)@@GLIBCXX_3.4",
+              "samples": 6,
+              "percent": 0.6787330316742082
+            },
+            {
+              "symbol": "libm.so.6:<unresolved>",
+              "samples": 6,
+              "percent": 0.6787330316742082
+            },
+            {
+              "symbol": "route_task_update(Model&, int, LaceRecordLayout<SparseCredit>&, float const*, float)",
+              "samples": 5,
+              "percent": 0.5656108597285068
+            },
+            {
+              "symbol": "semantic_expert_update(Model&, int, LaceRecordLayout<SparseCredit>*, float const*, float, int)",
+              "samples": 5,
+              "percent": 0.5656108597285068
+            },
+            {
+              "symbol": "std::_Rb_tree_insert_and_rebalance(bool, std::_Rb_tree_node_base*, std::_Rb_tree_node_base*, std::_Rb_tree_node_base&)@@GLIBCXX_3.4",
+              "samples": 4,
+              "percent": 0.45248868778280543
+            },
+            {
+              "symbol": "_completion_e12_839ec7329cb2f757.so:<unresolved>",
+              "samples": 4,
+              "percent": 0.45248868778280543
+            },
+            {
+              "symbol": "std::_Rb_tree<std::pair<int, long>, std::pair<std::pair<int, long> const, LocalSignal>, std::_Select1st<std::pair<std::pair<int, long> const, LocalSignal> >, std::less<std::pair<int, long> >, std::pmr::polymorphic_allocator<std::pair<std::pair<int, long> const, LocalSignal> > >::_M_erase(std::_Rb_tree_node<std::pair<std::pair<int, long> const, LocalSignal> >*)",
+              "samples": 4,
+              "percent": 0.45248868778280543
+            },
+            {
+              "symbol": "paired_lookup(Model&, PairedObservation const*, int const*, float&)",
+              "samples": 3,
+              "percent": 0.3393665158371041
+            },
+            {
+              "symbol": "constituent_record(Model&, SemanticRef)",
+              "samples": 3,
+              "percent": 0.3393665158371041
+            },
+            {
+              "symbol": "materialize_key(Model&, int, int)",
+              "samples": 3,
+              "percent": 0.3393665158371041
+            },
+            {
+              "symbol": "pattern_transition(Model&, int, ContentEvent const&, ContentEvent const&, bool)",
+              "samples": 3,
+              "percent": 0.3393665158371041
+            },
+            {
+              "symbol": "binding_bundle(Model&, int, ContentEvent const&, ContentEvent const*, int, float*, float*, float&, float&, LaceParent*, int&)",
+              "samples": 3,
+              "percent": 0.3393665158371041
+            },
+            {
+              "symbol": "flush_credit(Model&, int, float)::{lambda(LaceRecordLayout<SparseCredit>&)#2}::operator()(LaceRecordLayout<SparseCredit>&) const",
+              "samples": 3,
+              "percent": 0.3393665158371041
+            },
+            {
+              "symbol": "std::_Rb_tree_rebalance_for_erase(std::_Rb_tree_node_base*, std::_Rb_tree_node_base&)@@GLIBCXX_3.4",
+              "samples": 3,
+              "percent": 0.3393665158371041
+            },
+            {
+              "symbol": "void std::__unguarded_linear_insert<__gnu_cxx::__normal_iterator<PipelineEntry*, std::vector<PipelineEntry, std::allocator<PipelineEntry> > >, __gnu_cxx::__ops::_Val_comp_iter<pipeline_finish_step(Model&)::{lambda(auto:1 const&, auto:2 const&)#1}> >(__gnu_cxx::__normal_iterator<PipelineEntry*, std::vector<PipelineEntry, std::allocator<PipelineEntry> > >, __gnu_cxx::__ops::_Val_comp_iter<pipeline_finish_step(Model&)::{lambda(auto:1 const&, auto:2 const&)#1}>) [clone .isra.0]",
+              "samples": 2,
+              "percent": 0.22624434389140272
+            },
+            {
+              "symbol": "std::vector<float, std::pmr::polymorphic_allocator<float> >::operator=(std::vector<float, std::pmr::polymorphic_allocator<float> > const&) [clone .isra.0]",
+              "samples": 2,
+              "percent": 0.22624434389140272
+            },
+            {
+              "symbol": "paired_utility_credit(Model&, int, LaceRecordLayout<SparseCredit> const*, float const*, float const*, float const*)",
+              "samples": 2,
+              "percent": 0.22624434389140272
+            },
+            {
+              "symbol": "find_lace(Model&, int, long, int)",
+              "samples": 2,
+              "percent": 0.22624434389140272
+            },
+            {
+              "symbol": "malloc@@GLIBC_2.2.5",
+              "samples": 2,
+              "percent": 0.22624434389140272
+            },
+            {
+              "symbol": "expert_update(Model&, int, float const*, float, LaceRecordLayout<SparseCredit>*, int, bool) [clone .constprop.0]",
+              "samples": 2,
+              "percent": 0.22624434389140272
+            },
+            {
+              "symbol": "std::__detail::_Map_base<long, std::pair<long const, LaceRecordLayout<SparseCredit>*>, std::allocator<std::pair<long const, LaceRecordLayout<SparseCredit>*> >, std::__detail::_Select1st, std::equal_to<long>, std::hash<long>, std::__detail::_Mod_range_hashing, std::__detail::_Default_ranged_hash, std::__detail::_Prime_rehash_policy, std::__detail::_Hashtable_traits<false, false, true>, true>::operator[](long const&)",
+              "samples": 2,
+              "percent": 0.22624434389140272
+            },
+            {
+              "symbol": "std::_Rb_tree<std::pair<int, long>, std::pair<std::pair<int, long> const, LocalSignal>, std::_Select1st<std::pair<std::pair<int, long> const, LocalSignal> >, std::less<std::pair<int, long> >, std::pmr::polymorphic_allocator<std::pair<std::pair<int, long> const, LocalSignal> > >::_M_get_insert_hint_unique_pos(std::_Rb_tree_const_iterator<std::pair<std::pair<int, long> const, LocalSignal> >, std::pair<int, long> const&)",
+              "samples": 2,
+              "percent": 0.22624434389140272
+            },
+            {
+              "symbol": "IsAligned",
+              "samples": 1,
+              "percent": 0.11312217194570136
+            },
+            {
+              "symbol": "radix_feature_mask(float const*, int)",
+              "samples": 1,
+              "percent": 0.11312217194570136
+            },
+            {
+              "symbol": "completion_prepare(Model&, int, bool, ContentEvent&, ContentEvent*, int&)",
+              "samples": 1,
+              "percent": 0.11312217194570136
+            },
+            {
+              "symbol": "std::pmr::unsynchronized_pool_resource::do_allocate(unsigned long, unsigned long)@@GLIBCXX_3.4.26",
+              "samples": 1,
+              "percent": 0.11312217194570136
+            },
+            {
+              "symbol": "ContentCreditScope::~ContentCreditScope()",
+              "samples": 1,
+              "percent": 0.11312217194570136
+            },
+            {
+              "symbol": "retention_node(Model&, int, long)",
+              "samples": 1,
+              "percent": 0.11312217194570136
+            },
+            {
+              "symbol": "void std::__introsort_loop<__gnu_cxx::__normal_iterator<SemanticRef*, std::vector<SemanticRef, std::allocator<SemanticRef> > >, long, __gnu_cxx::__ops::_Iter_comp_iter<constituent_union_flush(Model&, bool)::{lambda(SemanticRef, SemanticRef)#2}> >(__gnu_cxx::__normal_iterator<SemanticRef*, std::vector<SemanticRef, std::allocator<SemanticRef> > >, __gnu_cxx::__normal_iterator<SemanticRef*, std::vector<SemanticRef, std::allocator<SemanticRef> > >, long, __gnu_cxx::__ops::_Iter_comp_iter<constituent_union_flush(Model&, bool)::{lambda(SemanticRef, SemanticRef)#2}>)",
+              "samples": 1,
+              "percent": 0.11312217194570136
+            },
+            {
+              "symbol": "pthread_rwlock_unlock@GLIBC_2.2.5",
+              "samples": 1,
+              "percent": 0.11312217194570136
+            },
+            {
+              "symbol": "pthread_rwlock_rdlock@GLIBC_2.2.5",
+              "samples": 1,
+              "percent": 0.11312217194570136
+            },
+            {
+              "symbol": "std::_Rb_tree_decrement(std::_Rb_tree_node_base*)@@GLIBCXX_3.4",
+              "samples": 1,
+              "percent": 0.11312217194570136
+            },
+            {
+              "symbol": "event_finish_step(Model&)",
+              "samples": 1,
+              "percent": 0.11312217194570136
+            },
+            {
+              "symbol": "ContentEvent::edit_context()",
+              "samples": 1,
+              "percent": 0.11312217194570136
+            },
+            {
+              "symbol": "std::pmr::unsynchronized_pool_resource::do_deallocate(void*, unsigned long, unsigned long)@@GLIBCXX_3.4.26",
+              "samples": 1,
+              "percent": 0.11312217194570136
+            },
+            {
+              "symbol": "router_scores(Model&, int, float const*, int const*, int, float*)",
+              "samples": 1,
+              "percent": 0.11312217194570136
+            },
+            {
+              "symbol": "paired_read(Model&, int, float const*, ContentEvent const&)",
+              "samples": 1,
+              "percent": 0.11312217194570136
+            },
+            {
+              "symbol": "constituent_role(Model&, int)",
+              "samples": 1,
+              "percent": 0.11312217194570136
+            },
+            {
+              "symbol": "std::enable_if<std::__and_<std::__not_<std::__is_tuple_like<PipelineEntry> >, std::is_move_constructible<PipelineEntry>, std::is_move_assignable<PipelineEntry> >::value, void>::type std::swap<PipelineEntry>(PipelineEntry&, PipelineEntry&)",
+              "samples": 1,
+              "percent": 0.11312217194570136
+            },
+            {
+              "symbol": "content_expert_flush(Model&)",
+              "samples": 1,
+              "percent": 0.11312217194570136
+            },
+            {
+              "symbol": "void std::__introsort_loop<__gnu_cxx::__normal_iterator<int*, std::vector<int, std::allocator<int> > >, long, __gnu_cxx::__ops::_Iter_less_iter>(__gnu_cxx::__normal_iterator<int*, std::vector<int, std::allocator<int> > >, __gnu_cxx::__normal_iterator<int*, std::vector<int, std::allocator<int> > >, long, __gnu_cxx::__ops::_Iter_less_iter) [clone .isra.0]",
+              "samples": 1,
+              "percent": 0.11312217194570136
+            },
+            {
+              "symbol": "update_bottom_prototype(Model&, int, int, unsigned long, float, float)",
+              "samples": 1,
+              "percent": 0.11312217194570136
+            },
+            {
+              "symbol": "free@@GLIBC_2.2.5",
+              "samples": 1,
+              "percent": 0.11312217194570136
+            },
+            {
+              "symbol": "operator new(unsigned long)@@GLIBCXX_3.4",
+              "samples": 1,
+              "percent": 0.11312217194570136
+            },
+            {
+              "symbol": "constituent_retain(Model&, ContentEvent const*, int)",
+              "samples": 1,
+              "percent": 0.11312217194570136
+            },
+            {
+              "symbol": "content_transition(Model&, int, ContentID, ContentID, bool)",
+              "samples": 1,
+              "percent": 0.11312217194570136
+            },
+            {
+              "symbol": "std::_Sp_counted_base<(__gnu_cxx::_Lock_policy)2>::_M_release()",
+              "samples": 1,
+              "percent": 0.11312217194570136
+            },
+            {
+              "symbol": "operator delete(void*)@@GLIBCXX_3.4",
+              "samples": 1,
+              "percent": 0.11312217194570136
+            },
+            {
+              "symbol": "neural_ensure_index(Model&)",
+              "samples": 1,
+              "percent": 0.11312217194570136
+            },
+            {
+              "symbol": "void std::__insertion_sort<__gnu_cxx::__normal_iterator<PipelineEntry*, std::vector<PipelineEntry, std::allocator<PipelineEntry> > >, __gnu_cxx::__ops::_Iter_comp_iter<pipeline_finish_step(Model&)::{lambda(auto:1 const&, auto:2 const&)#1}> >(__gnu_cxx::__normal_iterator<PipelineEntry*, std::vector<PipelineEntry, std::allocator<PipelineEntry> > >, __gnu_cxx::__normal_iterator<PipelineEntry*, std::vector<PipelineEntry, std::allocator<PipelineEntry> > >, __gnu_cxx::__ops::_Iter_comp_iter<pipeline_finish_step(Model&)::{lambda(auto:1 const&, auto:2 const&)#1}>) [clone .isra.0]",
+              "samples": 1,
+              "percent": 0.11312217194570136
+            },
+            {
+              "symbol": "std::_Rb_tree_iterator<std::pair<std::pair<int, long> const, LocalSignal> > std::_Rb_tree<std::pair<int, long>, std::pair<std::pair<int, long> const, LocalSignal>, std::_Select1st<std::pair<std::pair<int, long> const, LocalSignal> >, std::less<std::pair<int, long> >, std::pmr::polymorphic_allocator<std::pair<std::pair<int, long> const, LocalSignal> > >::_M_emplace_hint_unique<std::piecewise_construct_t const&, std::tuple<std::pair<int, long>&&>, std::tuple<> >(std::_Rb_tree_const_iterator<std::pair<std::pair<int, long> const, LocalSignal> >, std::piecewise_construct_t const&, std::tuple<std::pair<int, long>&&>&&, std::tuple<>&&) [clone .isra.0]",
+              "samples": 1,
+              "percent": 0.11312217194570136
+            }
+          ]
+        }
+      ],
+      "process_cpu_seconds": 9.055555399,
+      "native_library_sha256": "f44788a862ce965ef9b212d3708ce2a282b318d041d4376badc426c399d75736",
+      "data": {
+        "sources": [
+          "70ea7b0b4f203c94aabcaaae58a06e213f698031:README.md",
+          "70ea7b0b4f203c94aabcaaae58a06e213f698031:STATUS.md",
+          "70ea7b0b4f203c94aabcaaae58a06e213f698031:docs/cortical_fineweb.md (held out)"
+        ],
+        "documents": 1,
+        "document_lengths": [
+          9217
+        ],
+        "training_sha256": "b0dc5876c593101a6a2a33e23ec084a9e18fa2669b98c1d2c94ed65bc476e35c",
+        "validation_sha256": "46fa481f8c6afc78dd9b0aa83ba3cbc976880033b50e3c6ea1917e4e5cfa7c51"
+      }
+    },
+    {
+      "profile": "compact_threaded",
+      "targets": 8192,
+      "warmup": 1024,
+      "attempted_signals": 1810,
+      "received_samples": 1810,
+      "threads": [
+        {
+          "role": "learning_worker",
+          "samples": 905,
+          "cpu_seconds": 1.34,
+          "categories": {
+            "other / unresolved": {
+              "samples": 867,
+              "percent": 95.8011049723757
+            },
+            "bank update / versions": {
+              "samples": 38,
+              "percent": 4.198895027624309
+            }
+          },
+          "top_symbols": [
+            {
+              "symbol": "libc.so.6:<unresolved>",
+              "samples": 867,
+              "percent": 95.8011049723757
+            },
+            {
+              "symbol": "pipeline_compute(PipelineBatch&, bool)",
+              "samples": 38,
+              "percent": 4.198895027624309
+            }
+          ]
+        },
+        {
+          "role": "caller",
+          "samples": 905,
+          "cpu_seconds": 9.27,
+          "categories": {
+            "other / unresolved": {
+              "samples": 288,
+              "percent": 31.823204419889503
+            },
+            "reverse / derivatives / credit": {
+              "samples": 371,
+              "percent": 40.994475138121544
+            },
+            "bank update / versions": {
+              "samples": 44,
+              "percent": 4.861878453038674
+            },
+            "forward / prediction / event": {
+              "samples": 134,
+              "percent": 14.806629834254144
+            },
+            "collection / retention": {
+              "samples": 49,
+              "percent": 5.414364640883978
+            },
+            "allocation / copying": {
+              "samples": 9,
+              "percent": 0.994475138121547
+            },
+            "wait / syscall": {
+              "samples": 10,
+              "percent": 1.1049723756906078
+            }
+          },
+          "top_symbols": [
+            {
+              "symbol": "constituent_union_flush(Model&, bool)",
+              "samples": 143,
+              "percent": 15.80110497237569
+            },
+            {
+              "symbol": "pattern_classify(Model&, int, ContentEvent&, ContentEvent const*, int, bool, bool) [clone .constprop.0]",
+              "samples": 91,
+              "percent": 10.05524861878453
+            },
+            {
+              "symbol": "content_expert_derivatives(Model&, ContentExpertRecord const* const*, float const* const*, float* const*, int)",
+              "samples": 69,
+              "percent": 7.624309392265193
+            },
+            {
+              "symbol": "libc.so.6:<unresolved>",
+              "samples": 57,
+              "percent": 6.298342541436464
+            },
+            {
+              "symbol": "context_update(Model&, int, LaceRecordLayout<SparseCredit>&, float const*, float)",
+              "samples": 47,
+              "percent": 5.193370165745856
+            },
+            {
+              "symbol": "run",
+              "samples": 45,
+              "percent": 4.972375690607735
+            },
+            {
+              "symbol": "pipeline_capture(Model&, int, Model::ContentBankWorkspace&)",
+              "samples": 31,
+              "percent": 3.425414364640884
+            },
+            {
+              "symbol": "local_prediction_update(Model&, int, LaceRecordLayout<SparseCredit>&, float const*, float)",
+              "samples": 30,
+              "percent": 3.314917127071823
+            },
+            {
+              "symbol": "context_input_gradient(Model&, int, LaceRecordLayout<SparseCredit> const&, float const*, float*)",
+              "samples": 29,
+              "percent": 3.2044198895027622
+            },
+            {
+              "symbol": "content_expert_accumulate(Model&, ContentExpertRecord const&, float const*, float, int) [clone .isra.0]",
+              "samples": 26,
+              "percent": 2.8729281767955803
+            },
+            {
+              "symbol": "learn_bottom_state(Model&, int, LaceRecordLayout<SparseCredit>*, float const*, float)",
+              "samples": 24,
+              "percent": 2.6519337016574585
+            },
+            {
+              "symbol": "neural_archive_slot(Model&, int, int)",
+              "samples": 23,
+              "percent": 2.541436464088398
+            },
+            {
+              "symbol": "expert_update(Model&, int, float const*, float, LaceRecordLayout<SparseCredit>*, int, bool)",
+              "samples": 22,
+              "percent": 2.430939226519337
+            },
+            {
+              "symbol": "neural_collect(Model&)",
+              "samples": 22,
+              "percent": 2.430939226519337
+            },
+            {
+              "symbol": "local_deliver_input(Model&, int, LaceRecordLayout<SparseCredit>&, float const*, float const*, int, LocalCredit&)",
+              "samples": 20,
+              "percent": 2.2099447513812156
+            },
+            {
+              "symbol": "tanhf@@GLIBC_2.2.5",
+              "samples": 17,
+              "percent": 1.8784530386740332
+            },
+            {
+              "symbol": "content_expert_encode(Model&, int, ConstituentRecord&, float const*, float, float*)",
+              "samples": 11,
+              "percent": 1.2154696132596685
+            },
+            {
+              "symbol": "content_bank(Model&, int, int)",
+              "samples": 10,
+              "percent": 1.1049723756906078
+            },
+            {
+              "symbol": "deliver_input_credit(Model&, int, LaceRecordLayout<SparseCredit>&, float const*, int, float const*)",
+              "samples": 10,
+              "percent": 1.1049723756906078
+            },
+            {
+              "symbol": "pipeline_finish_step(Model&)",
+              "samples": 10,
+              "percent": 1.1049723756906078
+            },
+            {
+              "symbol": "pthread_cond_signal@@GLIBC_2.3.2",
+              "samples": 10,
+              "percent": 1.1049723756906078
+            },
+            {
+              "symbol": "constituent_encode(Model&, int, ContentEvent&, ContentEvent const*, int, bool)",
+              "samples": 10,
+              "percent": 1.1049723756906078
+            },
+            {
+              "symbol": "flush_credit(Model&, int, float)::{lambda(LaceRecordLayout<SparseCredit>&)#2}::operator()(LaceRecordLayout<SparseCredit>&) const",
+              "samples": 9,
+              "percent": 0.994475138121547
+            },
+            {
+              "symbol": "libm.so.6:<unresolved>",
+              "samples": 9,
+              "percent": 0.994475138121547
+            },
+            {
+              "symbol": "flush_credit(Model&, int, float)",
+              "samples": 7,
+              "percent": 0.7734806629834254
+            },
+            {
+              "symbol": "semantic_expert_update(Model&, int, LaceRecordLayout<SparseCredit>*, float const*, float, int)",
+              "samples": 7,
+              "percent": 0.7734806629834254
+            },
+            {
+              "symbol": "logp1f@@GLIBC_2.40",
+              "samples": 7,
+              "percent": 0.7734806629834254
+            },
+            {
+              "symbol": "route_task_update(Model&, int, LaceRecordLayout<SparseCredit>&, float const*, float)",
+              "samples": 7,
+              "percent": 0.7734806629834254
+            },
+            {
+              "symbol": "libstdc++.so.6.0.33:<unresolved>",
+              "samples": 6,
+              "percent": 0.6629834254143646
+            },
+            {
+              "symbol": "binding_compose(Model&, int, ContentEvent const*, int, bool, unsigned int)",
+              "samples": 6,
+              "percent": 0.6629834254143646
+            },
+            {
+              "symbol": "malloc@@GLIBC_2.2.5",
+              "samples": 5,
+              "percent": 0.5524861878453039
+            },
+            {
+              "symbol": "materialize_key(Model&, int, int)",
+              "samples": 4,
+              "percent": 0.4419889502762431
+            },
+            {
+              "symbol": "free@@GLIBC_2.2.5",
+              "samples": 4,
+              "percent": 0.4419889502762431
+            },
+            {
+              "symbol": "constituent_record(Model&, SemanticRef)",
+              "samples": 4,
+              "percent": 0.4419889502762431
+            },
+            {
+              "symbol": "paired_lookup(Model&, PairedObservation const*, int const*, float&)",
+              "samples": 4,
+              "percent": 0.4419889502762431
+            },
+            {
+              "symbol": "event_finish_step(Model&)",
+              "samples": 4,
+              "percent": 0.4419889502762431
+            },
+            {
+              "symbol": "content_expert_flush(Model&)",
+              "samples": 3,
+              "percent": 0.3314917127071823
+            },
+            {
+              "symbol": "std::_Rb_tree<std::pair<int, long>, std::pair<std::pair<int, long> const, LocalSignal>, std::_Select1st<std::pair<std::pair<int, long> const, LocalSignal> >, std::less<std::pair<int, long> >, std::pmr::polymorphic_allocator<std::pair<std::pair<int, long> const, LocalSignal> > >::_M_get_insert_hint_unique_pos(std::_Rb_tree_const_iterator<std::pair<std::pair<int, long> const, LocalSignal> >, std::pair<int, long> const&)",
+              "samples": 3,
+              "percent": 0.3314917127071823
+            },
+            {
+              "symbol": "paired_read(Model&, int, float const*, ContentEvent const&)",
+              "samples": 3,
+              "percent": 0.3314917127071823
+            },
+            {
+              "symbol": "pattern_transition(Model&, int, ContentEvent const&, ContentEvent const&, bool)",
+              "samples": 3,
+              "percent": 0.3314917127071823
+            },
+            {
+              "symbol": "void std::__unguarded_linear_insert<__gnu_cxx::__normal_iterator<PipelineEntry*, std::vector<PipelineEntry, std::allocator<PipelineEntry> > >, __gnu_cxx::__ops::_Val_comp_iter<pipeline_finish_step(Model&)::{lambda(auto:1 const&, auto:2 const&)#1}> >(__gnu_cxx::__normal_iterator<PipelineEntry*, std::vector<PipelineEntry, std::allocator<PipelineEntry> > >, __gnu_cxx::__ops::_Val_comp_iter<pipeline_finish_step(Model&)::{lambda(auto:1 const&, auto:2 const&)#1}>) [clone .isra.0]",
+              "samples": 3,
+              "percent": 0.3314917127071823
+            },
+            {
+              "symbol": "std::__detail::_Map_base<long, std::pair<long const, LaceRecordLayout<SparseCredit>*>, std::allocator<std::pair<long const, LaceRecordLayout<SparseCredit>*> >, std::__detail::_Select1st, std::equal_to<long>, std::hash<long>, std::__detail::_Mod_range_hashing, std::__detail::_Default_ranged_hash, std::__detail::_Prime_rehash_policy, std::__detail::_Hashtable_traits<false, false, true>, true>::operator[](long const&)",
+              "samples": 3,
+              "percent": 0.3314917127071823
+            },
+            {
+              "symbol": "radix_feature_mask(float const*, int)",
+              "samples": 3,
+              "percent": 0.3314917127071823
+            },
+            {
+              "symbol": "std::_Rb_tree_insert_and_rebalance(bool, std::_Rb_tree_node_base*, std::_Rb_tree_node_base*, std::_Rb_tree_node_base&)@@GLIBCXX_3.4",
+              "samples": 3,
+              "percent": 0.3314917127071823
+            },
+            {
+              "symbol": "neural_ensure_index(Model&)",
+              "samples": 2,
+              "percent": 0.22099447513812154
+            },
+            {
+              "symbol": "std::enable_if<std::__and_<std::__not_<std::__is_tuple_like<PipelineEntry> >, std::is_move_constructible<PipelineEntry>, std::is_move_assignable<PipelineEntry> >::value, void>::type std::swap<PipelineEntry>(PipelineEntry&, PipelineEntry&)",
+              "samples": 2,
+              "percent": 0.22099447513812154
+            },
+            {
+              "symbol": "completion_prepare(Model&, int, bool, ContentEvent&, ContentEvent*, int&)",
+              "samples": 2,
+              "percent": 0.22099447513812154
+            },
+            {
+              "symbol": "std::_Rb_tree_increment(std::_Rb_tree_node_base*)@@GLIBCXX_3.4",
+              "samples": 2,
+              "percent": 0.22099447513812154
+            },
+            {
+              "symbol": "content_compose(Model&, int, ContentEvent const*, int, int, bool)",
+              "samples": 2,
+              "percent": 0.22099447513812154
+            },
+            {
+              "symbol": "void std::__introsort_loop<__gnu_cxx::__normal_iterator<PipelineEntry*, std::vector<PipelineEntry, std::allocator<PipelineEntry> > >, long, __gnu_cxx::__ops::_Iter_comp_iter<pipeline_finish_step(Model&)::{lambda(auto:1 const&, auto:2 const&)#1}> >(__gnu_cxx::__normal_iterator<PipelineEntry*, std::vector<PipelineEntry, std::allocator<PipelineEntry> > >, __gnu_cxx::__normal_iterator<PipelineEntry*, std::vector<PipelineEntry, std::allocator<PipelineEntry> > >, long, __gnu_cxx::__ops::_Iter_comp_iter<pipeline_finish_step(Model&)::{lambda(auto:1 const&, auto:2 const&)#1}>)",
+              "samples": 2,
+              "percent": 0.22099447513812154
+            },
+            {
+              "symbol": "retention_node(Model&, int, long)",
+              "samples": 2,
+              "percent": 0.22099447513812154
+            },
+            {
+              "symbol": "std::_Rb_tree_rebalance_for_erase(std::_Rb_tree_node_base*, std::_Rb_tree_node_base&)@@GLIBCXX_3.4",
+              "samples": 2,
+              "percent": 0.22099447513812154
+            },
+            {
+              "symbol": "_completion_e12_839ec7329cb2f757.so:<unresolved>",
+              "samples": 2,
+              "percent": 0.22099447513812154
+            },
+            {
+              "symbol": "expert_update(Model&, int, float const*, float, LaceRecordLayout<SparseCredit>*, int, bool) [clone .constprop.0]",
+              "samples": 2,
+              "percent": 0.22099447513812154
+            },
+            {
+              "symbol": "python3.12:<unresolved>",
+              "samples": 1,
+              "percent": 0.11049723756906077
+            },
+            {
+              "symbol": "pthread_rwlock_rdlock@GLIBC_2.2.5",
+              "samples": 1,
+              "percent": 0.11049723756906077
+            },
+            {
+              "symbol": "content_transition(Model&, int, ContentID, ContentID, bool)",
+              "samples": 1,
+              "percent": 0.11049723756906077
+            },
+            {
+              "symbol": "std::_Rb_tree_iterator<std::pair<std::pair<int, long> const, LocalSignal> > std::_Rb_tree<std::pair<int, long>, std::pair<std::pair<int, long> const, LocalSignal>, std::_Select1st<std::pair<std::pair<int, long> const, LocalSignal> >, std::less<std::pair<int, long> >, std::pmr::polymorphic_allocator<std::pair<std::pair<int, long> const, LocalSignal> > >::_M_emplace_hint_unique<std::piecewise_construct_t const&, std::tuple<std::pair<int, long>&&>, std::tuple<> >(std::_Rb_tree_const_iterator<std::pair<std::pair<int, long> const, LocalSignal> >, std::piecewise_construct_t const&, std::tuple<std::pair<int, long>&&>&&, std::tuple<>&&) [clone .isra.0]",
+              "samples": 1,
+              "percent": 0.11049723756906077
+            },
+            {
+              "symbol": "std::_Rb_tree<std::pair<int, long>, std::pair<std::pair<int, long> const, LocalSignal>, std::_Select1st<std::pair<std::pair<int, long> const, LocalSignal> >, std::less<std::pair<int, long> >, std::pmr::polymorphic_allocator<std::pair<std::pair<int, long> const, LocalSignal> > >::_M_erase(std::_Rb_tree_node<std::pair<std::pair<int, long> const, LocalSignal> >*)",
+              "samples": 1,
+              "percent": 0.11049723756906077
+            },
+            {
+              "symbol": "constituent_role(Model&, int)",
+              "samples": 1,
+              "percent": 0.11049723756906077
+            },
+            {
+              "symbol": "completion_emit(Model&, int, bool, ContentEvent&, ContentEvent*, int&)",
+              "samples": 1,
+              "percent": 0.11049723756906077
+            },
+            {
+              "symbol": "ContentEvent::edit_context()",
+              "samples": 1,
+              "percent": 0.11049723756906077
+            },
+            {
+              "symbol": "void std::__insertion_sort<__gnu_cxx::__normal_iterator<SemanticRef*, std::vector<SemanticRef, std::allocator<SemanticRef> > >, __gnu_cxx::__ops::_Iter_comp_iter<constituent_union_flush(Model&, bool)::{lambda(SemanticRef, SemanticRef)#2}> >(__gnu_cxx::__normal_iterator<SemanticRef*, std::vector<SemanticRef, std::allocator<SemanticRef> > >, __gnu_cxx::__normal_iterator<SemanticRef*, std::vector<SemanticRef, std::allocator<SemanticRef> > >, __gnu_cxx::__ops::_Iter_comp_iter<constituent_union_flush(Model&, bool)::{lambda(SemanticRef, SemanticRef)#2}>)",
+              "samples": 1,
+              "percent": 0.11049723756906077
+            },
+            {
+              "symbol": "BoundedRecordPool::do_allocate(unsigned long, unsigned long)",
+              "samples": 1,
+              "percent": 0.11049723756906077
+            },
+            {
+              "symbol": "ContentCreditScope::~ContentCreditScope()",
+              "samples": 1,
+              "percent": 0.11049723756906077
+            },
+            {
+              "symbol": "paired_buckets(Model&, PairedObservation const*, int*)",
+              "samples": 1,
+              "percent": 0.11049723756906077
+            },
+            {
+              "symbol": "std::_Rb_tree_decrement(std::_Rb_tree_node_base*)@@GLIBCXX_3.4",
+              "samples": 1,
+              "percent": 0.11049723756906077
+            },
+            {
+              "symbol": "content_count(CountEntry*, ContentID, bool, double&) [clone .isra.0]",
+              "samples": 1,
+              "percent": 0.11049723756906077
+            },
+            {
+              "symbol": "std::_Sp_counted_ptr_inplace<PublicationContext, std::pmr::polymorphic_allocator<PublicationContext>, (__gnu_cxx::_Lock_policy)2>::_M_dispose()",
+              "samples": 1,
+              "percent": 0.11049723756906077
+            },
+            {
+              "symbol": "pthread_mutex_lock@@GLIBC_2.2.5",
+              "samples": 1,
+              "percent": 0.11049723756906077
+            },
+            {
+              "symbol": "ContentEvent::edit_values()",
+              "samples": 1,
+              "percent": 0.11049723756906077
+            },
+            {
+              "symbol": "router_scores(Model&, int, float const*, int const*, int, float*)",
+              "samples": 1,
+              "percent": 0.11049723756906077
+            },
+            {
+              "symbol": "void std::__insertion_sort<__gnu_cxx::__normal_iterator<PipelineEntry*, std::vector<PipelineEntry, std::allocator<PipelineEntry> > >, __gnu_cxx::__ops::_Iter_comp_iter<pipeline_finish_step(Model&)::{lambda(auto:1 const&, auto:2 const&)#1}> >(__gnu_cxx::__normal_iterator<PipelineEntry*, std::vector<PipelineEntry, std::allocator<PipelineEntry> > >, __gnu_cxx::__normal_iterator<PipelineEntry*, std::vector<PipelineEntry, std::allocator<PipelineEntry> > >, __gnu_cxx::__ops::_Iter_comp_iter<pipeline_finish_step(Model&)::{lambda(auto:1 const&, auto:2 const&)#1}>) [clone .isra.0]",
+              "samples": 1,
+              "percent": 0.11049723756906077
+            },
+            {
+              "symbol": "ContentEvent::operator=(ContentEvent const&) [clone .isra.0]",
+              "samples": 1,
+              "percent": 0.11049723756906077
+            },
+            {
+              "symbol": "munmap@@GLIBC_2.2.5",
+              "samples": 1,
+              "percent": 0.11049723756906077
+            }
+          ]
+        }
+      ],
+      "process_cpu_seconds": 10.598273528,
+      "native_library_sha256": "f44788a862ce965ef9b212d3708ce2a282b318d041d4376badc426c399d75736",
+      "data": {
+        "sources": [
+          "70ea7b0b4f203c94aabcaaae58a06e213f698031:README.md",
+          "70ea7b0b4f203c94aabcaaae58a06e213f698031:STATUS.md",
+          "70ea7b0b4f203c94aabcaaae58a06e213f698031:docs/cortical_fineweb.md (held out)"
+        ],
+        "documents": 1,
+        "document_lengths": [
+          9217
+        ],
+        "training_sha256": "b0dc5876c593101a6a2a33e23ec084a9e18fa2669b98c1d2c94ed65bc476e35c",
+        "validation_sha256": "46fa481f8c6afc78dd9b0aa83ba3cbc976880033b50e3c6ea1917e4e5cfa7c51"
+      }
+    }
+  ],
+  "completed": true
+}

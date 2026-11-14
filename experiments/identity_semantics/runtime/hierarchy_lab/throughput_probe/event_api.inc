@@ -10,6 +10,12 @@ int event_configure(void*p,int heads,int local,int frontier,int replay,float cre
      ((heads||local)&&(m.reverse_epoch_bytes!=1||m.reverse_policy!=2))||
      (m.bank_pipeline.enabled&&(!heads||!local)))return 0;
   for(int r=0;r<N;r++)if(m.s.valid[r])return 0;
+  // A clean-boundary profile reduction releases the formerly active head.
+  // Same-profile resets keep their reusable capacity.
+  if(heads<e.heads){
+    for(auto&region:e.context)for(auto&v:region){std::pmr::vector<float> empty{&record_pool()};v.data.swap(empty);}
+    std::pmr::vector<float> empty{&record_pool()};e.workspace.data.swap(empty);
+  }
   e.heads=heads;e.local=local;e.frontier=frontier;e.replay_budget=replay;
   e.credit_lr=credit_lr;e.synthetic_scale=synthetic;e.replay_scale=replay_scale;
   if(!e.initialized)for(int r=2;r<N;r++)for(int i=0;i<D;i++)for(int k=0;k<MK_FEATURES;k++)
@@ -26,8 +32,8 @@ size_t event_state_size(void*p,int fitted){
   if(fitted)return n;
   n+=sizeof(e.memory)+sizeof(e.ordinal)+sizeof(e.replay);
   for(int r=2;r<N;r++){
-    for(int k=0;k<LACE_RING;k++)if(e.context[r][k].tick)n+=2*sizeof(uint64_t)+sizeof(ContextEligibility);
-    n+=e.archive[r].size()*(sizeof(uint64_t)+sizeof(ContextEligibility));
+    for(int k=0;k<LACE_RING;k++)if(e.context[r][k].tick)n+=2*sizeof(uint64_t)+sizeof(ContextEligibilityV1);
+    n+=e.archive[r].size()*(sizeof(uint64_t)+sizeof(ContextEligibilityV1));
   }
   for(const auto&v:e.eligibility)if(v.key.ref.serial&&constituent_record(m,v.key.ref))n+=sizeof(EventEligibility);
   return n;
@@ -44,9 +50,9 @@ void event_export(void*p,void*out,int fitted){
   put(h,sizeof(h));put(&e.parameters,sizeof(e.parameters));if(fitted)return;
   put(e.memory,sizeof(e.memory));put(e.ordinal,sizeof(e.ordinal));put(e.replay,sizeof(e.replay));
   for(int r=2;r<N;r++)for(int k=0;k<LACE_RING;k++)if(e.context[r][k].tick){
-    uint64_t location[2]{uint64_t(r),uint64_t(k)};put(location,sizeof(location));put(&e.context[r][k],sizeof(ContextEligibility));
+    uint64_t location[2]{uint64_t(r),uint64_t(k)};put(location,sizeof(location));auto wire=context_wire(e.context[r][k]);put(&wire,sizeof(wire));
   }
-  for(int r=2;r<N;r++)for(const auto&entry:e.archive[r]){uint64_t region=r;put(&region,sizeof(region));put(&entry.second,sizeof(ContextEligibility));}
+  for(int r=2;r<N;r++)for(const auto&entry:e.archive[r]){uint64_t region=r;put(&region,sizeof(region));auto wire=context_wire(entry.second);put(&wire,sizeof(wire));}
   for(const auto&v:e.eligibility)if(v.key.ref.serial&&constituent_record(m,v.key.ref))put(&v,sizeof(v));
 }
 int event_import(void*p,const void*input,size_t size,int fitted){
@@ -57,7 +63,7 @@ int event_import(void*p,const void*input,size_t size,int fitted){
   uint64_t h[12];get(h,sizeof(h));
   if(h[0]!=1||h[1]!=uint64_t(fitted)||h[2]!=uint64_t(e.heads)||h[3]!=uint64_t(e.local)||
      h[4]!=uint64_t(e.frontier)||h[5]!=uint64_t(e.replay_budget)||h[9]!=E||h[10]||h[11]||h[6]>N*LACE_RING||
-     h[7]>size/sizeof(ContextEligibility)||h[8]>uint64_t(constituent_capacity(m))||
+     h[7]>size/sizeof(ContextEligibilityV1)||h[8]>uint64_t(constituent_capacity(m))||
      (fitted&&(h[6]||h[7]||h[8])))return 0;
   auto fresh=std::make_unique<EventRuntime>();auto&z=*fresh;
   auto finite=[](const float*values,size_t n){for(size_t i=0;i<n;i++)if(!std::isfinite(values[i]))return false;return true;};
@@ -66,19 +72,20 @@ int event_import(void*p,const void*input,size_t size,int fitted){
   if(fitted){if(remain)return 0;e.parameters=z.parameters;return 1;}
   if(!get(z.memory,sizeof(z.memory))||!get(z.ordinal,sizeof(z.ordinal))||!get(z.replay,sizeof(z.replay))||
      !finite(&z.memory[0][0][0][0],N*MK_HEADS*MK_DIM*MK_DIM))return 0;
-  auto context_valid=[&](const ContextEligibility&v){
+  auto context_valid=[&](const ContextEligibilityV1&v){
     return v.tick>0&&v.tick<=m.s.tick&&finite(&v.before[0][0][0],MK_HEADS*MK_DIM*MK_DIM)&&
       finite(&v.query_derivative[0][0],MK_FEATURES)&&finite(v.read,MK_FEATURES);
   };
   for(uint64_t n=0;n<h[6];n++){
-    uint64_t loc[2];ContextEligibility v{};if(!get(loc,sizeof(loc))||!get(&v,sizeof(v))||
+    uint64_t loc[2];ContextEligibilityV1 v{};if(!get(loc,sizeof(loc))||!get(&v,sizeof(v))||
       loc[0]<2||loc[0]>=N||loc[1]>=LACE_RING||!e.heads||!context_valid(v)||
       m.laces.records[loc[0]][loc[1]].tick!=v.tick||z.context[loc[0]][loc[1]].tick)return 0;
-    z.context[loc[0]][loc[1]]=v;
+    context_from_wire(z.context[loc[0]][loc[1]],v,e.heads);
   }
   for(uint64_t n=0;n<h[7];n++){
-    uint64_t r;ContextEligibility v{};if(!get(&r,sizeof(r))||!get(&v,sizeof(v))||r<2||r>=N||!e.heads||!context_valid(v)||
-      !m.neural_archive[r].count(v.tick)||!z.archive[r].emplace(v.tick,v).second)return 0;
+    uint64_t r;ContextEligibilityV1 v{};if(!get(&r,sizeof(r))||!get(&v,sizeof(v))||r<2||r>=N||!e.heads||!context_valid(v)||
+      !m.neural_archive[r].count(v.tick)||z.archive[r].count(v.tick))return 0;
+    context_from_wire(z.archive[r][v.tick],v,e.heads);
   }
   auto key_valid=[&](const EventKey&key){
     if(!key.ref.serial)return key.ordinal==0;
@@ -110,8 +117,9 @@ int event_import(void*p,const void*input,size_t size,int fitted){
       !std::isfinite(slot.priority)||slot.priority<=0||!std::isfinite(q.rate)||!finite(q.gradient,D)||!finite(q.scales,N))return 0;
   }
   e.parameters=z.parameters;memcpy(e.memory,z.memory,sizeof(e.memory));memcpy(e.ordinal,z.ordinal,sizeof(e.ordinal));
-  memcpy(e.context,z.context,sizeof(e.context));memcpy(e.replay,z.replay,sizeof(e.replay));
+  for(int r=0;r<N;r++)for(int k=0;k<LACE_RING;k++)e.context[r][k]=std::move(z.context[r][k]);memcpy(e.replay,z.replay,sizeof(e.replay));
   for(int r=0;r<N;r++)e.archive[r]=std::move(z.archive[r]);e.eligibility=std::move(z.eligibility);
+  m.semantic_retention.invalidate();
   return 1;
 }
 }
