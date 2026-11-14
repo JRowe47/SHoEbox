@@ -112,6 +112,69 @@ recognition behavior. Run `src/validate_pattern_classes.py` for the matched cost
 frozen class-removal intervention and held-out generation checks. See
 [the fourth-fix report](deliverables/SHoEbox_Pattern_Classes.md).
 
+### Structural optimization stage 5
+
+The `event` profile implements native one/two-head 8 x 8 MinKron context,
+local constituent learning, directional delayed credit and bounded targeted
+replay. It is a versioned architectural comparison policy. The full-ancestry
+reference remains available without reinterpreting saved stream state.
+
+```python
+from shoebox_reference import fresh_model, Model
+m = fresh_model(seed=7, profile="event")
+# Optional placement comparisons:
+context_only = fresh_model(event=dict(context_heads=1, learning="ancestry"))
+credit_only = fresh_model(event=dict(context_heads=0, learning="local"))
+two_heads = fresh_model(profile="event", event=dict(context_heads=2))
+print(m.event_metrics())
+m.save("event_checkpoint.npz")
+m = Model.load("event_checkpoint.npz")
+```
+
+Upper regions read a small associative context before writing the observed
+input through a normalized delta recurrence. Fixed signed pooling supplies
+keys and values; a learned 64 x 8 (or 64 x 16) readout replaces the second dense
+expert transform. Canonical content still uses its independently selected
+expert and excludes recurrent context. The context path reuses that selected
+expert's diagnostic identity rather than executing a second context router.
+Feedback still conditions the context input; feedback-dependent neural routing
+and the old upper input-EMA derivative are reported as inactive in this profile.
+The `retained_input` evaluation intervention now suppresses the MinKron read.
+
+The exact frontier follows the most recent `frontier_events` constituent
+encodes per region (default 4). Held publications, unfinished frames, neural
+input owners and replay requests retain their exact local records. Older edges
+carry their immutable occurrence/role metadata and an eight-dimensional saved
+content key. At a frontier boundary, the actual 64-dimensional task or local
+teacher trains an independent directional credit predictor. Future constituent
+encodes receive one predicted local update per objective. Predicted updates
+never train their own predictor.
+
+One priority slot per region/objective retains the hardest available older
+record for exact **local** replay. At most `replay_budget` records (default 2)
+are replayed per byte; their child signals train the compact interfaces without
+reopening full ancestry. Replaced replay candidates have already taught the
+predictor and are counted separately. This is local replay, not exact replay of
+an entire historical DAG. Consolidation is visible in `event_metrics()`, and
+missing producers remain errors. There is no byte-depth cutoff on constituent
+identity, learned composition or hippocampal retrieval.
+
+`event` adds 25,600 active fitted parameters with one head, or 33,792 with two,
+and keeps all 18 logical regions and the paired EC store. It uses scope-union
+updates; fixed bank epochs are rejected until stage 6 defines their interaction.
+Local MinKron readout/input derivatives are exact at the saved event. The fixed
+memory-write recurrence does not create a backward temporal tape.
+
+Version 41 saves context memory and eligibility, directional predictor weights,
+frontier metadata and the outstanding replay queue. Version 40 and earlier keep
+their saved ancestry policy. Policy changes require a fresh or explicitly reset
+context. Snapshot copies preserve pending replay; document draining commits it.
+Fitted evaluation copies freeze these parameters and start with an empty context.
+
+See [the stage 5 report](deliverables/SHoEbox_Structural_Optimization_Stage5.md)
+for matched throughput, placement and learning-rate comparisons, validation,
+and the remaining stage 6 worker/fusion update.
+
 ### Structural optimization stage 4
 
 Fresh reference models use `reverse={"policy": "union", "epoch_bytes": 1,

@@ -12,6 +12,8 @@ inline void neural_archive_slot(Model&m,int r,int index){
   if(r<2){const auto&temporal=m.learned.records[r][v.tick&(TEMP_RING-1)];
     if(temporal.tick==v.tick)m.neural_temporal[r][v.tick]=temporal;
   }
+  if(r>=2&&m.event.heads>0&&m.event.context[r][index].tick==v.tick)m.event.archive[r][v.tick]=m.event.context[r][index];
+  m.event.context[r][index]=ContextEligibility{};
   auto&metrics=m.neural_metrics[r];metrics[0]++;
   metrics[2]=std::max(metrics[2],uint64_t(m.neural_archive[r].size()));
 }
@@ -78,6 +80,7 @@ inline void neural_collect(Model&m){
   }
   for(int r=0;r<N;r++)for(auto it=m.neural_archive[r].begin();it!=m.neural_archive[r].end();){
     if(!marks[r].count(it->first)){
+      m.event.archive[r].erase(it->first);
       m.neural_index[r].erase(it->first);
       m.pending_neural[r].erase(it->first);m.pending_input[r].erase(it->first);
       if(r<STATE_REGIONS)m.neural_temporal[r].erase(it->first);

@@ -54,7 +54,14 @@ the complete gate: native regressions, sanitizers, exact continuation, matched
 frozen contributions and held-out generation checks. Failed or skipped checks
 cannot produce an overall passing status. Checkpoints use v40 / ABI 10.
 
+Stage 5 is available as `fresh_model(profile="event")`: native small-head
+MinKron context, a local exact frontier, directional delayed credit and bounded
+replay. It has explicit version-41 checkpoint semantics. `fresh_model()` retains
+the full-ancestry reference comparator. See the measurements before choosing
+between the learning policies.
+
 [Current implementation and usage](experiments/identity_semantics/README.md) |
+[MinKron and event learning](experiments/identity_semantics/deliverables/SHoEbox_Structural_Optimization_Stage5.md) |
 [Union reverse and bank epochs](experiments/identity_semantics/deliverables/SHoEbox_Structural_Optimization_Stage4.md) |
 [Shared publications and sparse credit](experiments/identity_semantics/deliverables/SHoEbox_Structural_Optimization_Stage2.md) |
 [Compact completion records](experiments/identity_semantics/deliverables/SHoEbox_Structural_Optimization_Stage1.md) |

@@ -107,6 +107,29 @@ int main(int argc,char**argv){
     reset_context(p);
   }
   assert(reverse_configure(p,2,1,1.f));
+  // Stage 5 shares the production native lifecycle and sanitizer harness.
+  for(int heads:{0,1,2}){
+    reset_context(p);assert(event_configure(p,heads,1,4,2,.05f,.1f,.25f));
+    loss=run(p,x.data(),y.data(),513,6,.012,.004,.002,0,&out);assert(std::isfinite(loss));
+    std::vector<unsigned char>event_state(event_state_size(p,0));event_export(p,event_state.data(),0);
+    assert(event_import(p,event_state.data(),event_state.size(),0));
+    assert(!event_import(p,event_state.data(),event_state.size()-1,0));
+    for(int r=0;r<N;r++)assert(m.event.metrics[r][9]==0);
+    assert(composition_finish(p,6,.012,.004,.002));
+    for(int r=0;r<N;r++)for(int t=0;t<2;t++)assert(!m.event.replay[r][t].request.ref.serial);
+  }
+  reset_context(p);assert(event_configure(p,1,1,4,2,.05f,.1f,.25f));
+  {
+    ContentEvent child{};child.ref.region=3;semantic_encode(m,3,child);constituent_encode(m,3,child,nullptr,0,false);
+    for(int i=0;i<SEM_RING+31;i++){
+      ContentEvent next{};next.ref.region=3;semantic_encode(m,3,next);constituent_encode(m,3,next,&child,1,false);
+      child=next;m.composition.stream.history[3][0]=child;
+    }
+    assert(constituent_capacity(m)==SEM_RING);float g[D]{};g[0]=.1f;
+    constituent_update(m,child.semantic,g,.01f,3);event_drain(m);
+    assert(m.event.metrics[3][8]>0&&m.event.metrics[3][3]>0&&m.event.metrics[3][9]==0);
+  }
+  reset_context(p);assert(event_configure(p,0,0,4,2,.05f,.1f,.25f));
   std::cerr<<"Growing live constituent DAG\n";
   ContentEvent child{};child.ref.region=3;semantic_encode(m,3,child);
   constituent_encode(m,3,child,nullptr,0,false);m.composition.stream.history[3][0]=child;

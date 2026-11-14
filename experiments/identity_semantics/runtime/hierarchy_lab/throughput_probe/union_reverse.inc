@@ -17,7 +17,7 @@ inline void constituent_union_flush(Model&m,bool force){
     }
     m.reverse_metrics[5]++;
     // Keep the common singleton case in its original arithmetic order.
-    if(group.size()==1){
+    if(group.size()==1&&!m.event.local){
       const auto&root=roots[first];
       constituent_update_reference(m,root.ref,root.gradient,root.rate,root.receiver,root.teaching);
       continue;
@@ -33,7 +33,7 @@ inline void constituent_union_flush(Model&m,bool force){
     for(auto q:group)admit(roots[q].ref);
     for(size_t i=0;i<work.size();i++){
       const auto&node=*constituent_record(m,work[i]);
-      for(int e=0;e<node.count;e++)admit(node.edges[e].source);
+      for(int e=0;e<node.count;e++)if(event_follow(m,node.ref,e))admit(node.edges[e].source);
     }
     std::sort(work.begin(),work.end(),[](SemanticRef a,SemanticRef b){return a.serial>b.serial;});
     for(auto q:group){const auto&root=roots[q];if(!constituent_record(m,root.ref))continue;
@@ -74,6 +74,7 @@ inline void constituent_union_flush(Model&m,bool force){
           gate_gradient+=payload[j]*node.payload[j]*node.gain_derivative;
           norm2+=double(local[j])*local[j];
         }
+        if(m.event.local){m.event.metrics[r][2]++;m.event.metrics[r][12+policy.teaching]++;}
         float rate=mass*policy.scales[r];
         if(!m.frozen_region[r]&&rate!=0){
           for(int j=0;j<D;j++)for(int k=0;k<8;k++)
@@ -86,7 +87,17 @@ inline void constituent_union_flush(Model&m,bool force){
         if(r!=policy.receiver){stream.message_metrics[r][0]++;stream.message_metrics[r][1]+=std::sqrt(norm2);}
         for(int e=0;e<node.count;e++){
           const auto&edge=node.edges[e];auto child=edge.source;
-          if(!child.serial||!constituent_record(m,child)||constituent_mark(m,child.index)!=mark)continue;
+          if(!child.serial)continue;
+          if(m.event.local&&!event_follow(m,node.ref,e)){
+            auto*saved=event_eligibility(m,node.ref);
+            if(saved&&!m.event.synthetic){
+              float signal[D]{};const auto&role=constituent_role(m,edge.slot);
+              for(int j=0;j<D;j++)signal[role.coord[j]]+=edge.weight*role.sign[j]*node.payload_derivative[j]*payload[j];
+              event_boundary(m,saved->children[e],signal,mass,policy);
+            }
+            continue;
+          }
+          if(!constituent_record(m,child)||constituent_mark(m,child.index)!=mark)continue;
           float*out=constituent_gradient(m,child.index);const auto&role=constituent_role(m,edge.slot);
           for(int j=0;j<D;j++)out[role.coord[j]]+=edge.weight*role.sign[j]*node.payload_derivative[j]*payload[j];
         }
@@ -100,7 +111,7 @@ inline void constituent_update(Model&m,SemanticRef root,const float*gradient,flo
   if(!root.serial||rate==0||m.reverse_update_scale==0)return;
   rate*=m.reverse_update_scale;if(rate==0)return;
   m.reverse_metrics[0]++;
-  if(m.reverse_policy==1){constituent_update_reference(m,root,gradient,rate,receiver,teaching);return;}
+  if(m.reverse_policy==1&&!m.event.local){constituent_update_reference(m,root,gradient,rate,receiver,teaching);return;}
   ContentCreditScope scope(m);m.reverse_roots.emplace_back();auto&request=m.reverse_roots.back();
   request.ref=root;request.rate=rate;request.receiver=receiver;request.teaching=teaching;
   memcpy(request.gradient,gradient,D*sizeof(float));

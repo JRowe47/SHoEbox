@@ -161,6 +161,7 @@ inline void constituent_update_reference(Model&m,SemanticRef root,const float*gr
     begin=end;
   }
 }
+#include "event_learning.inc"
 #include "union_reverse.inc"
 inline void completion_semantic_update(Model&m,int r,LaceRecord&v,InputCredit&input,const float*du,const float*dcue,float rate,int teaching=0){
   float gradient[D];

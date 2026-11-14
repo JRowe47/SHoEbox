@@ -33,11 +33,15 @@ inline int constituent_allocate(Model&m,int r,const ContentEvent*parts,int n){
   for(int k=0;k<n;k++)add(parts[k].semantic);
   add(m.semantic_inflight);
   for(const auto&root:m.reverse_roots)add(root.ref);
+  for(auto ref:m.event.new_events)add(ref);
+  for(int a=2;a<N;a++)for(int t=0;t<2;t++)add(m.event.replay[a][t].request.ref);
   for(size_t i=0;i<work.size();i++){
-    auto&node=*constituent_record(m,work[i]);for(int k=0;k<node.count;k++)add(node.edges[k].source);
+    auto&node=*constituent_record(m,work[i]);for(int k=0;k<node.count;k++)if(event_follow(m,node.ref,k))add(node.edges[k].source);
   }
   for(int k=0;k<capacity;k++)if(constituent_mark(m,k)!=mark){
+    if(m.event.local&&constituent_slot(m,k).ref.serial)m.event.metrics[constituent_slot(m,k).ref.region][8]++;
     constituent_slot(m,k).ref=SemanticRef{};
+    if(size_t(k)<m.event.eligibility.size())m.event.eligibility[k]=EventEligibility{};
     if(size_t(k)<m.content_records.size())m.content_records[k].ref=SemanticRef{};
     if(size_t(k)<m.pattern.assignments.size())m.pattern.assignments[k]=PatternAssignment{};
   }
@@ -97,4 +101,5 @@ inline void constituent_encode(Model&m,int r,ContentEvent&out,const ContentEvent
     node.derivative[j]=published.symbol_derivative[j]=muted?0:.25f*(1-residual*residual);
     node.payload[j]=payload;node.payload_derivative[j]=gain*(1-payload*payload);
   }
+  event_register(m,node);
 }

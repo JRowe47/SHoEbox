@@ -39,7 +39,8 @@ def collect(model):
                 lace=model.lace_metrics(), messages=model.message_metrics(), neural=model.neural_metrics(),
                 local_credit=model.local_credit_metrics(), content_experts=model.content_expert_metrics(),
                 pattern_classes=model.pattern_metrics(), paired_memory=model.paired_memory_metrics(),
-                acceptance=model.acceptance_metrics(),primary_edges=primary_edges)
+                acceptance=model.acceptance_metrics(),primary_edges=primary_edges,
+                event=model.event_metrics() if hasattr(model,'event_metrics') else {})
 
 
 def check_integrity(row):
@@ -49,6 +50,8 @@ def check_integrity(row):
         for region, values in row[group].items():
             for field in fields:
                 require(values[field] == 0, f'{group}.{region}.{field}={values[field]}')
+    for region,v in row.get('event',{}).items():
+        require(v['missing']==0,f'event.{region}.missing={v["missing"]}')
     for region, v in row['acceptance'].items():
         require(v['recognized'] + v['provisional'] == v['formed'], f'{region}: recognition accounting')
         require(v['formed'] + v['relays'] <= v['publications'], f'{region}: publication accounting')
