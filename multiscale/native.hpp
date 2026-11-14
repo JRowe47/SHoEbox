@@ -36,6 +36,8 @@ template<class T> void step(T& p,const T& g,float lr){
     for(size_t j=0;j<p.size();++j)p[j]-=lr*std::clamp(g[j],-2.f,2.f);
 }
 
+#include "address_memory.hpp"
+
 struct Expert {Mat w{};Vec bias{},key{};};
 struct Shared {
     Mat recurrent{},gain{},bias{},predict{};
@@ -51,7 +53,7 @@ struct Event {
     Small key{},value{},read{};
     Vec forecast{},unit{};
     float unit_norm=1,gate=1,gate_derivative=0,span=1;
-    int expert=0,runner=0,byte=0,uses=0,has_target=0;
+    int expert=0,runner=0,byte=0,uses=0,has_target=0,reconstruction_role=0;
 };
 struct Stream {
     std::array<Event,BLOCK> events{};
@@ -60,13 +62,21 @@ struct Stream {
     std::array<float,GROUP> lengths{};
     Vec state{},content{},gain{},bias{};
     Memory memory{};
+    // Kept outside Event: the byte loop does not clear a slow memory record.
+    AddressStream addressed{};
+    std::array<AddressEvent,BLOCK> address_events{};
+    std::array<Vec,GROUP> stable_children{};
+    Vec stable{};
     int count=0,children_count=0,negative_count=0,negative_cursor=0;
     uint64_t executions=0,updates=0,native_targets=0;
     double native_loss=0;
+    uint64_t reconstruction_targets=0;
+    double reconstruction_loss=0;
 };
 struct Level {
     std::vector<Expert> experts;
     Shared p{};
+    AddressParameters address{};
     Stream s{};
     // A 16-way hierarchy, stored in bottom-up layers of prototypes. Rebuilt
     // only at local update boundaries; bounded 16 comparisons per tree depth.
@@ -156,6 +166,8 @@ struct Model {
     bool training=true,indexed=true,associations=false,memory_writes=true,have_query=false;
     uint64_t bytes=0,route_comparisons=0;
     float learning_rate=.08f,head_rate=.16f,aux_weight=.1f,route_rate=.002f;
+    float reconstruction_weight=.05f;
+    int memory_mode=0;
     int mask=-1,shuffle=-1;
     explicit Model(int count=4,int target=1000000,uint32_t seed=7,bool use_index=true,bool memory=false);
     void rebuild_index(Level& l);

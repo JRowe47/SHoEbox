@@ -36,11 +36,15 @@ def run(args):
     for seed in args.seeds:
         for levels in args.levels:
             with Model(levels=levels, parameters=args.parameters, seed=seed,
-                       associations=args.associations, router=args.router) as model:
+                       associations=args.associations, router=args.router,
+                       memory_profile=args.memory_profile) as model:
+                model.configure(reconstruction_weight=args.reconstruction_weight)
                 result = dict(seed=seed, levels=levels, parameters=model.parameter_count,
                               experts=model.stats()["experts"], cpu=args.cpu, targets=args.targets,
                               learning_rate=args.lr, auxiliary_weight=args.aux,
                               router=args.router, associations=args.associations,
+                              memory_profile=args.memory_profile,
+                              reconstruction_weight=model.stats().get("reconstruction_weight", 0),
                               data_sha256=hashlib.sha256(raw).hexdigest(), split_index=split,
                               curve=[], training_seconds=0., cpu_seconds=0.)
                 result["curve"].append(dict(targets=0, seconds=0., nll=model.evaluate(test[:16385])))
@@ -73,6 +77,9 @@ def run(args):
                 result["interventions"] = {str(l):dict(mask=model.evaluate(test[:16385], mask=l),
                                                           shuffle=model.evaluate(test[:16385], shuffle=l))
                                            for l in range(1, levels)}
+                if args.memory_profile == "addressed":
+                    result["memory_interventions"] = {mode:model.evaluate(test[:16385], memory=mode)
+                                                       for mode in ("no_read", "no_time", "no_content")}
                 with model.inference_copy() as frozen:
                     t = time.perf_counter()
                     frozen.run(test[:-1], test[1:])
@@ -103,4 +110,6 @@ if __name__ == "__main__":
     p.add_argument("--router", choices=["indexed","scan"], default="indexed")
     p.add_argument("--associations", action="store_true")
     p.add_argument("--checkpoints", action="store_true")
+    p.add_argument("--memory-profile", choices=["addressed", "legacy"], default="addressed")
+    p.add_argument("--reconstruction-weight", type=float)
     run(p.parse_args())
