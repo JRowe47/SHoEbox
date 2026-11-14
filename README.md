@@ -1,5 +1,32 @@
 # SHoEbox
 
+## First-principles multiscale rebuild
+
+An independent CPU runtime now lives in [`multiscale/`](multiscale/README.md),
+with the public entry point `shoe_multiscale`. It implements one, two or four
+scales, ordered composition, top-one sparse experts, eight-event local learning,
+native-scale contrastive prediction, one shared byte decoder and a bounded
+association store. The old cortical runtime below remains reproducible.
+
+```python
+from shoe_multiscale import fresh_model
+model = fresh_model(levels=4, parameters=1_000_000)
+loss = model.train(b"An observed byte stream for local learning.\n")
+model.save("model.shoe")
+```
+
+Three matched million-target Tiny Shakespeare runs average **1.97753 nats/byte**
+at approximately **64,746 training bytes/s** for the four-scale model. The
+fast-only control averages 1.99583 nats/byte at 106,880 bytes/s. The hierarchy
+improves loss per byte, but the distant ordered-cue test remains at chance and
+the fast-only model reaches the measured loss thresholds sooner. Consequently,
+learned boundaries and promotion of the hierarchy as the selected generalist
+profile have **not** passed the design's acceptance gate.
+
+[Implementation and reproduction](multiscale/README.md) |
+[Results and remaining gates](multiscale/REBUILD_REPORT.md) |
+[Original rebuild plan](multiscale/DESIGN.md).
+
 ## Current reference design
 
 The default CPU runtime now enables the implemented reference design, including
