@@ -166,16 +166,19 @@ def main():
               table(['Policy','Fitted coefficients','Descriptors','Experts'],memory_rows,[166,118,94,94]),Spacer(1,8),
               para('The fixed semantic slab is reused. Resident counts are current inventory; RSS includes allocator retention and evaluation copies. Frames add no fitted coefficients.'),
               para('Completed-frame lengths','Heading2'),table(['Region','Action 4','Combined'],boundary,[170,151,151]),Spacer(1,8),para('Median admitted frames minus pending tail, divided by completed publications. The inspected natural-text regions mostly publish one-frame units: their full transform is moved to completion, while an additional descriptor record is retained. Larger repeated-text compositions did not produce an end-to-end gain.'),
-              para('Remaining development plan','Heading2'),table(['Action','Scope'],backlog,[105,367]),PageBreak()]
+              PageBreak()]
     selected_rows=[next(row for row in rate_rows if row[0]==LABELS[key] and float(row[1])==v['lr']) for key,v in n.items()]
     sampling=' '.join(f'{row[0]} {row[1]}: {row[2]} CPU seconds; forward {row[3]}, reverse {row[4]}, bank updates {row[5]}.' for row in sample_rows)
     story += [para('Protocol and rate screening','Heading1'),para(protocol),para('Selected rates on screening seed 7','Heading2'),table(['Policy','Main LR','Validation NLL','B/s'],selected_rows,[186,70,110,106]),Spacer(1,10),
               para('Complete 0.5x/1x/2x screening results are in the Markdown report and compact JSON evidence.'),
               para('External production sampling','Heading2'),para(sampling),para(sample_note),
               para('Reproduction','Heading2'),para('Use frames="lightweight-frames-v1" with fresh_model(). For the Action-4 combination use compact=True, rank=16 and slow_stride=8. Source, tests, measured curves and inventories are committed with this report. '+
-              'Run measure_frame_policy.py for isolated comparisons and profile_frame_policy.py for separate diagnostic samples. Longer qualification remains Action 9.')]
+              'Run measure_frame_policy.py for isolated comparisons and profile_frame_policy.py for separate diagnostic samples. Longer qualification remains Action 9.'),
+              para('Remaining development plan','Heading2'),table(['Action','Scope'],backlog,[105,367])]
     def footer(canvas,doc):
         canvas.setFont('Helvetica',8);canvas.setFillColor(colors.HexColor('#607784'));canvas.drawString(48,28,'SHoEbox | Action 5 | '+args.revision[:12]);canvas.drawRightString(564,28,str(doc.page))
-    SimpleDocTemplate(str(pdf),pagesize=letter,leftMargin=48,rightMargin=48,topMargin=38,bottomMargin=48).build(story,onFirstPage=footer,onLaterPages=footer)
+    SimpleDocTemplate(str(pdf),pagesize=letter,leftMargin=48,rightMargin=48,topMargin=38,bottomMargin=48,
+                      title='SHoEbox Action 5: Lightweight Binding Frames',author='SHoEbox',
+                      subject='Implementation, validation, and performance qualification').build(story,onFirstPage=footer,onLaterPages=footer)
     print(outcome);print(decision);print(md);print(pdf)
 if __name__=='__main__':main()
