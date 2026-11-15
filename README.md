@@ -1,28 +1,29 @@
 # SHoEbox
 
-## Selected runtime: multiscale routing D
+## Selected runtime: corrected multiscale routing C
 
-The default `shoe_multiscale` model is now **D**: exact prototype search,
-centered normalized routing, fading utilization warmup, and stable predictive
-SDR cues. The API and CLI select the same tested profile. It includes the
-retained-recall and local learning repairs that precede D.
+The default `shoe_multiscale` model is **corrected C**: exact prototype search,
+centered normalized routing, and coverage-only utilization warmup (v10).
+The API and CLI select the same profile. Routing D remains an explicit
+historical control.
 
 ```python
 from shoe_multiscale import fresh_model
 with fresh_model(levels=4, parameters=1_000_000) as model:
-    assert model.stats()["routing_arm"] == "D"
+    assert model.stats()["routing_arm"] == "C"
     model.train(b"An observed byte stream for local learning.\n")
     model.save("model.shoe")
 ```
 
-D has 1,011,903 parameters at the nominal 1M setting. Three matched 15M-target
-FineWeb runs average **1.772838555 nats/byte**; the recorded serial median is
-**30,670 training bytes/s**. D is the selected loss/time baseline. Saved models
+Corrected C has 999,615 parameters at the nominal 1M setting and 4,999,743
+at 5M. Three matched 20M-target FineWeb runs at 5M give mean development NLL
+**1.731222** and reserved-audit NLL **1.688454**. Upper expert specialization
+remains under investigation. Saved models
 retain their original policies and unfinished stream state when loaded.
 
 [Usage and architecture](multiscale/README.md) |
-[D selection and protocol](multiscale/ROUTING_D.md) |
-[Verified promotion](multiscale/results/routing_d_promotion_verification.json).
+[L2/L3 investigation](experiments/upper_credit/README.md) |
+[Historical D selection](multiscale/ROUTING_D.md).
 
 ## Historical cortical reference
 

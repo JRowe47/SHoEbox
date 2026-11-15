@@ -40,9 +40,22 @@ void Model::routing_prepare(int scale,Event& e,int slot){
     // Normalized cue and unit prototypes bound semantic scores to [-1,1].
     // Past-use bias changes selection, not gate magnitude/gradient.
     int best=0,second=0;float a=-1e30f,b=-1e30f;
-    for(size_t k=0;k<l.experts.size();++k){
-        ++route_comparisons;float score=dot(l.experts[k].key.data(),t.cue.data())+(routing_arm>=2?r.bias[k]:0.f);
-        if(score>a){b=a;second=best;a=score;best=int(k);}else if(score>b){b=score;second=int(k);}
+    if(l.routing_keys.empty()){
+        for(size_t k=0;k<l.experts.size();++k){
+            ++route_comparisons;float score=dot(l.experts[k].key.data(),t.cue.data())+(routing_arm>=2?r.bias[k]:0.f);
+            if(score>a){b=a;second=best;a=score;best=int(k);}else if(score>b){b=score;second=int(k);}
+        }
+    }else{
+        for(size_t first=0;first<l.experts.size();first+=16){
+            float scores[16]{};
+            const float* keys=l.routing_keys.data()+(first/16)*D*16;
+            routing_dot16(keys,t.cue.data(),scores);
+            for(size_t lane=0;lane<std::min(size_t(16),l.experts.size()-first);++lane){
+                size_t k=first+lane;++route_comparisons;
+                float score=scores[lane]+(routing_arm>=2?r.bias[k]:0.f);
+                if(score>a){b=a;second=best;a=score;best=int(k);}else if(score>b){b=score;second=int(k);}
+            }
+        }
     }
     e.expert=best;e.runner=second;
     for(int j=0;j<D;++j)t.key_difference[j]=l.experts[best].key[j]-l.experts[second].key[j];
@@ -63,13 +76,15 @@ void Model::routing_prepare(int scale,Event& e,int slot){
                         float rate=.002f+.038f*warm;
                         r.bias[k]+=rate*std::clamp((expected-float(r.window[k]))/expected,-1.f,1.f);
                     }else{
-                        // Retire warmup's bias on a 256-selections/expert
-                        // horizon. Afterward only a <10%-of-uniform usage
-                        // deficit earns a small positive starvation nudge.
+                        // Retire coverage bias on a 256-selections/expert horizon.
+                        // v10 removes the mature absence penalty: a 256-event
+                        // window cannot establish starvation in a large bank.
+                        // Preserve v9 arithmetic for saved historical models.
                         float decay=std::exp(-(1-warm)/float(r.bias.size()));
                         float uniform=std::clamp((expected-float(r.window[k]))/expected,-1.f,1.f);
                         float starvation=std::max(0.f,1-float(r.window[k])/(.1f*expected));
-                        r.bias[k]=decay*r.bias[k]+.04f*warm*uniform+.002f*(1-warm)*starvation;
+                        float residual=balance_policy==1?.002f*(1-warm)*starvation:0.f;
+                        r.bias[k]=decay*r.bias[k]+.04f*warm*uniform+residual;
                     }
                     r.bias[k]=std::clamp(r.bias[k],-.5f,.5f);average+=r.bias[k];r.window[k]=0;
                 }

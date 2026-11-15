@@ -1,9 +1,10 @@
-# Multiscale SHoE — selected routing D
+# Multiscale SHoE — selected corrected routing C
 
-`shoe_multiscale.Model()` and `fresh_model()` now create the tested **D** profile.
-D uses exact prototype search, centered normalized routing, fading utilization
-warmup, and stable predictive SDR cues. The Python API and CLI select the same
-policy. The underlying native arithmetic is identical to the frozen D control.
+`shoe_multiscale.Model()` and `fresh_model()` create **corrected C**.
+C uses exact prototype search, centered normalized routing, and coverage
+warmup. The Python API and CLI select the same
+policy. New models retain coverage warmup and retire its bias; the former
+post-warmup absence penalty is removed. Saved policies remain reproducible.
 
 ## Quick start
 
@@ -15,7 +16,7 @@ or `SHOE_MULTISCALE_CACHE` to select a cache directory.
 from shoe_multiscale import Model, fresh_model
 
 with fresh_model(levels=4, parameters=1_000_000, seed=7) as model:
-    assert model.stats()["routing_arm"] == "D"
+    assert model.stats()["routing_arm"] == "C"
     model.train(b"An observed training sequence.\n")
     model.save("model.shoe")  # unfinished local blocks remain pending
     loss = model.evaluate(b"A separate held-out sequence.\n")
@@ -38,7 +39,7 @@ pairs across API boundaries. Routing overrides are rejected with CLI resume.
 The simple CLI applies fixed learning rates and does not reserve validation data;
 it does not reproduce the FineWeb schedule by itself.
 
-## D architecture and selected settings
+## C architecture and selected settings
 
 | Scale | Bytes/event | Experts at the 1M budget |
 | --- | ---: | ---: |
@@ -48,23 +49,32 @@ it does not reproduce the FineWeb schedule by itself.
 | L3 | 64 | 20 |
 
 Width is 64, with one selected expert per event and four ordered children per
-slow event. D has **1,011,903 fitted parameters** at the nominal 1M expert-budget
-setting: the three 64-by-64 SDR prediction heads add 12,288 parameters above the
-999,615-parameter base allocation. `parameter_count` reports the actual total.
-The extra router-depth experiments are not part of D.
+slow event. C has **999,615 fitted parameters** at the nominal 1M budget and
+**4,999,743** at 5M (expert banks 571 / 285 / 171 / 116).
+Explicit D adds three 64-by-64 SDR prediction heads, or 12,288 parameters.
+`parameter_count` reports the actual total.
+
+The current allocator accepts nominal budgets through 100,000,000 parameters.
+The nominal 100M C configuration has 99,997,503 fitted parameters and expert
+banks 11,816 / 5,908 / 3,544 / 2,365; width remains 64. Large exact-search banks
+use a derived tiled prototype cache with AVX-512/AVX2 support and a portable
+fallback. Every expert is still scored, with the original float accumulation
+order and tie-breaking. The cache is rebuilt on load, is not a fitted parameter,
+and does not change the checkpoint format or learning rules.
 
 The learner includes context-dependent fast experts, separate fast/slow/query
 learning rates, credit through retained constituents, addressed recurrent memory,
 and retained-unit recall queried at each byte. Stable content representations
-remain separate from context. D adds fixed ordered signed 16-of-64 content cues
+remain separate from context. Explicit D adds fixed ordered signed 16-of-64 content cues
 and detached prior-state context to slow routing/expert inputs, plus a local
 next-same-scale SDR prediction objective. The target is supplied only after the
 next observed event. The byte decoder, contrastive-content and reconstruction
 objectives remain active.
 
 Centered normalized routing and the calibrated margin gate run at all scales.
-Utilization warmup fades after every expert has 256 selections; subsequent
-pressure only nudges starvation. Statistics and prototype seeding observe
+Utilization warmup fades as the least-used expert approaches 256 selections.
+After coverage, its accumulated bias decays on a 256-selections-per-expert
+horizon. No continuing penalty pushes frequent contexts away from specialists. Statistics and prototype seeding observe
 training data only. Frozen evaluation learns neither weights nor routing means.
 
 Default rates are fast/query 0.008, slow 0.08, head 0.16, and prototype attraction
@@ -81,13 +91,43 @@ for explicit schedules; omitted rates retain their current values.
 - `memory_profile="legacy"`, `"addressed_v2"`, `"addressed_v3"`, and
   `"addressed_v4"` use their preserved native implementations.
 - `Model.load()` dispatches versions 1–4 to those original backends. Versions
-  5–9 retain their saved learning/routing policies in the current native backend;
-  v8 C/D keeps the original continuing-balance pilot, v9 keeps fading warmup.
+  5–10 retain their saved learning/routing policies in the current native backend;
+  v8 C/D keeps the uniform-balance pilot, v9 keeps the residual absence rule,
+  and v10 uses coverage warmup only.
+- v11 stores explicit language-credit gains, and v12 additionally stores bounded
+  retained-value producer credit and its pending gradients. Unit language gains
+  and disabled retained-value credit preserve the original checkpoint bytes.
+- Explicit `Model(routing_arm="C")` / `"D"` retain v9 for historical comparisons.
+  Add `balance_policy="warmup"` to select v10 explicitly. `Model()` selects
+  C with v10. `set_balance_policy("warmup")` is an explicit migration of future
+  updates; it preserves current biases, weights and pending stream state.
 - `shoebox_reference` remains the independent historical cortical comparator.
 
 ## Evidence and verification
 
-Three matched 15M-target FineWeb runs have mean frozen development loss
+Corrected C is the selected baseline for the L2/L3 investigation. Three matched
+20M-target runs at 5M reproduce mean development NLL **1.731222** and audit NLL
+**1.688454**. C is the requested baseline; the historical D selection below is
+not an assertion that D remains selected. See the
+[L2/L3 investigation](../experiments/upper_credit/README.md).
+
+Language gains and retained-value producer gradients are opt-in experimental
+controls. `language_credit=(1,1,4,16)` scales only the language VJP entering native
+states; output-head and auxiliary gradients are unchanged. `recall_credit=(0,0,1,1)`
+trains learned retained values through their live producing constituents.
+Producer credit ends at the bounded constituent epoch; older values remain
+available for recall. Defaults stay `(1,1,1,1)` and `(0,0,0,0)`. These controls
+are numerically verified, but are not a demonstrated specialization repair.
+
+The 5M diagnosis selects v10 coverage-only balancing: three matched 20M-target
+runs improve mean development NLL from **1.752425 to 1.728077** and separate
+audit NLL from **1.712747 to 1.687145**. Corrected D retains its predictive cues;
+corrected C remains an approximately 9% faster comparator. Upper expert
+specialization remains weak. See the [experiment protocol](../experiments/routing_5m/README.md)
+and [measurements](results/routing_5m_selection.json).
+
+The historical v9 D selection used three matched 15M-target FineWeb runs with
+mean frozen development loss
 **1.772838555 nats/byte**. Previously measured serial median training throughput
 is **30,670 bytes/s** on the recorded host. These are the selected experiment's
 measurements, not a new training run during promotion.

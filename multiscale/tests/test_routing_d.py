@@ -12,16 +12,16 @@ from shoe_multiscale import Model, fresh_model
 
 
 class RoutingDTests(unittest.TestCase):
-    def test_default_matches_explicit_d_at_every_stream_phase(self):
+    def test_default_matches_explicit_c_at_every_stream_phase(self):
         data = np.random.default_rng(5).integers(0, 256, 2004, dtype=np.uint8)
         for seed in (1, 7, 19):
             with fresh_model(seed=seed) as default, Model(
-                seed=seed, router="scan", semantic_laces=False, routing_arm="D"
+                seed=seed, router="scan", semantic_laces=False, routing_arm="C", balance_policy="warmup"
             ) as explicit:
-                self.assertEqual(default.stats()["routing_arm"], "D")
-                self.assertEqual(default.stats()["checkpoint_version"], 9)
+                self.assertEqual(default.stats()["routing_arm"], "C")
+                self.assertEqual(default.stats()["checkpoint_version"], 10)
                 self.assertFalse(default.stats()["semantic_laces"])
-                self.assertEqual(default.parameter_count, 1_011_903)
+                self.assertEqual(default.parameter_count, 999_615)
                 self.assertEqual(default.dumps(), explicit.dumps())
                 start = 0
                 for end in (1, 4, 8, 31, 64, 511, 512, 513, 2003):
@@ -29,7 +29,7 @@ class RoutingDTests(unittest.TestCase):
                     self.assertEqual(default.run(x, y), explicit.run(x, y))
                     with Model.loads(default.dumps()) as resumed:
                         self.assertEqual(resumed.dumps(), default.dumps())
-                        self.assertEqual(resumed.stats()["routing_arm"], "D")
+                        self.assertEqual(resumed.stats()["routing_arm"], "C")
                     start = end
                 self.assertEqual(default.dumps(), explicit.dumps())
                 before = default.dumps()
@@ -81,7 +81,7 @@ class RoutingDTests(unittest.TestCase):
                 self.assertEqual(checkpoint.read_bytes(), expected.dumps())
             result = subprocess.run(command + ["inspect", "--checkpoint", str(checkpoint)],
                                     check=True, capture_output=True, text=True)
-            self.assertEqual(json.loads(result.stdout)["routing_arm"], "D")
+            self.assertEqual(json.loads(result.stdout)["routing_arm"], "C")
             result = subprocess.run(command + ["train", "--data", str(folder / "next.txt"),
                                     "--out", str(checkpoint), "--resume", str(checkpoint),
                                     "--routing-arm", "A"], capture_output=True, text=True)

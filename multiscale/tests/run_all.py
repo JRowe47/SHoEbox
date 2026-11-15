@@ -32,6 +32,16 @@ def main():
              "-ffp-contract=off",*source,"-o",executable])
         if args.no_leak_check:print("LeakSanitizer disabled explicitly; ASan and UBSan remain enabled.",flush=True)
         run([executable],env={**os.environ,"ASAN_OPTIONS":f"detect_leaks={int(not args.no_leak_check)}:halt_on_error=1","UBSAN_OPTIONS":"halt_on_error=1:print_stacktrace=1"})
+        credit_source=[ROOT/"multiscale/native.cpp",ROOT/"multiscale/tests/credit_tests.cpp"]
+        run([compiler,"-std=c++17","-O2","-ffp-contract=off",*credit_source,"-o",executable])
+        run([executable])
+        run([compiler,"-std=c++17","-O1","-g","-fno-omit-frame-pointer","-fsanitize=address,undefined","-ffp-contract=off",*credit_source,"-o",executable])
+        run([executable],env={**os.environ,"ASAN_OPTIONS":f"detect_leaks={int(not args.no_leak_check)}:halt_on_error=1","UBSAN_OPTIONS":"halt_on_error=1:print_stacktrace=1"})
+        recall_source=[ROOT/"multiscale/native.cpp",ROOT/"multiscale/tests/recall_credit_tests.cpp"]
+        run([compiler,"-std=c++17","-O2","-ffp-contract=off",*recall_source,"-o",executable])
+        run([executable])
+        run([compiler,"-std=c++17","-O1","-g","-fno-omit-frame-pointer","-fsanitize=address,undefined","-ffp-contract=off",*recall_source,"-o",executable])
+        run([executable],env={**os.environ,"ASAN_OPTIONS":f"detect_leaks={int(not args.no_leak_check)}:halt_on_error=1","UBSAN_OPTIONS":"halt_on_error=1:print_stacktrace=1"})
         run([compiler,"-std=c++17","-O1","-g","-fno-omit-frame-pointer","-fsanitize=address,undefined","-ffp-contract=off",*lace_source,"-o",executable])
         run([executable],env={**os.environ,"ASAN_OPTIONS":f"detect_leaks={int(not args.no_leak_check)}:halt_on_error=1","UBSAN_OPTIONS":"halt_on_error=1:print_stacktrace=1"})
         routing_source=[ROOT/"multiscale/native.cpp",ROOT/"multiscale/tests/routing_tests.cpp"]

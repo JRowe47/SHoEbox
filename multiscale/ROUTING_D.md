@@ -1,3 +1,7 @@
+> Historical D promotion record. New default models now use corrected C with
+> the v10 warmup-only balance policy; explicit D and existing v9 checkpoints preserve this
+> record's residual-balance policy. See `results/routing_5m_selection.json`.
+
 # Routing D selected for main
 
 D is the selected default for fresh models in the public API and CLI. This

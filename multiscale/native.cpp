@@ -3,7 +3,7 @@
 
 namespace shoe {
 Model::Model(int count,int target,uint32_t seed,bool use_index,bool memory):indexed(use_index),associations(memory){
-    if(count<1||count>4||target<50000||target>6000000)throw std::invalid_argument("levels must be 1..4 and parameters 50,000..6,000,000");
+    if(count<1||count>4||target<50000||target>100000000)throw std::invalid_argument("levels must be 1..4 and parameters 50,000..100,000,000");
     levels.resize(count);
     for(int scale=1;scale<count;++scale)epoch_limit*=GROUP;
     std::mt19937 rng(seed);std::normal_distribution<float> normal(0,1);
@@ -53,6 +53,12 @@ size_t Model::parameter_count()const{
     return n;
 }
 void Model::rebuild_index(Level& l){
+    l.routing_keys.clear();
+    if(l.experts.size()>=256){
+        l.routing_keys.resize(((l.experts.size()+15)/16)*D*16);
+        for(size_t k=0;k<l.experts.size();++k)
+            for(int j=0;j<D;++j)l.routing_keys[(k/16)*D*16+j*16+k%16]=l.experts[k].key[j];
+    }
     l.index.clear();if(!indexed||l.experts.size()<=32)return;
     std::vector<Vec> current;current.reserve(l.experts.size());for(const auto& e:l.experts)current.push_back(e.key);
     while(current.size()>16){
@@ -84,6 +90,8 @@ void Model::route(Level& l,Event& e){
     if(hi-lo>1){float a=std::tanh((best-second)/.5f);e.gate=1+.25f*a;e.gate_derivative=.5f*(1-a*a);}
 }
 void Model::update_index(Level& l,int expert){
+    if(!l.routing_keys.empty())
+        for(int j=0;j<D;++j)l.routing_keys[(expert/16)*D*16+j*16+expert%16]=l.experts[expert].key[j];
     int node=expert/16;
     for(size_t depth=0;depth<l.index.size();++depth){
         auto& v=l.index[depth][node];v={};
@@ -133,6 +141,7 @@ void Model::forward_event(int scale,const std::array<Vec,GROUP>& child,const std
         c.input=e.input;c.content=e.content;c.residual=e.residual;c.children=e.children;c.lengths=e.lengths;
         c.child_ids=s.child_ids;c.gate=e.gate;c.gate_derivative=e.gate_derivative;c.span=e.span;
         c.expert=e.expert;c.runner=e.runner;c.byte=byte;l.constituents.push_back(c);
+        if(recall_credit[scale]>0)l.recall_content_gradient.emplace_back();
         if(routing_arm)l.routing.constituents.push_back(l.routing.events[slot]);
     }
     context_forward(e,s.memory);
@@ -166,7 +175,19 @@ void Model::forward_event(int scale,const std::array<Vec,GROUP>& child,const std
     }
     if(training&&routing_arm==3&&scale>0)mv(l.routing.predict,e.state,l.routing.events[slot].forecast);
     s.state=e.state;s.content=e.content;++s.executions;
-    l.retained.admit(s.stable,e.content);
+    Vec recall_combined{};
+    if(training&&recall_credit[scale]>0)
+        for(int i=0;i<D;++i)recall_combined[i]=std::tanh(.5f*(e.content[i]+l.retained.previous_content[(3*i+13)%D]));
+    int recall_slot=l.retained.admit(s.stable,e.content);
+    if(training&&recall_credit[scale]>0){
+        if(recall_slot>=0){
+            drain_recall_credit(scale,recall_slot);
+            auto& trace=l.recall_credit_state.units[recall_slot];trace=RecallCreditUnit{};
+            trace.current=e.content_id;trace.previous=l.recall_credit_state.previous;trace.combined=recall_combined;
+            std::copy_n(l.retained.units[recall_slot].value.begin(),RECALL_K,trace.value.begin());
+        }
+        l.recall_credit_state.previous=e.content_id;
+    }
     if(training)++s.count;
     if(scale>0){mv(l.p.gain,s.state,s.gain);mv(l.p.bias,s.state,s.bias);}
     if(scale+1<int(levels.size())){
@@ -200,7 +221,7 @@ void Model::flush(int scale){
             vjp(l.routing.predict,grad,dh);outer(sdr_head_grad,grad,e.state);
         }
         l.task_gradient_energy+=energy(task);
-        for(int i=0;i<D;++i)dh[i]+=task[i];
+        for(int i=0;i<D;++i)dh[i]+=language_credit[scale]*task[i];
         Vec dz{},dc{};Small dr{};AddressValue ar{};future={};
         for(int i=0;i<D;++i){dz[i]=dh[i]*(1-e.state[i]*e.state[i]);dc[i]=dz[i];
             for(int j=0;j<K;++j){g.read[i*K+j]+=dz[i]*e.read[j];dr[j]+=l.p.read[i*K+j]*dz[i];}
@@ -247,7 +268,23 @@ void Model::flush(int scale){
     }
     s.count=0;++s.updates;
 }
+void Model::drain_recall_credit(int scale,int slot){
+    auto& l=levels[scale];auto& unit=l.recall_credit_state.units[slot];
+    Vec current{},previous{};recall_value_vjp(unit,current,previous);
+    if(unit.current>=0){auto& dst=l.recall_content_gradient.at(unit.current);for(int i=0;i<D;++i)dst[i]+=current[i];}
+    if(unit.previous>=0){auto& dst=l.recall_content_gradient.at(unit.previous);for(int i=0;i<D;++i)dst[i]+=previous[i];}
+    unit.gradient={};
+}
 void Model::retire_constituents(){
+    // Query losses arrive per byte; normalize once over the observed epoch.
+    // Credit is injected before the reverse constituent tree is retired.
+    for(size_t scale=0;scale<levels.size();++scale)if(recall_credit[scale]>0){
+        auto& l=levels[scale];for(int slot=0;slot<RECALL_SLOTS;++slot)drain_recall_credit(int(scale),slot);
+        float weight=recall_credit[scale]/std::max(1,epoch_bytes);
+        for(size_t k=0;k<l.constituents.size();++k)for(int i=0;i<D;++i)
+            l.constituents[k].grad[i]+=weight*l.recall_content_gradient[k][i];
+        l.recall_content_gradient.clear();l.recall_credit_state=RecallCreditState{};
+    }
     // A reverse pass through a bounded tree of observed constituents only.
     // No recurrent graph, stale-weight replay, or unbounded ancestry is kept.
     for(int scale=int(levels.size())-1;scale>=0;--scale){
@@ -357,6 +394,10 @@ float Model::teach(uint8_t target){
         if(semantic_laces)for(size_t scale=1;scale<levels.size();++scale){auto& l=levels[scale];if(l.s.count){auto& credit=l.laces.stream.events[l.s.count-1];credit.loss+=loss;++credit.targets;}}
         auto& fast=levels[0].s.events[levels[0].s.count-1];
         for(size_t l=0;l<levels.size();++l){RecallGradient g{};Vec di{};recall_backward(levels[l].retained,levels[l].retrieval,levels[l].read_now,recall_grad[l],g,di);
+            if(recall_credit[l]>0){auto& level=levels[l];
+                for(int k=0;k<level.retained.count;++k){auto& trace=level.recall_credit_state.units[k];
+                    if(trace.current<0&&trace.previous<0)continue;
+                    for(int j=0;j<RECALL_K;++j)trace.gradient[j]+=level.read_now.weights[k]*recall_grad[l][j];}}
             step(levels[l].retrieval.query,g.query,query_rate);
             for(int j=0;j<RECALL_K;++j)
                 levels[l].retrieval.query_byte[levels[l].read_now.byte*RECALL_K+j]-=query_rate*std::clamp(g.query_byte[j],-2.f,2.f);
@@ -391,13 +432,14 @@ void Model::inference(bool cold){
     // Snapshot fitted weights as they stand. Do not silently train/drain the
     // source to evaluate; pending derivatives are deliberately discarded.
     training=false;memory_writes=false;epoch_bytes=0;
-    for(auto& l:levels){l.routing.reset_stream();l.constituents.clear();l.s.child_ids.fill(-1);l.s.count=0;l.s.events={};l.s.address_events={};l.s.negatives={};l.s.negative_count=0;l.s.negative_cursor=0;}
+    for(auto& l:levels){l.recall_credit_state=RecallCreditState{};l.recall_content_gradient.clear();l.routing.reset_stream();l.constituents.clear();l.s.child_ids.fill(-1);l.s.count=0;l.s.events={};l.s.address_events={};l.s.negatives={};l.s.negative_count=0;l.s.negative_cursor=0;}
     if(cold)reset(false);
 }
 
 std::string save(const Model& m){
-    Writer w;uint64_t magic=0x31534d454f4853ULL;w.pod(magic);uint32_t version=m.routing_arm?(m.routing_arm>=2&&m.balance_policy?9:8):(m.lace_policy==1?6:7);w.pod(version);
+    Writer w;uint64_t magic=0x31534d454f4853ULL;w.pod(magic);uint32_t version=m.checkpoint_version();w.pod(version);
     uint32_t abi=sizeof(Constituent)^sizeof(Event)^sizeof(Stream)^sizeof(AssociationStore)^sizeof(RecallParameters)^sizeof(RecallStream)^sizeof(RecallRead);w.pod(abi);
+    if(version>=11){uint32_t payload=m.payload_version();w.pod(payload);}
     int count=int(m.levels.size()),target=int(m.parameter_count())-(m.routing_arm==3?int(m.levels.size()-1)*D*D:0);w.pod(count);w.pod(target);w.pod(m.indexed);w.pod(m.associations);
     w.pod(m.training);w.pod(m.memory_writes);w.pod(m.have_query);
     w.pod(m.embedding);w.pod(m.decoder);w.pod(m.decoder_bias);w.pod(m.store);
@@ -420,11 +462,15 @@ std::string save(const Model& m){
             w.pod(q.seeded);w.pod(q.seed_count);w.pod(q.window_count);
         }
     }
+    if(version>=11)w.pod(m.language_credit);
+    if(version>=12){w.pod(m.recall_credit);for(const auto& l:m.levels){w.pod(l.recall_credit_state);w.vector(l.recall_content_gradient);}}
     return w.out;
 }
 Model load(const char* p,size_t n){
     Reader r{p,n};uint64_t magic;uint32_t version,abi;r.pod(magic);r.pod(version);r.pod(abi);
-    if(magic!=0x31534d454f4853ULL||(version!=5&&version!=6&&version!=7&&version!=8&&version!=9)||abi!=(sizeof(Constituent)^sizeof(Event)^sizeof(Stream)^sizeof(AssociationStore)^sizeof(RecallParameters)^sizeof(RecallStream)^sizeof(RecallRead)))throw std::runtime_error("incompatible multiscale checkpoint");
+    if(magic!=0x31534d454f4853ULL||version<5||version>12||abi!=(sizeof(Constituent)^sizeof(Event)^sizeof(Stream)^sizeof(AssociationStore)^sizeof(RecallParameters)^sizeof(RecallStream)^sizeof(RecallRead)))throw std::runtime_error("incompatible multiscale checkpoint");
+    const bool credit_extension=version>=11,recall_extension=version>=12;
+    if(credit_extension){r.pod(version);if(version<6||version>10)throw std::runtime_error("invalid credit payload version");}
     int count,target;bool index,assoc;r.pod(count);r.pod(target);r.pod(index);r.pod(assoc);
     Model m(count,target,7,index,assoc);r.pod(m.training);r.pod(m.memory_writes);r.pod(m.have_query);
     r.pod(m.embedding);r.pod(m.decoder);r.pod(m.decoder_bias);r.pod(m.store);
@@ -479,7 +525,7 @@ Model load(const char* p,size_t n){
         }
     }
     if(version>=8){
-        m.balance_policy=version>=9?1:0;
+        m.balance_policy=version>=10?2:(version>=9?1:0);
         r.pod(m.routing_arm);r.pod(m.swap_level);
         if(m.routing_arm<1||m.routing_arm>3||m.swap_level < -1||m.swap_level>=count||(m.training&&m.swap_level>=0)||m.semantic_laces)
             throw std::runtime_error("invalid routing policy");
@@ -491,6 +537,23 @@ Model load(const char* p,size_t n){
                 throw std::runtime_error("invalid routing counters");
             for(float v:q.mean)if(!std::isfinite(v))throw std::runtime_error("invalid routing mean");
             for(float v:q.bias)if(!std::isfinite(v))throw std::runtime_error("invalid routing bias");
+        }
+    }
+    if(credit_extension){r.pod(m.language_credit);
+        for(size_t level=0;level<m.language_credit.size();++level){float value=m.language_credit[level];
+            if(!std::isfinite(value)||value<0||(level>=m.levels.size()&&value!=1))throw std::runtime_error("invalid language credit");}}
+    if(recall_extension){r.pod(m.recall_credit);
+        for(size_t level=0;level<m.recall_credit.size();++level){float value=m.recall_credit[level];
+            if(!std::isfinite(value)||value<0||(level>=m.levels.size()&&value!=0))throw std::runtime_error("invalid recall credit");}
+        for(size_t level=0;level<m.levels.size();++level){auto& l=m.levels[level];r.pod(l.recall_credit_state);
+            uint64_t size;r.pod(size);
+            if(size!=(m.training&&m.recall_credit[level]>0?l.constituents.size():0))throw std::runtime_error("invalid recall credit buffer");
+            l.recall_content_gradient.resize(size);for(auto& v:l.recall_content_gradient)r.pod(v);
+            auto valid_id=[&](int id){return id==-1||(id>=0&&uint64_t(id)<size);};
+            if(!valid_id(l.recall_credit_state.previous))throw std::runtime_error("invalid prior recall producer");
+            for(const auto& unit:l.recall_credit_state.units){
+                if(!valid_id(unit.current)||!valid_id(unit.previous))throw std::runtime_error("invalid recall producer");
+                for(float v:unit.gradient)if(!std::isfinite(v))throw std::runtime_error("invalid recall derivative");}
         }
     }
     if(r.n)throw std::runtime_error("unexpected trailing checkpoint data");
@@ -519,14 +582,38 @@ int ms_learning(void* p,float fast,float slow,float query,float credit){return g
     for(float value:{fast,slow,query,credit})if(!std::isfinite(value)||value<0)throw std::invalid_argument("learning policy must be finite and nonnegative");
     auto& m=*static_cast<shoe::Model*>(p);m.learning_rate=fast;m.slow_rate=slow;m.query_rate=query;m.constituent_credit=credit;
 });}
+int ms_language_credit(void* p,const float* gains,size_t n){return guard([&]{
+    auto& m=*static_cast<shoe::Model*>(p);
+    if(!m.training)throw std::logic_error("language credit is a training policy");
+    if(n!=m.levels.size())throw std::invalid_argument("one language credit gain is required per level");
+    for(size_t i=0;i<n;++i)if(!std::isfinite(gains[i])||gains[i]<0)throw std::invalid_argument("language credit must be finite and nonnegative");
+    std::copy(gains,gains+n,m.language_credit.begin());
+});}
+int ms_credit_stats(void* p,double* out){return guard([&]{
+    const auto& m=*static_cast<shoe::Model*>(p);std::copy(m.language_credit.begin(),m.language_credit.end(),out);
+    std::copy(m.recall_credit.begin(),m.recall_credit.end(),out+4);
+});}
+int ms_recall_credit(void* p,const float* gains,size_t n){return guard([&]{
+    auto& m=*static_cast<shoe::Model*>(p);
+    if(!m.training||m.epoch_bytes)throw std::logic_error("change recall credit at an explicit training boundary");
+    if(n!=m.levels.size())throw std::invalid_argument("one recall credit gain is required per level");
+    for(size_t i=0;i<n;++i)if(!std::isfinite(gains[i])||gains[i]<0)throw std::invalid_argument("recall credit must be finite and nonnegative");
+    std::copy(gains,gains+n,m.recall_credit.begin());
+    for(auto& l:m.levels){l.recall_credit_state=shoe::RecallCreditState{};l.recall_content_gradient.clear();}
+});}
 int ms_routing(void* p,int arm){return guard([&]{auto& m=*static_cast<shoe::Model*>(p);
     if(arm<0||arm>3||m.epoch_bytes||m.bytes||m.routing_arm)throw std::invalid_argument("set routing once on a fresh model");
     if(arm&&m.semantic_laces)throw std::invalid_argument("routing arms require laces disabled");m.routing_arm=arm;
 });}
+int ms_balance(void* p,int policy){return guard([&]{auto& m=*static_cast<shoe::Model*>(p);
+    if((policy!=1&&policy!=2)||m.routing_arm<2||!m.training)
+        throw std::invalid_argument("balance policy requires a training C/D model and policy 1 or 2");
+    m.balance_policy=policy;
+});}
 int ms_swap_experts(void* p,int level){return guard([&]{auto& m=*static_cast<shoe::Model*>(p);
     if(m.training||level < -1||level>=int(m.levels.size()))throw std::invalid_argument("expert swapping requires frozen inference");m.swap_level=level;
 });}
-int ms_routing_stats(void* p,double* out){return guard([&]{auto& m=*static_cast<shoe::Model*>(p);std::fill(out,out+64,0.);out[0]=m.routing_arm;
+int ms_routing_stats(void* p,double* out){return guard([&]{auto& m=*static_cast<shoe::Model*>(p);std::fill(out,out+64,0.);out[0]=m.routing_arm;out[1]=m.balance_policy;
     for(size_t i=0;i<m.levels.size();++i){const auto& q=m.levels[i].routing;auto* a=out+4+i*15;
         a[0]=q.seen;a[1]=q.seeded;a[2]=*std::min_element(q.selections.begin(),q.selections.end());a[3]=*std::max_element(q.selections.begin(),q.selections.end());
         a[4]=q.predict_targets;a[5]=q.predict_loss;a[6]=*std::min_element(q.bias.begin(),q.bias.end());a[7]=*std::max_element(q.bias.begin(),q.bias.end());
@@ -548,7 +635,7 @@ int ms_lace_records(void* p,double* out){return guard([&]{auto& m=*static_cast<s
         for(int i=0;i<4;++i)a[12+i]=r.code.path[i];}
 });}
 int ms_lace_stats(void* p,double* out){return guard([&]{auto& m=*static_cast<shoe::Model*>(p);std::fill(out,out+64,0.);
-    out[0]=m.semantic_laces;out[1]=m.lace_training_bytes;out[2]=m.routing_arm?(m.routing_arm>=2&&m.balance_policy?9:8):(m.lace_policy==1?6:7);
+    out[0]=m.semantic_laces;out[1]=m.lace_training_bytes;out[2]=m.checkpoint_version();
     for(size_t i=0;i<m.levels.size();++i){const auto& b=m.levels[i].laces;double* a=out+4+i*15;
         a[0]=b.clock;a[1]=b.matches;a[2]=b.misses;a[3]=b.allocations;a[4]=b.promotions;a[5]=b.rejections;a[6]=b.trial_routes;a[7]=b.retained_routes;a[8]=b.no_spare;
         for(const auto& r:b.records)if(r.identity){++a[9];a[10]+=r.status==1;a[11]+=r.status==2;}

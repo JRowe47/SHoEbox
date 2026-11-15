@@ -11,6 +11,9 @@
 #include <string>
 #include <type_traits>
 #include <vector>
+#if defined(__AVX512F__) || defined(__AVX2__)
+#include <immintrin.h>
+#endif
 
 namespace shoe {
 constexpr int D=64, K=8, BLOCK=8, GROUP=4, NEG=16, VOCAB=256;
@@ -20,6 +23,27 @@ using Small=std::array<float,K>;
 using Memory=std::array<float,K*K>;
 inline float dot(const float* a,const float* b,int n=D){
     float s=0; for(int j=0;j<n;++j)s+=a[j]*b[j]; return s;
+}
+inline void routing_dot16(const float* keys,const float* cue,float* scores){
+    // Each lane is a separate expert. No horizontal reduction, reassociation,
+    // or FMA: arithmetic order matches dot() exactly, including tie behavior.
+#if defined(__AVX512F__)
+    __m512 sum=_mm512_setzero_ps();
+    for(int j=0;j<D;++j)
+        sum=_mm512_add_ps(sum,_mm512_mul_ps(_mm512_loadu_ps(keys+j*16),_mm512_set1_ps(cue[j])));
+    _mm512_storeu_ps(scores,sum);
+#elif defined(__AVX2__)
+    __m256 lo=_mm256_setzero_ps(),hi=_mm256_setzero_ps();
+    for(int j=0;j<D;++j){
+        __m256 x=_mm256_set1_ps(cue[j]);
+        lo=_mm256_add_ps(lo,_mm256_mul_ps(_mm256_loadu_ps(keys+j*16),x));
+        hi=_mm256_add_ps(hi,_mm256_mul_ps(_mm256_loadu_ps(keys+j*16+8),x));
+    }
+    _mm256_storeu_ps(scores,lo);_mm256_storeu_ps(scores+8,hi);
+#else
+    std::fill(scores,scores+16,0.f);
+    for(int j=0;j<D;++j)for(int lane=0;lane<16;++lane)scores[lane]+=keys[j*16+lane]*cue[j];
+#endif
 }
 inline float energy(const Vec& a){return dot(a.data(),a.data());}
 inline void normalize(Vec& a){float s=1/std::sqrt(energy(a)+1e-8f);for(auto& x:a)x*=s;}
@@ -38,6 +62,7 @@ template<class T> void step(T& p,const T& g,float lr){
 
 #include "address_memory.hpp"
 #include "recall.hpp"
+#include "recall_credit.hpp"
 
 struct Expert {Mat w{};Vec bias{},key{};};
 struct Shared {
@@ -90,6 +115,10 @@ struct Stream {
 
 struct Level {
     std::vector<Expert> experts;
+    // Derived exact-search cache. Coordinates are contiguous across 16 experts
+    // so SIMD preserves each dot product's original accumulation order.
+    // Rebuilt after load; never serialized or counted as fitted parameters.
+    std::vector<float> routing_keys;
     LaceBank laces{};
     RoutingState routing{};
     Shared p{};
@@ -97,6 +126,8 @@ struct Level {
     RecallParameters retrieval{};
     RecallStream retained{};
     RecallRead read_now{};
+    RecallCreditState recall_credit_state{};
+    std::vector<Vec> recall_content_gradient;
     Stream s{};
     std::vector<Constituent> constituents;
     uint64_t credit_edges=0,content_updates=0;
@@ -188,13 +219,17 @@ struct Model {
     int payload_count=0;
     bool semantic_laces=true;
     int routing_arm=0,swap_level=-1; // A/B/C/D = 0/1/2/3; swap is frozen-only.
-    int balance_policy=1; // v8 strict-balance pilot; v9 fading warmup/starvation.
+    int balance_policy=2; // v8 uniform pilot; v9 residual starvation; v10 warmup only.
     int lace_intervention=0,lace_policy=2;
     uint64_t lace_training_bytes=0;
     bool training=true,indexed=true,associations=false,memory_writes=true,have_query=false;
     uint64_t bytes=0,route_comparisons=0;
     float learning_rate=.008f,slow_rate=.08f,query_rate=.008f,head_rate=.16f,aux_weight=.1f,route_rate=.002f;
     float constituent_credit=1;
+    // Scale only language VJPs entering each native state. Local objectives
+    // and gain/bias readout-head updates retain their independent rates.
+    std::array<float,4> language_credit{{1,1,1,1}};
+    std::array<float,4> recall_credit{{0,0,0,0}};
     int epoch_bytes=0,epoch_limit=BLOCK;
     float reconstruction_weight=.05f;
     int memory_mode=0,recall_mode=0;
@@ -211,6 +246,7 @@ struct Model {
     void forward_event(int scale,const std::array<Vec,GROUP>& child,const std::array<float,GROUP>& lengths,int byte);
     void flush(int scale);
     void retire_constituents();
+    void drain_recall_credit(int scale,int slot);
     void refresh();
     void observe(uint8_t byte);
     float teach(uint8_t target);
@@ -220,6 +256,13 @@ struct Model {
     void finish();
     void inference(bool cold);
     size_t parameter_count()const;
+    uint32_t payload_version()const{
+        return routing_arm?(routing_arm>=2&&balance_policy?(balance_policy==2?10:9):8):(lace_policy==1?6:7);
+    }
+    uint32_t checkpoint_version()const{
+        if(recall_credit!=std::array<float,4>{{0,0,0,0}})return 12;
+        return language_credit==std::array<float,4>{{1,1,1,1}}?payload_version():11;
+    }
 };
 
 inline int coord(int a,int b){return a*8+b;}

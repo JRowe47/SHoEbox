@@ -31,15 +31,15 @@ struct RecallStream {
     Vec previous{},previous_content{},last{};bool have_previous=false;
     uint64_t clock=0;
     int count=0;
-    void admit(const Vec& current,const Vec& content){
-        if(!have_previous){previous=current;previous_content=content;have_previous=true;return;}
+    int admit(const Vec& current,const Vec& content){
+        if(!have_previous){previous=current;previous_content=content;have_previous=true;return -1;}
         Vec stable{},combined{};
         for(int i=0;i<D;++i){int j=(3*i+13)%D;
             stable[i]=current[i]+previous[j];combined[i]=std::tanh(.5f*(content[i]+previous_content[j]));}
         normalize(stable);previous=current;previous_content=content;
         // Repetition neither consumes slots nor ages unrelated retained units.
         // Reoccurrence after a different pair refreshes the pair's occurrence.
-        if(clock&&stable==last)return;
+        if(clock&&stable==last)return -1;
         last=stable;
         int slot=0;
         for(;slot<count;++slot)if(units[slot].stable==stable)break;
@@ -52,6 +52,7 @@ struct RecallStream {
         for(float& x:u.key)x/=norm;
         auto learned=recall_pool(combined);
         for(int i=0;i<RECALL_K;++i){u.value[i]=std::tanh(learned[i]);u.value[RECALL_K+i]=u.key[i];}
+        return slot;
     }
 };
 struct RecallRead {

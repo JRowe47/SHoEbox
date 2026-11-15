@@ -18,9 +18,15 @@ def main():
     train.add_argument("--slow-rate",type=float);train.add_argument("--query-rate",type=float)
     train.add_argument("--head-rate",type=float)
     train.add_argument("--router",choices=["indexed","scan"],default=None,
-                       help="fresh model: exact scan for D; indexed for historical A/profiles")
+                       help="fresh model: exact scan for C; indexed for historical A/profiles")
     train.add_argument("--routing-arm",choices=list("ABCD"),default=None,
-                       help="fresh model: D by default; A/B/C remain reproducible")
+                       help="fresh model: corrected C by default; explicit A/B/C/D remain reproducible")
+    train.add_argument("--language-credit",type=float,nargs='+',
+                       help="fresh model: one language-state credit gain per level; resume preserves saved gains")
+    train.add_argument("--recall-credit",type=float,nargs='+',
+                       help="fresh model: one retained-value credit gain per level; resume preserves saved gains")
+    train.add_argument("--balance-policy",choices=["legacy","warmup"],default=None,
+                       help="fresh C/D model: coverage warmup or historical residual balancing")
     train.add_argument("--semantic-laces",action=argparse.BooleanOptionalAction,default=None,
                        help="fresh model: historical A-only lace dispatch")
     train.add_argument("--associations",action="store_true")
@@ -33,11 +39,12 @@ def main():
     inspect=sub.add_parser("inspect");inspect.add_argument("--checkpoint",required=True)
     args=parser.parse_args()
     if args.command=="train":
-        if args.resume and any(value is not None for value in (args.router,args.routing_arm,args.semantic_laces)):
+        if args.resume and any(value is not None for value in (args.router,args.routing_arm,args.semantic_laces,args.balance_policy,args.language_credit,args.recall_credit)):
             parser.error("resume preserves saved routing; routing options apply only to fresh models")
         m=Model.load(args.resume) if args.resume else Model(levels=args.levels,parameters=args.parameters,
                          seed=args.seed,router=args.router,associations=args.associations,memory_profile=args.memory_profile,
-                         routing_arm=args.routing_arm,semantic_laces=args.semantic_laces)
+                         routing_arm=args.routing_arm,semantic_laces=args.semantic_laces,balance_policy=args.balance_policy,
+                         language_credit=args.language_credit,recall_credit=args.recall_credit)
         with m:
             m.configure(learning_rate=args.learning_rate,slow_rate=args.slow_rate,query_rate=args.query_rate,
                         head_rate=args.head_rate,reconstruction_weight=args.reconstruction_weight)

@@ -27,6 +27,8 @@ def _library(profile="addressed"):
     if profile in ("addressed", "addressed_v4"):
         source += (directory / "recall.hpp").read_bytes()
     if profile == "addressed":
+        source += (directory / "recall_credit.hpp").read_bytes()
+    if profile == "addressed":
         source += (directory / "routing_geometry.hpp").read_bytes() + (directory / "routing_geometry_impl.hpp").read_bytes()
         source += (directory / "semantic_laces.hpp").read_bytes() + (directory / "semantic_laces_impl.hpp").read_bytes()
     flags = ["-std=c++17", "-O3", "-march=native", "-ffp-contract=off", "-fPIC", "-shared"]
@@ -65,7 +67,8 @@ def _library(profile="addressed"):
                      ms_laces=([p,i],i), ms_lace_stats=([p,p],i),
                      ms_lace_intervene=([p,i],i), ms_lace_records=([p,p],i),
                      plateau_probe=([p,p,n,p,p],i),ms_routing=([p,i],i),
-                     ms_swap_experts=([p,i],i),ms_routing_stats=([p,p],i))
+                     ms_swap_experts=([p,i],i),ms_routing_stats=([p,p],i),ms_balance=([p,i],i),
+                     ms_language_credit=([p,p,n],i),ms_credit_stats=([p,p],i),ms_recall_credit=([p,p,n],i))
     for name, (args, result) in specs.items():
         fn = getattr(lib, name)
         fn.argtypes, fn.restype = args, result
@@ -86,15 +89,19 @@ def _bytes(x):
 
 class Model:
     def __init__(self, *, levels=4, parameters=1_000_000, seed=7, router=None, associations=False,
-                 memory_profile="addressed", semantic_laces=None, routing_arm=None):
-        """Create routing D by default; loading preserves the saved policy.
+                 memory_profile="addressed", semantic_laces=None, routing_arm=None, balance_policy=None,
+                 language_credit=None, recall_credit=None):
+        """Create corrected C with coverage warmup and no mature usage penalty.
 
-        Explicit routing_arm="A" retains the historical indexed/lace defaults.
+        Explicit C/D arms retain legacy balancing unless balance_policy="warmup".
+        Loading preserves the saved policy. Explicit routing_arm="A" retains the
+        historical indexed/lace defaults.
         semantic_laces=True also explicitly selects that historical arm.
         Historical memory profiles retain their original indexed routing.
         """
+        implicit_arm = routing_arm is None
         if routing_arm is None:
-            routing_arm = "D" if memory_profile == "addressed" and semantic_laces is not True else "A"
+            routing_arm = "C" if memory_profile == "addressed" and semantic_laces is not True else "A"
         if routing_arm not in ("A", "B", "C", "D"):
             raise ValueError("routing_arm must be 'A', 'B', 'C' or 'D'")
         if memory_profile != "addressed" and routing_arm != "A":
@@ -109,6 +116,17 @@ class Model:
             raise ValueError("router must be 'indexed' or 'scan'")
         if routing_arm != "A" and router != "scan":
             raise ValueError("routing arms B/C/D use exact search; set router='scan'")
+        if balance_policy not in (None, "legacy", "warmup"):
+            raise ValueError("balance_policy must be 'legacy' or 'warmup'")
+        if balance_policy is not None and routing_arm not in ("C", "D"):
+            raise ValueError("balance_policy requires routing C or D")
+        if language_credit is not None:
+            if memory_profile != "addressed":
+                raise ValueError("language credit requires the addressed runtime")
+            self._validate_credit(language_credit, levels)
+        if recall_credit is not None:
+            if memory_profile != "addressed":raise ValueError("recall credit requires the addressed runtime")
+            self._validate_credit(recall_credit,levels)
         self._profile = memory_profile
         self._lib = _library(memory_profile)
         self._handle = self._lib.ms_create(levels, parameters, seed, router == "indexed", associations)
@@ -116,6 +134,49 @@ class Model:
         if memory_profile == "addressed":
             self.set_semantic_laces(semantic_laces)
             self._check(self._lib.ms_routing(self._alive(), {"A":0,"B":1,"C":2,"D":3}[routing_arm]))
+            if routing_arm in ("C", "D"):
+                self.set_balance_policy(balance_policy or ("warmup" if implicit_arm else "legacy"))
+            if language_credit is not None:
+                self.set_language_credit(language_credit)
+            if recall_credit is not None:
+                self.set_recall_credit(recall_credit)
+
+    def set_recall_credit(self, gains):
+        """Credit retained values to live producers within the current epoch.
+
+        Change this policy at a fresh or explicitly finished training boundary.
+        Retained values whose producers have retired remain detached.
+        """
+        if self._profile!="addressed":raise ValueError("recall credit requires the addressed runtime")
+        values=self._validate_credit(gains,self.stats()['levels'])
+        self._check(self._lib.ms_recall_credit(self._alive(),values.ctypes.data,len(values)))
+
+    @staticmethod
+    def _validate_credit(gains, levels):
+        values=np.asarray(gains,dtype=np.float64)
+        if values.shape!=(levels,) or not np.all(np.isfinite(values)) or np.any(values<0) or np.any(values>np.finfo(np.float32).max):
+            raise ValueError("language_credit requires one finite nonnegative gain per level")
+        return np.ascontiguousarray(values,dtype=np.float32)
+
+    def set_language_credit(self, gains):
+        """Set language gains at native-state entry, including pending blocks.
+
+        Readout-head and auxiliary rates remain unchanged. Saved gains survive
+        resume; legacy checkpoints retain unit gains until explicitly changed.
+        """
+        if self._profile!="addressed":
+            raise ValueError("language credit requires the addressed runtime")
+        values=self._validate_credit(gains,self.stats()['levels'])
+        self._check(self._lib.ms_language_credit(self._alive(),values.ctypes.data,len(values)))
+
+    def set_balance_policy(self, policy):
+        """Explicitly change future balance updates; retain current bias/state.
+
+        Old checkpoints keep their saved policy unless this method is called.
+        """
+        if self._profile != "addressed" or policy not in ("legacy", "warmup"):
+            raise ValueError("balance_policy requires 'legacy' or 'warmup' on an addressed model")
+        self._check(self._lib.ms_balance(self._alive(), {"legacy":1,"warmup":2}[policy]))
 
     def swap_experts(self, level=-1):
         self._check(self._lib.ms_swap_experts(self._alive(),level))
@@ -123,7 +184,7 @@ class Model:
     def routing_stats(self):
         a=np.zeros(64,np.float64);self._check(self._lib.ms_routing_stats(self._alive(),a.ctypes.data))
         names=("events","seeded","minimum_selections","maximum_selections","predict_targets","predict_loss_sum","minimum_bias","maximum_bias","seed_cues","window_count")
-        return dict(arm="ABCD"[int(a[0])],levels=[dict(zip(names,a[4+i*15:14+i*15])) for i in range(self.stats()["levels"])])
+        return dict(arm="ABCD"[int(a[0])],balance_policy=("pilot_uniform","legacy","warmup")[int(a[1])] if a[0]>=2 else "none",levels=[dict(zip(names,a[4+i*15:14+i*15])) for i in range(self.stats()["levels"])])
 
     def set_semantic_laces(self, enabled=True):
         self._check(self._lib.ms_laces(self._alive(),int(enabled)))
@@ -180,7 +241,7 @@ class Model:
 
     def configure(self, *, learning_rate=None, fast_rate=None, slow_rate=None, query_rate=None,
                   head_rate=None, auxiliary_weight=None, route_rate=None,
-                  reconstruction_weight=None, constituent_credit=None):
+                  reconstruction_weight=None, constituent_credit=None, language_credit=None):
         """Update rates independently. Omitted fields preserve the v5 policy.
 
         learning_rate is a backward-compatible alias for fast_rate. Historical
@@ -192,6 +253,10 @@ class Model:
             raise ValueError("rates and weights must be finite and nonnegative")
         if learning_rate is not None and fast_rate is not None:
             raise ValueError("use learning_rate or fast_rate, not both")
+        if language_credit is not None:
+            if self._profile!="addressed":
+                raise ValueError("language credit requires the addressed runtime")
+            self._validate_credit(language_credit,self.stats()['levels'])
         fast = fast_rate if fast_rate is not None else learning_rate
         if self._profile == "addressed":
             policy = self.stats()["learning_rates"]
@@ -216,6 +281,8 @@ class Model:
             self._check(self._lib.ms_learning(self._alive(), fast, slow, query, credit))
         if reconstruction_weight is not None and self._profile != "legacy":
             self._check(self._lib.ms_reconstruction(self._alive(), reconstruction_weight))
+        if language_credit is not None:
+            self.set_language_credit(language_credit)
 
     def run(self, inputs, targets):
         x, y = _bytes(inputs), _bytes(targets)
@@ -361,11 +428,16 @@ class Model:
                           content_updates=c[28:28+levels].astype(int).tolist(),
                           fast_bank_role="context_dependent_transition")
         if self._profile == "addressed":
+            gains=np.zeros(8,np.float64)
+            self._check(self._lib.ms_credit_stats(self._alive(),gains.ctypes.data))
+            result['language_credit']=gains[:levels].tolist()
+            result['recall_credit']=gains[4:4+levels].tolist()
             lace=np.zeros(64,np.float64);self._check(self._lib.ms_lace_stats(self._alive(),lace.ctypes.data))
             result["checkpoint_version"]=int(lace[2])
             routing = np.zeros(64, np.float64)
             self._check(self._lib.ms_routing_stats(self._alive(), routing.ctypes.data))
-            result.update(routing_arm="ABCD"[int(routing[0])], semantic_laces=bool(lace[0]))
+            result.update(routing_arm="ABCD"[int(routing[0])], semantic_laces=bool(lace[0]),
+                          balance_policy=("pilot_uniform","legacy","warmup")[int(routing[1])] if routing[0]>=2 else "none")
         return result
 
     @property
@@ -390,7 +462,7 @@ class Model:
         if len(raw) < 16:
             raise ValueError("truncated native checkpoint")
         version = struct.unpack_from("=I", raw, 8)[0]
-        profiles = {1: "legacy", 2: "addressed_v2", 3: "addressed_v3", 4: "addressed_v4", 5: "addressed", 6: "addressed", 7: "addressed", 8: "addressed", 9: "addressed"}
+        profiles = {1: "legacy", 2: "addressed_v2", 3: "addressed_v3", 4: "addressed_v4", 5: "addressed", 6: "addressed", 7: "addressed", 8: "addressed", 9: "addressed", 10: "addressed", 11: "addressed", 12: "addressed"}
         if version not in profiles:
             raise ValueError("unsupported multiscale checkpoint version")
         profile = profiles[version]
