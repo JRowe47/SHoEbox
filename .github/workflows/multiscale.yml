@@ -1,0 +1,25 @@
+name: Multiscale routing D
+
+on:
+  push:
+    paths: ['multiscale/**', 'shoe_multiscale.py', '.github/workflows/multiscale.yml']
+  pull_request:
+    paths: ['multiscale/**', 'shoe_multiscale.py', '.github/workflows/multiscale.yml']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  runtime:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install CPU runtime dependency
+        run: python -m pip install numpy
+      - name: Native, Python, checkpoint, ASan and UBSan checks
+        run: python -m multiscale.tests.run_all

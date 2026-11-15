@@ -26,6 +26,7 @@ def atomic_json(path, result):
 
 def run(args):
     os.sched_setaffinity(0, {args.cpu})
+    if args.lr is None: args.lr = .008 if args.memory_profile == "addressed" else .08
     raw = Path(args.data).read_bytes()
     split = int(len(raw)*.9)
     if args.targets >= split:
@@ -37,12 +38,15 @@ def run(args):
         for levels in args.levels:
             with Model(levels=levels, parameters=args.parameters, seed=seed,
                        associations=args.associations, router=args.router,
-                       memory_profile=args.memory_profile) as model:
+                       memory_profile=args.memory_profile,
+                       routing_arm=getattr(args, "routing_arm", None),
+                       semantic_laces=getattr(args, "semantic_laces", None)) as model:
                 model.configure(reconstruction_weight=args.reconstruction_weight)
                 result = dict(seed=seed, levels=levels, parameters=model.parameter_count,
                               experts=model.stats()["experts"], cpu=args.cpu, targets=args.targets,
                               learning_rate=args.lr, auxiliary_weight=args.aux,
-                              router=args.router, associations=args.associations,
+                              router=("scan" if model.stats().get("routing_arm", "A") != "A" else args.router or "indexed"),
+                              routing_arm=model.stats().get("routing_arm"), associations=args.associations,
                               memory_profile=args.memory_profile,
                               reconstruction_weight=model.stats().get("reconstruction_weight", 0),
                               data_sha256=hashlib.sha256(raw).hexdigest(), split_index=split,
@@ -56,7 +60,8 @@ def run(args):
                         hi = min(end, lo+4096)
                         progress = (lo+hi)/2/args.targets
                         schedule = max(.01, progress/.01) if progress < .01 else .1+.9*.5*(1+math.cos(math.pi*(progress-.01)/.99))
-                        model.configure(learning_rate=args.lr*schedule, head_rate=.16*schedule,
+                        separate = dict(slow_rate=args.lr*10*schedule, query_rate=args.lr*schedule) if args.memory_profile == "addressed" else {}
+                        model.configure(**separate, learning_rate=args.lr*schedule, head_rate=.16*schedule,
                                         auxiliary_weight=args.aux, route_rate=.002)
                         t, c = time.perf_counter(), time.process_time()
                         loss += model.run(data[lo:hi], data[lo+1:hi+1])*(hi-lo)
@@ -77,7 +82,7 @@ def run(args):
                 result["interventions"] = {str(l):dict(mask=model.evaluate(test[:16385], mask=l),
                                                           shuffle=model.evaluate(test[:16385], shuffle=l))
                                            for l in range(1, levels)}
-                if args.memory_profile == "addressed":
+                if args.memory_profile != "legacy":
                     result["memory_interventions"] = {mode:model.evaluate(test[:16385], memory=mode)
                                                        for mode in ("no_read", "no_time", "no_content")}
                 with model.inference_copy() as frozen:
@@ -104,12 +109,14 @@ if __name__ == "__main__":
     p.add_argument("--seeds", type=int, nargs="+", default=[7,17,29])
     p.add_argument("--levels", type=int, nargs="+", default=[1,2,4])
     p.add_argument("--parameters", type=int, default=1_000_000)
-    p.add_argument("--lr", type=float, default=.08)
+    p.add_argument("--lr", type=float, default=None)
     p.add_argument("--aux", type=float, default=.1)
     p.add_argument("--cpu", type=int, default=0)
-    p.add_argument("--router", choices=["indexed","scan"], default="indexed")
+    p.add_argument("--router", choices=["indexed","scan"], default=None)
+    p.add_argument("--routing-arm", choices=list("ABCD"), default=None)
+    p.add_argument("--semantic-laces", action=argparse.BooleanOptionalAction, default=None)
     p.add_argument("--associations", action="store_true")
     p.add_argument("--checkpoints", action="store_true")
-    p.add_argument("--memory-profile", choices=["addressed", "legacy"], default="addressed")
+    p.add_argument("--memory-profile", choices=["addressed", "addressed_v4", "addressed_v3", "addressed_v2", "legacy"], default="addressed")
     p.add_argument("--reconstruction-weight", type=float)
     run(p.parse_args())

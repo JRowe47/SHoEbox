@@ -37,6 +37,7 @@ template<class T> void step(T& p,const T& g,float lr){
 }
 
 #include "address_memory.hpp"
+#include "recall.hpp"
 
 struct Expert {Mat w{};Vec bias{},key{};};
 struct Shared {
@@ -53,13 +54,24 @@ struct Event {
     Small key{},value{},read{};
     Vec forecast{},unit{};
     float unit_norm=1,gate=1,gate_derivative=0,span=1;
-    int expert=0,runner=0,byte=0,uses=0,has_target=0,reconstruction_role=0;
+    int expert=0,runner=0,byte=0,uses=0,has_target=0,reconstruction_role=0,content_id=-1;
+};
+// Content-only eligibility: no recurrent state, memory, readout or replay.
+// Its weights stay frozen until this bounded publication epoch retires.
+struct Constituent {
+    Vec input{},content{},residual{},grad{};
+    std::array<Vec,GROUP> children{};
+    std::array<float,GROUP> lengths{};
+    std::array<int,GROUP> child_ids{{-1,-1,-1,-1}};
+    float gate=1,gate_derivative=0,span=1;
+    int expert=0,runner=0,byte=0;
 };
 struct Stream {
     std::array<Event,BLOCK> events{};
     std::array<Vec,NEG> negatives{};
     std::array<Vec,GROUP> children{};
     std::array<float,GROUP> lengths{};
+    std::array<int,GROUP> child_ids{{-1,-1,-1,-1}};
     Vec state{},content{},gain{},bias{};
     Memory memory{};
     // Kept outside Event: the byte loop does not clear a slow memory record.
@@ -73,11 +85,22 @@ struct Stream {
     uint64_t reconstruction_targets=0;
     double reconstruction_loss=0;
 };
+#include "semantic_laces.hpp"
+#include "routing_geometry.hpp"
+
 struct Level {
     std::vector<Expert> experts;
+    LaceBank laces{};
+    RoutingState routing{};
     Shared p{};
     AddressParameters address{};
+    RecallParameters retrieval{};
+    RecallStream retained{};
+    RecallRead read_now{};
     Stream s{};
+    std::vector<Constituent> constituents;
+    uint64_t credit_edges=0,content_updates=0;
+    double task_gradient_energy=0,child_gradient_energy=0;
     // A 16-way hierarchy, stored in bottom-up layers of prototypes. Rebuilt
     // only at local update boundaries; bounded 16 comparisons per tree depth.
     std::vector<std::vector<Vec>> index;
@@ -163,18 +186,31 @@ struct Model {
     Vec recalled{},previous_query{},cached_gain{},cached_bias{},features{};
     std::array<uint8_t,GROUP> payload{};
     int payload_count=0;
+    bool semantic_laces=true;
+    int routing_arm=0,swap_level=-1; // A/B/C/D = 0/1/2/3; swap is frozen-only.
+    int balance_policy=1; // v8 strict-balance pilot; v9 fading warmup/starvation.
+    int lace_intervention=0,lace_policy=2;
+    uint64_t lace_training_bytes=0;
     bool training=true,indexed=true,associations=false,memory_writes=true,have_query=false;
     uint64_t bytes=0,route_comparisons=0;
-    float learning_rate=.08f,head_rate=.16f,aux_weight=.1f,route_rate=.002f;
+    float learning_rate=.008f,slow_rate=.08f,query_rate=.008f,head_rate=.16f,aux_weight=.1f,route_rate=.002f;
+    float constituent_credit=1;
+    int epoch_bytes=0,epoch_limit=BLOCK;
     float reconstruction_weight=.05f;
-    int memory_mode=0;
+    int memory_mode=0,recall_mode=0;
     int mask=-1,shuffle=-1;
     explicit Model(int count=4,int target=1000000,uint32_t seed=7,bool use_index=true,bool memory=false);
     void rebuild_index(Level& l);
     void update_index(Level& l,int expert);
     void route(Level& l,Event& e);
+    void routing_prepare(int scale,Event& e,int slot);
+    void routing_target(int scale,const Vec& signature);
+    void lace_route(int scale,Event& e,int slot);
+    void lace_feedback(int scale);
+    void lace_maintain();
     void forward_event(int scale,const std::array<Vec,GROUP>& child,const std::array<float,GROUP>& lengths,int byte);
     void flush(int scale);
+    void retire_constituents();
     void refresh();
     void observe(uint8_t byte);
     float teach(uint8_t target);

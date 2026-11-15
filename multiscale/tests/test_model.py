@@ -7,7 +7,7 @@ from shoe_multiscale import Model
 
 class RuntimeTests(unittest.TestCase):
     def setUp(self):
-        self.m = Model(parameters=200_000)
+        self.m = Model(parameters=250_000, routing_arm="A")
 
     def tearDown(self):
         self.m.close()
@@ -59,6 +59,137 @@ class RuntimeTests(unittest.TestCase):
             self.assertEqual(restored.payload(handle), bytes(range(256)))
         self.assertIsNone(self.m.lookup("missing"))
 
+    def test_cold_inference_preserves_bindings_and_can_clear_explicitly(self):
+        for profile in ("addressed", "addressed_v4", "addressed_v3", "addressed_v2", "legacy"):
+            with Model(parameters=250_000, memory_profile=profile, associations=True) as source:
+                source.train(b"previous observed episode content " * 4)
+                handle = source.bind(b"fact-key", b"stored exact payload")
+                before = source.dumps()
+                with source.inference_copy() as frozen:
+                    self.assertEqual(frozen.lookup(b"fact-key"), handle)
+                    self.assertEqual(frozen.payload(handle), b"stored exact payload")
+                    self.assertEqual(frozen.stats()["bytes"], 0)
+                    writes = frozen.stats()["memory_writes"]
+                    frozen.run(b"prompt", b"rompt!")
+                    self.assertEqual(frozen.stats()["memory_writes"], writes)
+                    self.assertEqual(frozen.payload(handle), b"stored exact payload")
+                    with Model.loads(frozen.dumps()) as restored:
+                        self.assertEqual(restored.payload(handle), b"stored exact payload")
+                with source.inference_copy(clear_memory=True) as empty:
+                    self.assertIsNone(empty.lookup(b"fact-key"))
+                    with self.assertRaises(RuntimeError):
+                        empty.payload(handle)
+                with self.assertRaises(ValueError):
+                    source.inference_copy(cold=False, clear_memory=True)
+                self.assertEqual(source.dumps(), before)
+
+    def test_version_two_checkpoint_keeps_original_native_policy(self):
+        data = np.random.default_rng(9).integers(0, 256, 1100, dtype=np.uint8)
+        with Model(parameters=250_000, memory_profile="addressed_v2") as old:
+            old.run(data[:519], data[1:520])
+            saved = old.dumps()
+            with Model.loads(saved) as restored:
+                self.assertEqual(restored.stats()["memory_profile"], "addressed_v2")
+                self.assertEqual(restored.stats()["checkpoint_version"], 2)
+                self.assertEqual(restored.dumps(), saved)
+                self.assertEqual(old.run(data[519:-1], data[520:]),
+                                 restored.run(data[519:-1], data[520:]))
+                self.assertEqual(old.dumps(), restored.dumps())
+
+    def test_version_three_checkpoint_keeps_original_native_policy(self):
+        data = np.random.default_rng(29).integers(0, 256, 1100, dtype=np.uint8)
+        with Model(parameters=200_000, memory_profile="addressed_v3") as old:
+            old.run(data[:519], data[1:520])
+            saved = old.dumps()
+            with Model.loads(saved) as restored:
+                self.assertEqual(restored.stats()["memory_profile"], "addressed_v3")
+                self.assertEqual(restored.stats()["checkpoint_version"], 3)
+                self.assertFalse(restored.stats()["retained_recall"])
+                self.assertEqual(restored.dumps(), saved)
+                self.assertEqual(old.run(data[519:-1], data[520:]),
+                                 restored.run(data[519:-1], data[520:]))
+                self.assertEqual(old.dumps(), restored.dumps())
+                with self.assertRaises(ValueError):
+                    restored.intervene_recall("no_read")
+
+    def test_version_four_keeps_exact_policy(self):
+        data = np.random.default_rng(44).integers(0, 256, 1100, dtype=np.uint8)
+        with Model(parameters=250_000, memory_profile="addressed_v4") as old:
+            old.run(data[:519], data[1:520])
+            saved = old.dumps()
+            with Model.loads(saved) as restored:
+                self.assertEqual(restored.stats()["checkpoint_version"], 4)
+                self.assertEqual(restored.dumps(), saved)
+                self.assertEqual(old.run(data[519:-1], data[520:]), restored.run(data[519:-1], data[520:]))
+                self.assertEqual(old.dumps(), restored.dumps())
+                with self.assertRaises(ValueError):
+                    restored.configure(slow_rate=.04)
+
+    def test_separate_rates_persist_without_implicit_reset(self):
+        self.m.configure(fast_rate=.001, slow_rate=.03, query_rate=.0002, head_rate=.04)
+        original = self.m.stats()["learning_rates"]
+        self.m.configure(reconstruction_weight=.07)
+        self.assertEqual(self.m.stats()["learning_rates"], original)
+        self.m.configure(head_rate=.02)
+        self.assertEqual(self.m.stats()["learning_rates"]["fast"], original["fast"])
+        self.m.train(b"canonical credit pending across groups" * 7)
+        with Model.loads(self.m.dumps()) as restored:
+            self.assertEqual(restored.stats()["learning_rates"], self.m.stats()["learning_rates"])
+            self.assertEqual(restored.stats()["constituent_pending"], self.m.stats()["constituent_pending"])
+            self.assertEqual(self.m.train(b"continue across a new boundary" * 30),
+                             restored.train(b"continue across a new boundary" * 30))
+            self.assertEqual(self.m.dumps(), restored.dumps())
+        saved = self.m.dumps()
+        for kwargs in ({"slow_rate": -1}, {"query_rate": float("nan")},
+                       {"head_rate": float("inf")}, {"fast_rate": .1, "learning_rate": .1}):
+            with self.assertRaises(ValueError):
+                self.m.configure(**kwargs)
+            self.assertEqual(self.m.dumps(), saved)
+
+    def test_retained_recall_lifecycle_and_interventions(self):
+        self.m.train(b"distinct ordered pairs and a later question? " * 10)
+        self.m.finish()
+        state = self.m.stats()
+        self.assertEqual(state["checkpoint_version"], 7)
+        self.assertEqual(state["recall_query_period_bytes"], 1)
+        self.assertEqual(state["recall_parameters"], 53_120)
+        self.assertTrue(all(0 < n <= 16 for n in state["retained_units"]))
+        source = self.m.dumps()
+        with self.m.inference_copy(cold=False) as warm, self.m.inference_copy() as cold:
+            self.assertEqual(warm.stats()["retained_units"], state["retained_units"])
+            self.assertEqual(cold.stats()["retained_units"], [0, 0, 0, 0])
+            warm.observe(63)
+            self.assertEqual(warm.stats()["pending"], [0, 0, 0, 0])
+            with Model.loads(warm.dumps()) as restored:
+                np.testing.assert_array_equal(warm.observe(120), restored.observe(120))
+        for mode in ("no_read", "recency_only", "no_fixed_values", "no_learned_values"):
+            with self.m.inference_copy() as frozen:
+                frozen.intervene_recall(mode)
+                frozen.run(b"ABxxxxxx?", b"Bxxxxxx?0")
+                self.assertTrue(np.isfinite(frozen.logits()).all())
+                with Model.loads(frozen.dumps()) as restored:
+                    self.assertEqual(restored.stats()["recall_intervention"], frozen.stats()["recall_intervention"])
+                    np.testing.assert_array_equal(frozen.observe(1), restored.observe(1))
+        self.assertEqual(self.m.dumps(), source)
+        with self.assertRaises(RuntimeError):
+            self.m.intervene_recall("no_read")
+        with self.assertRaises(ValueError):
+            self.m.intervene_recall("unknown")
+
+    def test_learned_delayed_answer_uses_retained_query(self):
+        from multiscale.dependencies import example, score
+        rng = np.random.default_rng(7)
+        data = b"".join(example(int(rng.integers(2)), int(rng.choice([16,48,96])),
+                                int(rng.integers(4))) for _ in range(6000))
+        with Model(seed=7, routing_arm="A") as model:
+            model.train(data)
+            model.finish()
+            for row in score(model, gaps=(16,192,768)):
+                self.assertGreaterEqual(row["byte_accuracy"], .9375)
+            for mode in ("no_read", "recency_only"):
+                for row in score(model, gaps=(192,), recall=mode):
+                    self.assertLessEqual(row["accuracy"], .625)
+
     def test_learning_and_generation(self):
         data = b"The quick brown fox jumps over the lazy dog.\n" * 100
         before = self.m.evaluate(data)
@@ -80,7 +211,7 @@ class RuntimeTests(unittest.TestCase):
         self.m.train(b"four ordered children make a useful local pattern. " * 50)
         self.m.finish()
         s = self.m.stats()
-        self.assertEqual(s["checkpoint_version"], 2)
+        self.assertEqual(s["checkpoint_version"], 7)
         self.assertEqual(s["clock_ticks"], [0] + s["events"][1:])
         self.assertEqual(s["address_rows"], [0, 32, 32, 32])
         self.assertEqual(s["address_values"], [0, 16, 16, 16])
@@ -120,9 +251,9 @@ class RuntimeTests(unittest.TestCase):
                 with self.assertRaises(ValueError):
                     restored.configure(reconstruction_weight=.1)
 
-    def test_fast_only_profile_keeps_previous_arithmetic(self):
+    def test_historical_fast_only_profile_keeps_previous_arithmetic(self):
         data = b"a fast-only control uses precisely the original arithmetic. " * 20
-        with Model(levels=1) as new, Model(levels=1, memory_profile="legacy") as old:
+        with Model(levels=1, memory_profile="addressed_v3") as new, Model(levels=1, memory_profile="legacy") as old:
             self.assertEqual(new.train(data), old.train(data))
             np.testing.assert_array_equal(new.logits(), old.logits())
 
@@ -132,7 +263,7 @@ class RuntimeTests(unittest.TestCase):
                 self.m.train(data)
         with self.assertRaises(TypeError):
             self.m.run(np.array([1,2]), np.array([1,2]))
-        with self.assertRaises(RuntimeError):
+        with self.assertRaises(ValueError):
             self.m.configure(learning_rate=float("nan"))
         with self.assertRaises(RuntimeError):
             self.m.observe(12)

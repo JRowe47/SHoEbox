@@ -14,10 +14,17 @@ def main():
     train.add_argument("--data",required=True);train.add_argument("--out",required=True)
     train.add_argument("--resume");train.add_argument("--levels",type=int,default=4)
     train.add_argument("--parameters",type=int,default=1_000_000);train.add_argument("--seed",type=int,default=7)
-    train.add_argument("--targets",type=int);train.add_argument("--learning-rate",type=float,default=.08)
-    train.add_argument("--router",choices=["indexed","scan"],default="indexed")
+    train.add_argument("--targets",type=int);train.add_argument("--learning-rate",type=float,default=None)
+    train.add_argument("--slow-rate",type=float);train.add_argument("--query-rate",type=float)
+    train.add_argument("--head-rate",type=float)
+    train.add_argument("--router",choices=["indexed","scan"],default=None,
+                       help="fresh model: exact scan for D; indexed for historical A/profiles")
+    train.add_argument("--routing-arm",choices=list("ABCD"),default=None,
+                       help="fresh model: D by default; A/B/C remain reproducible")
+    train.add_argument("--semantic-laces",action=argparse.BooleanOptionalAction,default=None,
+                       help="fresh model: historical A-only lace dispatch")
     train.add_argument("--associations",action="store_true")
-    train.add_argument("--memory-profile",choices=["addressed","legacy"],default="addressed",
+    train.add_argument("--memory-profile",choices=["addressed","addressed_v4","addressed_v3","addressed_v2","legacy"],default="addressed",
                        help="fresh-model policy; resume automatically preserves the saved policy")
     train.add_argument("--reconstruction-weight",type=float)
     sample=sub.add_parser("generate");sample.add_argument("--checkpoint",required=True)
@@ -26,10 +33,14 @@ def main():
     inspect=sub.add_parser("inspect");inspect.add_argument("--checkpoint",required=True)
     args=parser.parse_args()
     if args.command=="train":
+        if args.resume and any(value is not None for value in (args.router,args.routing_arm,args.semantic_laces)):
+            parser.error("resume preserves saved routing; routing options apply only to fresh models")
         m=Model.load(args.resume) if args.resume else Model(levels=args.levels,parameters=args.parameters,
-                         seed=args.seed,router=args.router,associations=args.associations,memory_profile=args.memory_profile)
+                         seed=args.seed,router=args.router,associations=args.associations,memory_profile=args.memory_profile,
+                         routing_arm=args.routing_arm,semantic_laces=args.semantic_laces)
         with m:
-            m.configure(learning_rate=args.learning_rate,reconstruction_weight=args.reconstruction_weight)
+            m.configure(learning_rate=args.learning_rate,slow_rate=args.slow_rate,query_rate=args.query_rate,
+                        head_rate=args.head_rate,reconstruction_weight=args.reconstruction_weight)
             raw=Path(args.data).read_bytes()
             n=min(len(raw)-1,args.targets) if args.targets is not None else len(raw)-1
             if n<=0:parser.error("training requires at least two bytes and a positive target count")

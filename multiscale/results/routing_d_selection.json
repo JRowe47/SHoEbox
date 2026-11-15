@@ -1,0 +1,101 @@
+{
+  "selected_profile": "D",
+  "date": "2026-11-15",
+  "selection": "User-selected current loss/time baseline",
+  "base_main": "4e52beede8ef800e5f7a52ecac612cd75ebb644b",
+  "source": "Frozen v9 D control recovered with the FineWeb routing comparison",
+  "parameters": 1011903,
+  "experts": [
+    98,
+    49,
+    29,
+    20
+  ],
+  "width": 64,
+  "training_targets_per_seed": 15000000,
+  "dataset": {
+    "dataset": "HuggingFaceFW/fineweb",
+    "config": "sample-10BT",
+    "observed_revision": "9bb295ddab0e05d785b879661af7260fed5140fc",
+    "preprocessing": "UTF-8 text + two newline bytes; each document independent; final document per split truncated to exact target budget.",
+    "split_policy": "Development begins at next unused source document. Source IDs and full-text hashes are disjoint; duplicates skipped."
+  },
+  "splits": {
+    "train": {
+      "file": "train.bin",
+      "bytes": 15004947,
+      "targets": 15000000,
+      "sha256": "4f8a18afda6c4a5142ca5c5b01a793230f579a8c782622d0e791a76f4d39a345",
+      "documents": 4947
+    },
+    "development": {
+      "file": "development.bin",
+      "bytes": 262214,
+      "targets": 262144,
+      "sha256": "4fe3ccbe4bce18e3b5f84b965a111521b6c6951a8d5ceaccc16ce81bfd0589ea",
+      "documents": 70
+    }
+  },
+  "development_nll_by_seed": {
+    "1": 1.7796373790853632,
+    "7": 1.7712335445338496,
+    "19": 1.7676447414715426
+  },
+  "mean_development_nll": 1.772838555030252,
+  "throughput": {
+    "provenance": "Prior serial D/H/I comparison; not rerun during promotion",
+    "cpu_model": "AMD EPYC 9V74 80-Core Processor",
+    "cpu": 2,
+    "targets_per_repeat": 200000,
+    "rows": [
+      {
+        "seed": 1,
+        "arm": "D",
+        "targets": 200000,
+        "seconds": 6.626412672994775,
+        "cpu_seconds": 6.604013377999999,
+        "bytes_per_second": 30182.243375073558
+      },
+      {
+        "seed": 7,
+        "arm": "D",
+        "targets": 200000,
+        "seconds": 6.5210311460105,
+        "cpu_seconds": 6.504041549,
+        "bytes_per_second": 30669.996128197905
+      },
+      {
+        "seed": 19,
+        "arm": "D",
+        "targets": 200000,
+        "seconds": 6.4150573250080924,
+        "cpu_seconds": 6.4097268570000026,
+        "bytes_per_second": 31176.650475176808
+      }
+    ],
+    "median_bytes_per_second": 30669.996128197905
+  },
+  "checkpoint_versions_supported": [
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9
+  ],
+  "new_checkpoint_version": 9,
+  "promotion_validation": {
+    "native_checks": 2093,
+    "python_tests": 23,
+    "semantic_lace_checks": 19,
+    "routing_checks": 26,
+    "asan": "passed",
+    "ubsan": "passed",
+    "lsan": "disabled explicitly: host is ptrace-managed",
+    "fineweb_parity": "100K fresh targets and 15M reload/2K continuation per seed: bit-identical",
+    "benchmark_cli_smoke": "passed: default D, exact scan, 1024 training targets"
+  }
+}

@@ -1,7 +1,8 @@
 # SHoEbox development
 
-- The current CPU reference design is exposed by `shoebox_reference.py` and
-  implemented in `experiments/identity_semantics/runtime`.
+- The selected CPU runtime is routing D, exposed by `shoe_multiscale.py` and
+  implemented in `multiscale/`. Preserve `shoebox_reference.py` as the historical
+  cortical comparator. New public models use exact search with routing D.
 - Implemented architectural repairs belong in the default reference path.
   Enable compatible reference features and full credit coverage by default.
   Throughput regressions do not justify leaving a completed repair opt-in.

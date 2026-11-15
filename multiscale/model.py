@@ -16,14 +16,19 @@ _LIBS = {}
 
 
 def _library(profile="addressed"):
-    if profile not in ("addressed", "legacy"):
-        raise ValueError("memory_profile must be 'addressed' or 'legacy'")
+    if profile not in ("addressed", "addressed_v4", "addressed_v3", "addressed_v2", "legacy"):
+        raise ValueError("memory_profile must be 'addressed', 'addressed_v4', 'addressed_v3', 'addressed_v2' or 'legacy'")
     if profile in _LIBS:
         return _LIBS[profile]
-    directory = HERE / "legacy" if profile == "legacy" else HERE
+    directory = HERE if profile == "addressed" else HERE / profile
     source = (directory / "native.cpp").read_bytes() + (directory / "native.hpp").read_bytes()
-    if profile == "addressed":
+    if profile != "legacy":
         source += (directory / "address_memory.hpp").read_bytes()
+    if profile in ("addressed", "addressed_v4"):
+        source += (directory / "recall.hpp").read_bytes()
+    if profile == "addressed":
+        source += (directory / "routing_geometry.hpp").read_bytes() + (directory / "routing_geometry_impl.hpp").read_bytes()
+        source += (directory / "semantic_laces.hpp").read_bytes() + (directory / "semantic_laces_impl.hpp").read_bytes()
     flags = ["-std=c++17", "-O3", "-march=native", "-ffp-contract=off", "-fPIC", "-shared"]
     compiler = os.environ.get("CXX", "g++")
     signature = subprocess.check_output([compiler, "--version"])
@@ -50,9 +55,17 @@ def _library(profile="addressed"):
         "ms_lookup": ([p, p, n, C.POINTER(C.c_uint64)], i),
         "ms_payload": ([p, C.c_uint64, p, C.POINTER(n)], i),
     }
-    if profile == "addressed":
+    if profile != "legacy":
         specs.update(ms_reconstruction=([p, f], i), ms_memory_intervene=([p, i], i),
                      ms_address_stats=([p, p], i))
+    if profile in ("addressed", "addressed_v4"):
+        specs.update(ms_recall_intervene=([p, i], i), ms_recall_stats=([p, p], i))
+    if profile == "addressed":
+        specs.update(ms_learning=([p, f, f, f, f], i), ms_learning_stats=([p, p], i),
+                     ms_laces=([p,i],i), ms_lace_stats=([p,p],i),
+                     ms_lace_intervene=([p,i],i), ms_lace_records=([p,p],i),
+                     plateau_probe=([p,p,n,p,p],i),ms_routing=([p,i],i),
+                     ms_swap_experts=([p,i],i),ms_routing_stats=([p,p],i))
     for name, (args, result) in specs.items():
         fn = getattr(lib, name)
         fn.argtypes, fn.restype = args, result
@@ -72,14 +85,62 @@ def _bytes(x):
 
 
 class Model:
-    def __init__(self, *, levels=4, parameters=1_000_000, seed=7, router="indexed", associations=False,
-                 memory_profile="addressed"):
+    def __init__(self, *, levels=4, parameters=1_000_000, seed=7, router=None, associations=False,
+                 memory_profile="addressed", semantic_laces=None, routing_arm=None):
+        """Create routing D by default; loading preserves the saved policy.
+
+        Explicit routing_arm="A" retains the historical indexed/lace defaults.
+        semantic_laces=True also explicitly selects that historical arm.
+        Historical memory profiles retain their original indexed routing.
+        """
+        if routing_arm is None:
+            routing_arm = "D" if memory_profile == "addressed" and semantic_laces is not True else "A"
+        if routing_arm not in ("A", "B", "C", "D"):
+            raise ValueError("routing_arm must be 'A', 'B', 'C' or 'D'")
+        if memory_profile != "addressed" and routing_arm != "A":
+            raise ValueError("routing arms B/C/D require memory_profile='addressed'")
+        if semantic_laces is None:
+            semantic_laces = memory_profile == "addressed" and routing_arm == "A"
+        if semantic_laces and (routing_arm != "A" or memory_profile != "addressed"):
+            raise ValueError("semantic laces require routing arm A and memory_profile='addressed'")
+        if router is None:
+            router = "indexed" if routing_arm == "A" else "scan"
         if router not in ("indexed", "scan"):
             raise ValueError("router must be 'indexed' or 'scan'")
+        if routing_arm != "A" and router != "scan":
+            raise ValueError("routing arms B/C/D use exact search; set router='scan'")
         self._profile = memory_profile
         self._lib = _library(memory_profile)
         self._handle = self._lib.ms_create(levels, parameters, seed, router == "indexed", associations)
         self._check_pointer()
+        if memory_profile == "addressed":
+            self.set_semantic_laces(semantic_laces)
+            self._check(self._lib.ms_routing(self._alive(), {"A":0,"B":1,"C":2,"D":3}[routing_arm]))
+
+    def swap_experts(self, level=-1):
+        self._check(self._lib.ms_swap_experts(self._alive(),level))
+
+    def routing_stats(self):
+        a=np.zeros(64,np.float64);self._check(self._lib.ms_routing_stats(self._alive(),a.ctypes.data))
+        names=("events","seeded","minimum_selections","maximum_selections","predict_targets","predict_loss_sum","minimum_bias","maximum_bias","seed_cues","window_count")
+        return dict(arm="ABCD"[int(a[0])],levels=[dict(zip(names,a[4+i*15:14+i*15])) for i in range(self.stats()["levels"])])
+
+    def set_semantic_laces(self, enabled=True):
+        self._check(self._lib.ms_laces(self._alive(),int(enabled)))
+
+    def intervene_laces(self, mode=1):
+        self._check(self._lib.ms_lace_intervene(self._alive(),mode))
+
+    def lace_records(self):
+        a=np.zeros((4,128,16),np.float64)
+        self._check(self._lib.ms_lace_records(self._alive(),a.ctypes.data))
+        return a
+
+    def lace_stats(self):
+        a=np.zeros(64,np.float64)
+        self._check(self._lib.ms_lace_stats(self._alive(),a.ctypes.data))
+        names=("events","matches","misses","allocations","promotions","rejections","trial_routes","retained_routes","no_spare","records","trials","retained","reserved","dormant","state_bytes")
+        return dict(enabled=bool(a[0]),training_targets=int(a[1]),levels=[dict(zip(names,map(int,a[4+i*15:19+i*15]))) for i in range(self.stats()["levels"])])
 
     def _check_pointer(self):
         if not self._handle:
@@ -117,15 +178,43 @@ class Model:
     def __exit__(self, *exc):
         self.close()
 
-    def configure(self, *, learning_rate=.08, head_rate=.16, auxiliary_weight=.1, route_rate=.002,
-                  reconstruction_weight=None):
-        if reconstruction_weight is not None:
-            if not np.isfinite(reconstruction_weight) or reconstruction_weight < 0:
-                raise ValueError("reconstruction_weight must be finite and nonnegative")
-            if self._profile == "legacy" and reconstruction_weight:
-                raise ValueError("legacy checkpoints retain their original learning objectives")
-        self._check(self._lib.ms_configure(self._alive(), learning_rate, head_rate, auxiliary_weight, route_rate))
-        if reconstruction_weight is not None and self._profile == "addressed":
+    def configure(self, *, learning_rate=None, fast_rate=None, slow_rate=None, query_rate=None,
+                  head_rate=None, auxiliary_weight=None, route_rate=None,
+                  reconstruction_weight=None, constituent_credit=None):
+        """Update rates independently. Omitted fields preserve the v5 policy.
+
+        learning_rate is a backward-compatible alias for fast_rate. Historical
+        backends preserve their original shared-rate configuration semantics.
+        """
+        values = (learning_rate, fast_rate, slow_rate, query_rate, head_rate,
+                  auxiliary_weight, route_rate, reconstruction_weight, constituent_credit)
+        if any(v is not None and (not np.isfinite(v) or v < 0 or v > np.finfo(np.float32).max) for v in values):
+            raise ValueError("rates and weights must be finite and nonnegative")
+        if learning_rate is not None and fast_rate is not None:
+            raise ValueError("use learning_rate or fast_rate, not both")
+        fast = fast_rate if fast_rate is not None else learning_rate
+        if self._profile == "addressed":
+            policy = self.stats()["learning_rates"]
+            fast = policy["fast"] if fast is None else fast
+            slow = policy["slow"] if slow_rate is None else slow_rate
+            query = policy["query"] if query_rate is None else query_rate
+            head = policy["head"] if head_rate is None else head_rate
+            aux = policy["auxiliary_weight"] if auxiliary_weight is None else auxiliary_weight
+            route = policy["route"] if route_rate is None else route_rate
+            credit = policy["constituent_credit"] if constituent_credit is None else constituent_credit
+        else:
+            if any(v is not None for v in (fast_rate, slow_rate, query_rate, constituent_credit)):
+                raise ValueError("separate rates and constituent credit require a v5 model")
+            fast = .08 if fast is None else fast
+            head = .16 if head_rate is None else head_rate
+            aux = .1 if auxiliary_weight is None else auxiliary_weight
+            route = .002 if route_rate is None else route_rate
+        if self._profile == "legacy" and reconstruction_weight:
+            raise ValueError("legacy checkpoints retain their original learning objectives")
+        self._check(self._lib.ms_configure(self._alive(), fast, head, aux, route))
+        if self._profile == "addressed":
+            self._check(self._lib.ms_learning(self._alive(), fast, slow, query, credit))
+        if reconstruction_weight is not None and self._profile != "legacy":
             self._check(self._lib.ms_reconstruction(self._alive(), reconstruction_weight))
 
     def run(self, inputs, targets):
@@ -159,13 +248,24 @@ class Model:
     def clone(self):
         return self._wrap(self._lib.ms_clone(self._alive(), 0, 0), self._profile)
 
-    def inference_copy(self, *, cold=True):
-        """Freeze a weight snapshot; preserve source pending updates unchanged."""
-        return self._wrap(self._lib.ms_clone(self._alive(), 1, cold), self._profile)
+    def inference_copy(self, *, cold=True, clear_memory=False):
+        """Freeze weights; cold context preserves stored associations by default.
 
-    def evaluate(self, data, *, mask=-1, shuffle=-1, memory="full"):
+        Use clear_memory=True for an explicitly empty episodic store. The
+        source, including pending updates and bindings, is never modified.
+        """
+        if clear_memory and not cold:
+            raise ValueError("clear_memory requires a cold context")
+        # Separate recurrent context from the persistent episode store, also
+        # for older checkpoint backends whose native cold clone cleared both.
+        m = self._wrap(self._lib.ms_clone(self._alive(), 1, 0), self._profile)
+        if cold:
+            m.reset_context(clear_memory=clear_memory)
+        return m
+
+    def evaluate(self, data, *, mask=-1, shuffle=-1, memory="full", clear_memory=False):
         a = _bytes(data)
-        with self.inference_copy() as m:
+        with self.inference_copy(clear_memory=clear_memory) as m:
             m.intervene(mask=mask, shuffle=shuffle)
             if memory != "full":
                 m.intervene_memory(memory)
@@ -187,6 +287,20 @@ class Model:
         if self._profile == "legacy":
             raise ValueError("legacy runtime has no addressed-memory channel")
         self._check(self._lib.ms_memory_intervene(self._alive(), modes[mode]))
+
+    def intervene_recall(self, mode="full"):
+        """Frozen retained-unit controls; set before consuming a cold prefix.
+
+        Modes: full, no_read, recency_only, no_fixed_values, no_learned_values.
+        This controls the v4 retained units, separately from the compact matrix.
+        """
+        modes = {"full": 0, "no_read": 1, "recency_only": 2,
+                 "no_fixed_values": 3, "no_learned_values": 4}
+        if mode not in modes:
+            raise ValueError("unknown recall intervention")
+        if self._profile not in ("addressed", "addressed_v4"):
+            raise ValueError("retained-unit recall requires a version-4 model")
+        self._check(self._lib.ms_recall_intervene(self._alive(), modes[mode]))
 
     def finish(self):
         """Apply accumulated local gradients at an explicit truncation boundary.
@@ -213,10 +327,10 @@ class Model:
                     native_targets=a[24:24+levels].astype(int).tolist(),
                     native_loss_sum=a[28:28+levels].tolist(),
                     state_energy=a[32:32+levels].tolist(), memory_profile=self._profile,
-                    checkpoint_version=2 if self._profile == "addressed" else 1,
+                    checkpoint_version={"legacy": 1, "addressed_v2": 2, "addressed_v3": 3, "addressed_v4": 4, "addressed": 7}[self._profile],
                     reconstruction_targets=a[40:40+levels].astype(int).tolist(),
                     reconstruction_loss_sum=a[44:44+levels].tolist())
-        if self._profile == "addressed":
+        if self._profile != "legacy":
             b = np.zeros(24, np.float64)
             self._check(self._lib.ms_address_stats(self._alive(), b.ctypes.data))
             result.update(clock_ticks=b[:levels].astype(int).tolist(),
@@ -225,6 +339,33 @@ class Model:
                           address_energy=b[12:12+levels].tolist(),
                           query_content_energy=b[16:16+levels].tolist(),
                           reconstruction_weight=float(b[20]), memory_intervention=int(b[21]))
+        result["retained_recall"] = self._profile in ("addressed", "addressed_v4")
+        if self._profile in ("addressed", "addressed_v4"):
+            c = np.zeros(16, np.float64)
+            self._check(self._lib.ms_recall_stats(self._alive(), c.ctypes.data))
+            result.update(retained_units=c[:levels].astype(int).tolist(),
+                          retained_occurrences=c[4:4+levels].astype(int).tolist(),
+                          recall_slots_per_level=int(c[8]), recall_intervention=int(c[9]),
+                          retained_stream_bytes=int(c[10]), recall_parameters=int(c[11]),
+                          recall_query_period_bytes=1)
+        if self._profile == "addressed":
+            c = np.zeros(32, np.float64)
+            self._check(self._lib.ms_learning_stats(self._alive(), c.ctypes.data))
+            result.update(learning_rates=dict(fast=c[0], slow=c[1], query=c[2], head=c[3],
+                                             constituent_credit=c[4], auxiliary_weight=c[7], route=c[8]),
+                          constituent_epoch_bytes=int(c[5]), constituent_epoch_limit=int(c[6]),
+                          constituent_pending=c[12:12+levels].astype(int).tolist(),
+                          constituent_credit_edges=c[16:16+levels].astype(int).tolist(),
+                          task_gradient_energy=c[20:20+levels].tolist(),
+                          constituent_gradient_energy=c[24:24+levels].tolist(),
+                          content_updates=c[28:28+levels].astype(int).tolist(),
+                          fast_bank_role="context_dependent_transition")
+        if self._profile == "addressed":
+            lace=np.zeros(64,np.float64);self._check(self._lib.ms_lace_stats(self._alive(),lace.ctypes.data))
+            result["checkpoint_version"]=int(lace[2])
+            routing = np.zeros(64, np.float64)
+            self._check(self._lib.ms_routing_stats(self._alive(), routing.ctypes.data))
+            result.update(routing_arm="ABCD"[int(routing[0])], semantic_laces=bool(lace[0]))
         return result
 
     @property
@@ -249,7 +390,7 @@ class Model:
         if len(raw) < 16:
             raise ValueError("truncated native checkpoint")
         version = struct.unpack_from("=I", raw, 8)[0]
-        profiles = {1: "legacy", 2: "addressed"}
+        profiles = {1: "legacy", 2: "addressed_v2", 3: "addressed_v3", 4: "addressed_v4", 5: "addressed", 6: "addressed", 7: "addressed", 8: "addressed", 9: "addressed"}
         if version not in profiles:
             raise ValueError("unsupported multiscale checkpoint version")
         profile = profiles[version]
@@ -282,13 +423,13 @@ class Model:
         self._check(self._lib.ms_payload(self._alive(), handle, a.ctypes.data, C.byref(size)))
         return a[:size.value].tobytes()
 
-    def generate(self, prompt, *, length=256, temperature=.8, seed=7):
+    def generate(self, prompt, *, length=256, temperature=.8, seed=7, clear_memory=False):
         a = _bytes(prompt)
         if not a.size or length < 0 or not np.isfinite(temperature) or temperature <= 0:
             raise ValueError("a nonempty prompt, nonnegative length and positive temperature are required")
         rng = np.random.default_rng(seed)
         result = bytearray(a.tobytes())
-        with self.inference_copy() as m:
+        with self.inference_copy(clear_memory=clear_memory) as m:
             for byte in a:
                 logits = m.observe(int(byte))
             for _ in range(length):

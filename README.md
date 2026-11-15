@@ -1,39 +1,32 @@
 # SHoEbox
 
-## First-principles multiscale rebuild
+## Selected runtime: multiscale routing D
 
-An independent CPU runtime now lives in [`multiscale/`](multiscale/README.md),
-with the public entry point `shoe_multiscale`. It implements one, two or four
-scales, ordered composition, top-one sparse experts, eight-event local learning,
-native-scale contrastive prediction, one shared byte decoder and a bounded
-association store. Fresh models now also enable stable content/time addressing,
-fixed native rotary clocks, learned memory queries and local constituent
-reconstruction. Version-1 checkpoints automatically retain the original runtime.
-The old cortical runtime below remains reproducible.
+The default `shoe_multiscale` model is now **D**: exact prototype search,
+centered normalized routing, fading utilization warmup, and stable predictive
+SDR cues. The API and CLI select the same tested profile. It includes the
+retained-recall and local learning repairs that precede D.
 
 ```python
 from shoe_multiscale import fresh_model
-model = fresh_model(levels=4, parameters=1_000_000)
-loss = model.train(b"An observed byte stream for local learning.\n")
-model.save("model.shoe")
+with fresh_model(levels=4, parameters=1_000_000) as model:
+    assert model.stats()["routing_arm"] == "D"
+    model.train(b"An observed byte stream for local learning.\n")
+    model.save("model.shoe")
 ```
 
-The original rebuild's three matched million-target Tiny Shakespeare runs average **1.97753 nats/byte**
-at approximately **64,746 training bytes/s** for the four-scale model. The
-fast-only control averages 1.99583 nats/byte at 106,880 bytes/s. The hierarchy
-improves loss per byte, but the distant ordered-cue test remains at chance and
-the fast-only model reaches the measured loss thresholds sooner. Consequently,
-learned boundaries and promotion of the hierarchy as the selected generalist
-profile have **not** passed the design's acceptance gate.
+D has 1,011,903 parameters at the nominal 1M setting. Three matched 15M-target
+FineWeb runs average **1.772838555 nats/byte**; the recorded serial median is
+**30,670 training bytes/s**. D is the selected loss/time baseline. Saved models
+retain their original policies and unfinished stream state when loaded.
 
-[Implementation and reproduction](multiscale/README.md) |
-[Addressed memory and reconstruction results](multiscale/ADDRESSED_MEMORY_REPORT.md) |
-[Results and remaining gates](multiscale/REBUILD_REPORT.md) |
-[Original rebuild plan](multiscale/DESIGN.md).
+[Usage and architecture](multiscale/README.md) |
+[D selection and protocol](multiscale/ROUTING_D.md) |
+[Verified promotion](multiscale/results/routing_d_promotion_verification.json).
 
-## Current reference design
+## Historical cortical reference
 
-The default CPU runtime now enables the implemented reference design, including
+The preserved `shoebox_reference` runtime enables the cortical reference design, including
 all published composition, binding, semantic, relay, message and completion
 repairs. Architectural completeness is the development priority; performance
 optimization follows. Use the repository entry point:
