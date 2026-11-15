@@ -1,0 +1,183 @@
+{
+  "checkpoint_sha256": "9d081fd91b7752936112b92a03d0758140bc38a5b7bbab6c4660bbe274c97d08",
+  "train_sha256": "127094a677d95d20379368003972cabf9bc77ded57341d4065cd3ce38ecb834c",
+  "development_sha256": "4fe3ccbe4bce18e3b5f84b965a111521b6c6951a8d5ceaccc16ce81bfd0589ea",
+  "segment_sha256": "f22f3e52a79c3572de31a4f8bf5713f33ad2ec9ffc96a5701645103d5bfff628",
+  "targets": 5000000,
+  "shuffle_seed": 1007,
+  "protocol": "same 20M-trained seed-7 corrected-C checkpoint; reshuffled training-pool replay; serial alternating 1M blocks; no audit-based selection",
+  "resume_check_sha256": "d71080519589983aefd9a461dc295397fc25f34f565d428fe09a0cdc09bea602",
+  "arms": {
+    "C": {
+      "parameters": 4999743,
+      "base_rates": {
+        "fast": 0.00019999999494757503,
+        "slow": 0.0020000000949949026,
+        "query": 0.00019999999494757503,
+        "head": 0.004000000189989805,
+        "constituent_credit": 1.0,
+        "auxiliary_weight": 0.10000000149011612,
+        "route": 0.0020000000949949026
+      },
+      "curve": [
+        {
+          "targets": 0,
+          "nll": 1.730870187315018,
+          "train_seconds": 0.0
+        },
+        {
+          "targets": 1000000,
+          "nll": 1.7276938183852049,
+          "train_nll": 1.6994031593609051,
+          "train_seconds": 33.033128534123534
+        },
+        {
+          "targets": 2000000,
+          "nll": 1.726290688984231,
+          "train_nll": 1.6925636558501467,
+          "train_seconds": 66.13049111310102
+        },
+        {
+          "targets": 3000000,
+          "nll": 1.7234096795293574,
+          "train_nll": 1.691853867813247,
+          "train_seconds": 98.51800623296003
+        },
+        {
+          "targets": 4000000,
+          "nll": 1.7215754100305722,
+          "train_nll": 1.683183267176032,
+          "train_seconds": 130.09696556103881
+        },
+        {
+          "targets": 5000000,
+          "nll": 1.7228425008320203,
+          "train_nll": 1.6932537987915157,
+          "train_seconds": 161.53251319300034
+        }
+      ],
+      "train_seconds": 161.53251319300034,
+      "checkpoint_sha256": "cc421df24a2af55cbd19ae648353d74885729bbfdda1019cfbf59ba2de0a57af"
+    },
+    "route": {
+      "parameters": 4999743,
+      "base_rates": {
+        "fast": 0.00019999999494757503,
+        "slow": 0.0020000000949949026,
+        "query": 0.00019999999494757503,
+        "head": 0.004000000189989805,
+        "constituent_credit": 1.0,
+        "auxiliary_weight": 0.10000000149011612,
+        "route": 0.0020000000949949026
+      },
+      "curve": [
+        {
+          "targets": 0,
+          "nll": 1.730870187315018,
+          "train_seconds": 0.0
+        },
+        {
+          "targets": 1000000,
+          "nll": 1.7281766770094884,
+          "train_nll": 1.6996511234733205,
+          "train_seconds": 33.260849402155145
+        },
+        {
+          "targets": 2000000,
+          "nll": 1.7269774095693515,
+          "train_nll": 1.6927789743207846,
+          "train_seconds": 64.80348387408594
+        },
+        {
+          "targets": 3000000,
+          "nll": 1.723921111944688,
+          "train_nll": 1.6923698965750902,
+          "train_seconds": 97.93708636600059
+        },
+        {
+          "targets": 4000000,
+          "nll": 1.7222500161632244,
+          "train_nll": 1.68435428443171,
+          "train_seconds": 131.0010809309897
+        },
+        {
+          "targets": 5000000,
+          "nll": 1.7234362436857316,
+          "train_nll": 1.6939093721854794,
+          "train_seconds": 162.9574129460234
+        }
+      ],
+      "train_seconds": 162.9574129460234,
+      "checkpoint_sha256": "eb09a3d52762a38200fd688464a57069c33940be2fb78f163545ef2b9d7e0ede"
+    }
+  },
+  "final_route_minus_C_nll": 0.0005937428537112766,
+  "controller": {
+    "lower": 0.5,
+    "upper": 1.5,
+    "anchor": 1.0,
+    "amplitude": 1.0,
+    "period": 256
+  },
+  "tests": {
+    "python": 37,
+    "native": true,
+    "address_sanitizer": true,
+    "undefined_behavior_sanitizer": true,
+    "leak_sanitizer": false
+  },
+  "timing": {
+    "rows": [
+      {
+        "arm": "C",
+        "repeat": 0,
+        "targets": 200000,
+        "seconds": 6.258394470991334,
+        "bytes_per_second": 31957.0779577785
+      },
+      {
+        "arm": "route",
+        "repeat": 0,
+        "targets": 200000,
+        "seconds": 6.290704838000238,
+        "bytes_per_second": 31792.939765964016
+      },
+      {
+        "arm": "route",
+        "repeat": 1,
+        "targets": 200000,
+        "seconds": 6.259098603986786,
+        "bytes_per_second": 31953.482866144386
+      },
+      {
+        "arm": "C",
+        "repeat": 1,
+        "targets": 200000,
+        "seconds": 6.294056088998332,
+        "bytes_per_second": 31776.01171200065
+      },
+      {
+        "arm": "C",
+        "repeat": 2,
+        "targets": 200000,
+        "seconds": 6.40950665800483,
+        "bytes_per_second": 31203.6496210235
+      },
+      {
+        "arm": "route",
+        "repeat": 2,
+        "targets": 200000,
+        "seconds": 6.657371277004131,
+        "bytes_per_second": 30041.8876577966
+      }
+    ],
+    "bytes_per_second": {
+      "C": 31642.303223351475,
+      "route": 31238.326759570115
+    },
+    "route_speed_change": -0.012766974038831425,
+    "cpu": 2,
+    "checkpoint_sha256": "9d081fd91b7752936112b92a03d0758140bc38a5b7bbab6c4660bbe274c97d08",
+    "protocol": "serial alternating paired order; same source checkpoint; independent reshuffles per pair; includes resets and final retirement"
+  }
+}

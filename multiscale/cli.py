@@ -17,6 +17,13 @@ def main():
     train.add_argument("--targets",type=int);train.add_argument("--learning-rate",type=float,default=None)
     train.add_argument("--slow-rate",type=float);train.add_argument("--query-rate",type=float)
     train.add_argument("--head-rate",type=float)
+    train.add_argument("--route-lr",action=argparse.BooleanOptionalAction,default=None,
+                       help="enable bounded route-local LR cycles; explicit changes retire pending credit on resume")
+    train.add_argument("--lr-lower",type=float);train.add_argument("--lr-upper",type=float)
+    train.add_argument("--lr-anchor",type=float,help="shared multiplier; may also move a resumed controller")
+    train.add_argument("--lr-amplitude",type=float);train.add_argument("--lr-period",type=int)
+    train.add_argument("--lr-anchor-target",type=float,help="ramp every rate toward this bounded multiplier")
+    train.add_argument("--lr-anchor-targets",type=int,default=0,help="future training targets for the anchor ramp")
     train.add_argument("--router",choices=["indexed","scan"],default=None,
                        help="fresh model: exact scan for C; indexed for historical A/profiles")
     train.add_argument("--routing-arm",choices=list("ABCD"),default=None,
@@ -39,6 +46,10 @@ def main():
     inspect=sub.add_parser("inspect");inspect.add_argument("--checkpoint",required=True)
     args=parser.parse_args()
     if args.command=="train":
+        if any(v is not None for v in (args.lr_lower,args.lr_upper,args.lr_amplitude,args.lr_period)) and args.route_lr is None:
+            parser.error("cycle bounds, amplitude and period require --route-lr or --no-route-lr")
+        if args.lr_anchor_targets and args.lr_anchor_target is None:
+            parser.error("--lr-anchor-targets requires --lr-anchor-target")
         if args.resume and any(value is not None for value in (args.router,args.routing_arm,args.semantic_laces,args.balance_policy,args.language_credit,args.recall_credit)):
             parser.error("resume preserves saved routing; routing options apply only to fresh models")
         m=Model.load(args.resume) if args.resume else Model(levels=args.levels,parameters=args.parameters,
@@ -46,8 +57,21 @@ def main():
                          routing_arm=args.routing_arm,semantic_laces=args.semantic_laces,balance_policy=args.balance_policy,
                          language_credit=args.language_credit,recall_credit=args.recall_credit)
         with m:
+            # An explicit controller change retires credit under the saved
+            # policy before applying either new base rates or cycle settings.
+            if args.route_lr is not None and args.resume:m.finish()
             m.configure(learning_rate=args.learning_rate,slow_rate=args.slow_rate,query_rate=args.query_rate,
                         head_rate=args.head_rate,reconstruction_weight=args.reconstruction_weight)
+            if args.route_lr is not None:
+                policy=m.route_lr_stats()
+                options={name:value if value is not None else policy[name] for name,value in
+                         (("lower",args.lr_lower),("upper",args.lr_upper),("anchor",args.lr_anchor),
+                          ("amplitude",args.lr_amplitude),("period",args.lr_period))}
+                m.configure_route_lr(enabled=args.route_lr,**options)
+            elif args.lr_anchor is not None:
+                m.set_learning_anchor(args.lr_anchor)
+            if args.lr_anchor_target is not None:
+                m.set_learning_anchor(args.lr_anchor_target,over_targets=args.lr_anchor_targets)
             raw=Path(args.data).read_bytes()
             n=min(len(raw)-1,args.targets) if args.targets is not None else len(raw)-1
             if n<=0:parser.error("training requires at least two bytes and a positive target count")

@@ -112,9 +112,11 @@ struct Stream {
 };
 #include "semantic_laces.hpp"
 #include "routing_geometry.hpp"
+#include "route_learning.hpp"
 
 struct Level {
     std::vector<Expert> experts;
+    std::vector<uint64_t> lr_visits;
     // Derived exact-search cache. Coordinates are contiguous across 16 experts
     // so SIMD preserves each dot product's original accumulation order.
     // Rebuilt after load; never serialized or counted as fitted parameters.
@@ -230,6 +232,11 @@ struct Model {
     // and gain/bias readout-head updates retain their independent rates.
     std::array<float,4> language_credit{{1,1,1,1}};
     std::array<float,4> recall_credit{{0,0,0,0}};
+    RouteLearning route_learning{};
+    float route_multiplier(const Level& l,int expert)const{return route_learning.multiplier(l.lr_visits[expert]);}
+    void advance_route(Level& l,int expert){
+        if(route_learning.enabled&&l.lr_visits[expert]!=UINT64_MAX)++l.lr_visits[expert];
+    }
     int epoch_bytes=0,epoch_limit=BLOCK;
     float reconstruction_weight=.05f;
     int memory_mode=0,recall_mode=0;
@@ -260,6 +267,7 @@ struct Model {
         return routing_arm?(routing_arm>=2&&balance_policy?(balance_policy==2?10:9):8):(lace_policy==1?6:7);
     }
     uint32_t checkpoint_version()const{
+        if(route_learning.configured)return 17; // 13--16 were private credit experiments.
         if(recall_credit!=std::array<float,4>{{0,0,0,0}})return 12;
         return language_credit==std::array<float,4>{{1,1,1,1}}?payload_version():11;
     }

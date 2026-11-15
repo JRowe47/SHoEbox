@@ -28,6 +28,7 @@ def _library(profile="addressed"):
         source += (directory / "recall.hpp").read_bytes()
     if profile == "addressed":
         source += (directory / "recall_credit.hpp").read_bytes()
+        source += (directory / "route_learning.hpp").read_bytes()
     if profile == "addressed":
         source += (directory / "routing_geometry.hpp").read_bytes() + (directory / "routing_geometry_impl.hpp").read_bytes()
         source += (directory / "semantic_laces.hpp").read_bytes() + (directory / "semantic_laces_impl.hpp").read_bytes()
@@ -69,6 +70,9 @@ def _library(profile="addressed"):
                      plateau_probe=([p,p,n,p,p],i),ms_routing=([p,i],i),
                      ms_swap_experts=([p,i],i),ms_routing_stats=([p,p],i),ms_balance=([p,i],i),
                      ms_language_credit=([p,p,n],i),ms_credit_stats=([p,p],i),ms_recall_credit=([p,p,n],i))
+        specs.update(ms_route_learning=([p,i,f,f,f,f,C.c_uint64],i),
+                     ms_route_anchor=([p,f,C.c_uint64],i),ms_route_learning_stats=([p,p,p],i),
+                     ms_route_learning_routes=([p,i,p,p,n],i))
     for name, (args, result) in specs.items():
         fn = getattr(lib, name)
         fn.argtypes, fn.restype = args, result
@@ -90,7 +94,7 @@ def _bytes(x):
 class Model:
     def __init__(self, *, levels=4, parameters=1_000_000, seed=7, router=None, associations=False,
                  memory_profile="addressed", semantic_laces=None, routing_arm=None, balance_policy=None,
-                 language_credit=None, recall_credit=None):
+                 language_credit=None, recall_credit=None, route_lr=None):
         """Create corrected C with coverage warmup and no mature usage penalty.
 
         Explicit C/D arms retain legacy balancing unless balance_policy="warmup".
@@ -127,6 +131,11 @@ class Model:
         if recall_credit is not None:
             if memory_profile != "addressed":raise ValueError("recall credit requires the addressed runtime")
             self._validate_credit(recall_credit,levels)
+        if route_lr is not None:
+            if memory_profile != "addressed" or semantic_laces:
+                raise ValueError("route learning requires the addressed runtime with semantic laces disabled")
+            if not isinstance(route_lr, dict):
+                raise TypeError("route_lr must be a configuration dictionary")
         self._profile = memory_profile
         self._lib = _library(memory_profile)
         self._handle = self._lib.ms_create(levels, parameters, seed, router == "indexed", associations)
@@ -140,6 +149,62 @@ class Model:
                 self.set_language_credit(language_credit)
             if recall_credit is not None:
                 self.set_recall_credit(recall_credit)
+            if route_lr is not None:
+                self.configure_route_lr(**route_lr)
+
+    @staticmethod
+    def _clock(value, name, minimum=0):
+        if isinstance(value, (bool, np.bool_)) or not isinstance(value, (int, np.integer)) or not minimum <= value <= 2**64-1:
+            raise ValueError(f"{name} must be an integer in [{minimum}, 2**64-1]")
+        return int(value)
+
+    def configure_route_lr(self, *, enabled=True, lower=.5, upper=1.5, anchor=1.,
+                           amplitude=1., period=256):
+        """Bounded route-local cycles; bounds and anchor multiply base rates.
+
+        Call on a fresh model or after finish(). Clocks persist when reconfigured
+        or disabled. period counts selected training events per expert; amplitude
+        0 collapses every route onto the anchor. Shared weights use the anchor.
+        """
+        if self._profile != "addressed":
+            raise ValueError("route learning requires the addressed runtime")
+        if not isinstance(enabled, (bool, np.bool_)):
+            raise ValueError("enabled must be a boolean")
+        values=(lower, upper, anchor, amplitude)
+        if any(not np.isfinite(v) or abs(v)>np.finfo(np.float32).max for v in values):
+            raise ValueError("route learning values must be finite float32 values")
+        if not 0 <= lower <= anchor <= upper or not 0 <= amplitude <= 1:
+            raise ValueError("require 0 <= lower <= anchor <= upper and 0 <= amplitude <= 1")
+        period=self._clock(period,"period",1)
+        self._check(self._lib.ms_route_learning(self._alive(),int(enabled),lower,upper,anchor,amplitude,period))
+
+    def set_learning_anchor(self, anchor, *, over_targets=0):
+        """Move every rate immediately, or linearly over future training targets.
+
+        Route phases are retained. Pending gradients use the policy at update
+        time. Frozen evaluation and context resets never advance the ramp.
+        """
+        if self._profile != "addressed":raise ValueError("route learning requires the addressed runtime")
+        if not np.isfinite(anchor) or abs(anchor)>np.finfo(np.float32).max:
+            raise ValueError("anchor must be a finite float32 value")
+        over_targets=self._clock(over_targets,"over_targets")
+        self._check(self._lib.ms_route_anchor(self._alive(),anchor,over_targets))
+
+    def route_lr_stats(self, *, include_routes=False):
+        """Inspect optimizer state without changing it; no per-byte logging."""
+        if self._profile != "addressed":raise ValueError("route learning requires the addressed runtime")
+        a=np.zeros(11,np.float64);clocks=np.zeros(4,np.uint64)
+        self._check(self._lib.ms_route_learning_stats(self._alive(),a.ctypes.data,clocks.ctypes.data))
+        result=dict(configured=bool(a[0]),enabled=bool(a[1]),lower=a[2],upper=a[3],anchor=a[4],amplitude=a[5],
+                    period=int(clocks[0]),training_targets=int(clocks[1]),anchor_target=a[8],ramp_elapsed=int(clocks[2]),ramp_targets=int(clocks[3]))
+        if include_routes:
+            topology=np.zeros(48,np.float64);self._check(self._lib.ms_stats(self._alive(),topology.ctypes.data))
+            result['levels']=[]
+            for level in range(int(topology[7])):
+                count=int(topology[8+level]);visits=np.zeros(count,np.uint64);factors=np.zeros(count,np.float32)
+                self._check(self._lib.ms_route_learning_routes(self._alive(),level,visits.ctypes.data,factors.ctypes.data,count))
+                result['levels'].append(dict(visits=visits.tolist(),multipliers=factors.tolist()))
+        return result
 
     def set_recall_credit(self, gains):
         """Credit retained values to live producers within the current epoch.
@@ -267,6 +332,9 @@ class Model:
             aux = policy["auxiliary_weight"] if auxiliary_weight is None else auxiliary_weight
             route = policy["route"] if route_rate is None else route_rate
             credit = policy["constituent_credit"] if constituent_credit is None else constituent_credit
+            cycle=self.route_lr_stats()
+            if cycle['enabled'] and any(float(v)*cycle['upper']>np.finfo(np.float32).max for v in (fast,slow,query,head,route)):
+                raise ValueError("learning rate exceeds finite route learning bounds")
         else:
             if any(v is not None for v in (fast_rate, slow_rate, query_rate, constituent_credit)):
                 raise ValueError("separate rates and constituent credit require a v5 model")
@@ -432,6 +500,7 @@ class Model:
             self._check(self._lib.ms_credit_stats(self._alive(),gains.ctypes.data))
             result['language_credit']=gains[:levels].tolist()
             result['recall_credit']=gains[4:4+levels].tolist()
+            result['route_learning']=self.route_lr_stats()
             lace=np.zeros(64,np.float64);self._check(self._lib.ms_lace_stats(self._alive(),lace.ctypes.data))
             result["checkpoint_version"]=int(lace[2])
             routing = np.zeros(64, np.float64)
@@ -462,7 +531,7 @@ class Model:
         if len(raw) < 16:
             raise ValueError("truncated native checkpoint")
         version = struct.unpack_from("=I", raw, 8)[0]
-        profiles = {1: "legacy", 2: "addressed_v2", 3: "addressed_v3", 4: "addressed_v4", 5: "addressed", 6: "addressed", 7: "addressed", 8: "addressed", 9: "addressed", 10: "addressed", 11: "addressed", 12: "addressed"}
+        profiles = {1: "legacy", 2: "addressed_v2", 3: "addressed_v3", 4: "addressed_v4", 5: "addressed", 6: "addressed", 7: "addressed", 8: "addressed", 9: "addressed", 10: "addressed", 11: "addressed", 12: "addressed", 17: "addressed"}
         if version not in profiles:
             raise ValueError("unsupported multiscale checkpoint version")
         profile = profiles[version]

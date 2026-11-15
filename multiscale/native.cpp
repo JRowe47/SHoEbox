@@ -21,7 +21,7 @@ Model::Model(int count,int target,uint32_t seed,bool use_index,bool memory):inde
         l.constituents.reserve(epoch_limit/span+1);
         int e=scale==count-1?left:std::min(left-2*(count-1-scale),std::max(2,int(available*shares[scale]/total)));
         left-=e;
-        l.experts.resize(e);l.laces.initialize(e);l.routing.initialize(e);
+        l.experts.resize(e);l.lr_visits.resize(e);l.laces.initialize(e);l.routing.initialize(e);
         for(auto& expert:l.experts){
             for(auto& x:expert.w)x=.025f*normal(rng);
             for(auto& x:expert.key)x=normal(rng);
@@ -251,7 +251,7 @@ void Model::flush(int scale){
         // has arrived. Context weights still retire at eight native events.
         auto& c=l.constituents.at(e.content_id);for(int i=0;i<D;++i)c.grad[i]+=dc[i];
     }
-    float lr=scale?slow_rate:learning_rate;
+    float lr=(scale?slow_rate:learning_rate)*route_learning.shared();
     if(routing_arm==3&&scale>0)step(l.routing.predict,sdr_head_grad,lr);
     step(l.p.recurrent,g.recurrent,lr);step(l.p.read,g.read,lr);
     if(scale>0){step(l.p.gain,g.gain,lr);step(l.p.bias,g.bias,lr);step(l.p.predict,g.predict,lr);
@@ -259,12 +259,17 @@ void Model::flush(int scale){
         step(l.address.query_clock,ag.query_clock,lr);step(l.address.read,ag.read,lr);
         step(l.address.reconstruct,ag.reconstruct,lr);step(l.address.reconstruct_bias,ag.reconstruct_bias,lr);}
     else{
-        for(int k=0;k<unique;++k){step(l.experts[selected[k]].w,eg[k].w,lr);step(l.experts[selected[k]].bias,eg[k].bias,lr);}
+        for(int k=0;k<unique;++k){float rate=learning_rate*route_multiplier(l,selected[k]);
+            step(l.experts[selected[k]].w,eg[k].w,rate);step(l.experts[selected[k]].bias,eg[k].bias,rate);}
         for(int t=0;t<s.count;++t){const auto& e=s.events[t];auto& key=l.experts[e.expert].key;auto& runner=l.experts[e.runner].key;
-            step(key,key_delta[t],lr);if(e.runner!=e.expert)step(runner,runner_delta[t],lr);
-            Vec cue=routing_arm?l.routing.events[t].cue:e.input;normalize(cue);for(int i=0;i<D;++i)key[i]+=route_rate*(cue[i]-key[i]);
+            float factor=route_multiplier(l,e.expert);
+            step(key,key_delta[t],learning_rate*factor);if(e.runner!=e.expert)step(runner,runner_delta[t],learning_rate*route_multiplier(l,e.runner));
+            Vec cue=routing_arm?l.routing.events[t].cue:e.input;normalize(cue);for(int i=0;i<D;++i)key[i]+=(route_rate*factor)*(cue[i]-key[i]);
             normalize(key);if(e.runner!=e.expert)normalize(runner);}
         for(int t=0;t<s.count;++t){update_index(l,s.events[t].expert);update_index(l,s.events[t].runner);}
+        // Advance only after the whole sparse parameter update. A route's
+        // clock counts selected training events, not other experts' traffic.
+        for(int t=0;t<s.count;++t)advance_route(l,s.events[t].expert);
     }
     s.count=0;++s.updates;
 }
@@ -293,7 +298,7 @@ void Model::retire_constituents(){
             std::array<Vec,VOCAB> gradient{};
             for(const auto& c:l.constituents)for(int i=0;i<D;++i)
                 gradient[c.byte][i]+=c.grad[i]*(1-c.content[i]*c.content[i]);
-            for(int b=0;b<VOCAB;++b)step(embedding[b],gradient[b],learning_rate);
+            for(int b=0;b<VOCAB;++b)step(embedding[b],gradient[b],learning_rate*route_learning.shared());
         }else{
             Shared g{};std::vector<Expert> eg;std::vector<int> selected;
             eg.reserve(l.constituents.size());selected.reserve(l.constituents.size());
@@ -323,14 +328,18 @@ void Model::retire_constituents(){
                     for(int i=0;i<D;++i)destination[i]+=child_grad[pos][i];
                     child.child_gradient_energy+=energy(child_grad[pos]);if(constituent_credit>0)++child.credit_edges;}
             }
-            step(l.p.role,g.role,slow_rate);step(l.p.length,g.length,slow_rate);step(l.p.offset,g.offset,slow_rate);
-            for(size_t k=0;k<selected.size();++k){step(l.experts[selected[k]].w,eg[k].w,slow_rate);step(l.experts[selected[k]].bias,eg[k].bias,slow_rate);}
-            for(size_t k=0;k<keys.size();++k)if(touched[k])step(l.experts[k].key,keys[k],slow_rate);
+            float shared_rate=slow_rate*route_learning.shared();
+            step(l.p.role,g.role,shared_rate);step(l.p.length,g.length,shared_rate);step(l.p.offset,g.offset,shared_rate);
+            for(size_t k=0;k<selected.size();++k){float rate=slow_rate*route_multiplier(l,selected[k]);
+                step(l.experts[selected[k]].w,eg[k].w,rate);step(l.experts[selected[k]].bias,eg[k].bias,rate);}
+            for(size_t k=0;k<keys.size();++k)if(touched[k])step(l.experts[k].key,keys[k],slow_rate*route_multiplier(l,int(k)));
             ci=0;
             for(const auto& c:l.constituents){auto& key=l.experts[c.expert].key;Vec cue=routing_arm?l.routing.constituents[ci].cue:c.input;++ci;normalize(cue);
-                for(int i=0;i<D;++i)key[i]+=route_rate*(cue[i]-key[i]);}
+                float rate=route_rate*route_multiplier(l,c.expert);
+                for(int i=0;i<D;++i)key[i]+=rate*(cue[i]-key[i]);}
             for(size_t k=0;k<keys.size();++k)if(touched[k])normalize(l.experts[k].key);
             for(size_t k=0;k<keys.size();++k)if(touched[k])update_index(l,int(k));
+            for(const auto& c:l.constituents)advance_route(l,c.expert);
         }
         l.constituents.clear();l.routing.constituents.clear();l.s.child_ids.fill(-1);++l.content_updates;
     }
@@ -374,19 +383,20 @@ void Model::observe(uint8_t byte){
 }
 float Model::teach(uint8_t target){
     int node=0;float loss=0;Vec feature_grad{};std::array<RecallValue,4> recall_grad{};
+    const float effective_head=head_rate*route_learning.shared(),effective_query=query_rate*route_learning.shared();
     for(int depth=0;depth<8;++depth){
         int bit=(target>>(7-depth))&1;float z=decoder_bias[node]+dot(decoder[node].data(),features.data());
         for(size_t l=0;l<levels.size();++l)if(int(l)!=mask)z+=dot(levels[l].retrieval.read.data()+node*RECALL_V,levels[l].read_now.value.data(),RECALL_V);
         loss+=softplus(z)-bit*z;
         if(training){float error=sigmoid(z)-bit;
             for(size_t l=0;l<levels.size();++l){auto& p=levels[l].retrieval;auto& read=levels[l].read_now;
-                float lr=head_rate/(1+dot(read.value.data(),read.value.data(),RECALL_V));
+                float lr=effective_head/(1+dot(read.value.data(),read.value.data(),RECALL_V));
                 for(int j=0;j<RECALL_V;++j){recall_grad[l][j]+=error*p.read[node*RECALL_V+j];p.read[node*RECALL_V+j]-=lr*error*read.value[j];}}
             // Read the exact weights which produced z before changing them.
             for(int j=0;j<D;++j)feature_grad[j]+=error*decoder[node][j];
-            float lr=head_rate/(1+energy(features));
+            float lr=effective_head/(1+energy(features));
             for(int j=0;j<D;++j)decoder[node][j]-=lr*error*features[j];
-            decoder_bias[node]-=head_rate*.05f*error;
+            decoder_bias[node]-=effective_head*.05f*error;
         }
         node=2*node+1+bit;
     }
@@ -398,15 +408,16 @@ float Model::teach(uint8_t target){
                 for(int k=0;k<level.retained.count;++k){auto& trace=level.recall_credit_state.units[k];
                     if(trace.current<0&&trace.previous<0)continue;
                     for(int j=0;j<RECALL_K;++j)trace.gradient[j]+=level.read_now.weights[k]*recall_grad[l][j];}}
-            step(levels[l].retrieval.query,g.query,query_rate);
+            step(levels[l].retrieval.query,g.query,effective_query);
             for(int j=0;j<RECALL_K;++j)
-                levels[l].retrieval.query_byte[levels[l].read_now.byte*RECALL_K+j]-=query_rate*std::clamp(g.query_byte[j],-2.f,2.f);
+                levels[l].retrieval.query_byte[levels[l].read_now.byte*RECALL_K+j]-=effective_query*std::clamp(g.query_byte[j],-2.f,2.f);
             for(int i=0;i<D;++i)fast.task[i]+=di[i];}
         for(int i=0;i<D;++i){float g=feature_grad[i]*(1-features[i]*features[i]);fast.task[i]+=g*(1+cached_gain[i]);
             for(size_t l=1;l<levels.size();++l){auto& s=levels[l].s;if(!s.count)continue;
                 s.events[s.count-1].gain_grad[i]+=g*levels[0].s.state[i];s.events[s.count-1].bias_grad[i]+=g;}
         }
         for(auto& l:levels)if(l.s.count)++l.s.events[l.s.count-1].uses;
+        route_learning.advance();
     }
     return loss;
 }
@@ -464,12 +475,18 @@ std::string save(const Model& m){
     }
     if(version>=11)w.pod(m.language_credit);
     if(version>=12){w.pod(m.recall_credit);for(const auto& l:m.levels){w.pod(l.recall_credit_state);w.vector(l.recall_content_gradient);}}
+    if(version==17){const auto& s=m.route_learning;
+        uint32_t enabled=s.enabled;w.pod(enabled);w.pod(s.lower);w.pod(s.upper);w.pod(s.start);w.pod(s.target);w.pod(s.amplitude);
+        w.pod(s.period);w.pod(s.targets);w.pod(s.ramp_elapsed);w.pod(s.ramp_targets);
+        for(const auto& l:m.levels)w.vector(l.lr_visits);
+    }
     return w.out;
 }
 Model load(const char* p,size_t n){
     Reader r{p,n};uint64_t magic;uint32_t version,abi;r.pod(magic);r.pod(version);r.pod(abi);
-    if(magic!=0x31534d454f4853ULL||version<5||version>12||abi!=(sizeof(Constituent)^sizeof(Event)^sizeof(Stream)^sizeof(AssociationStore)^sizeof(RecallParameters)^sizeof(RecallStream)^sizeof(RecallRead)))throw std::runtime_error("incompatible multiscale checkpoint");
+    if(magic!=0x31534d454f4853ULL||version<5||(version>12&&version!=17)||abi!=(sizeof(Constituent)^sizeof(Event)^sizeof(Stream)^sizeof(AssociationStore)^sizeof(RecallParameters)^sizeof(RecallStream)^sizeof(RecallRead)))throw std::runtime_error("incompatible multiscale checkpoint");
     const bool credit_extension=version>=11,recall_extension=version>=12;
+    const bool route_lr_extension=version==17;
     if(credit_extension){r.pod(version);if(version<6||version>10)throw std::runtime_error("invalid credit payload version");}
     int count,target;bool index,assoc;r.pod(count);r.pod(target);r.pod(index);r.pod(assoc);
     Model m(count,target,7,index,assoc);r.pod(m.training);r.pod(m.memory_writes);r.pod(m.have_query);
@@ -556,6 +573,14 @@ Model load(const char* p,size_t n){
                 for(float v:unit.gradient)if(!std::isfinite(v))throw std::runtime_error("invalid recall derivative");}
         }
     }
+    if(route_lr_extension){auto& s=m.route_learning;uint32_t enabled;r.pod(enabled);
+        if(enabled>1)throw std::runtime_error("invalid route learning switch");
+        s.configured=true;s.enabled=bool(enabled);r.pod(s.lower);r.pod(s.upper);r.pod(s.start);r.pod(s.target);r.pod(s.amplitude);
+        r.pod(s.period);r.pod(s.targets);r.pod(s.ramp_elapsed);r.pod(s.ramp_targets);s.validate();
+        for(float rate:{m.learning_rate,m.slow_rate,m.query_rate,m.head_rate,m.route_rate})s.validate_rate(rate);
+        if(m.semantic_laces)throw std::runtime_error("route learning requires stable expert identities; disable semantic laces");
+        for(auto& l:m.levels)r.vector(l.lr_visits);
+    }
     if(r.n)throw std::runtime_error("unexpected trailing checkpoint data");
     return m;
 }
@@ -576,11 +601,41 @@ int ms_reset(void* p,int clear){return guard([&]{static_cast<shoe::Model*>(p)->r
 int ms_finish(void* p){return guard([&]{static_cast<shoe::Model*>(p)->finish();});}
 int ms_configure(void* p,float lr,float head,float aux,float route){return guard([&]{
     if(!std::isfinite(lr)||!std::isfinite(head)||!std::isfinite(aux)||!std::isfinite(route)||lr<0||head<0||aux<0||route<0)throw std::invalid_argument("rates must be finite and nonnegative");
-    auto& m=*static_cast<shoe::Model*>(p);m.learning_rate=lr;m.head_rate=head;m.aux_weight=aux;m.route_rate=route;
+    auto& m=*static_cast<shoe::Model*>(p);for(float rate:{lr,head,route})m.route_learning.validate_rate(rate);
+    m.learning_rate=lr;m.head_rate=head;m.aux_weight=aux;m.route_rate=route;
 });}
 int ms_learning(void* p,float fast,float slow,float query,float credit){return guard([&]{
     for(float value:{fast,slow,query,credit})if(!std::isfinite(value)||value<0)throw std::invalid_argument("learning policy must be finite and nonnegative");
-    auto& m=*static_cast<shoe::Model*>(p);m.learning_rate=fast;m.slow_rate=slow;m.query_rate=query;m.constituent_credit=credit;
+    auto& m=*static_cast<shoe::Model*>(p);for(float rate:{fast,slow,query})m.route_learning.validate_rate(rate);
+    m.learning_rate=fast;m.slow_rate=slow;m.query_rate=query;m.constituent_credit=credit;
+});}
+int ms_route_learning(void* p,int enabled,float lower,float upper,float anchor,float amplitude,uint64_t period){return guard([&]{
+    auto& m=*static_cast<shoe::Model*>(p);
+    if(!m.training||m.epoch_bytes)throw std::logic_error("configure route learning at an explicit training boundary");
+    if(m.semantic_laces)throw std::invalid_argument("route learning requires stable expert identities; disable semantic laces");
+    if(enabled<0||enabled>1)throw std::invalid_argument("invalid route learning switch");
+    auto s=m.route_learning;s.configured=true;s.enabled=enabled;s.lower=lower;s.upper=upper;s.start=s.target=anchor;
+    s.amplitude=amplitude;s.period=period;s.ramp_elapsed=s.ramp_targets=0;s.validate();
+    for(float rate:{m.learning_rate,m.slow_rate,m.query_rate,m.head_rate,m.route_rate})s.validate_rate(rate);
+    m.route_learning=s;
+});}
+int ms_route_anchor(void* p,float target,uint64_t targets){return guard([&]{
+    auto& m=*static_cast<shoe::Model*>(p);
+    if(!m.training||!m.route_learning.configured)throw std::logic_error("anchor changes require a configured training model");
+    auto s=m.route_learning;s.start=s.anchor();s.target=target;s.ramp_elapsed=0;s.ramp_targets=targets;
+    if(!targets)s.start=target;
+    s.validate();m.route_learning=s;
+});}
+int ms_route_learning_stats(void* p,double* out,uint64_t* clocks){return guard([&]{
+    const auto& s=static_cast<shoe::Model*>(p)->route_learning;
+    out[0]=s.configured;out[1]=s.enabled;out[2]=s.lower;out[3]=s.upper;out[4]=s.anchor();out[5]=s.amplitude;
+    out[6]=double(s.period);out[7]=double(s.targets);out[8]=s.target;out[9]=double(s.ramp_elapsed);out[10]=double(s.ramp_targets);
+    clocks[0]=s.period;clocks[1]=s.targets;clocks[2]=s.ramp_elapsed;clocks[3]=s.ramp_targets;
+});}
+int ms_route_learning_routes(void* p,int scale,uint64_t* visits,float* factors,size_t n){return guard([&]{
+    const auto& m=*static_cast<shoe::Model*>(p);
+    if(scale<0||scale>=int(m.levels.size())||n!=m.levels[scale].experts.size())throw std::invalid_argument("invalid route inspection shape");
+    const auto& l=m.levels[scale];for(size_t k=0;k<n;++k){visits[k]=l.lr_visits[k];factors[k]=m.route_multiplier(l,int(k));}
 });}
 int ms_language_credit(void* p,const float* gains,size_t n){return guard([&]{
     auto& m=*static_cast<shoe::Model*>(p);
@@ -622,6 +677,7 @@ int ms_routing_stats(void* p,double* out){return guard([&]{auto& m=*static_cast<
 });}
 int ms_laces(void* p,int enabled){return guard([&]{auto& m=*static_cast<shoe::Model*>(p);
     if(enabled&&m.routing_arm)throw std::invalid_argument("routing arms cannot enable semantic laces");
+    if(enabled&&m.route_learning.configured)throw std::invalid_argument("route learning requires stable expert identities");
     if(enabled!=0&&enabled!=1)throw std::invalid_argument("invalid lace policy");
     if(m.semantic_laces!=bool(enabled)){m.finish();m.semantic_laces=enabled;if(enabled)m.lace_policy=2;}
 });}

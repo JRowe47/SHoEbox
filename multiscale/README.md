@@ -36,8 +36,37 @@ python -m multiscale.cli train --resume model.shoe --data next.txt --out next.sh
 Resume preserves the saved routing, objectives, stream state, and pending credit.
 Supply the next input/target segment; use `Model.run(x, y)` to retain next-byte
 pairs across API boundaries. Routing overrides are rejected with CLI resume.
-The simple CLI applies fixed learning rates and does not reserve validation data;
-it does not reproduce the FineWeb schedule by itself.
+The simple CLI does not reserve validation data or reproduce the FineWeb schedule
+by itself. It uses fixed rates unless route learning or an anchor ramp is selected.
+
+## Route-local learning rates
+
+Use `Model(route_lr={})` or `model.configure_route_lr()` to enable bounded cycles
+around a shared, movable anchor. Each expert's phase advances with its own
+selected training events. All parameter families inherit the anchor; expert
+matrices, biases and routing keys also inherit their route's periodic multiplier.
+Existing base-rate ratios and loss weights are preserved.
+
+```python
+with Model(parameters=5_000_000, route_lr={
+    "lower": .5, "upper": 1.5, "anchor": 1., "period": 256,
+}) as model:
+    model.train(training_bytes)
+    model.set_learning_anchor(.8, over_targets=1_000_000)
+    model.train(next_training_bytes)
+    model.save("route_model.shoe")
+```
+
+```bash
+python -m multiscale.cli train --data input.txt --out route_model.shoe \
+  --route-lr --lr-lower .5 --lr-upper 1.5 --lr-anchor 1 --lr-period 256
+python -m multiscale.cli train --resume route_model.shoe --data next.txt \
+  --out continued.shoe --lr-anchor-target .8 --lr-anchor-targets 1000000
+```
+
+Clocks and anchor ramps survive document resets and exact checkpoint resumption.
+Frozen evaluation does not advance them. Full details, update ownership,
+compatibility and comparison commands are in [ROUTE_LEARNING.md](ROUTE_LEARNING.md).
 
 ## C architecture and selected settings
 
@@ -97,6 +126,10 @@ for explicit schedules; omitted rates retain their current values.
 - v11 stores explicit language-credit gains, and v12 additionally stores bounded
   retained-value producer credit and its pending gradients. Unit language gains
   and disabled retained-value credit preserve the original checkpoint bytes.
+- v17 additionally stores an explicitly configured route-learning controller,
+  its anchor ramp and per-expert clocks. Old checkpoints retain fixed rates
+  until route learning is explicitly configured; private v13–v16 experiments
+  are not accepted as v17.
 - Explicit `Model(routing_arm="C")` / `"D"` retain v9 for historical comparisons.
   Add `balance_policy="warmup"` to select v10 explicitly. `Model()` selects
   C with v10. `set_balance_policy("warmup")` is an explicit migration of future
