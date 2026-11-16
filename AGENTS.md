@@ -9,9 +9,10 @@
   93.75% worst offset, 96.88% both orders and 100% padding delays.
   Generic language is +0.006233 nats/byte; copy/reconstruction remain within
   the original margins. Three-seed 1M/5M and >=80% speed gates pass.
-  Production remains minimal v19 pending versioned public integration:
-  `reports/exp01e8/PUBLIC_INTEGRATION_PLAN.md`. Preserve E8 numerics and prove
-  public API/checkpoint parity before changing defaults. The E2-family binding
+  E8 is now the qualified public default: read `reports/e8_public/` and
+  `multiscale/e8/README.md`. Public format is e8-public-1; explicit
+  `core="minimal"` / `policy="v19"` retain v19. All 29 eligible fitted imports
+  and exact outer cursors pass; preserve the pinned numerical policy. The E2-family binding
   and E7 generic audits are now OPENED; never tune against them. Any numerical
   revision needs fresh preregistered folds excluding all opened audit groups.
   Preserve every D/E policy, checkpoint meaning, failed fit and original gate.
@@ -22,10 +23,12 @@
 
 - The selected CPU runtime is the minimal corrected-C core, exposed by `shoe_multiscale.py` and
   implemented in `multiscale/`. Preserve `shoebox_reference.py` as the historical
-  cortical comparator. New public models use v19: expert banks at 1/4 bytes,
+  cortical comparator. New unspecified public models use E8 over the minimal v19 core: expert banks at 1/4 bytes,
   ordered summaries at 16/64 bytes, exact C search and coverage-only warmup.
-  Preserve bounded context, addressed/retained memory, reconstruction and child
-  credit. Upper summaries have diagonal recurrence and constant learned output
+  Explicit historical architecture arguments preserve their old constructors.
+  Generic byte objectives freeze the local heads; observed-window labels are
+  optional training-only input. Preserve bounded context, addressed/retained
+  memory, reconstruction and child credit. Upper summaries have diagonal recurrence and constant learned output
   modulation, with no expert bank, router, forecast head or refinement.
   `core="full"` preserves the previous v10 architecture. Explicit C/D controls
   retain v9 unless warmup-only is selected. Explicit experimental options select

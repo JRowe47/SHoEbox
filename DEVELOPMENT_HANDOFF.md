@@ -1,31 +1,43 @@
 # SHoEbox development handoff
 
-16 November 2026 (America/Denver). Runtime baseline: minimal corrected C, checkpoint v19, source `317fbcd023b9d9b3c2b359ba8f99f3dadbf46783`.
+16 November 2026 (America/Denver). **E8 public integration is complete.**
+`shoe_multiscale.Model()` / `fresh_model()` now select E8 when only parameters
+and seed are supplied. Explicit `policy="e8"` is stable; `policy="v19"`,
+`core="minimal"`, full cores and historical architectural arguments retain
+all previous meanings. Public checkpoints use **e8-public-1**; the core is v19.
 
-**Next action: [versioned public integration of qualified E8](reports/exp01e8/PUBLIC_INTEGRATION_PLAN.md). E8 has passed all registered research gates; public v19 is unchanged.**
+Read [integration results](reports/e8_public/SHoEbox_E8_Public_Integration_Report.md),
+[public API](multiscale/e8/README.md), and
+[exact resume](reports/e8_public/SHoEbox_E8_Public_Resume.md).
+Every one of 29 eligible research E8 snapshots imports with exact payload,
+full-byte predictions, local/generic updates, partial boundaries and outer
+cursor continuation, including reconstruction decoder arrays. Fourteen historical
+constructor/checkpoint trajectories match prior main. All Python/native,
+causality and ASan/UBSan checks pass. Isolated public/native throughput is
+82.75% /81.22% /85.37% at 500K/1M/5M and 82.90% after language retention.
 
-E8 changes only the local applicability prior to `logit(1/256)` and has its
-own checkpoint identity. Across seeds 1/7/19, held-out full-alphabet native
-binding is 98.2747%, unchanged after 1M language targets; all-offset mean is
-97.2656%, worst-offset seed mean 93.75%, both query orders 96.875%, and independent
-padding delays 100%. Fresh generic language is 2.257813 versus native 2.251579
-nats/byte (+0.006233); copy/reconstruction change -0.1302/-0.3255 percentage
-points. Three-seed 1M/5M capacity checks pass. Relative native inference is
-81.95%/85.20%/80.77% at 500K/1M/5M and 80.37% after language continuation.
+There are **zero new research fitting bytes** and no prior sweep or numerical
+revision. The existing E8 evidence remains 98.2747% held-out binding retained
+through 1M generic language targets, +0.006233 nats/byte generic language,
+passing copy/reconstruction, offsets/orders/delays/ablations and 1M/5M gates.
+Generic byte objectives do not learn the fixture-local extraction/applicability
+heads. Optional training labels remain separate from full-256-byte inference.
 
-Read [E8 report](reports/exp01e8/SHoEbox_EXP01E8_Report.md),
-[reproduction and exact resume](reports/exp01e8/SHoEbox_EXP01E8_Resume.md), and
-[implementation](experiments/joint_cold_gate/README.md). There are 106M new
-charged bytes including all pilots, controls and padding; 77 exact resumable
-checkpoint/cursor pairs. Python/native, causality and ASan/UBSan checks pass.
-E7 and every historical checkpoint retain their original meanings.
+**Next research:** EXP03/EXP05 interference and retention beyond padding, using
+existing bounded state first. Establish a focused hypothesis and preregister
+fresh groups, matched budgets and exact cursors before fitting. No new slots,
+width expansion or optimizer/prior sweep without measured state failure.
+The E2-family binding and E7 generic audits are OPENED; exclude all opened
+audit worlds/document groups from new qualification. Preserve original gates.
 
-**The E2-family binding and E7 generic audit folds are now OPENED.** Do not tune
-against their scores. Public integration must preserve E8's qualified numeric
-behavior and distinguish fixture-local labels from generic byte objectives.
-New numerical research requires fresh preregistered groups excluding opened
-audits. Direct verified main publication remains explicitly authorized,
-including unsuccessful results; preserve remote history and never force-push.
+Direct verified main commits/pushes remain authorized, including unsuccessful
+research. Preserve unrelated changes/history and never force-push. Keep datasets,
+checkpoints and compiled binaries outside git. Deliver downloadable Markdown,
+primary PNGs, a resumable code/evidence archive and a copy/paste handoff prompt.
+Do not use Pages or Spaces.
+
+The following v19 runtime tables and E1–E8 research results are historical
+reference evidence; current public behavior is described above.
 
 The following E1-E7 evidence is historical and preserved:
 

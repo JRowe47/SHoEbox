@@ -2,15 +2,15 @@
 
 ## Continue capability development
 
-Start with [DEVELOPMENT_HANDOFF.md](DEVELOPMENT_HANDOFF.md) for the minimal v19
+Start with [DEVELOPMENT_HANDOFF.md](DEVELOPMENT_HANDOFF.md) for the public E8 / preserved v19
 contract, measured capability results and the next execution step. The
 [current capability matrix](docs/capabilities/SHoEbox_Minimal_Capability_Matrix.md)
 tracks all 66 capabilities and eight engineering enablers against minimal.
 [EXP01-E8](reports/exp01e8/SHoEbox_EXP01E8_Report.md) passes its complete registered
 research qualification: **98.27% binding retained through 1M language targets**,
 passing generic regressions, 1M/5M capacity and throughput gates.
-**[Versioned public integration](reports/exp01e8/PUBLIC_INTEGRATION_PLAN.md) is next**;
-v19 remains the public default. E2-family/E7 audits are now opened; no tuning against them.
+**[Versioned public integration](reports/e8_public/SHoEbox_E8_Public_Integration_Report.md) is complete**;
+E8 is the new default, and explicit v19/historical policies are preserved. E2-family/E7 audits are now opened; no tuning against them.
 New studies must select minimal/full explicitly and keep their evidence separate.
 
 ## Capability development protocols
@@ -31,7 +31,10 @@ language/copy/reconstruction and 1M/5M qualification. Generic byte objectives do
 train its local extraction/applicability heads. See [source and commands](experiments/joint_cold_gate/README.md)
 and [exact continuation](reports/exp01e8/SHoEbox_EXP01E8_Resume.md).
 
-The default `shoe_multiscale` model is the **minimal corrected-C core (v19)**.
+The default `shoe_multiscale` model is **E8 over the minimal corrected-C core**.
+Its public format is e8-public-1; `Model(policy="v19")` or `core="minimal"`
+preserves the original v19 constructor. [Public API and explicit checkpoint
+import](multiscale/e8/README.md) document local labels and exact continuation.
 Sparse experts run at the 1/4-byte scales; ordered, trainable summaries run at
 16/64 bytes. The core retains bounded context, addressed and retained memory,
 child reconstruction, and local learning. Prediction uses one forward pass.
@@ -42,7 +45,7 @@ explicit full research architecture.
 
 ```python
 from shoe_multiscale import fresh_model
-with fresh_model(levels=4, parameters=1_000_000) as model:
+with fresh_model(policy="e8", parameters=1_000_000) as model:
     assert model.stats()["routing_arm"] == "C"
     assert model.stats()["core"] == "minimal"
     assert model.stats()["experts"][2:] == [0, 0]

@@ -1,9 +1,9 @@
 {
   "title": "SHoEbox capability development backlog",
-  "revision": 8,
+  "revision": 9,
   "date": "2026-11-16",
-  "status": "EXP01-E8 complete research qualification passed; versioned public integration next",
-  "runtime_commit": "317fbcd023b9d9b3c2b359ba8f99f3dadbf46783",
+  "status": "E8 public integration complete; qualified E8 default; next EXP03/EXP05 interference",
+  "runtime_commit": null,
   "experiments": [
     {
       "id": "EXP00",
@@ -75,8 +75,8 @@
       "design": "Begin with a single binding, then two distinct key/value pairs, no irrelevant records, both query orders and randomized names. Explicitly compare minimal v19 and full C with coverage-only warmup. Add a query-conditioned low-rank readout with the core frozen and then trained end to end, plus a matched-capacity generic head. Deduct head parameters from bank capacity. Fit raw/centered/standardized probes identically. Keep query-index oracle access outside scored native inference.",
       "evaluation": "Require autoregressive whole-episode correctness and correct answer changes under query swaps; score full-256-byte output separately from restricted output. Probe addressed reads, retained reads and final L3 separately and jointly; distinguish immediate write availability, pre-query retention, query-conditioned selection and native decoding. Use one-binding initialization/query tests first, then the locked balanced two-key fixture.",
       "decision": "A readout-only win selects the cheaper repair. If a matched probe can decode a value but native generation cannot, repair query/readout integration. If neither can recover it, pass the failure to EXP02/EXP03. Stop broad optimizer searches once this distinction is clear.",
-      "status": "e8_complete_research_qualification_passed_public_integration_next",
-      "execution_entry": "Integrate the qualified E8 policy into the public API with explicit versioning and exact numeric/checkpoint parity before default promotion. Preserve v19 and historical policies. E2-family binding and E7 generic audits are OPENED; never tune against them.",
+      "status": "e8_public_integration_complete",
+      "execution_entry": "Preserve qualified E8 numerics and historical v19; preregister EXP03/05 interference on fresh groups excluding all opened audits before fitting.",
       "results": {
         "report": "reports/exp01/SHoEbox_EXP01_Query_Readout.md",
         "comparison_branches": 36,
@@ -230,6 +230,13 @@
           "E7 fresh generic"
         ],
         "next_implementation": "reports/exp01e8/PUBLIC_INTEGRATION_PLAN.md"
+      },
+      "public_integration_results": {
+        "report": "reports/e8_public/SHoEbox_E8_Public_Integration_Report.md",
+        "exact_import_cursor_pairs": 29,
+        "historical_constructor_trajectories": 14,
+        "production_promoted": true,
+        "new_research_fit_bytes": 0
       }
     },
     {
@@ -785,8 +792,8 @@
       "evaluation": "Measure binding/transition accuracy by offset, language NLL/time, event counts, completion latency, checkpoint continuation and behavior on long unbroken spans. No target-driven boundary labels may enter inference, and no partial group may expose future bytes. Test worst-case work/state bounds as well as averages.",
       "decision": "Adopt dynamic boundaries only if they solve a measured timing/composition problem at an acceptable cost. A cheap query-time access repair should win over a full hierarchy change when both achieve the same result.",
       "minimal_baseline_note": "Test query-time access to minimal partial/completed summaries first; introduce segmentation only after a boundary-dependent failure.",
-      "execution_entry": "Integrate the qualified E8 policy into the public API with explicit versioning and exact numeric/checkpoint parity before default promotion. Preserve v19 and historical policies. E2-family binding and E7 generic audits are OPENED; never tune against them.",
-      "status": "e8_complete_research_qualification_passed_public_integration_next",
+      "execution_entry": "Preserve qualified E8 numerics and historical v19; preregister EXP03/05 interference on fresh groups excluding all opened audits before fitting.",
+      "status": "e8_public_integration_complete",
       "report": "reports/exp01e8/SHoEbox_EXP01E8_Report.md",
       "constituent_pairing_results": {
         "report": "reports/exp01d/SHoEbox_EXP01D_Report.md",
@@ -873,6 +880,13 @@
           "E7 fresh generic"
         ],
         "next_implementation": "reports/exp01e8/PUBLIC_INTEGRATION_PLAN.md"
+      },
+      "public_integration_results": {
+        "report": "reports/e8_public/SHoEbox_E8_Public_Integration_Report.md",
+        "exact_import_cursor_pairs": 29,
+        "historical_constructor_trajectories": 14,
+        "production_promoted": true,
+        "new_research_fit_bytes": 0
       }
     },
     {
@@ -2452,6 +2466,44 @@
   "baseline": {
     "core": "minimal",
     "routing_arm": "C",
+    "checkpoint_version": "e8-public-1",
+    "width": 64,
+    "level_kinds": [
+      "expert",
+      "expert",
+      "summary",
+      "summary"
+    ],
+    "bytes_per_event": [
+      1,
+      4,
+      16,
+      64
+    ],
+    "production_source_commit": null,
+    "historical_comparator": {
+      "core": "full",
+      "routing_arm": "C",
+      "balance_policy": "warmup",
+      "checkpoint_version": 10
+    },
+    "required_selection": "Select policy=\"e8\" or policy=\"v19\" explicitly for new studies; core=\"minimal\" preserves v19 and core=\"full\" preserves the historical full core.",
+    "documentation": "multiscale/e8/README.md",
+    "capability_matrix": "docs/capabilities/SHoEbox_Minimal_Capability_Matrix.md",
+    "handoff": "DEVELOPMENT_HANDOFF.md",
+    "policy": "e8",
+    "core_checkpoint_version": 19
+  },
+  "documentation_updated_local_date": "2026-11-16",
+  "new_training_in_documentation_update": false,
+  "current_evidence_report": "reports/e8_public/SHoEbox_E8_Public_Integration_Report.md",
+  "evidence_commit_note": "Public E8 integration is published by the commit containing this file; historical native source and research implementations are unchanged.",
+  "historical_evidence_commit": "d899a1a49b1af2f4a2cf0c89b000da69ea5f3597",
+  "evidence_commit": null,
+  "runtime_commit_note": "Public E8 is the commit containing this file; preserved v19 source remains 317fbcd023b9d9b3c2b359ba8f99f3dadbf46783.",
+  "preserved_v19_baseline": {
+    "core": "minimal",
+    "routing_arm": "C",
     "checkpoint_version": 19,
     "width": 64,
     "level_kinds": [
@@ -2477,11 +2529,5 @@
     "documentation": "reports/minimal_core/SHoEbox_Minimal_Core_Baseline.md",
     "capability_matrix": "docs/capabilities/SHoEbox_Minimal_Capability_Matrix.md",
     "handoff": "DEVELOPMENT_HANDOFF.md"
-  },
-  "documentation_updated_local_date": "2026-11-16",
-  "new_training_in_documentation_update": true,
-  "current_evidence_report": "reports/exp01e8/SHoEbox_EXP01E8_Report.md",
-  "evidence_commit_note": "E8 is published by the commit containing this file; runtime v19 source remains unchanged.",
-  "historical_evidence_commit": "d899a1a49b1af2f4a2cf0c89b000da69ea5f3597",
-  "evidence_commit": null
+  }
 }

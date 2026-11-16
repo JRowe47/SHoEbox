@@ -4,7 +4,7 @@ import json
 from pathlib import Path
 import time
 
-from .model import Model
+from .public import Model
 
 
 def main():
@@ -12,7 +12,8 @@ def main():
     sub=parser.add_subparsers(dest="command",required=True)
     train=sub.add_parser("train")
     train.add_argument("--data",required=True);train.add_argument("--out",required=True)
-    train.add_argument("--resume");train.add_argument("--levels",type=int,default=4)
+    train.add_argument("--resume");train.add_argument("--levels",type=int,default=None)
+    train.add_argument("--policy",choices=["e8","v19"],help="fresh numerical policy; resume preserves the checkpoint")
     train.add_argument("--core",choices=["minimal","full"],default=None,
                        help="fresh model: minimal baseline; full preserves historical expert scales")
     train.add_argument("--parameters",type=int,default=1_000_000);train.add_argument("--seed",type=int,default=7)
@@ -42,7 +43,7 @@ def main():
     train.add_argument("--semantic-laces",action=argparse.BooleanOptionalAction,default=None,
                        help="fresh model: historical A-only lace dispatch")
     train.add_argument("--associations",action="store_true")
-    train.add_argument("--memory-profile",choices=["addressed","addressed_v4","addressed_v3","addressed_v2","legacy"],default="addressed",
+    train.add_argument("--memory-profile",choices=["addressed","addressed_v4","addressed_v3","addressed_v2","legacy"],default=None,
                        help="fresh-model policy; resume automatically preserves the saved policy")
     train.add_argument("--reconstruction-weight",type=float)
     sample=sub.add_parser("generate");sample.add_argument("--checkpoint",required=True)
@@ -61,14 +62,18 @@ def main():
             parser.error("cycle bounds, amplitude and period require --route-lr or --no-route-lr")
         if args.lr_anchor_targets and args.lr_anchor_target is None:
             parser.error("--lr-anchor-targets requires --lr-anchor-target")
-        if args.resume and any(value is not None for value in (args.core,args.router,args.routing_arm,args.semantic_laces,args.balance_policy,args.language_credit,args.recall_credit)):
+        if args.resume and any(value is not None for value in (args.policy,args.core,args.router,args.routing_arm,args.semantic_laces,args.balance_policy,args.language_credit,args.recall_credit)):
             parser.error("resume preserves saved routing and architecture; these options apply only to fresh models")
         core=args.core
         if core is None and (args.loop_steps is not None or args.route_lr is not None):core="full"
-        m=Model.load(args.resume) if args.resume else Model(levels=args.levels,parameters=args.parameters,core=core,
-                         seed=args.seed,router=args.router,associations=args.associations,memory_profile=args.memory_profile,
-                         routing_arm=args.routing_arm,semantic_laces=args.semantic_laces,balance_policy=args.balance_policy,
-                         language_credit=args.language_credit,recall_credit=args.recall_credit)
+        options=dict(levels=args.levels,core=core,router=args.router,
+                     memory_profile=args.memory_profile,routing_arm=args.routing_arm,
+                     semantic_laces=args.semantic_laces,balance_policy=args.balance_policy,
+                     language_credit=args.language_credit,recall_credit=args.recall_credit)
+        options={k:v for k,v in options.items() if v is not None}
+        if args.associations:options['associations']=True
+        m=Model.load(args.resume) if args.resume else Model(
+            parameters=args.parameters,seed=args.seed,policy=args.policy,**options)
         with m:
             if args.loop_steps is not None:
                 if args.resume:m.finish()

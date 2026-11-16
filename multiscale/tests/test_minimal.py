@@ -5,8 +5,8 @@ from shoe_multiscale import Model, fresh_model
 
 
 class MinimalCoreTests(unittest.TestCase):
-    def test_default_structure_and_all_four_clocks(self):
-        with fresh_model(parameters=500000) as m:
+    def test_v19_structure_and_all_four_clocks(self):
+        with fresh_model(policy='v19',parameters=500000) as m:
             m.train(bytes(range(256))*3)
             s=m.stats()
             self.assertEqual(s['core'],'minimal')

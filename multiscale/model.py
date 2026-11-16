@@ -45,6 +45,12 @@ def _library(profile="addressed"):
         subprocess.run([compiler, *flags, str(directory / "native.cpp"), "-o", str(temporary)], check=True)
         temporary.replace(path)
     lib = C.CDLL(str(path))
+    _bind_library(lib, profile)
+    _LIBS[profile] = lib
+    return lib
+
+
+def _bind_library(lib, profile):
     p, i, n, f = C.c_void_p, C.c_int, C.c_size_t, C.c_float
     specs = {
         "ms_error": ([], C.c_char_p), "ms_create": ([i, i, C.c_uint32, i, i], p),
@@ -79,7 +85,6 @@ def _library(profile="addressed"):
     for name, (args, result) in specs.items():
         fn = getattr(lib, name)
         fn.argtypes, fn.restype = args, result
-    _LIBS[profile] = lib
     return lib
 
 

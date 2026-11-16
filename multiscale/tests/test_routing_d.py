@@ -12,10 +12,10 @@ from shoe_multiscale import Model, fresh_model
 
 
 class RoutingDTests(unittest.TestCase):
-    def test_default_matches_explicit_minimal_at_every_stream_phase(self):
+    def test_v19_matches_explicit_minimal_at_every_stream_phase(self):
         data = np.random.default_rng(5).integers(0, 256, 2004, dtype=np.uint8)
         for seed in (1, 7, 19):
-            with fresh_model(seed=seed) as default, Model(
+            with fresh_model(policy="v19",seed=seed) as default, Model(
                 seed=seed, router="scan", semantic_laces=False, routing_arm="C", balance_policy="warmup", core="minimal"
             ) as explicit:
                 self.assertEqual(default.stats()["routing_arm"], "C")

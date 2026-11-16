@@ -5,7 +5,8 @@ from shoe_multiscale import Model
 class BalancePolicyTests(unittest.TestCase):
     def test_default_and_historical_checkpoint_policies(self):
         data=b"Distinct contexts require reusable specialists. "*53
-        for options,version,policy in [({},19,'warmup'),
+        for options,version,policy in [({},'e8-public-1','warmup'),
+                ({'policy':'v19'},19,'warmup'),
                 ({'core':'full'},10,'warmup'),
                 ({'routing_arm':'D'},9,'legacy'),
                 ({'routing_arm':'C'},9,'legacy'),

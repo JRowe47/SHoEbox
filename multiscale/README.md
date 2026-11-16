@@ -1,11 +1,15 @@
 # Multiscale SHoE — minimal corrected-C baseline
 
-`shoe_multiscale.Model()` and `fresh_model()` create the **minimal v19 core**:
+`shoe_multiscale.Model()` and `fresh_model()` now create **public E8**, whose
+qualified paired readout uses the **minimal v19 core**:
 corrected-C experts at 1/4 bytes and ordered summaries at 16/64 bytes. Exact
 prototype search, centered normalized routing and coverage warmup operate in
 the two expert banks. The Python API and CLI select the same architecture.
 `Model(core="full")` / `--core full` retain the previous four-bank C baseline.
-Saved architectures and policies remain reproducible.
+Saved architectures and policies remain reproducible. `policy="v19"` or
+`core="minimal"` explicitly preserves the old minimal constructor; any explicit
+architectural selection retains its historical meaning. See [E8 labels,
+checkpoint import and lifecycle](e8/README.md).
 
 ## Quick start
 
@@ -23,7 +27,7 @@ or `SHOE_MULTISCALE_CACHE` to select a cache directory.
 ```python
 from shoe_multiscale import Model, fresh_model
 
-with fresh_model(levels=4, parameters=1_000_000, seed=7) as model:
+with fresh_model(policy="e8", parameters=1_000_000, seed=7) as model:
     assert model.stats()["routing_arm"] == "C"
     assert model.stats()["level_kinds"] == ["expert", "expert", "summary", "summary"]
     model.train(b"An observed training sequence.\n")
@@ -78,7 +82,7 @@ Clocks and anchor ramps survive document resets and exact checkpoint resumption.
 Frozen evaluation does not advance them. Full details, update ownership,
 compatibility and comparison commands are in [ROUTE_LEARNING.md](ROUTE_LEARNING.md).
 
-## Minimal architecture and selected settings
+## Preserved v19 architecture and selected settings
 
 The four clocks and 64-coordinate state width remain. Only the first two scales
 route to experts. The upper pair composes four ordered children, updates diagonal

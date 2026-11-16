@@ -1,0 +1,258 @@
+{
+  "new_research_fitting_bytes": 0,
+  "prior_sweep_bytes": 0,
+  "historical_E8_research_bytes": 106000000,
+  "historical_E1_to_E8_research_bytes": 236250000,
+  "import_correctness": {
+    "input_bytes": 87000,
+    "byte_9_inputs": 48360,
+    "objective_targets": 69288,
+    "local_projection_steps": 14400,
+    "local_presence_steps": 58740,
+    "gate_targets": 29820,
+    "local_training_windows": 37050
+  },
+  "import_correctness_bytes": 87000,
+  "historical_compatibility_correctness_bytes": 221238,
+  "import_prediction_checks_bytes": 14848,
+  "throughput_inference_bytes": 2396160,
+  "measured_verification_cpu_seconds": 989.946367,
+  "processes": [
+    {
+      "file": "imports-process.json",
+      "command": [
+        "python",
+        "-m",
+        "experiments.e8_public.verify_imports",
+        "--workspace",
+        "/workspace/scratch/5da2650ae520",
+        "--out",
+        "../public-imports"
+      ],
+      "exit_code": 0,
+      "wall_seconds": 23.183761241001775,
+      "user_cpu_seconds": 20.305636,
+      "system_cpu_seconds": 3.561859,
+      "cpu_seconds": 23.867494999999998,
+      "peak_rss_kib": 317608,
+      "scope": "Whole child process tree, including fit, evaluation, compilation and I/O."
+    },
+    {
+      "file": "history-process.json",
+      "command": [
+        "python",
+        "-m",
+        "experiments.e8_public.verify_history",
+        "--old",
+        "/workspace/scratch/5da2650ae520/SHoEbox",
+        "--out",
+        "../historical-parity.json"
+      ],
+      "exit_code": 0,
+      "wall_seconds": 4.589427156002785,
+      "user_cpu_seconds": 5.465867,
+      "system_cpu_seconds": 0.234057,
+      "cpu_seconds": 5.699924,
+      "peak_rss_kib": 59176,
+      "scope": "Whole child process tree, including fit, evaluation, compilation and I/O."
+    },
+    {
+      "file": "history-expanded-process.json",
+      "command": [
+        "python",
+        "-m",
+        "experiments.e8_public.verify_history",
+        "--old",
+        "/workspace/scratch/5da2650ae520/SHoEbox",
+        "--out",
+        "../historical-parity-expanded.json"
+      ],
+      "exit_code": 0,
+      "wall_seconds": 4.445484359006514,
+      "user_cpu_seconds": 5.6451329999999995,
+      "system_cpu_seconds": 0.236927,
+      "cpu_seconds": 5.882059999999999,
+      "peak_rss_kib": 59764,
+      "scope": "Whole child process tree, including fit, evaluation, compilation and I/O."
+    },
+    {
+      "file": "public-native-process.json",
+      "command": [
+        "python",
+        "-m",
+        "experiments.e8_public.check_native"
+      ],
+      "exit_code": 0,
+      "wall_seconds": 146.56435103699914,
+      "user_cpu_seconds": 140.633933,
+      "system_cpu_seconds": 6.367617,
+      "cpu_seconds": 147.00155,
+      "peak_rss_kib": 505780,
+      "scope": "Whole child process tree, including fit, evaluation, compilation and I/O."
+    },
+    {
+      "file": "runtime-process.json",
+      "command": [
+        "python",
+        "-m",
+        "multiscale.tests.run_all",
+        "--no-leak-check"
+      ],
+      "exit_code": 0,
+      "wall_seconds": 424.6874884810022,
+      "user_cpu_seconds": 403.418178,
+      "system_cpu_seconds": 29.03559,
+      "cpu_seconds": 432.453768,
+      "peak_rss_kib": 2613384,
+      "scope": "Whole child process tree, including fit, evaluation, compilation and I/O."
+    },
+    {
+      "file": "research-tests-process.json",
+      "command": [
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python",
+        "-m",
+        "unittest",
+        "experiments.constituent_readout.test_adapter",
+        "experiments.constituent_readout.test_latest",
+        "experiments.constituent_readout.test_spacers",
+        "experiments.factorized_readout.test_adapter",
+        "experiments.joint_calibrated.test_adapter",
+        "experiments.joint_cold_gate.test_adapter",
+        "experiments.joint_cold_gate.test_prior",
+        "experiments.joint_cold_gate.test_request",
+        "experiments.joint_evidence_gate.test_adapter",
+        "experiments.joint_local_gate.test_adapter",
+        "experiments.joint_mixture.test_adapter",
+        "experiments.joint_readout.test_adapter",
+        "experiments.joint_request_gate.test_adapter",
+        "experiments.joint_request_gate.test_request",
+        "experiments.joint_switch.test_adapter",
+        "experiments.mad.test_protocol",
+        "experiments.mad_next.test_exp00",
+        "experiments.query_access.test_adapter",
+        "experiments.query_readout.test_adapter",
+        "-v"
+      ],
+      "exit_code": 0,
+      "wall_seconds": 51.0783446150017,
+      "user_cpu_seconds": 45.939898,
+      "system_cpu_seconds": 5.483362,
+      "cpu_seconds": 51.42326,
+      "peak_rss_kib": 380228,
+      "scope": "Whole child process tree, including fit, evaluation, compilation and I/O."
+    },
+    {
+      "file": "public-final-tests-process.json",
+      "command": [
+        "python",
+        "-m",
+        "unittest",
+        "multiscale.tests.test_e8_public",
+        "-v"
+      ],
+      "exit_code": 0,
+      "wall_seconds": 4.05331500399916,
+      "user_cpu_seconds": 6.520359,
+      "system_cpu_seconds": 1.127934,
+      "cpu_seconds": 7.648293,
+      "peak_rss_kib": 199368,
+      "scope": "Whole child process tree, including fit, evaluation, compilation and I/O."
+    },
+    {
+      "file": "promotion-tests-process.json",
+      "command": [
+        "python",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "multiscale/tests",
+        "-v"
+      ],
+      "exit_code": 1,
+      "wall_seconds": 52.95510690899391,
+      "user_cpu_seconds": 52.602369,
+      "system_cpu_seconds": 11.2489,
+      "cpu_seconds": 63.851269,
+      "peak_rss_kib": 2613728,
+      "scope": "Whole child process tree, including fit, evaluation, compilation and I/O."
+    },
+    {
+      "file": "research-post-promotion-process.json",
+      "command": [
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python",
+        "-m",
+        "unittest",
+        "experiments.constituent_readout.test_adapter",
+        "experiments.constituent_readout.test_latest",
+        "experiments.constituent_readout.test_spacers",
+        "experiments.factorized_readout.test_adapter",
+        "experiments.joint_calibrated.test_adapter",
+        "experiments.joint_cold_gate.test_adapter",
+        "experiments.joint_cold_gate.test_prior",
+        "experiments.joint_cold_gate.test_request",
+        "experiments.joint_evidence_gate.test_adapter",
+        "experiments.joint_local_gate.test_adapter",
+        "experiments.joint_mixture.test_adapter",
+        "experiments.joint_readout.test_adapter",
+        "experiments.joint_request_gate.test_adapter",
+        "experiments.joint_request_gate.test_request",
+        "experiments.joint_switch.test_adapter",
+        "experiments.mad.test_protocol",
+        "experiments.mad_next.test_exp00",
+        "experiments.query_access.test_adapter",
+        "experiments.query_readout.test_adapter",
+        "-v"
+      ],
+      "exit_code": 0,
+      "wall_seconds": 53.96125577199564,
+      "user_cpu_seconds": 46.367464,
+      "system_cpu_seconds": 8.103371,
+      "cpu_seconds": 54.470834999999994,
+      "peak_rss_kib": 379932,
+      "scope": "Whole child process tree, including fit, evaluation, compilation and I/O."
+    },
+    {
+      "file": "promotion-corrected-process.json",
+      "command": [
+        "python",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "multiscale/tests",
+        "-v"
+      ],
+      "exit_code": 0,
+      "wall_seconds": 51.637969769995834,
+      "user_cpu_seconds": 51.44004,
+      "system_cpu_seconds": 11.643994,
+      "cpu_seconds": 63.084034,
+      "peak_rss_kib": 2613704,
+      "scope": "Whole child process tree, including fit, evaluation, compilation and I/O."
+    },
+    {
+      "file": "benchmark-process.json",
+      "command": [
+        "python",
+        "-m",
+        "experiments.e8_public.benchmark",
+        "--workspace",
+        "/workspace/scratch/5da2650ae520",
+        "--out",
+        "../public-throughput.json"
+      ],
+      "exit_code": 0,
+      "wall_seconds": 134.30568800300534,
+      "user_cpu_seconds": 133.739181,
+      "system_cpu_seconds": 0.8246979999999999,
+      "cpu_seconds": 134.56387900000001,
+      "peak_rss_kib": 229336,
+      "scope": "Whole child process tree, including fit, evaluation, compilation and I/O."
+    }
+  ],
+  "unit_native_test_input_bytes": "Fixed discarded microtrajectories; aggregate input count not instrumented.",
+  "unmetered_scope": "Initial compilation/six-byte smoke, initial eight Python tests and one targeted cap test, inventory/hash inspections, report/archive production. No research fit.",
+  "padding_scope": "byte_9_inputs counts 48,360 bytes equal to 9 across the three continuation trajectories; it includes synthetic PAD and any literal tab. Original exact padding/order cursors remain unchanged. No newly selected fit.",
+  "accounting_rule": "Native reconstruction/child-credit work is included in process CPU. Local counters are vector/objective events, not scalar coefficient writes. Do not add child/subphase timings to process totals."
+}
