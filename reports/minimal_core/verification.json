@@ -1,0 +1,59 @@
+{
+  "status": "passed",
+  "base_commit": "047eabcd3622c3105a09fbaa49c33f9d67af38fe",
+  "python_tests": {
+    "runtime": 48,
+    "mad_exp00_and_state_adapter": 35,
+    "final_mad_selector_recheck": 15,
+    "final_cli_recheck": 4
+  },
+  "native_checks": {
+    "minimal": 713,
+    "loops": 1439,
+    "base": 2093,
+    "language_credit": 2506,
+    "retained_credit": 190,
+    "semantic_laces": 19,
+    "routing": 56,
+    "route_learning": 817095
+  },
+  "native_modes": [
+    "optimized",
+    "address_sanitizer",
+    "undefined_behavior_sanitizer"
+  ],
+  "leak_sanitizer": "explicitly disabled for managed host",
+  "historical_continuation_versions": [
+    7,
+    9,
+    10,
+    11,
+    12,
+    17,
+    18
+  ],
+  "historical_continuation_byte_identical": true,
+  "minimal_cli_mad_smoke": {
+    "status": "complete",
+    "core": "minimal",
+    "tasks": [
+      "selective_copy",
+      "compression"
+    ],
+    "memory_and_depth_audits": true
+  },
+  "post_qualification_changes": [
+    "Reject a minimal payload wrapped in a refinement checkpoint; 713-check native suite rerun in optimized and sanitized builds.",
+    "Add explicit --core selection to the historical MAD CLI; existing default remains full. Recheck 15 tests and execute two minimal smoke cells with frozen interventions.",
+    "Clarify resume error text; recheck CLI/API parity. No fitting or inference equations changed."
+  ],
+  "qualification_runner_sha256": "e7808648d8c021f6c4d55a92e6c3ae07be8cb2825bf11827ec26894120fba2e1",
+  "final_runtime_sha256": {
+    "multiscale/native.cpp": "adf6f9618b7e132884d46ada126d9b8378447fcb43a7f0f50a1a7b52e3db67ef",
+    "multiscale/native.hpp": "c7468172895aa8a7df7dadb470c85c8dbb72ea8025753808da47f1b138c58e59",
+    "multiscale/model.py": "7785cf25537dd8859953215d12f1633fe55c0a63c8116b2920afe1ce33c3bacc",
+    "multiscale/cli.py": "a05cf1f90bdbc285ec7a0e0dfbe5ba869c6f57c47aeed94eec0d74a7ac0c5863",
+    "experiments/mad/run.py": "7a0147abbc47cd12bf9d2bf420d02c9d8f3d6726b4a5c200985733181f5d6f87",
+    "experiments/mad/backend.py": "946893d98e3f4064dcba7c165fd99c95400282be33d180ef4df3cb599a81c8a9"
+  }
+}

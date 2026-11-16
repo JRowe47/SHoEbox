@@ -65,6 +65,7 @@ def _library(profile="addressed"):
     if profile in ("addressed", "addressed_v4"):
         specs.update(ms_recall_intervene=([p, i], i), ms_recall_stats=([p, p], i))
     if profile == "addressed":
+        specs.update(ms_create_minimal=([i, i, C.c_uint32], p))
         specs.update(ms_loops=([p,p,i,f,f],i), ms_loop_stats=([p,p],i))
         specs.update(ms_learning=([p, f, f, f, f], i), ms_learning_stats=([p, p], i),
                      ms_laces=([p,i],i), ms_lace_stats=([p,p],i),
@@ -96,9 +97,12 @@ def _bytes(x):
 class Model:
     def __init__(self, *, levels=4, parameters=1_000_000, seed=7, router=None, associations=False,
                  memory_profile="addressed", semantic_laces=None, routing_arm=None, balance_policy=None,
-                 language_credit=None, recall_credit=None, route_lr=None, loops=None):
-        """Create corrected C with coverage warmup and no mature usage penalty.
+                 language_credit=None, recall_credit=None, route_lr=None, loops=None, core=None):
+        """Create the minimal corrected-C baseline with two expert scales.
 
+        core='full' preserves the four-expert-scale architecture. Explicit
+        historical arms/profiles and experimental options also select full
+        when core is omitted. Loading always preserves the saved architecture.
         Explicit C/D arms retain legacy balancing unless balance_policy="warmup".
         Loading preserves the saved policy. Explicit routing_arm="A" retains the
         historical indexed/lace defaults.
@@ -106,6 +110,17 @@ class Model:
         Historical memory profiles retain their original indexed routing.
         """
         implicit_arm = routing_arm is None
+        if core not in (None, "minimal", "full"):
+            raise ValueError("core must be 'minimal' or 'full'")
+        if core is None:
+            core = "minimal" if (memory_profile == "addressed" and implicit_arm and
+                    semantic_laces is not True and not associations and
+                    balance_policy in (None, "warmup") and
+                    all(x is None for x in (language_credit, recall_credit, route_lr, loops))) else "full"
+        if core == "minimal" and (memory_profile != "addressed" or routing_arm not in (None, "C") or
+                semantic_laces is True or associations or balance_policy not in (None, "warmup") or
+                any(x is not None for x in (language_credit, recall_credit, route_lr, loops))):
+            raise ValueError("minimal core uses corrected C, coverage warmup and no experimental extensions; use core='full'")
         if routing_arm is None:
             routing_arm = "C" if memory_profile == "addressed" and semantic_laces is not True else "A"
         if routing_arm not in ("A", "B", "C", "D"):
@@ -145,13 +160,15 @@ class Model:
                 raise TypeError("loops must be a configuration dictionary")
         self._profile = memory_profile
         self._lib = _library(memory_profile)
-        self._handle = self._lib.ms_create(levels, parameters, seed, router == "indexed", associations)
+        self._handle = (self._lib.ms_create_minimal(levels, parameters, seed) if core == "minimal" else
+                        self._lib.ms_create(levels, parameters, seed, router == "indexed", associations))
         self._check_pointer()
         if memory_profile == "addressed":
             self.set_semantic_laces(semantic_laces)
-            self._check(self._lib.ms_routing(self._alive(), {"A":0,"B":1,"C":2,"D":3}[routing_arm]))
+            if core != "minimal":
+                self._check(self._lib.ms_routing(self._alive(), {"A":0,"B":1,"C":2,"D":3}[routing_arm]))
             if routing_arm in ("C", "D"):
-                self.set_balance_policy(balance_policy or ("warmup" if implicit_arm else "legacy"))
+                self.set_balance_policy(balance_policy or ("warmup" if implicit_arm or core == "minimal" else "legacy"))
             if language_credit is not None:
                 self.set_language_credit(language_credit)
             if recall_credit is not None:
@@ -555,6 +572,8 @@ class Model:
             self._check(self._lib.ms_routing_stats(self._alive(), routing.ctypes.data))
             result.update(routing_arm="ABCD"[int(routing[0])], semantic_laces=bool(lace[0]),
                           balance_policy=("pilot_uniform","legacy","warmup")[int(routing[1])] if routing[0]>=2 else "none")
+        result['core']='minimal' if result['checkpoint_version']==19 else 'full'
+        result['level_kinds']=['summary' if result['core']=='minimal' and i>=2 else 'expert' for i in range(levels)]
         return result
 
     @property
@@ -579,7 +598,7 @@ class Model:
         if len(raw) < 16:
             raise ValueError("truncated native checkpoint")
         version = struct.unpack_from("=I", raw, 8)[0]
-        profiles = {1: "legacy", 2: "addressed_v2", 3: "addressed_v3", 4: "addressed_v4", 5: "addressed", 6: "addressed", 7: "addressed", 8: "addressed", 9: "addressed", 10: "addressed", 11: "addressed", 12: "addressed", 17: "addressed", 18: "addressed"}
+        profiles = {1: "legacy", 2: "addressed_v2", 3: "addressed_v3", 4: "addressed_v4", 5: "addressed", 6: "addressed", 7: "addressed", 8: "addressed", 9: "addressed", 10: "addressed", 11: "addressed", 12: "addressed", 17: "addressed", 18: "addressed", 19: "addressed"}
         if version not in profiles:
             raise ValueError("unsupported multiscale checkpoint version")
         profile = profiles[version]

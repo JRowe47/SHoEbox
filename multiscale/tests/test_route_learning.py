@@ -57,7 +57,7 @@ class RouteLearningTests(unittest.TestCase):
                              [l['visits'] for l in paused['levels']])
 
     def test_validation_and_failure_atomicity(self):
-        with Model() as m:
+        with Model(core="full") as m:
             old=m.dumps()
             for kwargs in ({'lower':-1},{'upper':.2},{'anchor':2},{'amplitude':1.01},
                            {'period':0},{'period':1.2},{'period':True},{'period':2**64},

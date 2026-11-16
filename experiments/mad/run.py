@@ -71,11 +71,12 @@ def case_config(task, setting, protocol):
 def make_plan(args):
     protocol = json.loads((HERE/"protocol.json").read_text())
     smoke = args.preset == "smoke"
-    config = dict(schema_version=1, preset=args.preset, protocol=protocol,
+    core = getattr(args, "core", "full")
+    config = dict(schema_version=1, preset=args.preset, protocol=protocol, core=core,
                   tasks=args.tasks or list(TASKS), settings=args.settings or (["base"] if smoke else list(protocol["settings"])),
                   sizes=args.sizes or ([500000] if smoke else protocol["sizes"]),
                   seeds=args.seeds or ([7] if smoke else protocol["seeds"]),
-                  steps=args.steps or ([0, 2] if smoke else protocol["steps"]),
+                  steps=args.steps or ([0] if core == "minimal" else ([0, 2] if smoke else protocol["steps"])),
                   lr_scales=args.lr_scales or ([1.] if smoke else protocol["lr_scales"]),
                   auxiliary_weights=args.auxiliary or ([.1] if smoke else protocol["auxiliary_weights"]),
                   budget=args.budget if args.budget is not None else (4096 if smoke else protocol["budget_bytes"]),
@@ -83,6 +84,8 @@ def make_plan(args):
                   eval_examples=args.cases if args.cases is not None else (8 if smoke else protocol["eval_examples"]),
                   train_examples=args.train_examples if args.train_examples is not None else (16 if smoke else None),
                   audit_probes=args.audit_probes)
+    if core == "minimal" and any(config["steps"]):
+        raise ValueError("minimal core requires zero refinement steps; use --core full for loop experiments")
     if config["budget"] < 1 or config["eval_every"] < 1 or config["eval_examples"] < 1 or (config["train_examples"] is not None and config["train_examples"] < 1):
         raise ValueError("byte budgets and example counts must be positive")
     for name in ("tasks", "settings", "sizes", "seeds", "steps", "lr_scales", "auxiliary_weights"):
@@ -132,7 +135,7 @@ def provenance():
 def train_fit(cell, config, seed, lr, auxiliary, train, dev, checkpoint):
     spec = TaskSpec(**cell["spec"])
     # Compilation and initialization are outside the timers.
-    with BenchModel(spec, cell["size"], seed, cell["steps"], lr, auxiliary) as m:
+    with BenchModel(spec, cell["size"], seed, cell["steps"], lr, auxiliary, core=config.get("core", "full")) as m:
         row = dict(seed=seed, lr_scale=lr, auxiliary=auxiliary, curve=[], inventory=m.inventory())
         total = native_targets = epochs = 0
         cpu = wall = loss_sum = 0.
@@ -278,7 +281,8 @@ def execute(config, out):
                 with BenchModel.loads(checkpoints[lr, aux, row["seed"]].read_bytes()) as m:
                     row["test"] = evaluate(m, test)
                     if config["audit_probes"]:
-                        row["depth_audit"] = {str(k): evaluate(m, test, steps=k) for k in (0, 1, 2, 4)}
+                        row["depth_audit"] = ({"0": evaluate(m, test)} if config.get("core") == "minimal" else
+                                              {str(k): evaluate(m, test, steps=k) for k in (0, 1, 2, 4)})
                         names = ("no_memory", "permute_l2", "permute_l3")+( ("zero_bottleneck",) if m.head else ())
                         row["interventions"] = {k: evaluate(m, test, intervention=k) for k in names}
                         # Difficulty OOD changes delay only: decoding dimensions
@@ -309,6 +313,8 @@ def execute(config, out):
 def main():
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument("--preset", choices=("smoke", "screen"), default="smoke")
+    p.add_argument("--core", choices=("full", "minimal"), default="full",
+                   help="v1 historical comparisons default to full; select minimal for new baseline studies")
     p.add_argument("--execute", action="store_true", help="otherwise print/write the plan without fitting models")
     p.add_argument("--out", type=Path)
     p.add_argument("--tasks", nargs="+", choices=TASKS)

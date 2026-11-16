@@ -6,12 +6,14 @@ import subprocess
 import sys
 
 WORKER='''
-import hashlib,json
+import hashlib,json,inspect
 from shoe_multiscale import Model
 data=(b'Exact historical continuation through completed constituents. '*100)[:4098]
 rows=[]
 for options in ({},{'routing_arm':'D'},{'route_lr':{'period':17},'language_credit':[1,2,3,4],'recall_credit':[1,1,1,1]}):
-    with Model(**options) as model:
+    selected=dict(options)
+    if 'core' in inspect.signature(Model).parameters:selected['core']='full'
+    with Model(**selected) as model:
         model.train(data[:514]);initial=model.dumps()
         with Model.loads(initial) as resumed:
             loss=resumed.train(data);resumed.finish()

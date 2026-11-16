@@ -76,6 +76,12 @@ class MetricTests(unittest.TestCase):
         plan = make_plan(args)
         self.assertGreater(plan["fits"], 100)
         self.assertEqual(plan["total_training_bytes"], plan["fits"]*plan["budget"])
+        self.assertEqual(plan["core"], "full")
+        args.core = "minimal"
+        self.assertEqual(make_plan(args)["steps"], [0])
+        args.steps = [2]
+        with self.assertRaises(ValueError):make_plan(args)
+        args.core, args.steps = "full", None
         args.tasks, args.train_examples = ["memorization"], 2
         with self.assertRaises(ValueError):
             make_plan(args)

@@ -1,0 +1,1459 @@
+{
+  "schema_version": 1,
+  "status": "complete",
+  "provenance": {
+    "commit": "047eabcd3622c3105a09fbaa49c33f9d67af38fe",
+    "dirty": true,
+    "source_sha256": "fc1730b89289d9d43857222b8edf9fccc31ec12b5ab6923100e723b5118fbfc1",
+    "python": "3.12.14",
+    "numpy": "2.3.5",
+    "platform": "Linux-6.18.57-x86_64-with-glibc2.41",
+    "compiler": "g++ (Debian 14.2.0-19) 14.2.0"
+  },
+  "cpu": 0,
+  "protocol": {
+    "seeds": [
+      1,
+      7,
+      19
+    ],
+    "nominal_parameters": 500000,
+    "cores": [
+      "full",
+      "minimal"
+    ],
+    "language_bytes": 1000000,
+    "capability_bytes": 250000,
+    "auxiliary": 0.0,
+    "recipes": [
+      {
+        "spec": {
+          "task": "selective_copy",
+          "vocab": 8,
+          "length": 2,
+          "delay": 0,
+          "noise": 0.5,
+          "key_width": 2,
+          "value_width": 2,
+          "depth": 2
+        },
+        "lr_scale": 2.0
+      },
+      {
+        "spec": {
+          "task": "compression",
+          "vocab": 16,
+          "length": 4,
+          "delay": 0,
+          "noise": 0.0,
+          "key_width": 2,
+          "value_width": 2,
+          "depth": 2
+        },
+        "lr_scale": 0.5
+      }
+    ],
+    "selection": "Fixed historical recipes; all fits frozen before testing; no tuning on this run.",
+    "criteria": "Language mean NLL delta <= 0.01; capability mean token accuracy loss <= 0.01.",
+    "timing": "One pinned process; CPU time; initialization, evaluation and I/O excluded; reset and finish included.",
+    "inference_timing": "One frozen native pass, includes reset; excludes cloning and compilation."
+  },
+  "data_sha256": {
+    "train": "a1a0a2e620d05e8318f9b9428b3db4200d904dc2e51e6fa7c8fd6177bdce028d",
+    "dev": "e3166aa6b30b1e6911f9e007c10a89d7985568db68f145fcb003bd3f50902f30",
+    "test": "fb771ae14ee25b935969eefe8c7d86478c1fe15c8f42765eefec7709459208a8"
+  },
+  "task_sha256": {
+    "selective_copy": {
+      "train": "e1cb27cb96fc22a8f6f62a1bff6a8075f443c72e20ac25907b6fb09b6e7e2596",
+      "dev": "e51cc8c5bb63fd24100ba1c9200f38225de3aca19ec250991084871b5ac0dac0",
+      "test": "af5ff96e7fbf080316fe2f64bd8876169f92461634a39f9407d4a72220d13c68"
+    },
+    "compression": {
+      "train": "ddab6a94113333c97382fc3c64ce94cec6f1d3eefe99133b9a16687495235c3a",
+      "dev": "5a1fbcf5437160ea6706ebf6e640dd1f56d12617ba0949a6859790e438e64566",
+      "test": "51be88942e5679083095dcfaa099cf4f7be02b693c0137c01849e7d2fba0b2a3"
+    }
+  },
+  "runs": [
+    {
+      "task": "fineweb",
+      "core": "full",
+      "seed": 1,
+      "parameters": 496959,
+      "experts": [
+        38,
+        19,
+        11,
+        9
+      ],
+      "bytes": 1000000,
+      "cpu_seconds": 29.292745208000003,
+      "wall_seconds": 29.391765632000897,
+      "bytes_per_cpu_second": 34138.1455681011,
+      "curve": [
+        {
+          "bytes": 250000,
+          "train_nll": 2.283526856790407,
+          "dev_nll": 2.53087156411204,
+          "cpu_seconds": 7.3714117649999995
+        },
+        {
+          "bytes": 500000,
+          "train_nll": 2.082321530802481,
+          "dev_nll": 2.219113020056767,
+          "cpu_seconds": 14.971034134000002
+        },
+        {
+          "bytes": 750000,
+          "train_nll": 2.049741353558056,
+          "dev_nll": 2.210199580097324,
+          "cpu_seconds": 22.215818130000002
+        },
+        {
+          "bytes": 1000000,
+          "train_nll": 1.767402560305145,
+          "dev_nll": 2.303364642890905,
+          "cpu_seconds": 29.292745208000003
+        }
+      ],
+      "dev_nll": 2.303364642890905,
+      "checkpoint_reload_exact": true,
+      "test_nll": 2.374933668197073,
+      "inference_bytes_per_cpu_second": 56994.652162984465
+    },
+    {
+      "task": "fineweb",
+      "core": "minimal",
+      "seed": 1,
+      "parameters": 498367,
+      "experts": [
+        56,
+        29,
+        0,
+        0
+      ],
+      "bytes": 1000000,
+      "cpu_seconds": 28.151730588,
+      "wall_seconds": 28.239136224003232,
+      "bytes_per_cpu_second": 35521.79489904118,
+      "curve": [
+        {
+          "bytes": 250000,
+          "train_nll": 2.2868828925585523,
+          "dev_nll": 2.3944662235026364,
+          "cpu_seconds": 6.882397134000001
+        },
+        {
+          "bytes": 500000,
+          "train_nll": 2.086419134233609,
+          "dev_nll": 2.1987199042640526,
+          "cpu_seconds": 14.190768896000002
+        },
+        {
+          "bytes": 750000,
+          "train_nll": 2.0437506509557757,
+          "dev_nll": 2.1809985373721332,
+          "cpu_seconds": 21.216533651
+        },
+        {
+          "bytes": 1000000,
+          "train_nll": 1.7576154076472126,
+          "dev_nll": 2.1975354196067443,
+          "cpu_seconds": 28.151730588
+        }
+      ],
+      "dev_nll": 2.1975354196067443,
+      "checkpoint_reload_exact": true,
+      "test_nll": 2.244019881194717,
+      "inference_bytes_per_cpu_second": 54988.566051661954
+    },
+    {
+      "task": "fineweb",
+      "core": "minimal",
+      "seed": 7,
+      "parameters": 498367,
+      "experts": [
+        56,
+        29,
+        0,
+        0
+      ],
+      "bytes": 1000000,
+      "cpu_seconds": 28.250166782999997,
+      "wall_seconds": 28.30335666999781,
+      "bytes_per_cpu_second": 35398.02110484411,
+      "curve": [
+        {
+          "bytes": 250000,
+          "train_nll": 2.3063066772959044,
+          "dev_nll": 2.4300418956985723,
+          "cpu_seconds": 6.87231967999999
+        },
+        {
+          "bytes": 500000,
+          "train_nll": 2.1121121958320086,
+          "dev_nll": 2.21170145541943,
+          "cpu_seconds": 14.19924293299998
+        },
+        {
+          "bytes": 750000,
+          "train_nll": 2.07258840897883,
+          "dev_nll": 2.2292629147319403,
+          "cpu_seconds": 21.355599246999986
+        },
+        {
+          "bytes": 1000000,
+          "train_nll": 1.7858294035364548,
+          "dev_nll": 2.193947686475674,
+          "cpu_seconds": 28.250166782999997
+        }
+      ],
+      "dev_nll": 2.193947686475674,
+      "checkpoint_reload_exact": true,
+      "test_nll": 2.245390309406943,
+      "inference_bytes_per_cpu_second": 56951.98966650165
+    },
+    {
+      "task": "fineweb",
+      "core": "full",
+      "seed": 7,
+      "parameters": 496959,
+      "experts": [
+        38,
+        19,
+        11,
+        9
+      ],
+      "bytes": 1000000,
+      "cpu_seconds": 28.40967142799998,
+      "wall_seconds": 28.50631600900124,
+      "bytes_per_cpu_second": 35199.280728548685,
+      "curve": [
+        {
+          "bytes": 250000,
+          "train_nll": 2.29812913367755,
+          "dev_nll": 2.6893474940643785,
+          "cpu_seconds": 7.097597862000001
+        },
+        {
+          "bytes": 500000,
+          "train_nll": 2.093739236570848,
+          "dev_nll": 2.21766414062364,
+          "cpu_seconds": 14.077067157000002
+        },
+        {
+          "bytes": 750000,
+          "train_nll": 2.053881629775934,
+          "dev_nll": 2.2478904882960613,
+          "cpu_seconds": 21.109835802999996
+        },
+        {
+          "bytes": 1000000,
+          "train_nll": 1.7699625849232798,
+          "dev_nll": 2.293252512236368,
+          "cpu_seconds": 28.40967142799998
+        }
+      ],
+      "dev_nll": 2.293252512236368,
+      "checkpoint_reload_exact": true,
+      "test_nll": 2.3581710670376665,
+      "inference_bytes_per_cpu_second": 55838.06987682031
+    },
+    {
+      "task": "fineweb",
+      "core": "full",
+      "seed": 19,
+      "parameters": 496959,
+      "experts": [
+        38,
+        19,
+        11,
+        9
+      ],
+      "bytes": 1000000,
+      "cpu_seconds": 28.921948913999984,
+      "wall_seconds": 28.99749051800063,
+      "bytes_per_cpu_second": 34575.816552802884,
+      "curve": [
+        {
+          "bytes": 250000,
+          "train_nll": 2.302267790817084,
+          "dev_nll": 2.4545529878431083,
+          "cpu_seconds": 7.174284954000001
+        },
+        {
+          "bytes": 500000,
+          "train_nll": 2.089689089719888,
+          "dev_nll": 2.229553778301863,
+          "cpu_seconds": 14.437877412000006
+        },
+        {
+          "bytes": 750000,
+          "train_nll": 2.0478898336106277,
+          "dev_nll": 2.2468834790542473,
+          "cpu_seconds": 21.83433875899999
+        },
+        {
+          "bytes": 1000000,
+          "train_nll": 1.7681739860476726,
+          "dev_nll": 2.269076582143512,
+          "cpu_seconds": 28.921948913999984
+        }
+      ],
+      "dev_nll": 2.269076582143512,
+      "checkpoint_reload_exact": true,
+      "test_nll": 2.3410130755279184,
+      "inference_bytes_per_cpu_second": 57488.27547209767
+    },
+    {
+      "task": "fineweb",
+      "core": "minimal",
+      "seed": 19,
+      "parameters": 498367,
+      "experts": [
+        56,
+        29,
+        0,
+        0
+      ],
+      "bytes": 1000000,
+      "cpu_seconds": 27.879474582,
+      "wall_seconds": 27.916037298000447,
+      "bytes_per_cpu_second": 35868.681709146564,
+      "curve": [
+        {
+          "bytes": 250000,
+          "train_nll": 2.3079743781632858,
+          "dev_nll": 2.3890885377214985,
+          "cpu_seconds": 6.9687169040000185
+        },
+        {
+          "bytes": 500000,
+          "train_nll": 2.101575126696009,
+          "dev_nll": 2.201326106928633,
+          "cpu_seconds": 13.896241289000017
+        },
+        {
+          "bytes": 750000,
+          "train_nll": 2.0621216862593674,
+          "dev_nll": 2.1915520930035655,
+          "cpu_seconds": 20.990608194000004
+        },
+        {
+          "bytes": 1000000,
+          "train_nll": 1.7701705646712855,
+          "dev_nll": 2.199464771422086,
+          "cpu_seconds": 27.879474582
+        }
+      ],
+      "dev_nll": 2.199464771422086,
+      "checkpoint_reload_exact": true,
+      "test_nll": 2.2683527808129256,
+      "inference_bytes_per_cpu_second": 56516.28072948453
+    },
+    {
+      "task": "selective_copy",
+      "core": "full",
+      "seed": 1,
+      "parameters": 496959,
+      "experts": [
+        38,
+        19,
+        11,
+        9
+      ],
+      "inventory": {
+        "core_parameters": 496959,
+        "levels": 4,
+        "state_width": 64,
+        "recurrent_vector_bytes": 1024,
+        "minkron_matrix_bytes": 1024,
+        "address_matrix_bytes": 8192,
+        "retained_record_bytes": 32352,
+        "child_buffer_bytes": 8192,
+        "allocated_loop_training_tape_bytes": 0,
+        "retained_slots_per_level": 16,
+        "readout_parameters": 0,
+        "parameters": 496959,
+        "experts_per_level": [
+          38,
+          19,
+          11,
+          9
+        ],
+        "compression_bottleneck_bytes": null
+      },
+      "bytes": 250000,
+      "native_targets": 7574,
+      "cpu_seconds": 5.851204425000361,
+      "wall_seconds": 5.884453283037146,
+      "bytes_per_cpu_second": 42726.24605830356,
+      "dev": {
+        "cases": 128,
+        "answer_tokens": 256,
+        "task_accuracy": 0.71484375,
+        "task_nll": 0.9224325762165219,
+        "native_byte_accuracy": 0.71484375,
+        "native_byte_nll": 0.9250010907126125,
+        "exact_answer_accuracy": 0.4296875,
+        "native_exact_accuracy": 0.4296875,
+        "chance_normalized_accuracy": 0.6741071428571429,
+        "chance_token_accuracy": 0.125,
+        "cpu_seconds": 0.41190982099999474,
+        "wall_seconds": 0.411932438999429,
+        "evaluated_input_bytes": 8448,
+        "active_experts_permuted": null
+      },
+      "training_order_sha256": "1ae86d0077e0791e24e678e9cd70da4ddf76a08b00b60581edfe036d6eab8ac3",
+      "checkpoint_reload_exact": true,
+      "test": {
+        "cases": 128,
+        "answer_tokens": 256,
+        "task_accuracy": 0.78515625,
+        "task_nll": 0.814003011480995,
+        "native_byte_accuracy": 0.78515625,
+        "native_byte_nll": 0.8173057600870379,
+        "exact_answer_accuracy": 0.5703125,
+        "native_exact_accuracy": 0.5703125,
+        "chance_normalized_accuracy": 0.7544642857142857,
+        "chance_token_accuracy": 0.125,
+        "cpu_seconds": 0.3941159650000259,
+        "wall_seconds": 0.3943951700002799,
+        "evaluated_input_bytes": 8448,
+        "active_experts_permuted": null
+      },
+      "probe": {
+        "intervention": "no_memory",
+        "cases": 128,
+        "answer_tokens": 256,
+        "task_accuracy": 0.15234375,
+        "task_nll": 2.264380258947645,
+        "native_byte_accuracy": 0.15234375,
+        "native_byte_nll": 2.324747435748577,
+        "exact_answer_accuracy": 0.03125,
+        "native_exact_accuracy": 0.03125,
+        "chance_normalized_accuracy": 0.03125,
+        "chance_token_accuracy": 0.125,
+        "cpu_seconds": 0.3377850319999993,
+        "wall_seconds": 0.3378665740001452,
+        "evaluated_input_bytes": 8448,
+        "active_experts_permuted": null
+      }
+    },
+    {
+      "task": "selective_copy",
+      "core": "minimal",
+      "seed": 1,
+      "parameters": 498367,
+      "experts": [
+        56,
+        29,
+        0,
+        0
+      ],
+      "inventory": {
+        "core_parameters": 498367,
+        "levels": 4,
+        "state_width": 64,
+        "recurrent_vector_bytes": 1024,
+        "minkron_matrix_bytes": 1024,
+        "address_matrix_bytes": 8192,
+        "retained_record_bytes": 32352,
+        "child_buffer_bytes": 8192,
+        "allocated_loop_training_tape_bytes": 0,
+        "retained_slots_per_level": 16,
+        "readout_parameters": 0,
+        "parameters": 498367,
+        "experts_per_level": [
+          56,
+          29,
+          0,
+          0
+        ],
+        "compression_bottleneck_bytes": null
+      },
+      "bytes": 250000,
+      "native_targets": 7574,
+      "cpu_seconds": 5.473385028999388,
+      "wall_seconds": 5.490110711021771,
+      "bytes_per_cpu_second": 45675.57346604273,
+      "dev": {
+        "cases": 128,
+        "answer_tokens": 256,
+        "task_accuracy": 0.70703125,
+        "task_nll": 0.9394945214841803,
+        "native_byte_accuracy": 0.70703125,
+        "native_byte_nll": 0.9417105944085051,
+        "exact_answer_accuracy": 0.4140625,
+        "native_exact_accuracy": 0.4140625,
+        "chance_normalized_accuracy": 0.6651785714285714,
+        "chance_token_accuracy": 0.125,
+        "cpu_seconds": 0.39073094100001526,
+        "wall_seconds": 0.39079783499983023,
+        "evaluated_input_bytes": 8448,
+        "active_experts_permuted": null
+      },
+      "training_order_sha256": "1ae86d0077e0791e24e678e9cd70da4ddf76a08b00b60581edfe036d6eab8ac3",
+      "checkpoint_reload_exact": true,
+      "test": {
+        "cases": 128,
+        "answer_tokens": 256,
+        "task_accuracy": 0.76171875,
+        "task_nll": 0.8492556052030829,
+        "native_byte_accuracy": 0.76171875,
+        "native_byte_nll": 0.8519368620691239,
+        "exact_answer_accuracy": 0.5234375,
+        "native_exact_accuracy": 0.5234375,
+        "chance_normalized_accuracy": 0.7276785714285714,
+        "chance_token_accuracy": 0.125,
+        "cpu_seconds": 0.39166739500001313,
+        "wall_seconds": 0.3916873679991113,
+        "evaluated_input_bytes": 8448,
+        "active_experts_permuted": null
+      },
+      "probe": {
+        "intervention": "no_memory",
+        "cases": 128,
+        "answer_tokens": 256,
+        "task_accuracy": 0.125,
+        "task_nll": 2.384962799800533,
+        "native_byte_accuracy": 0.125,
+        "native_byte_nll": 2.472905241884291,
+        "exact_answer_accuracy": 0.0,
+        "native_exact_accuracy": 0.0,
+        "chance_normalized_accuracy": 0.0,
+        "chance_token_accuracy": 0.125,
+        "cpu_seconds": 0.3413560729999858,
+        "wall_seconds": 0.34141526900020835,
+        "evaluated_input_bytes": 8448,
+        "active_experts_permuted": null
+      }
+    },
+    {
+      "task": "selective_copy",
+      "core": "minimal",
+      "seed": 7,
+      "parameters": 498367,
+      "experts": [
+        56,
+        29,
+        0,
+        0
+      ],
+      "inventory": {
+        "core_parameters": 498367,
+        "levels": 4,
+        "state_width": 64,
+        "recurrent_vector_bytes": 1024,
+        "minkron_matrix_bytes": 1024,
+        "address_matrix_bytes": 8192,
+        "retained_record_bytes": 32352,
+        "child_buffer_bytes": 8192,
+        "allocated_loop_training_tape_bytes": 0,
+        "retained_slots_per_level": 16,
+        "readout_parameters": 0,
+        "parameters": 498367,
+        "experts_per_level": [
+          56,
+          29,
+          0,
+          0
+        ],
+        "compression_bottleneck_bytes": null
+      },
+      "bytes": 250000,
+      "native_targets": 7574,
+      "cpu_seconds": 5.4338392879998025,
+      "wall_seconds": 5.46396617994651,
+      "bytes_per_cpu_second": 46007.985652447416,
+      "dev": {
+        "cases": 128,
+        "answer_tokens": 256,
+        "task_accuracy": 0.69921875,
+        "task_nll": 1.0805785778830908,
+        "native_byte_accuracy": 0.69921875,
+        "native_byte_nll": 1.0821058894580347,
+        "exact_answer_accuracy": 0.3984375,
+        "native_exact_accuracy": 0.3984375,
+        "chance_normalized_accuracy": 0.65625,
+        "chance_token_accuracy": 0.125,
+        "cpu_seconds": 0.5398985340000024,
+        "wall_seconds": 0.5400630680014729,
+        "evaluated_input_bytes": 8448,
+        "active_experts_permuted": null
+      },
+      "training_order_sha256": "1ae86d0077e0791e24e678e9cd70da4ddf76a08b00b60581edfe036d6eab8ac3",
+      "checkpoint_reload_exact": true,
+      "test": {
+        "cases": 128,
+        "answer_tokens": 256,
+        "task_accuracy": 0.6875,
+        "task_nll": 1.0127451369287663,
+        "native_byte_accuracy": 0.6875,
+        "native_byte_nll": 1.0151139177760342,
+        "exact_answer_accuracy": 0.375,
+        "native_exact_accuracy": 0.375,
+        "chance_normalized_accuracy": 0.6428571428571429,
+        "chance_token_accuracy": 0.125,
+        "cpu_seconds": 0.39106950100000404,
+        "wall_seconds": 0.391101682000226,
+        "evaluated_input_bytes": 8448,
+        "active_experts_permuted": null
+      },
+      "probe": {
+        "intervention": "no_memory",
+        "cases": 128,
+        "answer_tokens": 256,
+        "task_accuracy": 0.12890625,
+        "task_nll": 2.4544938730232175,
+        "native_byte_accuracy": 0.12890625,
+        "native_byte_nll": 2.5826359363272786,
+        "exact_answer_accuracy": 0.0078125,
+        "native_exact_accuracy": 0.0078125,
+        "chance_normalized_accuracy": 0.004464285714285714,
+        "chance_token_accuracy": 0.125,
+        "cpu_seconds": 0.40243158900000253,
+        "wall_seconds": 0.4138791540008242,
+        "evaluated_input_bytes": 8448,
+        "active_experts_permuted": null
+      }
+    },
+    {
+      "task": "selective_copy",
+      "core": "full",
+      "seed": 7,
+      "parameters": 496959,
+      "experts": [
+        38,
+        19,
+        11,
+        9
+      ],
+      "inventory": {
+        "core_parameters": 496959,
+        "levels": 4,
+        "state_width": 64,
+        "recurrent_vector_bytes": 1024,
+        "minkron_matrix_bytes": 1024,
+        "address_matrix_bytes": 8192,
+        "retained_record_bytes": 32352,
+        "child_buffer_bytes": 8192,
+        "allocated_loop_training_tape_bytes": 0,
+        "retained_slots_per_level": 16,
+        "readout_parameters": 0,
+        "parameters": 496959,
+        "experts_per_level": [
+          38,
+          19,
+          11,
+          9
+        ],
+        "compression_bottleneck_bytes": null
+      },
+      "bytes": 250000,
+      "native_targets": 7574,
+      "cpu_seconds": 5.376482175999996,
+      "wall_seconds": 5.410321523997482,
+      "bytes_per_cpu_second": 46498.80569045156,
+      "dev": {
+        "cases": 128,
+        "answer_tokens": 256,
+        "task_accuracy": 0.7109375,
+        "task_nll": 0.9322274123563122,
+        "native_byte_accuracy": 0.7109375,
+        "native_byte_nll": 0.9339693068432098,
+        "exact_answer_accuracy": 0.421875,
+        "native_exact_accuracy": 0.421875,
+        "chance_normalized_accuracy": 0.6696428571428571,
+        "chance_token_accuracy": 0.125,
+        "cpu_seconds": 0.6869601589999945,
+        "wall_seconds": 0.6960174089999782,
+        "evaluated_input_bytes": 8448,
+        "active_experts_permuted": null
+      },
+      "training_order_sha256": "1ae86d0077e0791e24e678e9cd70da4ddf76a08b00b60581edfe036d6eab8ac3",
+      "checkpoint_reload_exact": true,
+      "test": {
+        "cases": 128,
+        "answer_tokens": 256,
+        "task_accuracy": 0.6875,
+        "task_nll": 1.0798652263458557,
+        "native_byte_accuracy": 0.6875,
+        "native_byte_nll": 1.0815185187311727,
+        "exact_answer_accuracy": 0.375,
+        "native_exact_accuracy": 0.375,
+        "chance_normalized_accuracy": 0.6428571428571429,
+        "chance_token_accuracy": 0.125,
+        "cpu_seconds": 0.39051870600002303,
+        "wall_seconds": 0.39055833099882875,
+        "evaluated_input_bytes": 8448,
+        "active_experts_permuted": null
+      },
+      "probe": {
+        "intervention": "no_memory",
+        "cases": 128,
+        "answer_tokens": 256,
+        "task_accuracy": 0.1328125,
+        "task_nll": 2.6855769905377587,
+        "native_byte_accuracy": 0.1328125,
+        "native_byte_nll": 2.7416093063075095,
+        "exact_answer_accuracy": 0.0234375,
+        "native_exact_accuracy": 0.0234375,
+        "chance_normalized_accuracy": 0.008928571428571428,
+        "chance_token_accuracy": 0.125,
+        "cpu_seconds": 0.34356135899997753,
+        "wall_seconds": 0.3435659819988359,
+        "evaluated_input_bytes": 8448,
+        "active_experts_permuted": null
+      }
+    },
+    {
+      "task": "selective_copy",
+      "core": "full",
+      "seed": 19,
+      "parameters": 496959,
+      "experts": [
+        38,
+        19,
+        11,
+        9
+      ],
+      "inventory": {
+        "core_parameters": 496959,
+        "levels": 4,
+        "state_width": 64,
+        "recurrent_vector_bytes": 1024,
+        "minkron_matrix_bytes": 1024,
+        "address_matrix_bytes": 8192,
+        "retained_record_bytes": 32352,
+        "child_buffer_bytes": 8192,
+        "allocated_loop_training_tape_bytes": 0,
+        "retained_slots_per_level": 16,
+        "readout_parameters": 0,
+        "parameters": 496959,
+        "experts_per_level": [
+          38,
+          19,
+          11,
+          9
+        ],
+        "compression_bottleneck_bytes": null
+      },
+      "bytes": 250000,
+      "native_targets": 7574,
+      "cpu_seconds": 5.3008217249996505,
+      "wall_seconds": 5.329179454905898,
+      "bytes_per_cpu_second": 47162.49913121092,
+      "dev": {
+        "cases": 128,
+        "answer_tokens": 256,
+        "task_accuracy": 0.75390625,
+        "task_nll": 0.8124911051726795,
+        "native_byte_accuracy": 0.75390625,
+        "native_byte_nll": 0.8190109065981233,
+        "exact_answer_accuracy": 0.5078125,
+        "native_exact_accuracy": 0.5078125,
+        "chance_normalized_accuracy": 0.71875,
+        "chance_token_accuracy": 0.125,
+        "cpu_seconds": 0.4094088500000055,
+        "wall_seconds": 0.4194421690008312,
+        "evaluated_input_bytes": 8448,
+        "active_experts_permuted": null
+      },
+      "training_order_sha256": "1ae86d0077e0791e24e678e9cd70da4ddf76a08b00b60581edfe036d6eab8ac3",
+      "checkpoint_reload_exact": true,
+      "test": {
+        "cases": 128,
+        "answer_tokens": 256,
+        "task_accuracy": 0.73828125,
+        "task_nll": 0.807130122923431,
+        "native_byte_accuracy": 0.73828125,
+        "native_byte_nll": 0.8154651807999471,
+        "exact_answer_accuracy": 0.4765625,
+        "native_exact_accuracy": 0.4765625,
+        "chance_normalized_accuracy": 0.7008928571428571,
+        "chance_token_accuracy": 0.125,
+        "cpu_seconds": 0.4162909209999839,
+        "wall_seconds": 0.41925596299915924,
+        "evaluated_input_bytes": 8448,
+        "active_experts_permuted": null
+      },
+      "probe": {
+        "intervention": "no_memory",
+        "cases": 128,
+        "answer_tokens": 256,
+        "task_accuracy": 0.10546875,
+        "task_nll": 2.2775930879766815,
+        "native_byte_accuracy": 0.10546875,
+        "native_byte_nll": 2.430388250388205,
+        "exact_answer_accuracy": 0.0,
+        "native_exact_accuracy": 0.0,
+        "chance_normalized_accuracy": -0.022321428571428572,
+        "chance_token_accuracy": 0.125,
+        "cpu_seconds": 0.33733301400002347,
+        "wall_seconds": 0.3373673639998742,
+        "evaluated_input_bytes": 8448,
+        "active_experts_permuted": null
+      }
+    },
+    {
+      "task": "selective_copy",
+      "core": "minimal",
+      "seed": 19,
+      "parameters": 498367,
+      "experts": [
+        56,
+        29,
+        0,
+        0
+      ],
+      "inventory": {
+        "core_parameters": 498367,
+        "levels": 4,
+        "state_width": 64,
+        "recurrent_vector_bytes": 1024,
+        "minkron_matrix_bytes": 1024,
+        "address_matrix_bytes": 8192,
+        "retained_record_bytes": 32352,
+        "child_buffer_bytes": 8192,
+        "allocated_loop_training_tape_bytes": 0,
+        "retained_slots_per_level": 16,
+        "readout_parameters": 0,
+        "parameters": 498367,
+        "experts_per_level": [
+          56,
+          29,
+          0,
+          0
+        ],
+        "compression_bottleneck_bytes": null
+      },
+      "bytes": 250000,
+      "native_targets": 7574,
+      "cpu_seconds": 5.478981139999746,
+      "wall_seconds": 5.494464196026456,
+      "bytes_per_cpu_second": 45628.921438486934,
+      "dev": {
+        "cases": 128,
+        "answer_tokens": 256,
+        "task_accuracy": 0.7578125,
+        "task_nll": 0.7988442975535969,
+        "native_byte_accuracy": 0.7578125,
+        "native_byte_nll": 0.8016441915533505,
+        "exact_answer_accuracy": 0.515625,
+        "native_exact_accuracy": 0.515625,
+        "chance_normalized_accuracy": 0.7232142857142857,
+        "chance_token_accuracy": 0.125,
+        "cpu_seconds": 0.4663654430000008,
+        "wall_seconds": 0.47061517700058175,
+        "evaluated_input_bytes": 8448,
+        "active_experts_permuted": null
+      },
+      "training_order_sha256": "1ae86d0077e0791e24e678e9cd70da4ddf76a08b00b60581edfe036d6eab8ac3",
+      "checkpoint_reload_exact": true,
+      "test": {
+        "cases": 128,
+        "answer_tokens": 256,
+        "task_accuracy": 0.765625,
+        "task_nll": 0.8079248906867553,
+        "native_byte_accuracy": 0.765625,
+        "native_byte_nll": 0.8118299686975661,
+        "exact_answer_accuracy": 0.53125,
+        "native_exact_accuracy": 0.53125,
+        "chance_normalized_accuracy": 0.7321428571428571,
+        "chance_token_accuracy": 0.125,
+        "cpu_seconds": 0.387099400000011,
+        "wall_seconds": 0.3928828570005862,
+        "evaluated_input_bytes": 8448,
+        "active_experts_permuted": null
+      },
+      "probe": {
+        "intervention": "no_memory",
+        "cases": 128,
+        "answer_tokens": 256,
+        "task_accuracy": 0.1015625,
+        "task_nll": 2.268107070384809,
+        "native_byte_accuracy": 0.1015625,
+        "native_byte_nll": 2.4459279254078865,
+        "exact_answer_accuracy": 0.015625,
+        "native_exact_accuracy": 0.015625,
+        "chance_normalized_accuracy": -0.026785714285714284,
+        "chance_token_accuracy": 0.125,
+        "cpu_seconds": 0.3344799040000339,
+        "wall_seconds": 0.33448305599995365,
+        "evaluated_input_bytes": 8448,
+        "active_experts_permuted": null
+      }
+    },
+    {
+      "task": "compression",
+      "core": "full",
+      "seed": 1,
+      "parameters": 496639,
+      "experts": [
+        36,
+        18,
+        10,
+        9
+      ],
+      "inventory": {
+        "core_parameters": 480063,
+        "levels": 4,
+        "state_width": 64,
+        "recurrent_vector_bytes": 1024,
+        "minkron_matrix_bytes": 1024,
+        "address_matrix_bytes": 8192,
+        "retained_record_bytes": 32352,
+        "child_buffer_bytes": 8192,
+        "allocated_loop_training_tape_bytes": 0,
+        "retained_slots_per_level": 16,
+        "readout_parameters": 16576,
+        "parameters": 496639,
+        "experts_per_level": [
+          36,
+          18,
+          10,
+          9
+        ],
+        "compression_bottleneck_bytes": 256
+      },
+      "bytes": 250000,
+      "native_targets": 0,
+      "cpu_seconds": 5.844901635000639,
+      "wall_seconds": 5.8738915950052615,
+      "bytes_per_cpu_second": 42772.31946949141,
+      "dev": {
+        "cases": 128,
+        "answer_tokens": 512,
+        "task_accuracy": 0.669921875,
+        "task_nll": 1.0766350623161998,
+        "native_byte_accuracy": null,
+        "native_byte_nll": null,
+        "exact_answer_accuracy": 0.1953125,
+        "native_exact_accuracy": null,
+        "chance_normalized_accuracy": 0.6479166666666667,
+        "chance_token_accuracy": 0.0625,
+        "cpu_seconds": 0.1254660650000119,
+        "wall_seconds": 0.12546824899982312,
+        "evaluated_input_bytes": 8192,
+        "active_experts_permuted": null
+      },
+      "training_order_sha256": "b7c2629295b610c9df18ed15f0a593e7dc167321f7dcf09334d3d1bce09a01d1",
+      "checkpoint_reload_exact": true,
+      "test": {
+        "cases": 128,
+        "answer_tokens": 512,
+        "task_accuracy": 0.677734375,
+        "task_nll": 0.9816873231902719,
+        "native_byte_accuracy": null,
+        "native_byte_nll": null,
+        "exact_answer_accuracy": 0.1875,
+        "native_exact_accuracy": null,
+        "chance_normalized_accuracy": 0.65625,
+        "chance_token_accuracy": 0.0625,
+        "cpu_seconds": 0.130178624999985,
+        "wall_seconds": 0.1302022929994564,
+        "evaluated_input_bytes": 8192,
+        "active_experts_permuted": null
+      },
+      "probe": {
+        "intervention": "zero_bottleneck",
+        "cases": 128,
+        "answer_tokens": 512,
+        "task_accuracy": 0.087890625,
+        "task_nll": 2.8284177612513304,
+        "native_byte_accuracy": null,
+        "native_byte_nll": null,
+        "exact_answer_accuracy": 0.0,
+        "native_exact_accuracy": null,
+        "chance_normalized_accuracy": 0.027083333333333334,
+        "chance_token_accuracy": 0.0625,
+        "cpu_seconds": 0.12591848400001027,
+        "wall_seconds": 0.1259264649997931,
+        "evaluated_input_bytes": 8192,
+        "active_experts_permuted": null
+      }
+    },
+    {
+      "task": "compression",
+      "core": "minimal",
+      "seed": 1,
+      "parameters": 498047,
+      "experts": [
+        54,
+        27,
+        0,
+        0
+      ],
+      "inventory": {
+        "core_parameters": 481471,
+        "levels": 4,
+        "state_width": 64,
+        "recurrent_vector_bytes": 1024,
+        "minkron_matrix_bytes": 1024,
+        "address_matrix_bytes": 8192,
+        "retained_record_bytes": 32352,
+        "child_buffer_bytes": 8192,
+        "allocated_loop_training_tape_bytes": 0,
+        "retained_slots_per_level": 16,
+        "readout_parameters": 16576,
+        "parameters": 498047,
+        "experts_per_level": [
+          54,
+          27,
+          0,
+          0
+        ],
+        "compression_bottleneck_bytes": 256
+      },
+      "bytes": 250000,
+      "native_targets": 0,
+      "cpu_seconds": 5.6529168820001985,
+      "wall_seconds": 5.669382469008269,
+      "bytes_per_cpu_second": 44224.95593311135,
+      "dev": {
+        "cases": 128,
+        "answer_tokens": 512,
+        "task_accuracy": 0.771484375,
+        "task_nll": 0.7716962304839399,
+        "native_byte_accuracy": null,
+        "native_byte_nll": null,
+        "exact_answer_accuracy": 0.3359375,
+        "native_exact_accuracy": null,
+        "chance_normalized_accuracy": 0.75625,
+        "chance_token_accuracy": 0.0625,
+        "cpu_seconds": 0.12876984100000755,
+        "wall_seconds": 0.12878326600002765,
+        "evaluated_input_bytes": 8192,
+        "active_experts_permuted": null
+      },
+      "training_order_sha256": "b7c2629295b610c9df18ed15f0a593e7dc167321f7dcf09334d3d1bce09a01d1",
+      "checkpoint_reload_exact": true,
+      "test": {
+        "cases": 128,
+        "answer_tokens": 512,
+        "task_accuracy": 0.796875,
+        "task_nll": 0.6444930992583977,
+        "native_byte_accuracy": null,
+        "native_byte_nll": null,
+        "exact_answer_accuracy": 0.375,
+        "native_exact_accuracy": null,
+        "chance_normalized_accuracy": 0.7833333333333333,
+        "chance_token_accuracy": 0.0625,
+        "cpu_seconds": 0.12517711800001052,
+        "wall_seconds": 0.1251782990002539,
+        "evaluated_input_bytes": 8192,
+        "active_experts_permuted": null
+      },
+      "probe": {
+        "intervention": "zero_bottleneck",
+        "cases": 128,
+        "answer_tokens": 512,
+        "task_accuracy": 0.07421875,
+        "task_nll": 2.8104447312653065,
+        "native_byte_accuracy": null,
+        "native_byte_nll": null,
+        "exact_answer_accuracy": 0.0,
+        "native_exact_accuracy": null,
+        "chance_normalized_accuracy": 0.0125,
+        "chance_token_accuracy": 0.0625,
+        "cpu_seconds": 0.12733006199999863,
+        "wall_seconds": 0.12734415299928514,
+        "evaluated_input_bytes": 8192,
+        "active_experts_permuted": null
+      }
+    },
+    {
+      "task": "compression",
+      "core": "minimal",
+      "seed": 7,
+      "parameters": 498047,
+      "experts": [
+        54,
+        27,
+        0,
+        0
+      ],
+      "inventory": {
+        "core_parameters": 481471,
+        "levels": 4,
+        "state_width": 64,
+        "recurrent_vector_bytes": 1024,
+        "minkron_matrix_bytes": 1024,
+        "address_matrix_bytes": 8192,
+        "retained_record_bytes": 32352,
+        "child_buffer_bytes": 8192,
+        "allocated_loop_training_tape_bytes": 0,
+        "retained_slots_per_level": 16,
+        "readout_parameters": 16576,
+        "parameters": 498047,
+        "experts_per_level": [
+          54,
+          27,
+          0,
+          0
+        ],
+        "compression_bottleneck_bytes": 256
+      },
+      "bytes": 250000,
+      "native_targets": 0,
+      "cpu_seconds": 5.780058490999579,
+      "wall_seconds": 5.793909077145145,
+      "bytes_per_cpu_second": 43252.15746333495,
+      "dev": {
+        "cases": 128,
+        "answer_tokens": 512,
+        "task_accuracy": 0.791015625,
+        "task_nll": 0.715467106187134,
+        "native_byte_accuracy": null,
+        "native_byte_nll": null,
+        "exact_answer_accuracy": 0.390625,
+        "native_exact_accuracy": null,
+        "chance_normalized_accuracy": 0.7770833333333333,
+        "chance_token_accuracy": 0.0625,
+        "cpu_seconds": 0.12738735599998563,
+        "wall_seconds": 0.12738909099971352,
+        "evaluated_input_bytes": 8192,
+        "active_experts_permuted": null
+      },
+      "training_order_sha256": "b7c2629295b610c9df18ed15f0a593e7dc167321f7dcf09334d3d1bce09a01d1",
+      "checkpoint_reload_exact": true,
+      "test": {
+        "cases": 128,
+        "answer_tokens": 512,
+        "task_accuracy": 0.818359375,
+        "task_nll": 0.6085291296476498,
+        "native_byte_accuracy": null,
+        "native_byte_nll": null,
+        "exact_answer_accuracy": 0.4375,
+        "native_exact_accuracy": null,
+        "chance_normalized_accuracy": 0.80625,
+        "chance_token_accuracy": 0.0625,
+        "cpu_seconds": 0.12608950699996058,
+        "wall_seconds": 0.12609755799894629,
+        "evaluated_input_bytes": 8192,
+        "active_experts_permuted": null
+      },
+      "probe": {
+        "intervention": "zero_bottleneck",
+        "cases": 128,
+        "answer_tokens": 512,
+        "task_accuracy": 0.087890625,
+        "task_nll": 2.7642554249614477,
+        "native_byte_accuracy": null,
+        "native_byte_nll": null,
+        "exact_answer_accuracy": 0.0,
+        "native_exact_accuracy": null,
+        "chance_normalized_accuracy": 0.027083333333333334,
+        "chance_token_accuracy": 0.0625,
+        "cpu_seconds": 0.12693599900001118,
+        "wall_seconds": 0.12694628400095098,
+        "evaluated_input_bytes": 8192,
+        "active_experts_permuted": null
+      }
+    },
+    {
+      "task": "compression",
+      "core": "full",
+      "seed": 7,
+      "parameters": 496639,
+      "experts": [
+        36,
+        18,
+        10,
+        9
+      ],
+      "inventory": {
+        "core_parameters": 480063,
+        "levels": 4,
+        "state_width": 64,
+        "recurrent_vector_bytes": 1024,
+        "minkron_matrix_bytes": 1024,
+        "address_matrix_bytes": 8192,
+        "retained_record_bytes": 32352,
+        "child_buffer_bytes": 8192,
+        "allocated_loop_training_tape_bytes": 0,
+        "retained_slots_per_level": 16,
+        "readout_parameters": 16576,
+        "parameters": 496639,
+        "experts_per_level": [
+          36,
+          18,
+          10,
+          9
+        ],
+        "compression_bottleneck_bytes": 256
+      },
+      "bytes": 250000,
+      "native_targets": 0,
+      "cpu_seconds": 6.396910839998839,
+      "wall_seconds": 6.4408793969632825,
+      "bytes_per_cpu_second": 39081.36384155784,
+      "dev": {
+        "cases": 128,
+        "answer_tokens": 512,
+        "task_accuracy": 0.6875,
+        "task_nll": 1.0742414689157158,
+        "native_byte_accuracy": null,
+        "native_byte_nll": null,
+        "exact_answer_accuracy": 0.1796875,
+        "native_exact_accuracy": null,
+        "chance_normalized_accuracy": 0.6666666666666666,
+        "chance_token_accuracy": 0.0625,
+        "cpu_seconds": 0.16754478299998254,
+        "wall_seconds": 0.16756248900128412,
+        "evaluated_input_bytes": 8192,
+        "active_experts_permuted": null
+      },
+      "training_order_sha256": "b7c2629295b610c9df18ed15f0a593e7dc167321f7dcf09334d3d1bce09a01d1",
+      "checkpoint_reload_exact": true,
+      "test": {
+        "cases": 128,
+        "answer_tokens": 512,
+        "task_accuracy": 0.7109375,
+        "task_nll": 0.9280383627046831,
+        "native_byte_accuracy": null,
+        "native_byte_nll": null,
+        "exact_answer_accuracy": 0.2109375,
+        "native_exact_accuracy": null,
+        "chance_normalized_accuracy": 0.6916666666666667,
+        "chance_token_accuracy": 0.0625,
+        "cpu_seconds": 0.12533884699996634,
+        "wall_seconds": 0.1253396669999347,
+        "evaluated_input_bytes": 8192,
+        "active_experts_permuted": null
+      },
+      "probe": {
+        "intervention": "zero_bottleneck",
+        "cases": 128,
+        "answer_tokens": 512,
+        "task_accuracy": 0.08203125,
+        "task_nll": 2.7988651040941477,
+        "native_byte_accuracy": null,
+        "native_byte_nll": null,
+        "exact_answer_accuracy": 0.0,
+        "native_exact_accuracy": null,
+        "chance_normalized_accuracy": 0.020833333333333332,
+        "chance_token_accuracy": 0.0625,
+        "cpu_seconds": 0.12396982100000287,
+        "wall_seconds": 0.12399912399996538,
+        "evaluated_input_bytes": 8192,
+        "active_experts_permuted": null
+      }
+    },
+    {
+      "task": "compression",
+      "core": "full",
+      "seed": 19,
+      "parameters": 496639,
+      "experts": [
+        36,
+        18,
+        10,
+        9
+      ],
+      "inventory": {
+        "core_parameters": 480063,
+        "levels": 4,
+        "state_width": 64,
+        "recurrent_vector_bytes": 1024,
+        "minkron_matrix_bytes": 1024,
+        "address_matrix_bytes": 8192,
+        "retained_record_bytes": 32352,
+        "child_buffer_bytes": 8192,
+        "allocated_loop_training_tape_bytes": 0,
+        "retained_slots_per_level": 16,
+        "readout_parameters": 16576,
+        "parameters": 496639,
+        "experts_per_level": [
+          36,
+          18,
+          10,
+          9
+        ],
+        "compression_bottleneck_bytes": 256
+      },
+      "bytes": 250000,
+      "native_targets": 0,
+      "cpu_seconds": 6.235547968997764,
+      "wall_seconds": 6.296272900002805,
+      "bytes_per_cpu_second": 40092.70736797529,
+      "dev": {
+        "cases": 128,
+        "answer_tokens": 512,
+        "task_accuracy": 0.666015625,
+        "task_nll": 1.114930805430049,
+        "native_byte_accuracy": null,
+        "native_byte_nll": null,
+        "exact_answer_accuracy": 0.171875,
+        "native_exact_accuracy": null,
+        "chance_normalized_accuracy": 0.64375,
+        "chance_token_accuracy": 0.0625,
+        "cpu_seconds": 0.13355570800001715,
+        "wall_seconds": 0.1341510140009632,
+        "evaluated_input_bytes": 8192,
+        "active_experts_permuted": null
+      },
+      "training_order_sha256": "b7c2629295b610c9df18ed15f0a593e7dc167321f7dcf09334d3d1bce09a01d1",
+      "checkpoint_reload_exact": true,
+      "test": {
+        "cases": 128,
+        "answer_tokens": 512,
+        "task_accuracy": 0.734375,
+        "task_nll": 0.9244848898379132,
+        "native_byte_accuracy": null,
+        "native_byte_nll": null,
+        "exact_answer_accuracy": 0.265625,
+        "native_exact_accuracy": null,
+        "chance_normalized_accuracy": 0.7166666666666667,
+        "chance_token_accuracy": 0.0625,
+        "cpu_seconds": 0.12390955299997586,
+        "wall_seconds": 0.12390928100103338,
+        "evaluated_input_bytes": 8192,
+        "active_experts_permuted": null
+      },
+      "probe": {
+        "intervention": "zero_bottleneck",
+        "cases": 128,
+        "answer_tokens": 512,
+        "task_accuracy": 0.052734375,
+        "task_nll": 2.7980369720607996,
+        "native_byte_accuracy": null,
+        "native_byte_nll": null,
+        "exact_answer_accuracy": 0.0,
+        "native_exact_accuracy": null,
+        "chance_normalized_accuracy": -0.010416666666666666,
+        "chance_token_accuracy": 0.0625,
+        "cpu_seconds": 0.12533252800000128,
+        "wall_seconds": 0.12534234099985042,
+        "evaluated_input_bytes": 8192,
+        "active_experts_permuted": null
+      }
+    },
+    {
+      "task": "compression",
+      "core": "minimal",
+      "seed": 19,
+      "parameters": 498047,
+      "experts": [
+        54,
+        27,
+        0,
+        0
+      ],
+      "inventory": {
+        "core_parameters": 481471,
+        "levels": 4,
+        "state_width": 64,
+        "recurrent_vector_bytes": 1024,
+        "minkron_matrix_bytes": 1024,
+        "address_matrix_bytes": 8192,
+        "retained_record_bytes": 32352,
+        "child_buffer_bytes": 8192,
+        "allocated_loop_training_tape_bytes": 0,
+        "retained_slots_per_level": 16,
+        "readout_parameters": 16576,
+        "parameters": 498047,
+        "experts_per_level": [
+          54,
+          27,
+          0,
+          0
+        ],
+        "compression_bottleneck_bytes": 256
+      },
+      "bytes": 250000,
+      "native_targets": 0,
+      "cpu_seconds": 5.918825427997717,
+      "wall_seconds": 5.966977254955054,
+      "bytes_per_cpu_second": 42238.110084718726,
+      "dev": {
+        "cases": 128,
+        "answer_tokens": 512,
+        "task_accuracy": 0.734375,
+        "task_nll": 0.8717345320474124,
+        "native_byte_accuracy": null,
+        "native_byte_nll": null,
+        "exact_answer_accuracy": 0.2578125,
+        "native_exact_accuracy": null,
+        "chance_normalized_accuracy": 0.7166666666666667,
+        "chance_token_accuracy": 0.0625,
+        "cpu_seconds": 0.137347066000018,
+        "wall_seconds": 0.13735644499865884,
+        "evaluated_input_bytes": 8192,
+        "active_experts_permuted": null
+      },
+      "training_order_sha256": "b7c2629295b610c9df18ed15f0a593e7dc167321f7dcf09334d3d1bce09a01d1",
+      "checkpoint_reload_exact": true,
+      "test": {
+        "cases": 128,
+        "answer_tokens": 512,
+        "task_accuracy": 0.7890625,
+        "task_nll": 0.6756782323936932,
+        "native_byte_accuracy": null,
+        "native_byte_nll": null,
+        "exact_answer_accuracy": 0.3984375,
+        "native_exact_accuracy": null,
+        "chance_normalized_accuracy": 0.775,
+        "chance_token_accuracy": 0.0625,
+        "cpu_seconds": 0.1314018360000091,
+        "wall_seconds": 0.13780422200034081,
+        "evaluated_input_bytes": 8192,
+        "active_experts_permuted": null
+      },
+      "probe": {
+        "intervention": "zero_bottleneck",
+        "cases": 128,
+        "answer_tokens": 512,
+        "task_accuracy": 0.060546875,
+        "task_nll": 2.7883481550961733,
+        "native_byte_accuracy": null,
+        "native_byte_nll": null,
+        "exact_answer_accuracy": 0.0,
+        "native_exact_accuracy": null,
+        "chance_normalized_accuracy": -0.0020833333333333333,
+        "chance_token_accuracy": 0.0625,
+        "cpu_seconds": 0.13106294099998195,
+        "wall_seconds": 0.1310905680002179,
+        "evaluated_input_bytes": 8192,
+        "active_experts_permuted": null
+      }
+    }
+  ],
+  "summary": [
+    {
+      "task": "fineweb",
+      "full": 2.358039270254219,
+      "minimal": 2.252587657138195,
+      "delta": -0.10545161311602413,
+      "passes_preregistered_margin": true,
+      "mean_training_throughput": {
+        "full": 34637.74761648423,
+        "minimal": 35596.16590434395
+      }
+    },
+    {
+      "task": "selective_copy",
+      "full": 0.7369791666666666,
+      "minimal": 0.73828125,
+      "delta": 0.0013020833333333703,
+      "passes_preregistered_margin": true,
+      "mean_training_throughput": {
+        "full": 45462.51695998869,
+        "minimal": 45770.82685232569
+      }
+    },
+    {
+      "task": "compression",
+      "full": 0.7076822916666666,
+      "minimal": 0.8014322916666666,
+      "delta": 0.09375,
+      "passes_preregistered_margin": true,
+      "mean_training_throughput": {
+        "full": 40648.79689300818,
+        "minimal": 43238.407827055016
+      }
+    }
+  ]
+}

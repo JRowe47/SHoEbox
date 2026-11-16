@@ -3,7 +3,16 @@
 **Revision 2 · 15 November 2026**  
 Revises `SHoEbox_Capability_Research.md` against the generalist capability matrix and completed MAD campaign.
 
-**Development decision: repair query binding, retention, and state transitions first; then establish composition and useful upper-level computation; then return to inference-time reasoning.** Keep corrected C as the production control. The next build should be a small, query-conditioned state/readout experiment, with a matched-capacity working-slot alternative. Deeper recurrence is now a gated follow-on rather than the first intervention.
+**Development decision: repair query binding, retention, and state transitions first; then establish composition and useful upper-level computation; then return to inference-time reasoning.** Use the minimal corrected-C core as the new production control and retain full C as a historical comparator. The next build should be a small, query-conditioned state/readout experiment, with a matched-capacity working-slot alternative. Deeper recurrence is now a gated follow-on rather than the first intervention.
+
+**Baseline revision — minimal v19.** The new default keeps expert banks at 1/4
+bytes and ordered trainable summaries at 16/64 bytes, with existing memory and
+bounded credit. Upper expert routing, forecast heads and dynamic modulation are
+removed; loops and route-rate cycles remain explicit full-architecture research
+controls. [Implementation and paired qualification](../../reports/minimal_core/SHoEbox_Minimal_Core_Baseline.md).
+Historical results and EXP00 below still refer to full C; they are not relabeled
+as minimal results. Start EXP01 on explicitly selected minimal and full cores,
+recheck its fixtures, and attribute any change to the named architecture.
 
 This plan defines **24 experiment packages**, a **30-paper working bibliography**, and a mapping of **all 66 capabilities plus eight engineering enablers** to development work. The 66 include 62 core capabilities and four optional multimodal capabilities. Early packages specify focused mechanism tests; later packages contain separately scored qualification suites. The original research revision preceded execution; the update below records the first completed item. No capability promotion follows from these calibration results.
 
@@ -462,7 +471,7 @@ The initial comparison uses **500K total fitted parameters**, balanced two-key b
 
 | Arm | Change | What it isolates |
 | --- | --- | --- |
-| A | Corrected C | Current baseline |
+| A | Minimal corrected C | Current baseline; retain full C as a separate historical comparator |
 | B | Query-conditioned readout; no added persistent state | Whether access/decoding is sufficient |
 | C | B plus a flat-state capacity increase | Benefit from additional usable state bytes |
 | D | B plus four addressable working slots, matched to C's total usable state budget | Benefit from organization and selective access |

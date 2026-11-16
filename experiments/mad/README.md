@@ -1,5 +1,13 @@
 # MAD-style development protocol
 
+The v1 harness pins `core="full"` so its published four-bank comparisons remain
+reproducible after the public default changes to minimal v19. For explicit
+minimal/full comparisons, use [minimal qualification](../minimal_core/run.py).
+Use `python -m experiments.mad.run --core minimal --preset smoke --execute
+--out /tmp/minimal-mad.json` for new baseline studies. It defaults to zero
+refinement passes and rejects nonzero passes. `BenchModel(..., core="minimal")`
+also selects the reduced architecture directly.
+
 A runnable capability harness for the current multiscale SHoEbox. It implements
 deterministic tasks, independent label interpreters, difficulty sweeps, paired
 training, development-only optimization selection, held-out scoring, frozen

@@ -93,12 +93,12 @@ class CompressionHead:
 
 
 class BenchModel:
-    def __init__(self, spec, parameters=1_000_000, seed=7, steps=0, lr_scale=1., auxiliary=.1):
+    def __init__(self, spec, parameters=1_000_000, seed=7, steps=0, lr_scale=1., auxiliary=.1, core="full"):
         self.spec = spec
         self.head = CompressionHead(spec.length, spec.vocab, seed) if spec.task == "compression" else None
         self.head_rate = .2*lr_scale
         extra = self.head.parameters if self.head else 0
-        self.model = Model(parameters=parameters-extra, seed=seed,
+        self.model = Model(parameters=parameters-extra, seed=seed, core=core,
                            loops={"steps": [0, 0, steps, steps], "tolerance": 0.} if steps else None)
         self.model.configure(fast_rate=.008*lr_scale, slow_rate=.08*lr_scale,
                              query_rate=.008*lr_scale, head_rate=.16*lr_scale,

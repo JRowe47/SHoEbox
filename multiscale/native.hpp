@@ -213,6 +213,8 @@ struct AssociationStore {
 };
 
 struct Model {
+    bool minimal_core=false;
+    bool summary(int scale)const{return minimal_core&&scale>=2;}
     std::vector<Level> levels;
     std::array<Vec,VOCAB> embedding{};
     std::array<Vec,255> decoder{};
@@ -244,7 +246,7 @@ struct Model {
     float reconstruction_weight=.05f;
     int memory_mode=0,recall_mode=0;
     int mask=-1,shuffle=-1;
-    explicit Model(int count=4,int target=1000000,uint32_t seed=7,bool use_index=true,bool memory=false);
+    explicit Model(int count=4,int target=1000000,uint32_t seed=7,bool use_index=true,bool memory=false,bool minimal=false);
     void rebuild_index(Level& l);
     void update_index(Level& l,int expert);
     void route(Level& l,Event& e);
@@ -271,6 +273,7 @@ struct Model {
     }
     uint32_t checkpoint_version()const{return loop_policy.configured?18:base_checkpoint_version();}
     uint32_t base_checkpoint_version()const{
+        if(minimal_core)return 19;
         if(route_learning.configured)return 17; // 13--16 were private credit experiments.
         if(recall_credit!=std::array<float,4>{{0,0,0,0}})return 12;
         return language_credit==std::array<float,4>{{1,1,1,1}}?payload_version():11;

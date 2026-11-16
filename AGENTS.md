@@ -1,9 +1,15 @@
 # SHoEbox development
 
-- The selected CPU runtime is corrected routing C, exposed by `shoe_multiscale.py` and
+- The selected CPU runtime is the minimal corrected-C core, exposed by `shoe_multiscale.py` and
   implemented in `multiscale/`. Preserve `shoebox_reference.py` as the historical
-  cortical comparator. New public models use exact search with routing C and v10 coverage-only
-  balancing. Explicit C/D controls retain v9 unless warmup-only is selected.
+  cortical comparator. New public models use v19: expert banks at 1/4 bytes,
+  ordered summaries at 16/64 bytes, exact C search and coverage-only warmup.
+  Preserve bounded context, addressed/retained memory, reconstruction and child
+  credit. Upper summaries have diagonal recurrence and constant learned output
+  modulation, with no expert bank, router, forecast head or refinement.
+  `core="full"` preserves the previous v10 architecture. Explicit C/D controls
+  retain v9 unless warmup-only is selected. Explicit experimental options select
+  full when core is omitted; they must not silently extend the minimal core.
 - Implemented architectural repairs belong in the default reference path.
   Enable compatible reference features and full credit coverage by default.
   Throughput regressions do not justify leaving a completed repair opt-in.
@@ -14,6 +20,9 @@
 - Upper language-credit gains and retained-value producer credit are experimental
   controls. Numerical correctness does not establish expert specialization;
   require matched loss and active-expert permutation evidence before promotion.
+- The MAD v1 harness explicitly uses the full historical architecture so published
+  comparisons remain reproducible. New architecture comparisons must name their
+  core; the minimal qualification is in `experiments/minimal_core/`.
 - Validate changes with the relevant native regression tests, checkpoint
   continuation checks and sanitizer harness. Record throughput when measured.
 - Keep trained models, datasets, compiled binaries and temporary snapshots out

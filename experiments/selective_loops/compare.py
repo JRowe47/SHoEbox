@@ -35,7 +35,7 @@ def main():
     args.out.parent.mkdir(parents=True,exist_ok=True)
     def save():args.out.write_text(json.dumps(result,indent=2)+'\n')
     for seed in args.seeds:
-        models={name:Model(seed=seed,loops=None if name=='C' else result['loop_config']) for name in ('C','loops')}
+        models={name:Model(core='full',seed=seed,loops=None if name=='C' else result['loop_config']) for name in ('C','loops')}
         rows={name:dict(seed=seed,arm=name,parameters=m.parameter_count,curve=[dict(targets=0,nll=m.evaluate(valid),cpu_seconds=0,seconds=0)],
                        cpu_seconds=0.,seconds=0.) for name,m in models.items()}
         for start in range(0,args.targets,50_000):

@@ -8,7 +8,7 @@ from shoe_multiscale import Model
 class LargeModelTests(unittest.TestCase):
     def test_100m_budget_and_checkpoint_continuation(self):
         data = np.random.default_rng(23).integers(0, 256, 779, dtype=np.uint8)
-        with Model(parameters=100_000_000, seed=7) as m:
+        with Model(parameters=100_000_000, seed=7, core="full") as m:
             self.assertEqual(m.parameter_count, 99_997_503)
             self.assertEqual(m.stats()['experts'], [11816, 5908, 3544, 2365])
             self.assertEqual(m.stats()['routing_arm'], 'C')

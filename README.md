@@ -6,29 +6,37 @@
 synthetic tasks, independent difficulty controls, parameter/state accounting,
 paired optimization sweeps, development/test separation, learning-versus-cost
 curves, and frozen loop/memory/expert interventions. Start with
-`python -m experiments.mad.run --preset smoke`; add `--execute --out /tmp/mad.json`
+`python -m experiments.mad.run --core minimal --preset smoke`; add `--execute --out /tmp/mad.json`
 to run the smoke qualification.
 
-## Selected runtime: corrected multiscale routing C
+## Selected runtime: minimal corrected-C core
 
-The default `shoe_multiscale` model is **corrected C**: exact prototype search,
-centered normalized routing, and coverage-only utilization warmup (v10).
-The API and CLI select the same profile. Routing D remains an explicit
-historical control.
+The default `shoe_multiscale` model is the **minimal corrected-C core (v19)**.
+Sparse experts run at the 1/4-byte scales; ordered, trainable summaries run at
+16/64 bytes. The core retains bounded context, addressed and retained memory,
+child reconstruction, and local learning. Prediction uses one forward pass.
+Upper expert banks, their routing and forecast heads, and state-dependent upper
+modulation are removed. Learned constant modulation preserves their useful bias.
+Loops, route-rate cycles and experimental credit multipliers belong to the
+explicit full research architecture.
 
 ```python
 from shoe_multiscale import fresh_model
 with fresh_model(levels=4, parameters=1_000_000) as model:
     assert model.stats()["routing_arm"] == "C"
+    assert model.stats()["core"] == "minimal"
+    assert model.stats()["experts"][2:] == [0, 0]
     model.train(b"An observed byte stream for local learning.\n")
     model.save("model.shoe")
 ```
 
-Corrected C has 999,615 parameters at the nominal 1M setting and 4,999,743
-at 5M. Three matched 20M-target FineWeb runs at 5M give mean development NLL
-**1.731222** and reserved-audit NLL **1.688454**. Upper expert specialization
-remains under investigation. Saved models
-retain their original policies and unfinished stream state when loaded.
+The parameter budget is concentrated in the two remaining expert banks; width
+stays 64. `Model(core="full")` selects the preceding four-bank corrected-C
+architecture. Saved models retain their original architecture, policies and
+unfinished stream state when loaded. Existing checkpoints are not converted.
+
+[Minimal-core specification and qualification](reports/minimal_core/SHoEbox_Minimal_Core_Baseline.md).
+Earlier 20M-target FineWeb results below describe the full architecture, not v19.
 
 [Usage and architecture](multiscale/README.md) |
 [Route-local learning rates](multiscale/ROUTE_LEARNING.md) |

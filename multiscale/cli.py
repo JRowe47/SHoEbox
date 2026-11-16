@@ -13,6 +13,8 @@ def main():
     train=sub.add_parser("train")
     train.add_argument("--data",required=True);train.add_argument("--out",required=True)
     train.add_argument("--resume");train.add_argument("--levels",type=int,default=4)
+    train.add_argument("--core",choices=["minimal","full"],default=None,
+                       help="fresh model: minimal baseline; full preserves historical expert scales")
     train.add_argument("--parameters",type=int,default=1_000_000);train.add_argument("--seed",type=int,default=7)
     train.add_argument("--targets",type=int);train.add_argument("--learning-rate",type=float,default=None)
     train.add_argument("--slow-rate",type=float);train.add_argument("--query-rate",type=float)
@@ -59,9 +61,11 @@ def main():
             parser.error("cycle bounds, amplitude and period require --route-lr or --no-route-lr")
         if args.lr_anchor_targets and args.lr_anchor_target is None:
             parser.error("--lr-anchor-targets requires --lr-anchor-target")
-        if args.resume and any(value is not None for value in (args.router,args.routing_arm,args.semantic_laces,args.balance_policy,args.language_credit,args.recall_credit)):
-            parser.error("resume preserves saved routing; routing options apply only to fresh models")
-        m=Model.load(args.resume) if args.resume else Model(levels=args.levels,parameters=args.parameters,
+        if args.resume and any(value is not None for value in (args.core,args.router,args.routing_arm,args.semantic_laces,args.balance_policy,args.language_credit,args.recall_credit)):
+            parser.error("resume preserves saved routing and architecture; these options apply only to fresh models")
+        core=args.core
+        if core is None and (args.loop_steps is not None or args.route_lr is not None):core="full"
+        m=Model.load(args.resume) if args.resume else Model(levels=args.levels,parameters=args.parameters,core=core,
                          seed=args.seed,router=args.router,associations=args.associations,memory_profile=args.memory_profile,
                          routing_arm=args.routing_arm,semantic_laces=args.semantic_laces,balance_policy=args.balance_policy,
                          language_credit=args.language_credit,recall_credit=args.recall_credit)

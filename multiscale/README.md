@@ -1,18 +1,20 @@
-# Multiscale SHoE — selected corrected routing C
+# Multiscale SHoE — minimal corrected-C baseline
 
-`shoe_multiscale.Model()` and `fresh_model()` create **corrected C**.
-C uses exact prototype search, centered normalized routing, and coverage
-warmup. The Python API and CLI select the same
-policy. New models retain coverage warmup and retire its bias; the former
-post-warmup absence penalty is removed. Saved policies remain reproducible.
+`shoe_multiscale.Model()` and `fresh_model()` create the **minimal v19 core**:
+corrected-C experts at 1/4 bytes and ordered summaries at 16/64 bytes. Exact
+prototype search, centered normalized routing and coverage warmup operate in
+the two expert banks. The Python API and CLI select the same architecture.
+`Model(core="full")` / `--core full` retain the previous four-bank C baseline.
+Saved architectures and policies remain reproducible.
 
 ## Quick start
 
-Optional completed-constituent refinement is available with `Model(loops={})`:
+Optional completed-constituent refinement selects the full research architecture
+with `Model(core="full", loops={})`:
 extra pass budgets 0/1/2/2 at the 1/4/16/64-byte scales, shared expert weights,
 64-value working state and convergence stopping. See
 [selective multiscale loops](SELECTIVE_LOOPS.md) for training, inference and
-checkpoint behavior. The ordinary corrected-C control remains reproducible.
+checkpoint behavior. These extensions are excluded from the minimal core.
 
 Requirements: Python 3.10+, NumPy, a C++17 compiler, and a CPU. The first API use
 compiles the native library into a temporary cache. Set `CXX` to select a compiler
@@ -23,6 +25,7 @@ from shoe_multiscale import Model, fresh_model
 
 with fresh_model(levels=4, parameters=1_000_000, seed=7) as model:
     assert model.stats()["routing_arm"] == "C"
+    assert model.stats()["level_kinds"] == ["expert", "expert", "summary", "summary"]
     model.train(b"An observed training sequence.\n")
     model.save("model.shoe")  # unfinished local blocks remain pending
     loss = model.evaluate(b"A separate held-out sequence.\n")
@@ -47,7 +50,8 @@ by itself. It uses fixed rates unless route learning or an anchor ramp is select
 
 ## Route-local learning rates
 
-Use `Model(route_lr={})` or `model.configure_route_lr()` to enable bounded cycles
+On the full research architecture, use `Model(core="full", route_lr={})` or
+`model.configure_route_lr()` to enable bounded cycles
 around a shared, movable anchor. Each expert's phase advances with its own
 selected training events. All parameter families inherit the anchor; expert
 matrices, biases and routing keys also inherit their route's periodic multiplier.
@@ -74,7 +78,33 @@ Clocks and anchor ramps survive document resets and exact checkpoint resumption.
 Frozen evaluation does not advance them. Full details, update ownership,
 compatibility and comparison commands are in [ROUTE_LEARNING.md](ROUTE_LEARNING.md).
 
-## C architecture and selected settings
+## Minimal architecture and selected settings
+
+The four clocks and 64-coordinate state width remain. Only the first two scales
+route to experts. The upper pair composes four ordered children, updates diagonal
+recurrent state and memory reads, and publishes content to the next scale. Child
+reconstruction and bounded credit remain trainable. Their output modulation is
+two learned 64-value constants, replacing state-dependent dense gain/bias maps.
+Retained-unit recall still supplies dynamic longer-scale information per byte.
+There are no upper expert matrices, routing decisions, contrastive forecast
+heads, D predictors, repeated refinement passes or route-rate cycles.
+
+| Nominal budget | Fitted parameters | Byte experts | 4-byte experts | Upper experts |
+| --- | ---: | ---: | ---: | ---: |
+| 500K | 498,367 | 56 | 29 | 0 |
+| 1M | 996,799 | 135 | 68 | 0 |
+| 5M | 4,996,927 | 766 | 384 | 0 |
+| 100M | 99,998,911 | 15,760 | 7,881 | 0 |
+
+The nominal parameter budget moves into the remaining expert banks in a 2:1
+ratio. This is a capacity-matched reduction, not a claim that the requested
+parameter count itself becomes smaller. The runtime shares historical structs;
+unused dense upper fields are not fitted, executed or serialized in v19.
+
+See the [baseline report](../reports/minimal_core/SHoEbox_Minimal_Core_Baseline.md)
+for paired measurements and the exact qualification protocol.
+
+## Full C architecture (historical comparator)
 
 | Scale | Bytes/event | Experts at the 1M budget |
 | --- | ---: | ---: |
@@ -106,7 +136,7 @@ next-same-scale SDR prediction objective. The target is supplied only after the
 next observed event. The byte decoder, contrastive-content and reconstruction
 objectives remain active.
 
-Centered normalized routing and the calibrated margin gate run at all scales.
+In full C, centered normalized routing and the calibrated margin gate run at all scales.
 Utilization warmup fades as the least-used expert approaches 256 selections.
 After coverage, its accumulated bias decays on a 256-selections-per-expert
 horizon. No continuing penalty pushes frequent contexts away from specialists. Statistics and prototype seeding observe
@@ -136,21 +166,29 @@ for explicit schedules; omitted rates retain their current values.
   its anchor ramp and per-expert clocks. Old checkpoints retain fixed rates
   until route learning is explicitly configured; private v13–v16 experiments
   are not accepted as v17.
-- Explicit `Model(routing_arm="C")` / `"D"` retain v9 for historical comparisons.
-  Add `balance_policy="warmup"` to select v10 explicitly. `Model()` selects
-  C with v10. `set_balance_policy("warmup")` is an explicit migration of future
+- v18 stores full-architecture refinement policy and pending loop traces.
+- v19 identifies the minimal architecture, stores only fitted upper summary
+  parameters, and preserves unfinished summaries, memory and credit exactly.
+  It is a fresh architecture, not a conversion of existing trained models.
+- Explicit `Model(routing_arm="C")` / `"D"` retain full v9 for historical comparisons.
+  Add `balance_policy="warmup"` to select full v10 explicitly. `Model()` selects
+  minimal v19; `Model(core="full")` selects full C v10.
+  `set_balance_policy("warmup")` is an explicit migration of future
   updates; it preserves current biases, weights and pending stream state.
 - `shoebox_reference` remains the independent historical cortical comparator.
+- Explicit historical profiles, semantic laces, association dispatch, loops,
+  route-rate cycles or credit arrays select full when `core` is omitted. An
+  explicit `core="minimal"` rejects incompatible extensions. Loading never
+  switches architecture based on the new default.
 
 ## Evidence and verification
 
-Corrected C is the selected baseline for the L2/L3 investigation. Three matched
+Full corrected C was the baseline for the L2/L3 investigation. Three matched
 20M-target runs at 5M reproduce mean development NLL **1.731222** and audit NLL
-**1.688454**. C is the requested baseline; the historical D selection below is
-not an assertion that D remains selected. See the
+**1.688454**. These are historical full-model results, not v19 measurements. See the
 [L2/L3 investigation](../experiments/upper_credit/README.md).
 
-Language gains and retained-value producer gradients are opt-in experimental
+On `core="full"`, language gains and retained-value producer gradients are opt-in experimental
 controls. `language_credit=(1,1,4,16)` scales only the language VJP entering native
 states; output-head and auxiliary gradients are unchanged. `recall_credit=(0,0,1,1)`
 trains learned retained values through their live producing constituents.

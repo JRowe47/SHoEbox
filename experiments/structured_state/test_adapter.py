@@ -42,7 +42,7 @@ class Tests(unittest.TestCase):
             for m in (a,b,c):m.close()
     def test_native_baseline_equivalence(self):
         from shoe_multiscale import Model
-        with Adapter() as a,Model(seed=7) as b:
+        with Adapter() as a,Model(seed=7,core='full') as b:
             b.configure_route_lr(lower=.1,upper=1,anchor=1,amplitude=0)
             b.set_learning_anchor(.1,over_targets=3000000)
             data=bytes((i*17)%256 for i in range(1025))

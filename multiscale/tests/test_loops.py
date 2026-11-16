@@ -23,7 +23,7 @@ def base_payload(data):
 class LoopTests(unittest.TestCase):
     def test_zero_depth_exact_control(self):
         data=np.random.default_rng(7).integers(0,256,1201,dtype=np.uint8)
-        with Model() as base,Model(loops={'steps':[0,0,0,0]}) as loops:
+        with Model(core="full") as base,Model(loops={'steps':[0,0,0,0]}) as loops:
             self.assertEqual(base.parameter_count,loops.parameter_count)
             self.assertEqual(base.run(data[:-1],data[1:]),loops.run(data[:-1],data[1:]))
             self.assertEqual(base_payload(base.dumps()),base_payload(loops.dumps()))
@@ -83,7 +83,7 @@ class LoopTests(unittest.TestCase):
                     self.assertEqual(frozen.dumps(),resumed.dumps())
 
     def test_validation_is_atomic(self):
-        with Model() as m:
+        with Model(core="full") as m:
             old=m.dumps()
             for kw in ({'steps':[1,1,1,1]},{'steps':[0,5,2,2]},
                        {'steps':[0,1,2]},{'steps':[0.,1.,2.,2.]},
