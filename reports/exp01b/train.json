@@ -1,0 +1,3242 @@
+{
+  "plan": {
+    "experiment": "EXP01-B",
+    "core": "minimal-v19",
+    "seeds": [
+      1,
+      7,
+      19
+    ],
+    "parameters": 500000,
+    "arms": [
+      "native",
+      "matched",
+      "answer_frozen",
+      "local_frozen",
+      "local_joint",
+      "rls_frozen"
+    ],
+    "warmup_bytes": 250000,
+    "continuation_bytes": 2000000,
+    "eval_interval": 500000,
+    "head_rate": 0.16,
+    "local_weight": 1,
+    "training_cases": 2048,
+    "development_cases": 512,
+    "test_cases": 1024,
+    "key_pool": 48,
+    "vocab": 2,
+    "fold_salt": "SHoEbox-EXP01B-online-factorized-v1\u0000",
+    "selection": "all fixed-horizon arms audited; no test selection",
+    "gate": {
+      "mean_native_exact": 0.95,
+      "min_seed_native_exact": 0.9
+    },
+    "offset_audit_cases": 64,
+    "counterfactual_cases": 256,
+    "cpus": [
+      0,
+      1,
+      2
+    ],
+    "source_hashes": {
+      "experiments/factorized_readout/check_native.py": "9fe86869176d8aee083eb8c0cecb952b96d2164db085b1996b035877daaab49f",
+      "experiments/factorized_readout/__init__.py": "52d4bb5d8e7e0cbfb61afbd26a03ae7d8f14daa89e2e77db40e7d96e8b6296fc",
+      "experiments/factorized_readout/test_adapter.py": "5e6786d2281b0551558da142f25e55b9ce2fbda46c12d82fce3e98081f959b47",
+      "experiments/factorized_readout/adapter.py": "1f704436ca51e42381485235b62dba4ab55b35f7546531da20e2f5d5ebb0f3ba",
+      "experiments/factorized_readout/pilot_rates.py": "f97f00ce6c51d49214230ebb2bc155faf855f8ad7b6cbadade11a9aa13eae9d7",
+      "experiments/factorized_readout/run.py": "7d12273c0506009377447f80efd4ae742bde2dcfb9b9d42c26759b1123549e00",
+      "experiments/factorized_readout/tasks.py": "075d061fcce7412618b428215ddd0a6e143d6796ccc8ff7e9cfe1eb2465f4c5c",
+      "experiments/factorized_readout/pilot.py": "0876bb674c6070c6e040738d8d61bfe2a8c89299f72dd7069f8fa3d4450b7c89",
+      "experiments/factorized_readout/readout.hpp": "36326546549753f3c62339cfbd685e02596193f11f7875a1abf10b271a8c5c95",
+      "experiments/factorized_readout/api.cpp": "293a9bf5ea0029db54e359a0157efe65ab43dd9103a5fca5645aaa5fe4098045",
+      "experiments/factorized_readout/native_test.cpp": "7230e14eab7e5a7df70f03f615452930f6e77edd31f41d31ef697a97cc79452b",
+      "experiments/query_readout/run.py": "36730498f1b6871b15608c00ec622d3ba5b3a64855c02cb9e3279d3d4905451c",
+      "experiments/mad_next/tasks.py": "a7d5ef2404a7cf029ff44f806758f089b88832826083e8a4b97b8b05a351f616",
+      "multiscale/native.cpp": "adf6f9618b7e132884d46ada126d9b8378447fcb43a7f0f50a1a7b52e3db67ef",
+      "multiscale/address_memory.hpp": "9fc024b0f20c4620d32f324e765cb94c2983003fff2b44af5d34309f6990e152",
+      "multiscale/loops.hpp": "6feca8464cb14f192e07ce546855f70746f28c74a7b7a908b1672a114582952e",
+      "multiscale/native.hpp": "c7468172895aa8a7df7dadb470c85c8dbb72ea8025753808da47f1b138c58e59",
+      "multiscale/recall.hpp": "d5c1821da38cd223f4fc8897e7560d419ffa42214781d6d9639a4e6ec10207be",
+      "multiscale/recall_credit.hpp": "c40804261d56f6f1fb8ecabd0ebff9ba83c8916c0409a6153c14f8087de587e8",
+      "multiscale/route_learning.hpp": "e8c39be21196f287cec71615dbf0532860ac0c1874e20d6f671b951e7400dc92",
+      "multiscale/routing_geometry.hpp": "cba720017b4aa3d1438e3a6af24834e0ab6d2511228e5cd25ae4eeab457311aa",
+      "multiscale/routing_geometry_impl.hpp": "bc54d07a0218478649ed59b993a71402d05e42c86489bb77622a948519f465f1",
+      "multiscale/semantic_laces.hpp": "503118419675b1a6636893c49cfa2f0571b8d6f0df51570bee390b29f13715b1",
+      "multiscale/semantic_laces_impl.hpp": "f7c2be3fa569e74298d7cb28aac203705e2fa65da2a5262ff9d7d5695cd61aaf"
+    }
+  },
+  "rows": [
+    {
+      "seed": 1,
+      "core": "minimal",
+      "datasets": {
+        "train": "89e6237d7287a5c21e97de6bc55dee4c301bb8559e0146a1cff6947aeaf46a62",
+        "dev": "8729a5567ffda1cc95f95ac5be9d47fb5f5e2eab43e52533b603d9e03e916b65"
+      },
+      "arms": {
+        "native": {
+          "bytes": 2000000,
+          "targets": 31007,
+          "cpu_seconds": 45.82900904799983,
+          "wall_seconds": 45.855347661909036,
+          "bytes_per_cpu_second": 43640.481030372364,
+          "order_sha256": "65cf0148e3eda156f463375cd0f94cf22a5b0651f4fc8a54ceced11226dcec97",
+          "curve": [
+            {
+              "bytes": 500004,
+              "cpu_seconds": 11.853293600999901,
+              "dev": {
+                "cases": 512,
+                "teacher_forced": {
+                  "token_accuracy": 0.7529296875,
+                  "exact": 0.505859375,
+                  "native_token_accuracy": 0.7529296875,
+                  "native_exact": 0.505859375,
+                  "task_nll": 0.3538599553267954,
+                  "native_nll": 0.35503829105186924
+                },
+                "restricted_rollout": {
+                  "token_accuracy": 0.505859375,
+                  "exact": 0.505859375,
+                  "native_token_accuracy": 0.505859375,
+                  "native_exact": 0.505859375,
+                  "task_nll": 1.5891606590700333,
+                  "native_nll": 1.5904264968473854
+                },
+                "native_rollout": {
+                  "token_accuracy": 0.505859375,
+                  "exact": 0.505859375,
+                  "native_token_accuracy": 0.505859375,
+                  "native_exact": 0.505859375,
+                  "task_nll": 1.5891606590700333,
+                  "native_nll": 1.5904264968473854
+                }
+              }
+            },
+            {
+              "bytes": 1000008,
+              "cpu_seconds": 23.012979798999577,
+              "dev": {
+                "cases": 512,
+                "teacher_forced": {
+                  "token_accuracy": 0.755859375,
+                  "exact": 0.51171875,
+                  "native_token_accuracy": 0.755859375,
+                  "native_exact": 0.51171875,
+                  "task_nll": 0.35062763516243367,
+                  "native_nll": 0.3514422356453224
+                },
+                "restricted_rollout": {
+                  "token_accuracy": 0.51171875,
+                  "exact": 0.51171875,
+                  "native_token_accuracy": 0.51171875,
+                  "native_exact": 0.51171875,
+                  "task_nll": 1.7359808850100829,
+                  "native_nll": 1.7368597369417103
+                },
+                "native_rollout": {
+                  "token_accuracy": 0.51171875,
+                  "exact": 0.51171875,
+                  "native_token_accuracy": 0.51171875,
+                  "native_exact": 0.51171875,
+                  "task_nll": 1.7359808850100829,
+                  "native_nll": 1.7368597369417103
+                }
+              }
+            },
+            {
+              "bytes": 1500012,
+              "cpu_seconds": 34.54046312999969,
+              "dev": {
+                "cases": 512,
+                "teacher_forced": {
+                  "token_accuracy": 0.7470703125,
+                  "exact": 0.494140625,
+                  "native_token_accuracy": 0.7470703125,
+                  "native_exact": 0.494140625,
+                  "task_nll": 0.35021752646370635,
+                  "native_nll": 0.35078938657238723
+                },
+                "restricted_rollout": {
+                  "token_accuracy": 0.494140625,
+                  "exact": 0.494140625,
+                  "native_token_accuracy": 0.494140625,
+                  "native_exact": 0.494140625,
+                  "task_nll": 1.7080415842964927,
+                  "native_nll": 1.70856879010978
+                },
+                "native_rollout": {
+                  "token_accuracy": 0.494140625,
+                  "exact": 0.494140625,
+                  "native_token_accuracy": 0.494140625,
+                  "native_exact": 0.494140625,
+                  "task_nll": 1.7080415842964927,
+                  "native_nll": 1.70856879010978
+                }
+              }
+            },
+            {
+              "bytes": 2000000,
+              "cpu_seconds": 45.82900904799983,
+              "dev": {
+                "cases": 512,
+                "teacher_forced": {
+                  "token_accuracy": 0.75,
+                  "exact": 0.5,
+                  "native_token_accuracy": 0.75,
+                  "native_exact": 0.5,
+                  "task_nll": 0.39556455760677506,
+                  "native_nll": 0.3960730164323536
+                },
+                "restricted_rollout": {
+                  "token_accuracy": 0.5,
+                  "exact": 0.5,
+                  "native_token_accuracy": 0.5,
+                  "native_exact": 0.5,
+                  "task_nll": 1.6296486892825284,
+                  "native_nll": 1.6301142635277301
+                },
+                "native_rollout": {
+                  "token_accuracy": 0.5,
+                  "exact": 0.5,
+                  "native_token_accuracy": 0.5,
+                  "native_exact": 0.5,
+                  "task_nll": 1.6296486892825284,
+                  "native_nll": 1.6301142635277301
+                }
+              }
+            }
+          ],
+          "inventory": {
+            "core_parameters": 498367,
+            "readout_parameters": 0,
+            "parameters": 498367,
+            "bytes": 113,
+            "head_targets": 0,
+            "training": true,
+            "joint": true,
+            "kind": "native",
+            "core": "minimal",
+            "readout_cache_bytes": 2180,
+            "experts_per_level": [
+              56,
+              29,
+              0,
+              0
+            ],
+            "allocated_head_bytes": 38140,
+            "allocated_adapter_bytes": 41416,
+            "added_persistent_sequence_state_bytes": 0,
+            "optimizer_state_bytes": 0,
+            "rls_updates": 0,
+            "normalization_bytes": 1032,
+            "normalization_samples": 0
+          },
+          "separate_warmup": {
+            "bytes": 250000,
+            "targets": 3875,
+            "cpu_seconds": 5.378552211999995,
+            "wall_seconds": 5.387448073000996,
+            "bytes_per_cpu_second": 46480.90975899226,
+            "order_sha256": "84b9276e7cdfd48ecdc4d0c5d0e48ee68861867c519c23360205e1810b33094e",
+            "curve": [
+              {
+                "bytes": 250000,
+                "cpu_seconds": 5.378552211999995,
+                "dev": {
+                  "cases": 512,
+                  "teacher_forced": {
+                    "token_accuracy": 0.75,
+                    "exact": 0.5,
+                    "native_token_accuracy": 0.75,
+                    "native_exact": 0.5,
+                    "task_nll": 0.39473749369680033,
+                    "native_nll": 0.398258615139639
+                  },
+                  "restricted_rollout": {
+                    "token_accuracy": 0.5,
+                    "exact": 0.5,
+                    "native_token_accuracy": 0.5,
+                    "native_exact": 0.5,
+                    "task_nll": 1.016013075600652,
+                    "native_nll": 1.0192869663151214
+                  },
+                  "native_rollout": {
+                    "token_accuracy": 0.5,
+                    "exact": 0.5,
+                    "native_token_accuracy": 0.5,
+                    "native_exact": 0.5,
+                    "task_nll": 1.016013075600652,
+                    "native_nll": 1.0192869663151214
+                  }
+                }
+              }
+            ]
+          },
+          "continuation_reload_exact": true
+        },
+        "matched": {
+          "bytes": 2000000,
+          "targets": 31007,
+          "cpu_seconds": 49.22758603800085,
+          "wall_seconds": 49.250917169792956,
+          "bytes_per_cpu_second": 40627.62692560459,
+          "order_sha256": "65cf0148e3eda156f463375cd0f94cf22a5b0651f4fc8a54ceced11226dcec97",
+          "curve": [
+            {
+              "bytes": 500004,
+              "cpu_seconds": 11.268787511000113,
+              "dev": {
+                "cases": 512,
+                "teacher_forced": {
+                  "token_accuracy": 0.75,
+                  "exact": 0.5,
+                  "native_token_accuracy": 0.75,
+                  "native_exact": 0.5,
+                  "task_nll": 0.35305725081110984,
+                  "native_nll": 0.3540753632014457
+                },
+                "restricted_rollout": {
+                  "token_accuracy": 0.5,
+                  "exact": 0.5,
+                  "native_token_accuracy": 0.5,
+                  "native_exact": 0.5,
+                  "task_nll": 1.6746758220075582,
+                  "native_nll": 1.6758252004078713
+                },
+                "native_rollout": {
+                  "token_accuracy": 0.5,
+                  "exact": 0.5,
+                  "native_token_accuracy": 0.5,
+                  "native_exact": 0.5,
+                  "task_nll": 1.6746758220075582,
+                  "native_nll": 1.6758252004078713
+                }
+              }
+            },
+            {
+              "bytes": 1000008,
+              "cpu_seconds": 23.97735354100078,
+              "dev": {
+                "cases": 512,
+                "teacher_forced": {
+                  "token_accuracy": 0.7470703125,
+                  "exact": 0.494140625,
+                  "native_token_accuracy": 0.7470703125,
+                  "native_exact": 0.494140625,
+                  "task_nll": 0.3505179818055937,
+                  "native_nll": 0.35114664450975397
+                },
+                "restricted_rollout": {
+                  "token_accuracy": 0.494140625,
+                  "exact": 0.494140625,
+                  "native_token_accuracy": 0.494140625,
+                  "native_exact": 0.494140625,
+                  "task_nll": 1.8340518177013505,
+                  "native_nll": 1.8347656807712838
+                },
+                "native_rollout": {
+                  "token_accuracy": 0.494140625,
+                  "exact": 0.494140625,
+                  "native_token_accuracy": 0.494140625,
+                  "native_exact": 0.494140625,
+                  "task_nll": 1.8340518177013505,
+                  "native_nll": 1.8347656807712838
+                }
+              }
+            },
+            {
+              "bytes": 1500012,
+              "cpu_seconds": 36.64911240900045,
+              "dev": {
+                "cases": 512,
+                "teacher_forced": {
+                  "token_accuracy": 0.748046875,
+                  "exact": 0.49609375,
+                  "native_token_accuracy": 0.748046875,
+                  "native_exact": 0.49609375,
+                  "task_nll": 0.3501164421237342,
+                  "native_nll": 0.35059574121129344
+                },
+                "restricted_rollout": {
+                  "token_accuracy": 0.49609375,
+                  "exact": 0.49609375,
+                  "native_token_accuracy": 0.49609375,
+                  "native_exact": 0.49609375,
+                  "task_nll": 1.7151212861340466,
+                  "native_nll": 1.715535258636919
+                },
+                "native_rollout": {
+                  "token_accuracy": 0.49609375,
+                  "exact": 0.49609375,
+                  "native_token_accuracy": 0.49609375,
+                  "native_exact": 0.49609375,
+                  "task_nll": 1.7151212861340466,
+                  "native_nll": 1.715535258636919
+                }
+              }
+            },
+            {
+              "bytes": 2000000,
+              "cpu_seconds": 49.22758603800085,
+              "dev": {
+                "cases": 512,
+                "teacher_forced": {
+                  "token_accuracy": 0.75,
+                  "exact": 0.5,
+                  "native_token_accuracy": 0.75,
+                  "native_exact": 0.5,
+                  "task_nll": 0.4011243108802857,
+                  "native_nll": 0.4015971213464127
+                },
+                "restricted_rollout": {
+                  "token_accuracy": 0.5,
+                  "exact": 0.5,
+                  "native_token_accuracy": 0.5,
+                  "native_exact": 0.5,
+                  "task_nll": 1.6528403199223647,
+                  "native_nll": 1.6532482680453313
+                },
+                "native_rollout": {
+                  "token_accuracy": 0.5,
+                  "exact": 0.5,
+                  "native_token_accuracy": 0.5,
+                  "native_exact": 0.5,
+                  "task_nll": 1.6528403199223647,
+                  "native_nll": 1.6532482680453313
+                }
+              }
+            }
+          ],
+          "inventory": {
+            "core_parameters": 489919,
+            "readout_parameters": 0,
+            "parameters": 489919,
+            "bytes": 113,
+            "head_targets": 0,
+            "training": true,
+            "joint": true,
+            "kind": "native",
+            "core": "minimal",
+            "readout_cache_bytes": 2180,
+            "experts_per_level": [
+              55,
+              28,
+              0,
+              0
+            ],
+            "allocated_head_bytes": 38140,
+            "allocated_adapter_bytes": 41416,
+            "added_persistent_sequence_state_bytes": 0,
+            "optimizer_state_bytes": 0,
+            "rls_updates": 0,
+            "normalization_bytes": 1032,
+            "normalization_samples": 0
+          },
+          "separate_warmup": null,
+          "continuation_reload_exact": true
+        },
+        "answer_frozen": {
+          "bytes": 2000000,
+          "targets": 31007,
+          "cpu_seconds": 33.199658149997276,
+          "wall_seconds": 33.214798421679006,
+          "bytes_per_cpu_second": 60241.5841441477,
+          "order_sha256": "65cf0148e3eda156f463375cd0f94cf22a5b0651f4fc8a54ceced11226dcec97",
+          "curve": [
+            {
+              "bytes": 500004,
+              "cpu_seconds": 8.205863380999773,
+              "dev": {
+                "cases": 512,
+                "teacher_forced": {
+                  "token_accuracy": 0.7421875,
+                  "exact": 0.484375,
+                  "native_token_accuracy": 0.7421875,
+                  "native_exact": 0.484375,
+                  "task_nll": 0.3725963460082884,
+                  "native_nll": 0.3758419310743193
+                },
+                "restricted_rollout": {
+                  "token_accuracy": 0.484375,
+                  "exact": 0.484375,
+                  "native_token_accuracy": 0.484375,
+                  "native_exact": 0.484375,
+                  "task_nll": 1.2794517049746315,
+                  "native_nll": 1.2829627517648987
+                },
+                "native_rollout": {
+                  "token_accuracy": 0.484375,
+                  "exact": 0.484375,
+                  "native_token_accuracy": 0.484375,
+                  "native_exact": 0.484375,
+                  "task_nll": 1.2794517049746315,
+                  "native_nll": 1.2829627517648987
+                }
+              }
+            },
+            {
+              "bytes": 1000008,
+              "cpu_seconds": 16.642471641999094,
+              "dev": {
+                "cases": 512,
+                "teacher_forced": {
+                  "token_accuracy": 0.7431640625,
+                  "exact": 0.486328125,
+                  "native_token_accuracy": 0.7431640625,
+                  "native_exact": 0.486328125,
+                  "task_nll": 0.3694411365098561,
+                  "native_nll": 0.37259624588023144
+                },
+                "restricted_rollout": {
+                  "token_accuracy": 0.486328125,
+                  "exact": 0.486328125,
+                  "native_token_accuracy": 0.486328125,
+                  "native_exact": 0.486328125,
+                  "task_nll": 1.21904969040011,
+                  "native_nll": 1.222318723756871
+                },
+                "native_rollout": {
+                  "token_accuracy": 0.486328125,
+                  "exact": 0.486328125,
+                  "native_token_accuracy": 0.486328125,
+                  "native_exact": 0.486328125,
+                  "task_nll": 1.21904969040011,
+                  "native_nll": 1.222318723756871
+                }
+              }
+            },
+            {
+              "bytes": 1500012,
+              "cpu_seconds": 25.1039113199987,
+              "dev": {
+                "cases": 512,
+                "teacher_forced": {
+                  "token_accuracy": 0.7333984375,
+                  "exact": 0.466796875,
+                  "native_token_accuracy": 0.7333984375,
+                  "native_exact": 0.466796875,
+                  "task_nll": 0.36619620718723167,
+                  "native_nll": 0.36926456012724884
+                },
+                "restricted_rollout": {
+                  "token_accuracy": 0.466796875,
+                  "exact": 0.466796875,
+                  "native_token_accuracy": 0.466796875,
+                  "native_exact": 0.466796875,
+                  "task_nll": 1.356621646108881,
+                  "native_nll": 1.3597724821001975
+                },
+                "native_rollout": {
+                  "token_accuracy": 0.466796875,
+                  "exact": 0.466796875,
+                  "native_token_accuracy": 0.466796875,
+                  "native_exact": 0.466796875,
+                  "task_nll": 1.356621646108881,
+                  "native_nll": 1.3597724821001975
+                }
+              }
+            },
+            {
+              "bytes": 2000000,
+              "cpu_seconds": 33.199658149997276,
+              "dev": {
+                "cases": 512,
+                "teacher_forced": {
+                  "token_accuracy": 0.759765625,
+                  "exact": 0.51953125,
+                  "native_token_accuracy": 0.759765625,
+                  "native_exact": 0.51953125,
+                  "task_nll": 0.35715594233605874,
+                  "native_nll": 0.3601463902791693
+                },
+                "restricted_rollout": {
+                  "token_accuracy": 0.51953125,
+                  "exact": 0.51953125,
+                  "native_token_accuracy": 0.51953125,
+                  "native_exact": 0.51953125,
+                  "task_nll": 1.3274146130414317,
+                  "native_nll": 1.3302686934575831
+                },
+                "native_rollout": {
+                  "token_accuracy": 0.51953125,
+                  "exact": 0.51953125,
+                  "native_token_accuracy": 0.51953125,
+                  "native_exact": 0.51953125,
+                  "task_nll": 1.3274146130414317,
+                  "native_nll": 1.3302686934575831
+                }
+              }
+            }
+          ],
+          "inventory": {
+            "core_parameters": 489919,
+            "readout_parameters": 9535,
+            "parameters": 499454,
+            "bytes": 113,
+            "head_targets": 31007,
+            "training": true,
+            "joint": false,
+            "kind": "answer",
+            "core": "minimal",
+            "readout_cache_bytes": 2180,
+            "experts_per_level": [
+              55,
+              28,
+              0,
+              0
+            ],
+            "allocated_head_bytes": 38140,
+            "allocated_adapter_bytes": 41416,
+            "added_persistent_sequence_state_bytes": 0,
+            "optimizer_state_bytes": 0,
+            "rls_updates": 0,
+            "normalization_bytes": 1032,
+            "normalization_samples": 31007
+          },
+          "separate_warmup": null,
+          "continuation_reload_exact": true
+        },
+        "local_frozen": {
+          "bytes": 2000000,
+          "targets": 31007,
+          "cpu_seconds": 34.891030855000025,
+          "wall_seconds": 34.9047949961423,
+          "bytes_per_cpu_second": 57321.321582947494,
+          "order_sha256": "65cf0148e3eda156f463375cd0f94cf22a5b0651f4fc8a54ceced11226dcec97",
+          "curve": [
+            {
+              "bytes": 500004,
+              "cpu_seconds": 8.942680591000425,
+              "dev": {
+                "cases": 512,
+                "teacher_forced": {
+                  "token_accuracy": 0.896484375,
+                  "exact": 0.79296875,
+                  "native_token_accuracy": 0.896484375,
+                  "native_exact": 0.79296875,
+                  "task_nll": 0.2629984098187302,
+                  "native_nll": 0.26300134441923717
+                },
+                "restricted_rollout": {
+                  "token_accuracy": 0.7958984375,
+                  "exact": 0.79296875,
+                  "native_token_accuracy": 0.7958984375,
+                  "native_exact": 0.79296875,
+                  "task_nll": 0.5994020011173994,
+                  "native_nll": 0.5994049488844695
+                },
+                "native_rollout": {
+                  "token_accuracy": 0.7958984375,
+                  "exact": 0.79296875,
+                  "native_token_accuracy": 0.7958984375,
+                  "native_exact": 0.79296875,
+                  "task_nll": 0.5994020011173994,
+                  "native_nll": 0.5994049488844695
+                }
+              }
+            },
+            {
+              "bytes": 1000008,
+              "cpu_seconds": 17.36477961600073,
+              "dev": {
+                "cases": 512,
+                "teacher_forced": {
+                  "token_accuracy": 0.919921875,
+                  "exact": 0.83984375,
+                  "native_token_accuracy": 0.919921875,
+                  "native_exact": 0.83984375,
+                  "task_nll": 0.2105399343386456,
+                  "native_nll": 0.21054140980459835
+                },
+                "restricted_rollout": {
+                  "token_accuracy": 0.8427734375,
+                  "exact": 0.83984375,
+                  "native_token_accuracy": 0.8427734375,
+                  "native_exact": 0.83984375,
+                  "task_nll": 0.4269234185146668,
+                  "native_nll": 0.426924882512111
+                },
+                "native_rollout": {
+                  "token_accuracy": 0.8427734375,
+                  "exact": 0.83984375,
+                  "native_token_accuracy": 0.8427734375,
+                  "native_exact": 0.83984375,
+                  "task_nll": 0.4269234185146668,
+                  "native_nll": 0.426924882512111
+                }
+              }
+            },
+            {
+              "bytes": 1500012,
+              "cpu_seconds": 26.284307631999837,
+              "dev": {
+                "cases": 512,
+                "teacher_forced": {
+                  "token_accuracy": 0.9140625,
+                  "exact": 0.828125,
+                  "native_token_accuracy": 0.9140625,
+                  "native_exact": 0.828125,
+                  "task_nll": 0.24069558005159009,
+                  "native_nll": 0.24069661738592885
+                },
+                "restricted_rollout": {
+                  "token_accuracy": 0.8359375,
+                  "exact": 0.828125,
+                  "native_token_accuracy": 0.8359375,
+                  "native_exact": 0.828125,
+                  "task_nll": 0.5043020981276168,
+                  "native_nll": 0.5043031283867023
+                },
+                "native_rollout": {
+                  "token_accuracy": 0.8359375,
+                  "exact": 0.828125,
+                  "native_token_accuracy": 0.8359375,
+                  "native_exact": 0.828125,
+                  "task_nll": 0.5043020981276168,
+                  "native_nll": 0.5043031283867023
+                }
+              }
+            },
+            {
+              "bytes": 2000000,
+              "cpu_seconds": 34.891030855000025,
+              "dev": {
+                "cases": 512,
+                "teacher_forced": {
+                  "token_accuracy": 0.9052734375,
+                  "exact": 0.810546875,
+                  "native_token_accuracy": 0.9052734375,
+                  "native_exact": 0.810546875,
+                  "task_nll": 0.24010054359128827,
+                  "native_nll": 0.24010132272867502
+                },
+                "restricted_rollout": {
+                  "token_accuracy": 0.81640625,
+                  "exact": 0.810546875,
+                  "native_token_accuracy": 0.81640625,
+                  "native_exact": 0.810546875,
+                  "task_nll": 0.5673968650613186,
+                  "native_nll": 0.5673976315745062
+                },
+                "native_rollout": {
+                  "token_accuracy": 0.81640625,
+                  "exact": 0.810546875,
+                  "native_token_accuracy": 0.81640625,
+                  "native_exact": 0.810546875,
+                  "task_nll": 0.5673968650613186,
+                  "native_nll": 0.5673976315745062
+                }
+              }
+            }
+          ],
+          "inventory": {
+            "core_parameters": 489919,
+            "readout_parameters": 9535,
+            "parameters": 499454,
+            "bytes": 113,
+            "head_targets": 31007,
+            "training": true,
+            "joint": false,
+            "kind": "local",
+            "core": "minimal",
+            "readout_cache_bytes": 2180,
+            "experts_per_level": [
+              55,
+              28,
+              0,
+              0
+            ],
+            "allocated_head_bytes": 38140,
+            "allocated_adapter_bytes": 41416,
+            "added_persistent_sequence_state_bytes": 0,
+            "optimizer_state_bytes": 0,
+            "rls_updates": 0,
+            "normalization_bytes": 1032,
+            "normalization_samples": 31007
+          },
+          "separate_warmup": null,
+          "continuation_reload_exact": true
+        },
+        "local_joint": {
+          "bytes": 2000000,
+          "targets": 31007,
+          "cpu_seconds": 44.35001077700204,
+          "wall_seconds": 44.387489742228354,
+          "bytes_per_cpu_second": 45095.81767761625,
+          "order_sha256": "65cf0148e3eda156f463375cd0f94cf22a5b0651f4fc8a54ceced11226dcec97",
+          "curve": [
+            {
+              "bytes": 500004,
+              "cpu_seconds": 11.191056612999745,
+              "dev": {
+                "cases": 512,
+                "teacher_forced": {
+                  "token_accuracy": 0.767578125,
+                  "exact": 0.5390625,
+                  "native_token_accuracy": 0.767578125,
+                  "native_exact": 0.5390625,
+                  "task_nll": 0.48487779822168753,
+                  "native_nll": 0.4848831762571919
+                },
+                "restricted_rollout": {
+                  "token_accuracy": 0.544921875,
+                  "exact": 0.5390625,
+                  "native_token_accuracy": 0.544921875,
+                  "native_exact": 0.5390625,
+                  "task_nll": 1.6201906427344,
+                  "native_nll": 1.6201961058998968
+                },
+                "native_rollout": {
+                  "token_accuracy": 0.544921875,
+                  "exact": 0.5390625,
+                  "native_token_accuracy": 0.544921875,
+                  "native_exact": 0.5390625,
+                  "task_nll": 1.6201906427344,
+                  "native_nll": 1.6201961058998968
+                }
+              }
+            },
+            {
+              "bytes": 1000008,
+              "cpu_seconds": 22.4848887130004,
+              "dev": {
+                "cases": 512,
+                "teacher_forced": {
+                  "token_accuracy": 0.81640625,
+                  "exact": 0.6328125,
+                  "native_token_accuracy": 0.81640625,
+                  "native_exact": 0.6328125,
+                  "task_nll": 0.3611764398246904,
+                  "native_nll": 0.36118029851265665
+                },
+                "restricted_rollout": {
+                  "token_accuracy": 0.6396484375,
+                  "exact": 0.6328125,
+                  "native_token_accuracy": 0.6396484375,
+                  "native_exact": 0.6328125,
+                  "task_nll": 1.401187779170014,
+                  "native_nll": 1.4011916792435826
+                },
+                "native_rollout": {
+                  "token_accuracy": 0.6396484375,
+                  "exact": 0.6328125,
+                  "native_token_accuracy": 0.6396484375,
+                  "native_exact": 0.6328125,
+                  "task_nll": 1.401187779170014,
+                  "native_nll": 1.4011916792435826
+                }
+              }
+            },
+            {
+              "bytes": 1500012,
+              "cpu_seconds": 33.326133971002065,
+              "dev": {
+                "cases": 512,
+                "teacher_forced": {
+                  "token_accuracy": 0.8212890625,
+                  "exact": 0.642578125,
+                  "native_token_accuracy": 0.8212890625,
+                  "native_exact": 0.642578125,
+                  "task_nll": 0.3536288469531599,
+                  "native_nll": 0.35364271251769175
+                },
+                "restricted_rollout": {
+                  "token_accuracy": 0.66015625,
+                  "exact": 0.642578125,
+                  "native_token_accuracy": 0.66015625,
+                  "native_exact": 0.642578125,
+                  "task_nll": 1.2156492827974366,
+                  "native_nll": 1.215662947145236
+                },
+                "native_rollout": {
+                  "token_accuracy": 0.66015625,
+                  "exact": 0.642578125,
+                  "native_token_accuracy": 0.66015625,
+                  "native_exact": 0.642578125,
+                  "task_nll": 1.2156492827974366,
+                  "native_nll": 1.215662947145236
+                }
+              }
+            },
+            {
+              "bytes": 2000000,
+              "cpu_seconds": 44.35001077700204,
+              "dev": {
+                "cases": 512,
+                "teacher_forced": {
+                  "token_accuracy": 0.8330078125,
+                  "exact": 0.666015625,
+                  "native_token_accuracy": 0.8330078125,
+                  "native_exact": 0.666015625,
+                  "task_nll": 0.3736173212965751,
+                  "native_nll": 0.3736187920123167
+                },
+                "restricted_rollout": {
+                  "token_accuracy": 0.6669921875,
+                  "exact": 0.666015625,
+                  "native_token_accuracy": 0.6669921875,
+                  "native_exact": 0.666015625,
+                  "task_nll": 1.530725247088817,
+                  "native_nll": 1.5307267451116693
+                },
+                "native_rollout": {
+                  "token_accuracy": 0.6669921875,
+                  "exact": 0.666015625,
+                  "native_token_accuracy": 0.6669921875,
+                  "native_exact": 0.666015625,
+                  "task_nll": 1.530725247088817,
+                  "native_nll": 1.5307267451116693
+                }
+              }
+            }
+          ],
+          "inventory": {
+            "core_parameters": 489919,
+            "readout_parameters": 9535,
+            "parameters": 499454,
+            "bytes": 113,
+            "head_targets": 31007,
+            "training": true,
+            "joint": true,
+            "kind": "local",
+            "core": "minimal",
+            "readout_cache_bytes": 2180,
+            "experts_per_level": [
+              55,
+              28,
+              0,
+              0
+            ],
+            "allocated_head_bytes": 38140,
+            "allocated_adapter_bytes": 41416,
+            "added_persistent_sequence_state_bytes": 0,
+            "optimizer_state_bytes": 0,
+            "rls_updates": 0,
+            "normalization_bytes": 1032,
+            "normalization_samples": 31007
+          },
+          "separate_warmup": null,
+          "continuation_reload_exact": true
+        },
+        "rls_frozen": {
+          "bytes": 2000000,
+          "targets": 31007,
+          "cpu_seconds": 32.30926269300261,
+          "wall_seconds": 32.331535751094634,
+          "bytes_per_cpu_second": 61901.753036077505,
+          "order_sha256": "65cf0148e3eda156f463375cd0f94cf22a5b0651f4fc8a54ceced11226dcec97",
+          "curve": [
+            {
+              "bytes": 500004,
+              "cpu_seconds": 7.759063548000086,
+              "dev": {
+                "cases": 512,
+                "teacher_forced": {
+                  "token_accuracy": 0.9052734375,
+                  "exact": 0.810546875,
+                  "native_token_accuracy": 0.9052734375,
+                  "native_exact": 0.810546875,
+                  "task_nll": 0.26470158805439054,
+                  "native_nll": 0.2647046077160553
+                },
+                "restricted_rollout": {
+                  "token_accuracy": 0.83203125,
+                  "exact": 0.810546875,
+                  "native_token_accuracy": 0.83203125,
+                  "native_exact": 0.810546875,
+                  "task_nll": 0.4872673038100849,
+                  "native_nll": 0.48727032696695005
+                },
+                "native_rollout": {
+                  "token_accuracy": 0.83203125,
+                  "exact": 0.810546875,
+                  "native_token_accuracy": 0.83203125,
+                  "native_exact": 0.810546875,
+                  "task_nll": 0.4872673038100849,
+                  "native_nll": 0.48727032696695005
+                }
+              }
+            },
+            {
+              "bytes": 1000008,
+              "cpu_seconds": 15.625762272001566,
+              "dev": {
+                "cases": 512,
+                "teacher_forced": {
+                  "token_accuracy": 0.9052734375,
+                  "exact": 0.810546875,
+                  "native_token_accuracy": 0.9052734375,
+                  "native_exact": 0.810546875,
+                  "task_nll": 0.25644637663120595,
+                  "native_nll": 0.25644801936463324
+                },
+                "restricted_rollout": {
+                  "token_accuracy": 0.826171875,
+                  "exact": 0.810546875,
+                  "native_token_accuracy": 0.826171875,
+                  "native_exact": 0.810546875,
+                  "task_nll": 0.474551489230701,
+                  "native_nll": 0.47455311726313454
+                },
+                "native_rollout": {
+                  "token_accuracy": 0.826171875,
+                  "exact": 0.810546875,
+                  "native_token_accuracy": 0.826171875,
+                  "native_exact": 0.810546875,
+                  "task_nll": 0.474551489230701,
+                  "native_nll": 0.47455311726313454
+                }
+              }
+            },
+            {
+              "bytes": 1500012,
+              "cpu_seconds": 23.847438096002406,
+              "dev": {
+                "cases": 512,
+                "teacher_forced": {
+                  "token_accuracy": 0.9072265625,
+                  "exact": 0.81640625,
+                  "native_token_accuracy": 0.9072265625,
+                  "native_exact": 0.81640625,
+                  "task_nll": 0.24854661969776137,
+                  "native_nll": 0.24854769731548743
+                },
+                "restricted_rollout": {
+                  "token_accuracy": 0.837890625,
+                  "exact": 0.81640625,
+                  "native_token_accuracy": 0.837890625,
+                  "native_exact": 0.81640625,
+                  "task_nll": 0.4660012655930982,
+                  "native_nll": 0.46600233284149084
+                },
+                "native_rollout": {
+                  "token_accuracy": 0.837890625,
+                  "exact": 0.81640625,
+                  "native_token_accuracy": 0.837890625,
+                  "native_exact": 0.81640625,
+                  "task_nll": 0.4660012655930982,
+                  "native_nll": 0.46600233284149084
+                }
+              }
+            },
+            {
+              "bytes": 2000000,
+              "cpu_seconds": 32.30926269300261,
+              "dev": {
+                "cases": 512,
+                "teacher_forced": {
+                  "token_accuracy": 0.9033203125,
+                  "exact": 0.80859375,
+                  "native_token_accuracy": 0.9033203125,
+                  "native_exact": 0.80859375,
+                  "task_nll": 0.2545222385294823,
+                  "native_nll": 0.2545230793413733
+                },
+                "restricted_rollout": {
+                  "token_accuracy": 0.830078125,
+                  "exact": 0.80859375,
+                  "native_token_accuracy": 0.830078125,
+                  "native_exact": 0.80859375,
+                  "task_nll": 0.4954725059388447,
+                  "native_nll": 0.49547333532057536
+                },
+                "native_rollout": {
+                  "token_accuracy": 0.830078125,
+                  "exact": 0.80859375,
+                  "native_token_accuracy": 0.830078125,
+                  "native_exact": 0.80859375,
+                  "task_nll": 0.4954725059388447,
+                  "native_nll": 0.49547333532057536
+                }
+              }
+            }
+          ],
+          "inventory": {
+            "core_parameters": 489919,
+            "readout_parameters": 9535,
+            "parameters": 499454,
+            "bytes": 113,
+            "head_targets": 31007,
+            "training": true,
+            "joint": false,
+            "kind": "rls",
+            "core": "minimal",
+            "readout_cache_bytes": 2180,
+            "experts_per_level": [
+              55,
+              28,
+              0,
+              0
+            ],
+            "allocated_head_bytes": 38140,
+            "allocated_adapter_bytes": 41416,
+            "added_persistent_sequence_state_bytes": 0,
+            "optimizer_state_bytes": 33808,
+            "rls_updates": 31007,
+            "normalization_bytes": 1032,
+            "normalization_samples": 31007
+          },
+          "separate_warmup": null,
+          "continuation_reload_exact": true
+        }
+      },
+      "warmup": {
+        "bytes": 250000,
+        "targets": 3875,
+        "cpu_seconds": 5.704410725000011,
+        "wall_seconds": 5.723206221115106,
+        "bytes_per_cpu_second": 43825.73626831534,
+        "order_sha256": "84b9276e7cdfd48ecdc4d0c5d0e48ee68861867c519c23360205e1810b33094e",
+        "curve": [
+          {
+            "bytes": 250000,
+            "cpu_seconds": 5.704410725000011,
+            "dev": {
+              "cases": 512,
+              "teacher_forced": {
+                "token_accuracy": 0.75,
+                "exact": 0.5,
+                "native_token_accuracy": 0.75,
+                "native_exact": 0.5,
+                "task_nll": 0.39747279457258644,
+                "native_nll": 0.4008184876656742
+              },
+              "restricted_rollout": {
+                "token_accuracy": 0.5,
+                "exact": 0.5,
+                "native_token_accuracy": 0.5,
+                "native_exact": 0.5,
+                "task_nll": 0.9825600435218774,
+                "native_nll": 0.9855471660885087
+              },
+              "native_rollout": {
+                "token_accuracy": 0.5,
+                "exact": 0.5,
+                "native_token_accuracy": 0.5,
+                "native_exact": 0.5,
+                "task_nll": 0.9825600435218774,
+                "native_nll": 0.9855471660885087
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "seed": 7,
+      "core": "minimal",
+      "datasets": {
+        "train": "89e6237d7287a5c21e97de6bc55dee4c301bb8559e0146a1cff6947aeaf46a62",
+        "dev": "8729a5567ffda1cc95f95ac5be9d47fb5f5e2eab43e52533b603d9e03e916b65"
+      },
+      "arms": {
+        "native": {
+          "bytes": 2000000,
+          "targets": 31007,
+          "cpu_seconds": 46.08637060899993,
+          "wall_seconds": 46.105085623956256,
+          "bytes_per_cpu_second": 43396.77812705503,
+          "order_sha256": "65cf0148e3eda156f463375cd0f94cf22a5b0651f4fc8a54ceced11226dcec97",
+          "curve": [
+            {
+              "bytes": 500004,
+              "cpu_seconds": 12.035185357000067,
+              "dev": {
+                "cases": 512,
+                "teacher_forced": {
+                  "token_accuracy": 0.7353515625,
+                  "exact": 0.470703125,
+                  "native_token_accuracy": 0.7353515625,
+                  "native_exact": 0.470703125,
+                  "task_nll": 0.3667019565438215,
+                  "native_nll": 0.3687562808927396
+                },
+                "restricted_rollout": {
+                  "token_accuracy": 0.470703125,
+                  "exact": 0.470703125,
+                  "native_token_accuracy": 0.470703125,
+                  "native_exact": 0.470703125,
+                  "task_nll": 1.5175310061480454,
+                  "native_nll": 1.5196263554032612
+                },
+                "native_rollout": {
+                  "token_accuracy": 0.470703125,
+                  "exact": 0.470703125,
+                  "native_token_accuracy": 0.470703125,
+                  "native_exact": 0.470703125,
+                  "task_nll": 1.5175310061480454,
+                  "native_nll": 1.5196263554032612
+                }
+              }
+            },
+            {
+              "bytes": 1000008,
+              "cpu_seconds": 23.569128451000367,
+              "dev": {
+                "cases": 512,
+                "teacher_forced": {
+                  "token_accuracy": 0.7314453125,
+                  "exact": 0.462890625,
+                  "native_token_accuracy": 0.7314453125,
+                  "native_exact": 0.462890625,
+                  "task_nll": 0.3616032084799968,
+                  "native_nll": 0.36358060202758224
+                },
+                "restricted_rollout": {
+                  "token_accuracy": 0.462890625,
+                  "exact": 0.462890625,
+                  "native_token_accuracy": 0.462890625,
+                  "native_exact": 0.462890625,
+                  "task_nll": 1.708358537589673,
+                  "native_nll": 1.7103587390757866
+                },
+                "native_rollout": {
+                  "token_accuracy": 0.462890625,
+                  "exact": 0.462890625,
+                  "native_token_accuracy": 0.462890625,
+                  "native_exact": 0.462890625,
+                  "task_nll": 1.708358537589673,
+                  "native_nll": 1.7103587390757866
+                }
+              }
+            },
+            {
+              "bytes": 1500012,
+              "cpu_seconds": 34.610382739000244,
+              "dev": {
+                "cases": 512,
+                "teacher_forced": {
+                  "token_accuracy": 0.7421875,
+                  "exact": 0.484375,
+                  "native_token_accuracy": 0.7421875,
+                  "native_exact": 0.484375,
+                  "task_nll": 0.36243438564242064,
+                  "native_nll": 0.36393343220908037
+                },
+                "restricted_rollout": {
+                  "token_accuracy": 0.484375,
+                  "exact": 0.484375,
+                  "native_token_accuracy": 0.484375,
+                  "native_exact": 0.484375,
+                  "task_nll": 1.7901071193059628,
+                  "native_nll": 1.7915628980682072
+                },
+                "native_rollout": {
+                  "token_accuracy": 0.484375,
+                  "exact": 0.484375,
+                  "native_token_accuracy": 0.484375,
+                  "native_exact": 0.484375,
+                  "task_nll": 1.7901071193059628,
+                  "native_nll": 1.7915628980682072
+                }
+              }
+            },
+            {
+              "bytes": 2000000,
+              "cpu_seconds": 46.08637060899993,
+              "dev": {
+                "cases": 512,
+                "teacher_forced": {
+                  "token_accuracy": 0.75,
+                  "exact": 0.5,
+                  "native_token_accuracy": 0.75,
+                  "native_exact": 0.5,
+                  "task_nll": 0.40830058282150294,
+                  "native_nll": 0.40960137907654826
+                },
+                "restricted_rollout": {
+                  "token_accuracy": 0.5,
+                  "exact": 0.5,
+                  "native_token_accuracy": 0.5,
+                  "native_exact": 0.5,
+                  "task_nll": 1.8186373673361214,
+                  "native_nll": 1.819873920720056
+                },
+                "native_rollout": {
+                  "token_accuracy": 0.5,
+                  "exact": 0.5,
+                  "native_token_accuracy": 0.5,
+                  "native_exact": 0.5,
+                  "task_nll": 1.8186373673361214,
+                  "native_nll": 1.819873920720056
+                }
+              }
+            }
+          ],
+          "inventory": {
+            "core_parameters": 498367,
+            "readout_parameters": 0,
+            "parameters": 498367,
+            "bytes": 113,
+            "head_targets": 0,
+            "training": true,
+            "joint": true,
+            "kind": "native",
+            "core": "minimal",
+            "readout_cache_bytes": 2180,
+            "experts_per_level": [
+              56,
+              29,
+              0,
+              0
+            ],
+            "allocated_head_bytes": 38140,
+            "allocated_adapter_bytes": 41416,
+            "added_persistent_sequence_state_bytes": 0,
+            "optimizer_state_bytes": 0,
+            "rls_updates": 0,
+            "normalization_bytes": 1032,
+            "normalization_samples": 0
+          },
+          "separate_warmup": {
+            "bytes": 250000,
+            "targets": 3875,
+            "cpu_seconds": 5.441948798000027,
+            "wall_seconds": 5.443772970011196,
+            "bytes_per_cpu_second": 45939.42524631573,
+            "order_sha256": "84b9276e7cdfd48ecdc4d0c5d0e48ee68861867c519c23360205e1810b33094e",
+            "curve": [
+              {
+                "bytes": 250000,
+                "cpu_seconds": 5.441948798000027,
+                "dev": {
+                  "cases": 512,
+                  "teacher_forced": {
+                    "token_accuracy": 0.75,
+                    "exact": 0.5,
+                    "native_token_accuracy": 0.75,
+                    "native_exact": 0.5,
+                    "task_nll": 0.42939051222810276,
+                    "native_nll": 0.4374264018733811
+                  },
+                  "restricted_rollout": {
+                    "token_accuracy": 0.515625,
+                    "exact": 0.5,
+                    "native_token_accuracy": 0.515625,
+                    "native_exact": 0.5,
+                    "task_nll": 0.9185794179288334,
+                    "native_nll": 0.9264676045204396
+                  },
+                  "native_rollout": {
+                    "token_accuracy": 0.515625,
+                    "exact": 0.5,
+                    "native_token_accuracy": 0.515625,
+                    "native_exact": 0.5,
+                    "task_nll": 0.9185794179288334,
+                    "native_nll": 0.9264676045204396
+                  }
+                }
+              }
+            ]
+          },
+          "continuation_reload_exact": true
+        },
+        "matched": {
+          "bytes": 2000000,
+          "targets": 31007,
+          "cpu_seconds": 49.13203374299998,
+          "wall_seconds": 49.15669730039008,
+          "bytes_per_cpu_second": 40706.639795568146,
+          "order_sha256": "65cf0148e3eda156f463375cd0f94cf22a5b0651f4fc8a54ceced11226dcec97",
+          "curve": [
+            {
+              "bytes": 500004,
+              "cpu_seconds": 11.637675808999973,
+              "dev": {
+                "cases": 512,
+                "teacher_forced": {
+                  "token_accuracy": 0.7509765625,
+                  "exact": 0.501953125,
+                  "native_token_accuracy": 0.7509765625,
+                  "native_exact": 0.501953125,
+                  "task_nll": 0.3611417983599462,
+                  "native_nll": 0.36307948396370193
+                },
+                "restricted_rollout": {
+                  "token_accuracy": 0.501953125,
+                  "exact": 0.501953125,
+                  "native_token_accuracy": 0.501953125,
+                  "native_exact": 0.501953125,
+                  "task_nll": 1.4216897019428667,
+                  "native_nll": 1.4236253888489045
+                },
+                "native_rollout": {
+                  "token_accuracy": 0.501953125,
+                  "exact": 0.501953125,
+                  "native_token_accuracy": 0.501953125,
+                  "native_exact": 0.501953125,
+                  "task_nll": 1.4216897019428667,
+                  "native_nll": 1.4236253888489045
+                }
+              }
+            },
+            {
+              "bytes": 1000008,
+              "cpu_seconds": 24.259422923999907,
+              "dev": {
+                "cases": 512,
+                "teacher_forced": {
+                  "token_accuracy": 0.7548828125,
+                  "exact": 0.509765625,
+                  "native_token_accuracy": 0.7548828125,
+                  "native_exact": 0.509765625,
+                  "task_nll": 0.35652525775200206,
+                  "native_nll": 0.3576507069667514
+                },
+                "restricted_rollout": {
+                  "token_accuracy": 0.509765625,
+                  "exact": 0.509765625,
+                  "native_token_accuracy": 0.509765625,
+                  "native_exact": 0.509765625,
+                  "task_nll": 1.5382877163208193,
+                  "native_nll": 1.5394186670980616
+                },
+                "native_rollout": {
+                  "token_accuracy": 0.509765625,
+                  "exact": 0.509765625,
+                  "native_token_accuracy": 0.509765625,
+                  "native_exact": 0.509765625,
+                  "task_nll": 1.5382877163208193,
+                  "native_nll": 1.5394186670980616
+                }
+              }
+            },
+            {
+              "bytes": 1500012,
+              "cpu_seconds": 36.99550234699953,
+              "dev": {
+                "cases": 512,
+                "teacher_forced": {
+                  "token_accuracy": 0.744140625,
+                  "exact": 0.48828125,
+                  "native_token_accuracy": 0.744140625,
+                  "native_exact": 0.48828125,
+                  "task_nll": 0.35540160077315763,
+                  "native_nll": 0.35664764932346316
+                },
+                "restricted_rollout": {
+                  "token_accuracy": 0.48828125,
+                  "exact": 0.48828125,
+                  "native_token_accuracy": 0.48828125,
+                  "native_exact": 0.48828125,
+                  "task_nll": 1.5964595698687472,
+                  "native_nll": 1.5977111416611933
+                },
+                "native_rollout": {
+                  "token_accuracy": 0.48828125,
+                  "exact": 0.48828125,
+                  "native_token_accuracy": 0.48828125,
+                  "native_exact": 0.48828125,
+                  "task_nll": 1.5964595698687472,
+                  "native_nll": 1.5977111416611933
+                }
+              }
+            },
+            {
+              "bytes": 2000000,
+              "cpu_seconds": 49.13203374299998,
+              "dev": {
+                "cases": 512,
+                "teacher_forced": {
+                  "token_accuracy": 0.7490234375,
+                  "exact": 0.498046875,
+                  "native_token_accuracy": 0.7490234375,
+                  "native_exact": 0.498046875,
+                  "task_nll": 0.4009272680029372,
+                  "native_nll": 0.40201712245732324
+                },
+                "restricted_rollout": {
+                  "token_accuracy": 0.498046875,
+                  "exact": 0.498046875,
+                  "native_token_accuracy": 0.498046875,
+                  "native_exact": 0.498046875,
+                  "task_nll": 1.6882265331932054,
+                  "native_nll": 1.6893541599564514
+                },
+                "native_rollout": {
+                  "token_accuracy": 0.498046875,
+                  "exact": 0.498046875,
+                  "native_token_accuracy": 0.498046875,
+                  "native_exact": 0.498046875,
+                  "task_nll": 1.6882265331932054,
+                  "native_nll": 1.6893541599564514
+                }
+              }
+            }
+          ],
+          "inventory": {
+            "core_parameters": 489919,
+            "readout_parameters": 0,
+            "parameters": 489919,
+            "bytes": 113,
+            "head_targets": 0,
+            "training": true,
+            "joint": true,
+            "kind": "native",
+            "core": "minimal",
+            "readout_cache_bytes": 2180,
+            "experts_per_level": [
+              55,
+              28,
+              0,
+              0
+            ],
+            "allocated_head_bytes": 38140,
+            "allocated_adapter_bytes": 41416,
+            "added_persistent_sequence_state_bytes": 0,
+            "optimizer_state_bytes": 0,
+            "rls_updates": 0,
+            "normalization_bytes": 1032,
+            "normalization_samples": 0
+          },
+          "separate_warmup": null,
+          "continuation_reload_exact": true
+        },
+        "answer_frozen": {
+          "bytes": 2000000,
+          "targets": 31007,
+          "cpu_seconds": 32.91945759700005,
+          "wall_seconds": 32.93770012984169,
+          "bytes_per_cpu_second": 60754.34244646425,
+          "order_sha256": "65cf0148e3eda156f463375cd0f94cf22a5b0651f4fc8a54ceced11226dcec97",
+          "curve": [
+            {
+              "bytes": 500004,
+              "cpu_seconds": 8.000551359000184,
+              "dev": {
+                "cases": 512,
+                "teacher_forced": {
+                  "token_accuracy": 0.755859375,
+                  "exact": 0.51171875,
+                  "native_token_accuracy": 0.755859375,
+                  "native_exact": 0.51171875,
+                  "task_nll": 0.3740074871046769,
+                  "native_nll": 0.38051275624638947
+                },
+                "restricted_rollout": {
+                  "token_accuracy": 0.51171875,
+                  "exact": 0.51171875,
+                  "native_token_accuracy": 0.51171875,
+                  "native_exact": 0.51171875,
+                  "task_nll": 1.1526547045136748,
+                  "native_nll": 1.1591594572691974
+                },
+                "native_rollout": {
+                  "token_accuracy": 0.51171875,
+                  "exact": 0.51171875,
+                  "native_token_accuracy": 0.51171875,
+                  "native_exact": 0.51171875,
+                  "task_nll": 1.1526547045136748,
+                  "native_nll": 1.1591594572691974
+                }
+              }
+            },
+            {
+              "bytes": 1000008,
+              "cpu_seconds": 16.25366729299995,
+              "dev": {
+                "cases": 512,
+                "teacher_forced": {
+                  "token_accuracy": 0.7421875,
+                  "exact": 0.484375,
+                  "native_token_accuracy": 0.7421875,
+                  "native_exact": 0.484375,
+                  "task_nll": 0.36334254109143466,
+                  "native_nll": 0.369492791554876
+                },
+                "restricted_rollout": {
+                  "token_accuracy": 0.484375,
+                  "exact": 0.484375,
+                  "native_token_accuracy": 0.484375,
+                  "native_exact": 0.484375,
+                  "task_nll": 1.2973709378441094,
+                  "native_nll": 1.303650463491067
+                },
+                "native_rollout": {
+                  "token_accuracy": 0.484375,
+                  "exact": 0.484375,
+                  "native_token_accuracy": 0.484375,
+                  "native_exact": 0.484375,
+                  "task_nll": 1.2973709378441094,
+                  "native_nll": 1.303650463491067
+                }
+              }
+            },
+            {
+              "bytes": 1500012,
+              "cpu_seconds": 24.71906235200032,
+              "dev": {
+                "cases": 512,
+                "teacher_forced": {
+                  "token_accuracy": 0.7490234375,
+                  "exact": 0.498046875,
+                  "native_token_accuracy": 0.7490234375,
+                  "native_exact": 0.498046875,
+                  "task_nll": 0.3607624744381271,
+                  "native_nll": 0.36659706168029516
+                },
+                "restricted_rollout": {
+                  "token_accuracy": 0.498046875,
+                  "exact": 0.498046875,
+                  "native_token_accuracy": 0.498046875,
+                  "native_exact": 0.498046875,
+                  "task_nll": 1.3526953791962215,
+                  "native_nll": 1.358833193279679
+                },
+                "native_rollout": {
+                  "token_accuracy": 0.498046875,
+                  "exact": 0.498046875,
+                  "native_token_accuracy": 0.498046875,
+                  "native_exact": 0.498046875,
+                  "task_nll": 1.3526953791962215,
+                  "native_nll": 1.358833193279679
+                }
+              }
+            },
+            {
+              "bytes": 2000000,
+              "cpu_seconds": 32.91945759700005,
+              "dev": {
+                "cases": 512,
+                "teacher_forced": {
+                  "token_accuracy": 0.7451171875,
+                  "exact": 0.490234375,
+                  "native_token_accuracy": 0.7451171875,
+                  "native_exact": 0.490234375,
+                  "task_nll": 0.3612312165930082,
+                  "native_nll": 0.3668447874078993
+                },
+                "restricted_rollout": {
+                  "token_accuracy": 0.490234375,
+                  "exact": 0.490234375,
+                  "native_token_accuracy": 0.490234375,
+                  "native_exact": 0.490234375,
+                  "task_nll": 1.5205816222055981,
+                  "native_nll": 1.5256588022957658
+                },
+                "native_rollout": {
+                  "token_accuracy": 0.490234375,
+                  "exact": 0.490234375,
+                  "native_token_accuracy": 0.490234375,
+                  "native_exact": 0.490234375,
+                  "task_nll": 1.5205816222055981,
+                  "native_nll": 1.5256588022957658
+                }
+              }
+            }
+          ],
+          "inventory": {
+            "core_parameters": 489919,
+            "readout_parameters": 9535,
+            "parameters": 499454,
+            "bytes": 113,
+            "head_targets": 31007,
+            "training": true,
+            "joint": false,
+            "kind": "answer",
+            "core": "minimal",
+            "readout_cache_bytes": 2180,
+            "experts_per_level": [
+              55,
+              28,
+              0,
+              0
+            ],
+            "allocated_head_bytes": 38140,
+            "allocated_adapter_bytes": 41416,
+            "added_persistent_sequence_state_bytes": 0,
+            "optimizer_state_bytes": 0,
+            "rls_updates": 0,
+            "normalization_bytes": 1032,
+            "normalization_samples": 31007
+          },
+          "separate_warmup": null,
+          "continuation_reload_exact": true
+        },
+        "local_frozen": {
+          "bytes": 2000000,
+          "targets": 31007,
+          "cpu_seconds": 35.11894237000146,
+          "wall_seconds": 35.1388171418148,
+          "bytes_per_cpu_second": 56949.32321505207,
+          "order_sha256": "65cf0148e3eda156f463375cd0f94cf22a5b0651f4fc8a54ceced11226dcec97",
+          "curve": [
+            {
+              "bytes": 500004,
+              "cpu_seconds": 9.664172911999799,
+              "dev": {
+                "cases": 512,
+                "teacher_forced": {
+                  "token_accuracy": 0.8935546875,
+                  "exact": 0.7890625,
+                  "native_token_accuracy": 0.8935546875,
+                  "native_exact": 0.7890625,
+                  "task_nll": 0.264637589822849,
+                  "native_nll": 0.26464334501929443
+                },
+                "restricted_rollout": {
+                  "token_accuracy": 0.794921875,
+                  "exact": 0.7890625,
+                  "native_token_accuracy": 0.794921875,
+                  "native_exact": 0.7890625,
+                  "task_nll": 0.5060107997001355,
+                  "native_nll": 0.5060165593320107
+                },
+                "native_rollout": {
+                  "token_accuracy": 0.794921875,
+                  "exact": 0.7890625,
+                  "native_token_accuracy": 0.794921875,
+                  "native_exact": 0.7890625,
+                  "task_nll": 0.5060107997001355,
+                  "native_nll": 0.5060165593320107
+                }
+              }
+            },
+            {
+              "bytes": 1000008,
+              "cpu_seconds": 17.929277467001356,
+              "dev": {
+                "cases": 512,
+                "teacher_forced": {
+                  "token_accuracy": 0.91015625,
+                  "exact": 0.8203125,
+                  "native_token_accuracy": 0.91015625,
+                  "native_exact": 0.8203125,
+                  "task_nll": 0.2566631653278711,
+                  "native_nll": 0.2566661531399941
+                },
+                "restricted_rollout": {
+                  "token_accuracy": 0.8349609375,
+                  "exact": 0.8203125,
+                  "native_token_accuracy": 0.8349609375,
+                  "native_exact": 0.8203125,
+                  "task_nll": 0.45294389882263975,
+                  "native_nll": 0.45294687793763977
+                },
+                "native_rollout": {
+                  "token_accuracy": 0.8349609375,
+                  "exact": 0.8203125,
+                  "native_token_accuracy": 0.8349609375,
+                  "native_exact": 0.8203125,
+                  "task_nll": 0.45294389882263975,
+                  "native_nll": 0.45294687793763977
+                }
+              }
+            },
+            {
+              "bytes": 1500012,
+              "cpu_seconds": 26.524126017001038,
+              "dev": {
+                "cases": 512,
+                "teacher_forced": {
+                  "token_accuracy": 0.9091796875,
+                  "exact": 0.818359375,
+                  "native_token_accuracy": 0.9091796875,
+                  "native_exact": 0.818359375,
+                  "task_nll": 0.24859769153416847,
+                  "native_nll": 0.2485996908390362
+                },
+                "restricted_rollout": {
+                  "token_accuracy": 0.8330078125,
+                  "exact": 0.818359375,
+                  "native_token_accuracy": 0.8330078125,
+                  "native_exact": 0.818359375,
+                  "task_nll": 0.44419278750142843,
+                  "native_nll": 0.44419478434945603
+                },
+                "native_rollout": {
+                  "token_accuracy": 0.8330078125,
+                  "exact": 0.818359375,
+                  "native_token_accuracy": 0.8330078125,
+                  "native_exact": 0.818359375,
+                  "task_nll": 0.44419278750142843,
+                  "native_nll": 0.44419478434945603
+                }
+              }
+            },
+            {
+              "bytes": 2000000,
+              "cpu_seconds": 35.11894237000146,
+              "dev": {
+                "cases": 512,
+                "teacher_forced": {
+                  "token_accuracy": 0.9169921875,
+                  "exact": 0.833984375,
+                  "native_token_accuracy": 0.9169921875,
+                  "native_exact": 0.833984375,
+                  "task_nll": 0.2333974309706763,
+                  "native_nll": 0.23339899511202944
+                },
+                "restricted_rollout": {
+                  "token_accuracy": 0.8466796875,
+                  "exact": 0.833984375,
+                  "native_token_accuracy": 0.8466796875,
+                  "native_exact": 0.833984375,
+                  "task_nll": 0.4525398866777446,
+                  "native_nll": 0.4525414498675566
+                },
+                "native_rollout": {
+                  "token_accuracy": 0.8466796875,
+                  "exact": 0.833984375,
+                  "native_token_accuracy": 0.8466796875,
+                  "native_exact": 0.833984375,
+                  "task_nll": 0.4525398866777446,
+                  "native_nll": 0.4525414498675566
+                }
+              }
+            }
+          ],
+          "inventory": {
+            "core_parameters": 489919,
+            "readout_parameters": 9535,
+            "parameters": 499454,
+            "bytes": 113,
+            "head_targets": 31007,
+            "training": true,
+            "joint": false,
+            "kind": "local",
+            "core": "minimal",
+            "readout_cache_bytes": 2180,
+            "experts_per_level": [
+              55,
+              28,
+              0,
+              0
+            ],
+            "allocated_head_bytes": 38140,
+            "allocated_adapter_bytes": 41416,
+            "added_persistent_sequence_state_bytes": 0,
+            "optimizer_state_bytes": 0,
+            "rls_updates": 0,
+            "normalization_bytes": 1032,
+            "normalization_samples": 31007
+          },
+          "separate_warmup": null,
+          "continuation_reload_exact": true
+        },
+        "local_joint": {
+          "bytes": 2000000,
+          "targets": 31007,
+          "cpu_seconds": 44.04986112300557,
+          "wall_seconds": 44.06381601681278,
+          "bytes_per_cpu_second": 45403.094334739595,
+          "order_sha256": "65cf0148e3eda156f463375cd0f94cf22a5b0651f4fc8a54ceced11226dcec97",
+          "curve": [
+            {
+              "bytes": 500004,
+              "cpu_seconds": 11.195672394001207,
+              "dev": {
+                "cases": 512,
+                "teacher_forced": {
+                  "token_accuracy": 0.7294921875,
+                  "exact": 0.50390625,
+                  "native_token_accuracy": 0.7294921875,
+                  "native_exact": 0.50390625,
+                  "task_nll": 0.8289763550952683,
+                  "native_nll": 0.8289924484374467
+                },
+                "restricted_rollout": {
+                  "token_accuracy": 0.5458984375,
+                  "exact": 0.50390625,
+                  "native_token_accuracy": 0.5458984375,
+                  "native_exact": 0.50390625,
+                  "task_nll": 2.281347144306829,
+                  "native_nll": 2.281360809043284
+                },
+                "native_rollout": {
+                  "token_accuracy": 0.5458984375,
+                  "exact": 0.50390625,
+                  "native_token_accuracy": 0.5458984375,
+                  "native_exact": 0.50390625,
+                  "task_nll": 2.281347144306829,
+                  "native_nll": 2.281360809043284
+                }
+              }
+            },
+            {
+              "bytes": 1000008,
+              "cpu_seconds": 22.122782125002146,
+              "dev": {
+                "cases": 512,
+                "teacher_forced": {
+                  "token_accuracy": 0.7822265625,
+                  "exact": 0.564453125,
+                  "native_token_accuracy": 0.7822265625,
+                  "native_exact": 0.564453125,
+                  "task_nll": 0.38564929574598855,
+                  "native_nll": 0.38565789363562786
+                },
+                "restricted_rollout": {
+                  "token_accuracy": 0.564453125,
+                  "exact": 0.564453125,
+                  "native_token_accuracy": 0.564453125,
+                  "native_exact": 0.564453125,
+                  "task_nll": 2.021626229976697,
+                  "native_nll": 2.0216347916426276
+                },
+                "native_rollout": {
+                  "token_accuracy": 0.564453125,
+                  "exact": 0.564453125,
+                  "native_token_accuracy": 0.564453125,
+                  "native_exact": 0.564453125,
+                  "task_nll": 2.021626229976697,
+                  "native_nll": 2.0216347916426276
+                }
+              }
+            },
+            {
+              "bytes": 1500012,
+              "cpu_seconds": 33.22389434800348,
+              "dev": {
+                "cases": 512,
+                "teacher_forced": {
+                  "token_accuracy": 0.78125,
+                  "exact": 0.5625,
+                  "native_token_accuracy": 0.78125,
+                  "native_exact": 0.5625,
+                  "task_nll": 0.40199861070965864,
+                  "native_nll": 0.4020009405741014
+                },
+                "restricted_rollout": {
+                  "token_accuracy": 0.5625,
+                  "exact": 0.5625,
+                  "native_token_accuracy": 0.5625,
+                  "native_exact": 0.5625,
+                  "task_nll": 2.0304265671841906,
+                  "native_nll": 2.030428983940546
+                },
+                "native_rollout": {
+                  "token_accuracy": 0.5625,
+                  "exact": 0.5625,
+                  "native_token_accuracy": 0.5625,
+                  "native_exact": 0.5625,
+                  "task_nll": 2.0304265671841906,
+                  "native_nll": 2.030428983940546
+                }
+              }
+            },
+            {
+              "bytes": 2000000,
+              "cpu_seconds": 44.04986112300557,
+              "dev": {
+                "cases": 512,
+                "teacher_forced": {
+                  "token_accuracy": 0.78125,
+                  "exact": 0.5625,
+                  "native_token_accuracy": 0.78125,
+                  "native_exact": 0.5625,
+                  "task_nll": 0.4750624826016351,
+                  "native_nll": 0.47514553763345546
+                },
+                "restricted_rollout": {
+                  "token_accuracy": 0.5634765625,
+                  "exact": 0.5625,
+                  "native_token_accuracy": 0.5634765625,
+                  "native_exact": 0.5625,
+                  "task_nll": 1.8225046088912942,
+                  "native_nll": 1.8225906931510933
+                },
+                "native_rollout": {
+                  "token_accuracy": 0.5634765625,
+                  "exact": 0.5625,
+                  "native_token_accuracy": 0.5634765625,
+                  "native_exact": 0.5625,
+                  "task_nll": 1.8225046088912942,
+                  "native_nll": 1.8225906931510933
+                }
+              }
+            }
+          ],
+          "inventory": {
+            "core_parameters": 489919,
+            "readout_parameters": 9535,
+            "parameters": 499454,
+            "bytes": 113,
+            "head_targets": 31007,
+            "training": true,
+            "joint": true,
+            "kind": "local",
+            "core": "minimal",
+            "readout_cache_bytes": 2180,
+            "experts_per_level": [
+              55,
+              28,
+              0,
+              0
+            ],
+            "allocated_head_bytes": 38140,
+            "allocated_adapter_bytes": 41416,
+            "added_persistent_sequence_state_bytes": 0,
+            "optimizer_state_bytes": 0,
+            "rls_updates": 0,
+            "normalization_bytes": 1032,
+            "normalization_samples": 31007
+          },
+          "separate_warmup": null,
+          "continuation_reload_exact": true
+        },
+        "rls_frozen": {
+          "bytes": 2000000,
+          "targets": 31007,
+          "cpu_seconds": 32.510520854001186,
+          "wall_seconds": 32.52222644408903,
+          "bytes_per_cpu_second": 61518.54684154815,
+          "order_sha256": "65cf0148e3eda156f463375cd0f94cf22a5b0651f4fc8a54ceced11226dcec97",
+          "curve": [
+            {
+              "bytes": 500004,
+              "cpu_seconds": 8.075960294000765,
+              "dev": {
+                "cases": 512,
+                "teacher_forced": {
+                  "token_accuracy": 0.8779296875,
+                  "exact": 0.755859375,
+                  "native_token_accuracy": 0.8779296875,
+                  "native_exact": 0.755859375,
+                  "task_nll": 0.31199664153256984,
+                  "native_nll": 0.3120023482535359
+                },
+                "restricted_rollout": {
+                  "token_accuracy": 0.771484375,
+                  "exact": 0.755859375,
+                  "native_token_accuracy": 0.771484375,
+                  "native_exact": 0.755859375,
+                  "task_nll": 0.561793541992551,
+                  "native_nll": 0.5617992300976127
+                },
+                "native_rollout": {
+                  "token_accuracy": 0.771484375,
+                  "exact": 0.755859375,
+                  "native_token_accuracy": 0.771484375,
+                  "native_exact": 0.755859375,
+                  "task_nll": 0.561793541992551,
+                  "native_nll": 0.5617992300976127
+                }
+              }
+            },
+            {
+              "bytes": 1000008,
+              "cpu_seconds": 16.10872477500061,
+              "dev": {
+                "cases": 512,
+                "teacher_forced": {
+                  "token_accuracy": 0.8857421875,
+                  "exact": 0.771484375,
+                  "native_token_accuracy": 0.8857421875,
+                  "native_exact": 0.771484375,
+                  "task_nll": 0.3077672458318709,
+                  "native_nll": 0.3077701374830166
+                },
+                "restricted_rollout": {
+                  "token_accuracy": 0.79296875,
+                  "exact": 0.771484375,
+                  "native_token_accuracy": 0.79296875,
+                  "native_exact": 0.771484375,
+                  "task_nll": 0.537979380401376,
+                  "native_nll": 0.5379822647913368
+                },
+                "native_rollout": {
+                  "token_accuracy": 0.79296875,
+                  "exact": 0.771484375,
+                  "native_token_accuracy": 0.79296875,
+                  "native_exact": 0.771484375,
+                  "task_nll": 0.537979380401376,
+                  "native_nll": 0.5379822647913368
+                }
+              }
+            },
+            {
+              "bytes": 1500012,
+              "cpu_seconds": 24.14588657700176,
+              "dev": {
+                "cases": 512,
+                "teacher_forced": {
+                  "token_accuracy": 0.884765625,
+                  "exact": 0.76953125,
+                  "native_token_accuracy": 0.884765625,
+                  "native_exact": 0.76953125,
+                  "task_nll": 0.3057804184496595,
+                  "native_nll": 0.30578239577796396
+                },
+                "restricted_rollout": {
+                  "token_accuracy": 0.7890625,
+                  "exact": 0.76953125,
+                  "native_token_accuracy": 0.7890625,
+                  "native_exact": 0.76953125,
+                  "task_nll": 0.5478367401774185,
+                  "native_nll": 0.5478387118539096
+                },
+                "native_rollout": {
+                  "token_accuracy": 0.7890625,
+                  "exact": 0.76953125,
+                  "native_token_accuracy": 0.7890625,
+                  "native_exact": 0.76953125,
+                  "task_nll": 0.5478367401774185,
+                  "native_nll": 0.5478387118539096
+                }
+              }
+            },
+            {
+              "bytes": 2000000,
+              "cpu_seconds": 32.510520854001186,
+              "dev": {
+                "cases": 512,
+                "teacher_forced": {
+                  "token_accuracy": 0.8876953125,
+                  "exact": 0.775390625,
+                  "native_token_accuracy": 0.8876953125,
+                  "native_exact": 0.775390625,
+                  "task_nll": 0.29517668525028057,
+                  "native_nll": 0.2951781588654745
+                },
+                "restricted_rollout": {
+                  "token_accuracy": 0.7890625,
+                  "exact": 0.775390625,
+                  "native_token_accuracy": 0.7890625,
+                  "native_exact": 0.775390625,
+                  "task_nll": 0.5614199978281387,
+                  "native_nll": 0.5614214674366798
+                },
+                "native_rollout": {
+                  "token_accuracy": 0.7890625,
+                  "exact": 0.775390625,
+                  "native_token_accuracy": 0.7890625,
+                  "native_exact": 0.775390625,
+                  "task_nll": 0.5614199978281387,
+                  "native_nll": 0.5614214674366798
+                }
+              }
+            }
+          ],
+          "inventory": {
+            "core_parameters": 489919,
+            "readout_parameters": 9535,
+            "parameters": 499454,
+            "bytes": 113,
+            "head_targets": 31007,
+            "training": true,
+            "joint": false,
+            "kind": "rls",
+            "core": "minimal",
+            "readout_cache_bytes": 2180,
+            "experts_per_level": [
+              55,
+              28,
+              0,
+              0
+            ],
+            "allocated_head_bytes": 38140,
+            "allocated_adapter_bytes": 41416,
+            "added_persistent_sequence_state_bytes": 0,
+            "optimizer_state_bytes": 33808,
+            "rls_updates": 31007,
+            "normalization_bytes": 1032,
+            "normalization_samples": 31007
+          },
+          "separate_warmup": null,
+          "continuation_reload_exact": true
+        }
+      },
+      "warmup": {
+        "bytes": 250000,
+        "targets": 3875,
+        "cpu_seconds": 5.771331202000007,
+        "wall_seconds": 5.774217333004344,
+        "bytes_per_cpu_second": 43317.56249119173,
+        "order_sha256": "84b9276e7cdfd48ecdc4d0c5d0e48ee68861867c519c23360205e1810b33094e",
+        "curve": [
+          {
+            "bytes": 250000,
+            "cpu_seconds": 5.771331202000007,
+            "dev": {
+              "cases": 512,
+              "teacher_forced": {
+                "token_accuracy": 0.7490234375,
+                "exact": 0.498046875,
+                "native_token_accuracy": 0.7490234375,
+                "native_exact": 0.498046875,
+                "task_nll": 0.4220136123475051,
+                "native_nll": 0.4289330105711997
+              },
+              "restricted_rollout": {
+                "token_accuracy": 0.498046875,
+                "exact": 0.498046875,
+                "native_token_accuracy": 0.498046875,
+                "native_exact": 0.498046875,
+                "task_nll": 0.9381088073011312,
+                "native_nll": 0.9451339329934854
+              },
+              "native_rollout": {
+                "token_accuracy": 0.498046875,
+                "exact": 0.498046875,
+                "native_token_accuracy": 0.498046875,
+                "native_exact": 0.498046875,
+                "task_nll": 0.9381088073011312,
+                "native_nll": 0.9451339329934854
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "seed": 19,
+      "core": "minimal",
+      "datasets": {
+        "train": "89e6237d7287a5c21e97de6bc55dee4c301bb8559e0146a1cff6947aeaf46a62",
+        "dev": "8729a5567ffda1cc95f95ac5be9d47fb5f5e2eab43e52533b603d9e03e916b65"
+      },
+      "arms": {
+        "native": {
+          "bytes": 2000000,
+          "targets": 31007,
+          "cpu_seconds": 45.73014291100056,
+          "wall_seconds": 45.865207852839376,
+          "bytes_per_cpu_second": 43734.829429516,
+          "order_sha256": "65cf0148e3eda156f463375cd0f94cf22a5b0651f4fc8a54ceced11226dcec97",
+          "curve": [
+            {
+              "bytes": 500004,
+              "cpu_seconds": 12.217056575000012,
+              "dev": {
+                "cases": 512,
+                "teacher_forced": {
+                  "token_accuracy": 0.7470703125,
+                  "exact": 0.494140625,
+                  "native_token_accuracy": 0.7470703125,
+                  "native_exact": 0.494140625,
+                  "task_nll": 0.360690402252069,
+                  "native_nll": 0.36235211199641526
+                },
+                "restricted_rollout": {
+                  "token_accuracy": 0.494140625,
+                  "exact": 0.494140625,
+                  "native_token_accuracy": 0.494140625,
+                  "native_exact": 0.494140625,
+                  "task_nll": 1.386300189586604,
+                  "native_nll": 1.3877177999836476
+                },
+                "native_rollout": {
+                  "token_accuracy": 0.494140625,
+                  "exact": 0.494140625,
+                  "native_token_accuracy": 0.494140625,
+                  "native_exact": 0.494140625,
+                  "task_nll": 1.386300189586604,
+                  "native_nll": 1.3877177999836476
+                }
+              }
+            },
+            {
+              "bytes": 1000008,
+              "cpu_seconds": 23.358707902000308,
+              "dev": {
+                "cases": 512,
+                "teacher_forced": {
+                  "token_accuracy": 0.744140625,
+                  "exact": 0.48828125,
+                  "native_token_accuracy": 0.744140625,
+                  "native_exact": 0.48828125,
+                  "task_nll": 0.35208593202538674,
+                  "native_nll": 0.35376443124323487
+                },
+                "restricted_rollout": {
+                  "token_accuracy": 0.48828125,
+                  "exact": 0.48828125,
+                  "native_token_accuracy": 0.48828125,
+                  "native_exact": 0.48828125,
+                  "task_nll": 1.61957063892475,
+                  "native_nll": 1.6211816910198422
+                },
+                "native_rollout": {
+                  "token_accuracy": 0.48828125,
+                  "exact": 0.48828125,
+                  "native_token_accuracy": 0.48828125,
+                  "native_exact": 0.48828125,
+                  "task_nll": 1.61957063892475,
+                  "native_nll": 1.6211816910198422
+                }
+              }
+            },
+            {
+              "bytes": 1500012,
+              "cpu_seconds": 34.5662462140002,
+              "dev": {
+                "cases": 512,
+                "teacher_forced": {
+                  "token_accuracy": 0.7470703125,
+                  "exact": 0.494140625,
+                  "native_token_accuracy": 0.7470703125,
+                  "native_exact": 0.494140625,
+                  "task_nll": 0.35240083383957194,
+                  "native_nll": 0.35392248934323334
+                },
+                "restricted_rollout": {
+                  "token_accuracy": 0.494140625,
+                  "exact": 0.494140625,
+                  "native_token_accuracy": 0.494140625,
+                  "native_exact": 0.494140625,
+                  "task_nll": 1.6526185784769851,
+                  "native_nll": 1.6541528445679887
+                },
+                "native_rollout": {
+                  "token_accuracy": 0.494140625,
+                  "exact": 0.494140625,
+                  "native_token_accuracy": 0.494140625,
+                  "native_exact": 0.494140625,
+                  "task_nll": 1.6526185784769851,
+                  "native_nll": 1.6541528445679887
+                }
+              }
+            },
+            {
+              "bytes": 2000000,
+              "cpu_seconds": 45.73014291100056,
+              "dev": {
+                "cases": 512,
+                "teacher_forced": {
+                  "token_accuracy": 0.7490234375,
+                  "exact": 0.498046875,
+                  "native_token_accuracy": 0.7490234375,
+                  "native_exact": 0.498046875,
+                  "task_nll": 0.40102430373415804,
+                  "native_nll": 0.4019245681048176
+                },
+                "restricted_rollout": {
+                  "token_accuracy": 0.498046875,
+                  "exact": 0.498046875,
+                  "native_token_accuracy": 0.498046875,
+                  "native_exact": 0.498046875,
+                  "task_nll": 1.6396967447488586,
+                  "native_nll": 1.6406077333887765
+                },
+                "native_rollout": {
+                  "token_accuracy": 0.498046875,
+                  "exact": 0.498046875,
+                  "native_token_accuracy": 0.498046875,
+                  "native_exact": 0.498046875,
+                  "task_nll": 1.6396967447488586,
+                  "native_nll": 1.6406077333887765
+                }
+              }
+            }
+          ],
+          "inventory": {
+            "core_parameters": 498367,
+            "readout_parameters": 0,
+            "parameters": 498367,
+            "bytes": 113,
+            "head_targets": 0,
+            "training": true,
+            "joint": true,
+            "kind": "native",
+            "core": "minimal",
+            "readout_cache_bytes": 2180,
+            "experts_per_level": [
+              56,
+              29,
+              0,
+              0
+            ],
+            "allocated_head_bytes": 38140,
+            "allocated_adapter_bytes": 41416,
+            "added_persistent_sequence_state_bytes": 0,
+            "optimizer_state_bytes": 0,
+            "rls_updates": 0,
+            "normalization_bytes": 1032,
+            "normalization_samples": 0
+          },
+          "separate_warmup": {
+            "bytes": 250000,
+            "targets": 3875,
+            "cpu_seconds": 5.363202634999979,
+            "wall_seconds": 5.366533518044889,
+            "bytes_per_cpu_second": 46613.93891189438,
+            "order_sha256": "84b9276e7cdfd48ecdc4d0c5d0e48ee68861867c519c23360205e1810b33094e",
+            "curve": [
+              {
+                "bytes": 250000,
+                "cpu_seconds": 5.363202634999979,
+                "dev": {
+                  "cases": 512,
+                  "teacher_forced": {
+                    "token_accuracy": 0.75,
+                    "exact": 0.5,
+                    "native_token_accuracy": 0.75,
+                    "native_exact": 0.5,
+                    "task_nll": 0.452095283897218,
+                    "native_nll": 0.4581599931989331
+                  },
+                  "restricted_rollout": {
+                    "token_accuracy": 0.5,
+                    "exact": 0.5,
+                    "native_token_accuracy": 0.5,
+                    "native_exact": 0.5,
+                    "task_nll": 0.8536061042342026,
+                    "native_nll": 0.859691442346957
+                  },
+                  "native_rollout": {
+                    "token_accuracy": 0.5,
+                    "exact": 0.5,
+                    "native_token_accuracy": 0.5,
+                    "native_exact": 0.5,
+                    "task_nll": 0.8536061042342026,
+                    "native_nll": 0.859691442346957
+                  }
+                }
+              }
+            ]
+          },
+          "continuation_reload_exact": true
+        },
+        "matched": {
+          "bytes": 2000000,
+          "targets": 31007,
+          "cpu_seconds": 47.76379078399985,
+          "wall_seconds": 47.913268559987046,
+          "bytes_per_cpu_second": 41872.723399290364,
+          "order_sha256": "65cf0148e3eda156f463375cd0f94cf22a5b0651f4fc8a54ceced11226dcec97",
+          "curve": [
+            {
+              "bytes": 500004,
+              "cpu_seconds": 11.465080951000019,
+              "dev": {
+                "cases": 512,
+                "teacher_forced": {
+                  "token_accuracy": 0.7275390625,
+                  "exact": 0.455078125,
+                  "native_token_accuracy": 0.7275390625,
+                  "native_exact": 0.455078125,
+                  "task_nll": 0.38100370267908307,
+                  "native_nll": 0.3826244587285146
+                },
+                "restricted_rollout": {
+                  "token_accuracy": 0.455078125,
+                  "exact": 0.455078125,
+                  "native_token_accuracy": 0.455078125,
+                  "native_exact": 0.455078125,
+                  "task_nll": 1.4970912830052743,
+                  "native_nll": 1.4986637996648824
+                },
+                "native_rollout": {
+                  "token_accuracy": 0.455078125,
+                  "exact": 0.455078125,
+                  "native_token_accuracy": 0.455078125,
+                  "native_exact": 0.455078125,
+                  "task_nll": 1.4970912830052743,
+                  "native_nll": 1.4986637996648824
+                }
+              }
+            },
+            {
+              "bytes": 1000008,
+              "cpu_seconds": 23.076876969000395,
+              "dev": {
+                "cases": 512,
+                "teacher_forced": {
+                  "token_accuracy": 0.7333984375,
+                  "exact": 0.466796875,
+                  "native_token_accuracy": 0.7333984375,
+                  "native_exact": 0.466796875,
+                  "task_nll": 0.3685276828806149,
+                  "native_nll": 0.36979847900659024
+                },
+                "restricted_rollout": {
+                  "token_accuracy": 0.466796875,
+                  "exact": 0.466796875,
+                  "native_token_accuracy": 0.466796875,
+                  "native_exact": 0.466796875,
+                  "task_nll": 1.6098371898583188,
+                  "native_nll": 1.6110882427125262
+                },
+                "native_rollout": {
+                  "token_accuracy": 0.466796875,
+                  "exact": 0.466796875,
+                  "native_token_accuracy": 0.466796875,
+                  "native_exact": 0.466796875,
+                  "task_nll": 1.6098371898583188,
+                  "native_nll": 1.6110882427125262
+                }
+              }
+            },
+            {
+              "bytes": 1500012,
+              "cpu_seconds": 35.64792315699982,
+              "dev": {
+                "cases": 512,
+                "teacher_forced": {
+                  "token_accuracy": 0.73046875,
+                  "exact": 0.4609375,
+                  "native_token_accuracy": 0.73046875,
+                  "native_exact": 0.4609375,
+                  "task_nll": 0.3682175321050316,
+                  "native_nll": 0.36926357280958655
+                },
+                "restricted_rollout": {
+                  "token_accuracy": 0.4609375,
+                  "exact": 0.4609375,
+                  "native_token_accuracy": 0.4609375,
+                  "native_exact": 0.4609375,
+                  "task_nll": 1.7764646928376213,
+                  "native_nll": 1.777523459529334
+                },
+                "native_rollout": {
+                  "token_accuracy": 0.4609375,
+                  "exact": 0.4609375,
+                  "native_token_accuracy": 0.4609375,
+                  "native_exact": 0.4609375,
+                  "task_nll": 1.7764646928376213,
+                  "native_nll": 1.777523459529334
+                }
+              }
+            },
+            {
+              "bytes": 2000000,
+              "cpu_seconds": 47.76379078399985,
+              "dev": {
+                "cases": 512,
+                "teacher_forced": {
+                  "token_accuracy": 0.7490234375,
+                  "exact": 0.498046875,
+                  "native_token_accuracy": 0.7490234375,
+                  "native_exact": 0.498046875,
+                  "task_nll": 0.4200709100790456,
+                  "native_nll": 0.42095564066141833
+                },
+                "restricted_rollout": {
+                  "token_accuracy": 0.498046875,
+                  "exact": 0.498046875,
+                  "native_token_accuracy": 0.498046875,
+                  "native_exact": 0.498046875,
+                  "task_nll": 1.768840224374459,
+                  "native_nll": 1.7697512411451157
+                },
+                "native_rollout": {
+                  "token_accuracy": 0.498046875,
+                  "exact": 0.498046875,
+                  "native_token_accuracy": 0.498046875,
+                  "native_exact": 0.498046875,
+                  "task_nll": 1.768840224374459,
+                  "native_nll": 1.7697512411451157
+                }
+              }
+            }
+          ],
+          "inventory": {
+            "core_parameters": 489919,
+            "readout_parameters": 0,
+            "parameters": 489919,
+            "bytes": 113,
+            "head_targets": 0,
+            "training": true,
+            "joint": true,
+            "kind": "native",
+            "core": "minimal",
+            "readout_cache_bytes": 2180,
+            "experts_per_level": [
+              55,
+              28,
+              0,
+              0
+            ],
+            "allocated_head_bytes": 38140,
+            "allocated_adapter_bytes": 41416,
+            "added_persistent_sequence_state_bytes": 0,
+            "optimizer_state_bytes": 0,
+            "rls_updates": 0,
+            "normalization_bytes": 1032,
+            "normalization_samples": 0
+          },
+          "separate_warmup": null,
+          "continuation_reload_exact": true
+        },
+        "answer_frozen": {
+          "bytes": 2000000,
+          "targets": 31007,
+          "cpu_seconds": 33.18480754499902,
+          "wall_seconds": 33.29263869590068,
+          "bytes_per_cpu_second": 60268.542985761625,
+          "order_sha256": "65cf0148e3eda156f463375cd0f94cf22a5b0651f4fc8a54ceced11226dcec97",
+          "curve": [
+            {
+              "bytes": 500004,
+              "cpu_seconds": 8.494991048998969,
+              "dev": {
+                "cases": 512,
+                "teacher_forced": {
+                  "token_accuracy": 0.732421875,
+                  "exact": 0.46875,
+                  "native_token_accuracy": 0.732421875,
+                  "native_exact": 0.46875,
+                  "task_nll": 0.37970234311206685,
+                  "native_nll": 0.38445497132852324
+                },
+                "restricted_rollout": {
+                  "token_accuracy": 0.4697265625,
+                  "exact": 0.46875,
+                  "native_token_accuracy": 0.4697265625,
+                  "native_exact": 0.46875,
+                  "task_nll": 1.261326489890804,
+                  "native_nll": 1.2660352170860278
+                },
+                "native_rollout": {
+                  "token_accuracy": 0.4697265625,
+                  "exact": 0.46875,
+                  "native_token_accuracy": 0.4697265625,
+                  "native_exact": 0.46875,
+                  "task_nll": 1.261326489890804,
+                  "native_nll": 1.2660352170860278
+                }
+              }
+            },
+            {
+              "bytes": 1000008,
+              "cpu_seconds": 16.869540643000732,
+              "dev": {
+                "cases": 512,
+                "teacher_forced": {
+                  "token_accuracy": 0.7431640625,
+                  "exact": 0.490234375,
+                  "native_token_accuracy": 0.7431640625,
+                  "native_exact": 0.490234375,
+                  "task_nll": 0.37571914467088313,
+                  "native_nll": 0.38028016054340696
+                },
+                "restricted_rollout": {
+                  "token_accuracy": 0.4921875,
+                  "exact": 0.490234375,
+                  "native_token_accuracy": 0.4921875,
+                  "native_exact": 0.490234375,
+                  "task_nll": 1.20817188385935,
+                  "native_nll": 1.212738889744287
+                },
+                "native_rollout": {
+                  "token_accuracy": 0.4921875,
+                  "exact": 0.490234375,
+                  "native_token_accuracy": 0.4921875,
+                  "native_exact": 0.490234375,
+                  "task_nll": 1.20817188385935,
+                  "native_nll": 1.212738889744287
+                }
+              }
+            },
+            {
+              "bytes": 1500012,
+              "cpu_seconds": 25.3943580640001,
+              "dev": {
+                "cases": 512,
+                "teacher_forced": {
+                  "token_accuracy": 0.748046875,
+                  "exact": 0.49609375,
+                  "native_token_accuracy": 0.748046875,
+                  "native_exact": 0.49609375,
+                  "task_nll": 0.3622477017999555,
+                  "native_nll": 0.3666313236449241
+                },
+                "restricted_rollout": {
+                  "token_accuracy": 0.49609375,
+                  "exact": 0.49609375,
+                  "native_token_accuracy": 0.49609375,
+                  "native_exact": 0.49609375,
+                  "task_nll": 1.5467352612044256,
+                  "native_nll": 1.5511200076734895
+                },
+                "native_rollout": {
+                  "token_accuracy": 0.49609375,
+                  "exact": 0.49609375,
+                  "native_token_accuracy": 0.49609375,
+                  "native_exact": 0.49609375,
+                  "task_nll": 1.5467352612044256,
+                  "native_nll": 1.5511200076734895
+                }
+              }
+            },
+            {
+              "bytes": 2000000,
+              "cpu_seconds": 33.18480754499902,
+              "dev": {
+                "cases": 512,
+                "teacher_forced": {
+                  "token_accuracy": 0.8037109375,
+                  "exact": 0.607421875,
+                  "native_token_accuracy": 0.8037109375,
+                  "native_exact": 0.607421875,
+                  "task_nll": 0.3635748353327499,
+                  "native_nll": 0.3677847701030714
+                },
+                "restricted_rollout": {
+                  "token_accuracy": 0.607421875,
+                  "exact": 0.607421875,
+                  "native_token_accuracy": 0.607421875,
+                  "native_exact": 0.607421875,
+                  "task_nll": 1.6519532380491875,
+                  "native_nll": 1.656176184219703
+                },
+                "native_rollout": {
+                  "token_accuracy": 0.607421875,
+                  "exact": 0.607421875,
+                  "native_token_accuracy": 0.607421875,
+                  "native_exact": 0.607421875,
+                  "task_nll": 1.6519532380491875,
+                  "native_nll": 1.656176184219703
+                }
+              }
+            }
+          ],
+          "inventory": {
+            "core_parameters": 489919,
+            "readout_parameters": 9535,
+            "parameters": 499454,
+            "bytes": 113,
+            "head_targets": 31007,
+            "training": true,
+            "joint": false,
+            "kind": "answer",
+            "core": "minimal",
+            "readout_cache_bytes": 2180,
+            "experts_per_level": [
+              55,
+              28,
+              0,
+              0
+            ],
+            "allocated_head_bytes": 38140,
+            "allocated_adapter_bytes": 41416,
+            "added_persistent_sequence_state_bytes": 0,
+            "optimizer_state_bytes": 0,
+            "rls_updates": 0,
+            "normalization_bytes": 1032,
+            "normalization_samples": 31007
+          },
+          "separate_warmup": null,
+          "continuation_reload_exact": true
+        },
+        "local_frozen": {
+          "bytes": 2000000,
+          "targets": 31007,
+          "cpu_seconds": 35.145030655999676,
+          "wall_seconds": 35.36951450691413,
+          "bytes_per_cpu_second": 56907.04952219401,
+          "order_sha256": "65cf0148e3eda156f463375cd0f94cf22a5b0651f4fc8a54ceced11226dcec97",
+          "curve": [
+            {
+              "bytes": 500004,
+              "cpu_seconds": 9.43076150799945,
+              "dev": {
+                "cases": 512,
+                "teacher_forced": {
+                  "token_accuracy": 0.8818359375,
+                  "exact": 0.763671875,
+                  "native_token_accuracy": 0.8818359375,
+                  "native_exact": 0.763671875,
+                  "task_nll": 0.32677896252366256,
+                  "native_nll": 0.326782775294447
+                },
+                "restricted_rollout": {
+                  "token_accuracy": 0.7724609375,
+                  "exact": 0.763671875,
+                  "native_token_accuracy": 0.7724609375,
+                  "native_exact": 0.763671875,
+                  "task_nll": 0.6495245591921212,
+                  "native_nll": 0.6495283791763029
+                },
+                "native_rollout": {
+                  "token_accuracy": 0.7724609375,
+                  "exact": 0.763671875,
+                  "native_token_accuracy": 0.7724609375,
+                  "native_exact": 0.763671875,
+                  "task_nll": 0.6495245591921212,
+                  "native_nll": 0.6495283791763029
+                }
+              }
+            },
+            {
+              "bytes": 1000008,
+              "cpu_seconds": 18.1599275699985,
+              "dev": {
+                "cases": 512,
+                "teacher_forced": {
+                  "token_accuracy": 0.88671875,
+                  "exact": 0.7734375,
+                  "native_token_accuracy": 0.88671875,
+                  "native_exact": 0.7734375,
+                  "task_nll": 0.3305797437592811,
+                  "native_nll": 0.3305815816888469
+                },
+                "restricted_rollout": {
+                  "token_accuracy": 0.7861328125,
+                  "exact": 0.7734375,
+                  "native_token_accuracy": 0.7861328125,
+                  "native_exact": 0.7734375,
+                  "task_nll": 0.6377318469477333,
+                  "native_nll": 0.637733676983629
+                },
+                "native_rollout": {
+                  "token_accuracy": 0.7861328125,
+                  "exact": 0.7734375,
+                  "native_token_accuracy": 0.7861328125,
+                  "native_exact": 0.7734375,
+                  "task_nll": 0.6377318469477333,
+                  "native_nll": 0.637733676983629
+                }
+              }
+            },
+            {
+              "bytes": 1500012,
+              "cpu_seconds": 26.70520675399925,
+              "dev": {
+                "cases": 512,
+                "teacher_forced": {
+                  "token_accuracy": 0.9150390625,
+                  "exact": 0.830078125,
+                  "native_token_accuracy": 0.9150390625,
+                  "native_exact": 0.830078125,
+                  "task_nll": 0.2383221720909614,
+                  "native_nll": 0.238323408000781
+                },
+                "restricted_rollout": {
+                  "token_accuracy": 0.837890625,
+                  "exact": 0.830078125,
+                  "native_token_accuracy": 0.837890625,
+                  "native_exact": 0.830078125,
+                  "task_nll": 0.4624293214188314,
+                  "native_nll": 0.4624305540842215
+                },
+                "native_rollout": {
+                  "token_accuracy": 0.837890625,
+                  "exact": 0.830078125,
+                  "native_token_accuracy": 0.837890625,
+                  "native_exact": 0.830078125,
+                  "task_nll": 0.4624293214188314,
+                  "native_nll": 0.4624305540842215
+                }
+              }
+            },
+            {
+              "bytes": 2000000,
+              "cpu_seconds": 35.145030655999676,
+              "dev": {
+                "cases": 512,
+                "teacher_forced": {
+                  "token_accuracy": 0.8916015625,
+                  "exact": 0.783203125,
+                  "native_token_accuracy": 0.8916015625,
+                  "native_exact": 0.783203125,
+                  "task_nll": 0.2613368663579577,
+                  "native_nll": 0.26133780997232137
+                },
+                "restricted_rollout": {
+                  "token_accuracy": 0.8017578125,
+                  "exact": 0.783203125,
+                  "native_token_accuracy": 0.8017578125,
+                  "native_exact": 0.783203125,
+                  "task_nll": 0.5516358131078041,
+                  "native_nll": 0.5516367553213684
+                },
+                "native_rollout": {
+                  "token_accuracy": 0.8017578125,
+                  "exact": 0.783203125,
+                  "native_token_accuracy": 0.8017578125,
+                  "native_exact": 0.783203125,
+                  "task_nll": 0.5516358131078041,
+                  "native_nll": 0.5516367553213684
+                }
+              }
+            }
+          ],
+          "inventory": {
+            "core_parameters": 489919,
+            "readout_parameters": 9535,
+            "parameters": 499454,
+            "bytes": 113,
+            "head_targets": 31007,
+            "training": true,
+            "joint": false,
+            "kind": "local",
+            "core": "minimal",
+            "readout_cache_bytes": 2180,
+            "experts_per_level": [
+              55,
+              28,
+              0,
+              0
+            ],
+            "allocated_head_bytes": 38140,
+            "allocated_adapter_bytes": 41416,
+            "added_persistent_sequence_state_bytes": 0,
+            "optimizer_state_bytes": 0,
+            "rls_updates": 0,
+            "normalization_bytes": 1032,
+            "normalization_samples": 31007
+          },
+          "separate_warmup": null,
+          "continuation_reload_exact": true
+        },
+        "local_joint": {
+          "bytes": 2000000,
+          "targets": 31007,
+          "cpu_seconds": 43.94623606999991,
+          "wall_seconds": 44.01640992216926,
+          "bytes_per_cpu_second": 45510.15465384324,
+          "order_sha256": "65cf0148e3eda156f463375cd0f94cf22a5b0651f4fc8a54ceced11226dcec97",
+          "curve": [
+            {
+              "bytes": 500004,
+              "cpu_seconds": 11.185006886000167,
+              "dev": {
+                "cases": 512,
+                "teacher_forced": {
+                  "token_accuracy": 0.7431640625,
+                  "exact": 0.513671875,
+                  "native_token_accuracy": 0.7431640625,
+                  "native_exact": 0.513671875,
+                  "task_nll": 0.444207019555702,
+                  "native_nll": 0.44432062452413845
+                },
+                "restricted_rollout": {
+                  "token_accuracy": 0.5205078125,
+                  "exact": 0.513671875,
+                  "native_token_accuracy": 0.5205078125,
+                  "native_exact": 0.513671875,
+                  "task_nll": 1.8237614952519328,
+                  "native_nll": 1.8238830478050971
+                },
+                "native_rollout": {
+                  "token_accuracy": 0.5205078125,
+                  "exact": 0.513671875,
+                  "native_token_accuracy": 0.5205078125,
+                  "native_exact": 0.513671875,
+                  "task_nll": 1.8237614952519328,
+                  "native_nll": 1.8238830478050971
+                }
+              }
+            },
+            {
+              "bytes": 1000008,
+              "cpu_seconds": 22.60676354100039,
+              "dev": {
+                "cases": 512,
+                "teacher_forced": {
+                  "token_accuracy": 0.7919921875,
+                  "exact": 0.58984375,
+                  "native_token_accuracy": 0.7919921875,
+                  "native_exact": 0.58984375,
+                  "task_nll": 0.40586239937966256,
+                  "native_nll": 0.40597073777354353
+                },
+                "restricted_rollout": {
+                  "token_accuracy": 0.5986328125,
+                  "exact": 0.58984375,
+                  "native_token_accuracy": 0.5986328125,
+                  "native_exact": 0.58984375,
+                  "task_nll": 1.5170363787085068,
+                  "native_nll": 1.5171432975388655
+                },
+                "native_rollout": {
+                  "token_accuracy": 0.5986328125,
+                  "exact": 0.58984375,
+                  "native_token_accuracy": 0.5986328125,
+                  "native_exact": 0.58984375,
+                  "task_nll": 1.5170363787085068,
+                  "native_nll": 1.5171432975388655
+                }
+              }
+            },
+            {
+              "bytes": 1500012,
+              "cpu_seconds": 33.28692130400012,
+              "dev": {
+                "cases": 512,
+                "teacher_forced": {
+                  "token_accuracy": 0.8271484375,
+                  "exact": 0.65625,
+                  "native_token_accuracy": 0.8271484375,
+                  "native_exact": 0.65625,
+                  "task_nll": 0.3275237929725532,
+                  "native_nll": 0.3276333049859961
+                },
+                "restricted_rollout": {
+                  "token_accuracy": 0.6591796875,
+                  "exact": 0.65625,
+                  "native_token_accuracy": 0.6591796875,
+                  "native_exact": 0.65625,
+                  "task_nll": 1.5321207092843294,
+                  "native_nll": 1.5322282679064099
+                },
+                "native_rollout": {
+                  "token_accuracy": 0.6591796875,
+                  "exact": 0.65625,
+                  "native_token_accuracy": 0.6591796875,
+                  "native_exact": 0.65625,
+                  "task_nll": 1.5321207092843294,
+                  "native_nll": 1.5322282679064099
+                }
+              }
+            },
+            {
+              "bytes": 2000000,
+              "cpu_seconds": 43.94623606999991,
+              "dev": {
+                "cases": 512,
+                "teacher_forced": {
+                  "token_accuracy": 0.7880859375,
+                  "exact": 0.576171875,
+                  "native_token_accuracy": 0.7880859375,
+                  "native_exact": 0.576171875,
+                  "task_nll": 0.4642394343352135,
+                  "native_nll": 0.46439118174799887
+                },
+                "restricted_rollout": {
+                  "token_accuracy": 0.5908203125,
+                  "exact": 0.576171875,
+                  "native_token_accuracy": 0.5908203125,
+                  "native_exact": 0.576171875,
+                  "task_nll": 1.6018019990442216,
+                  "native_nll": 1.601953280090175
+                },
+                "native_rollout": {
+                  "token_accuracy": 0.5908203125,
+                  "exact": 0.576171875,
+                  "native_token_accuracy": 0.5908203125,
+                  "native_exact": 0.576171875,
+                  "task_nll": 1.6018019990442216,
+                  "native_nll": 1.601953280090175
+                }
+              }
+            }
+          ],
+          "inventory": {
+            "core_parameters": 489919,
+            "readout_parameters": 9535,
+            "parameters": 499454,
+            "bytes": 113,
+            "head_targets": 31007,
+            "training": true,
+            "joint": true,
+            "kind": "local",
+            "core": "minimal",
+            "readout_cache_bytes": 2180,
+            "experts_per_level": [
+              55,
+              28,
+              0,
+              0
+            ],
+            "allocated_head_bytes": 38140,
+            "allocated_adapter_bytes": 41416,
+            "added_persistent_sequence_state_bytes": 0,
+            "optimizer_state_bytes": 0,
+            "rls_updates": 0,
+            "normalization_bytes": 1032,
+            "normalization_samples": 31007
+          },
+          "separate_warmup": null,
+          "continuation_reload_exact": true
+        },
+        "rls_frozen": {
+          "bytes": 2000000,
+          "targets": 31007,
+          "cpu_seconds": 32.16316031399981,
+          "wall_seconds": 32.235233704810526,
+          "bytes_per_cpu_second": 62182.94410358209,
+          "order_sha256": "65cf0148e3eda156f463375cd0f94cf22a5b0651f4fc8a54ceced11226dcec97",
+          "curve": [
+            {
+              "bytes": 500004,
+              "cpu_seconds": 7.977685920000283,
+              "dev": {
+                "cases": 512,
+                "teacher_forced": {
+                  "token_accuracy": 0.876953125,
+                  "exact": 0.755859375,
+                  "native_token_accuracy": 0.876953125,
+                  "native_exact": 0.755859375,
+                  "task_nll": 0.3202978490829253,
+                  "native_nll": 0.32030149232620886
+                },
+                "restricted_rollout": {
+                  "token_accuracy": 0.7724609375,
+                  "exact": 0.755859375,
+                  "native_token_accuracy": 0.7724609375,
+                  "native_exact": 0.755859375,
+                  "task_nll": 0.575954971033569,
+                  "native_nll": 0.5759586042006362
+                },
+                "native_rollout": {
+                  "token_accuracy": 0.7724609375,
+                  "exact": 0.755859375,
+                  "native_token_accuracy": 0.7724609375,
+                  "native_exact": 0.755859375,
+                  "task_nll": 0.575954971033569,
+                  "native_nll": 0.5759586042006362
+                }
+              }
+            },
+            {
+              "bytes": 1000008,
+              "cpu_seconds": 15.828909648000376,
+              "dev": {
+                "cases": 512,
+                "teacher_forced": {
+                  "token_accuracy": 0.880859375,
+                  "exact": 0.76171875,
+                  "native_token_accuracy": 0.880859375,
+                  "native_exact": 0.76171875,
+                  "task_nll": 0.3082454854744231,
+                  "native_nll": 0.3082472905228144
+                },
+                "restricted_rollout": {
+                  "token_accuracy": 0.7802734375,
+                  "exact": 0.76171875,
+                  "native_token_accuracy": 0.7802734375,
+                  "native_exact": 0.76171875,
+                  "task_nll": 0.5606189638823492,
+                  "native_nll": 0.5606207650608894
+                },
+                "native_rollout": {
+                  "token_accuracy": 0.7802734375,
+                  "exact": 0.76171875,
+                  "native_token_accuracy": 0.7802734375,
+                  "native_exact": 0.76171875,
+                  "task_nll": 0.5606189638823492,
+                  "native_nll": 0.5606207650608894
+                }
+              }
+            },
+            {
+              "bytes": 1500012,
+              "cpu_seconds": 23.840371830998606,
+              "dev": {
+                "cases": 512,
+                "teacher_forced": {
+                  "token_accuracy": 0.8798828125,
+                  "exact": 0.759765625,
+                  "native_token_accuracy": 0.8798828125,
+                  "native_exact": 0.759765625,
+                  "task_nll": 0.30414666023552817,
+                  "native_nll": 0.30414784937929085
+                },
+                "restricted_rollout": {
+                  "token_accuracy": 0.78125,
+                  "exact": 0.759765625,
+                  "native_token_accuracy": 0.78125,
+                  "native_exact": 0.759765625,
+                  "task_nll": 0.5767726294417868,
+                  "native_nll": 0.5767738140169598
+                },
+                "native_rollout": {
+                  "token_accuracy": 0.78125,
+                  "exact": 0.759765625,
+                  "native_token_accuracy": 0.78125,
+                  "native_exact": 0.759765625,
+                  "task_nll": 0.5767726294417868,
+                  "native_nll": 0.5767738140169598
+                }
+              }
+            },
+            {
+              "bytes": 2000000,
+              "cpu_seconds": 32.16316031399981,
+              "dev": {
+                "cases": 512,
+                "teacher_forced": {
+                  "token_accuracy": 0.8818359375,
+                  "exact": 0.763671875,
+                  "native_token_accuracy": 0.8818359375,
+                  "native_exact": 0.763671875,
+                  "task_nll": 0.2964461081112781,
+                  "native_nll": 0.2964470495093323
+                },
+                "restricted_rollout": {
+                  "token_accuracy": 0.7841796875,
+                  "exact": 0.763671875,
+                  "native_token_accuracy": 0.7841796875,
+                  "native_exact": 0.763671875,
+                  "task_nll": 0.5863520476819514,
+                  "native_nll": 0.5863529848161875
+                },
+                "native_rollout": {
+                  "token_accuracy": 0.7841796875,
+                  "exact": 0.763671875,
+                  "native_token_accuracy": 0.7841796875,
+                  "native_exact": 0.763671875,
+                  "task_nll": 0.5863520476819514,
+                  "native_nll": 0.5863529848161875
+                }
+              }
+            }
+          ],
+          "inventory": {
+            "core_parameters": 489919,
+            "readout_parameters": 9535,
+            "parameters": 499454,
+            "bytes": 113,
+            "head_targets": 31007,
+            "training": true,
+            "joint": false,
+            "kind": "rls",
+            "core": "minimal",
+            "readout_cache_bytes": 2180,
+            "experts_per_level": [
+              55,
+              28,
+              0,
+              0
+            ],
+            "allocated_head_bytes": 38140,
+            "allocated_adapter_bytes": 41416,
+            "added_persistent_sequence_state_bytes": 0,
+            "optimizer_state_bytes": 33808,
+            "rls_updates": 31007,
+            "normalization_bytes": 1032,
+            "normalization_samples": 31007
+          },
+          "separate_warmup": null,
+          "continuation_reload_exact": true
+        }
+      },
+      "warmup": {
+        "bytes": 250000,
+        "targets": 3875,
+        "cpu_seconds": 5.5355814359999975,
+        "wall_seconds": 5.537476702906133,
+        "bytes_per_cpu_second": 45162.374158955485,
+        "order_sha256": "84b9276e7cdfd48ecdc4d0c5d0e48ee68861867c519c23360205e1810b33094e",
+        "curve": [
+          {
+            "bytes": 250000,
+            "cpu_seconds": 5.5355814359999975,
+            "dev": {
+              "cases": 512,
+              "teacher_forced": {
+                "token_accuracy": 0.751953125,
+                "exact": 0.50390625,
+                "native_token_accuracy": 0.751953125,
+                "native_exact": 0.50390625,
+                "task_nll": 0.4194566715699883,
+                "native_nll": 0.42445668836080586
+              },
+              "restricted_rollout": {
+                "token_accuracy": 0.517578125,
+                "exact": 0.50390625,
+                "native_token_accuracy": 0.517578125,
+                "native_exact": 0.50390625,
+                "task_nll": 1.0003048628556577,
+                "native_nll": 1.0054608856735285
+              },
+              "native_rollout": {
+                "token_accuracy": 0.517578125,
+                "exact": 0.50390625,
+                "native_token_accuracy": 0.517578125,
+                "native_exact": 0.50390625,
+                "task_nll": 1.0003048628556577,
+                "native_nll": 1.0054608856735285
+              }
+            }
+          }
+        ]
+      }
+    }
+  ]
+}

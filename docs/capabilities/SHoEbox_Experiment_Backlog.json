@@ -1,6 +1,6 @@
 {
   "title": "SHoEbox capability development backlog",
-  "revision": 4,
+  "revision": 5,
   "date": "2026-11-15",
   "status": "in_progress",
   "runtime_commit": "317fbcd023b9d9b3c2b359ba8f99f3dadbf46783",
@@ -65,14 +65,15 @@
         "P02",
         "P03",
         "P31",
-        "P32"
+        "P32",
+        "P33"
       ],
       "question": "Is the value missing, or is the model failing to select and decode an available value for the current key?",
       "design": "Begin with a single binding, then two distinct key/value pairs, no irrelevant records, both query orders and randomized names. Explicitly compare minimal v19 and full C with coverage-only warmup. Add a query-conditioned low-rank readout with the core frozen and then trained end to end, plus a matched-capacity generic head. Deduct head parameters from bank capacity. Fit raw/centered/standardized probes identically. Keep query-index oracle access outside scored native inference.",
       "evaluation": "Require autoregressive whole-episode correctness and correct answer changes under query swaps; score full-256-byte output separately from restricted output. Probe addressed reads, retained reads and final L3 separately and jointly; distinguish immediate write availability, pre-query retention, query-conditioned selection and native decoding. Use one-binding initialization/query tests first, then the locked balanced two-key fixture.",
       "decision": "A readout-only win selects the cheaper repair. If a matched probe can decode a value but native generation cannot, repair query/readout integration. If neither can recover it, pass the failure to EXP02/EXP03. Stop broad optimizer searches once this distinction is clear.",
-      "status": "initial_diagnostic_complete_online_factorized_readout_next",
-      "execution_entry": "EXP01-B: learn separate query/key selection and value decoding online over existing evidence. Keep native v19 unchanged until the native binding, counterfactual, cost and regression gates pass.",
+      "status": "online_factorized_screen_complete_binding_gate_not_met",
+      "execution_entry": "EXP01-C / EXP22: stable query-time access to existing completed/partial state across query positions and boundaries, then controlled joint local credit. New audit fold required; slots remain gated.",
       "results": {
         "report": "reports/exp01/SHoEbox_EXP01_Query_Readout.md",
         "comparison_branches": 36,
@@ -92,7 +93,27 @@
       "baseline_cores": [
         "minimal",
         "full"
-      ]
+      ],
+      "online_factorized_results": {
+        "report": "reports/exp01b/SHoEbox_EXP01B_Online_Factorized_Readout.md",
+        "core": "minimal-v19",
+        "comparison_branches": 18,
+        "seeds": [
+          1,
+          7,
+          19
+        ],
+        "native_exact": 0.5003255208333334,
+        "local_frozen_exact": 0.8336588541666666,
+        "local_joint_exact": 0.6123046875,
+        "rls_exact": 0.8111979166666666,
+        "local_query_pair_exact": 0.6510416666666666,
+        "local_all_offsets_exact": 0.267333984375,
+        "extra_fitted_parameters": 9535,
+        "extra_persistent_sequence_state_bytes": 0,
+        "actual_training_bytes": 49500000,
+        "default_promoted": false
+      }
     },
     {
       "id": "EXP02",
@@ -642,7 +663,8 @@
       "design": "First compare fixed grouping under every answer offset and a query-time read of already observed partial/completed state. If that diagnoses boundary dependence, compare fixed groups with causal delimiter-based, entropy-based or learned segmentation in a separate backend. Match average event counts and report boundary-policy costs. Keep byte evidence and emitted targets causal.",
       "evaluation": "Measure binding/transition accuracy by offset, language NLL/time, event counts, completion latency, checkpoint continuation and behavior on long unbroken spans. No target-driven boundary labels may enter inference, and no partial group may expose future bytes. Test worst-case work/state bounds as well as averages.",
       "decision": "Adopt dynamic boundaries only if they solve a measured timing/composition problem at an acceptable cost. A cheap query-time access repair should win over a full hierarchy change when both achieve the same result.",
-      "minimal_baseline_note": "Test query-time access to minimal partial/completed summaries first; introduce segmentation only after a boundary-dependent failure."
+      "minimal_baseline_note": "Test query-time access to minimal partial/completed summaries first; introduce segmentation only after a boundary-dependent failure.",
+      "execution_entry": "Coordinate the next EXP01-C repair: EXP01-B local head falls from 83.37% aligned to 26.73% averaged across all frozen offsets. Test current-query versus stable evidence views before changing segmentation."
     },
     {
       "id": "EXP23",
@@ -923,8 +945,16 @@
       "title": "Key-Value Memory Networks for Directly Reading Documents",
       "url": "https://aclanthology.org/D16-1147/",
       "status": "Miller et al.; EMNLP 2016",
-      "when": "EXP01-B next",
-      "use": "Separate addressing from returned content; train the factorized readout online."
+      "when": "EXP01-B implemented",
+      "use": "Separate online query/key selection and value decoding over existing L3; local prefix reconstruction improves aligned binding but boundary/access remains unresolved."
+    },
+    {
+      "id": "P33",
+      "title": "Generating Coherent Patterns of Activity from Chaotic Neural Networks",
+      "url": "https://doi.org/10.1016/j.neuron.2009.07.018",
+      "status": "Sussillo and Abbott; Neuron 2009",
+      "when": "EXP01-B online RLS control",
+      "use": "Bounded recursive inverse-covariance updates for address readouts; frozen-core control, not FORCE dynamics."
     }
   ],
   "capability_coverage": [
@@ -1229,13 +1259,14 @@
     {
       "id": "M07",
       "capability": "Bind a newly observed value to the right query",
-      "implementation": "Yes \u2014 memory path",
-      "evidence": "Unworking at tested operating point",
-      "notes": "Minimal EXP01 native two-answer exactness is 49.45% versus the 50% input-order shortcut. The offline factorized L3 probe reaches 99.93% on the first query, localizing available information rather than native online binding. Next: EXP01-B online factorized query/key selection and value readout.",
+      "implementation": "Yes \u2014 memory path; research selector",
+      "evidence": "Default unworking; narrow adapter gain",
+      "notes": "EXP01-B online local-credit adapter reaches 83.37% native exact versus 50.03% native; query ablation 50.13%, all-offset mean 26.73%. Not promoted. Next: EXP01-C / EXP22 stable query-time access.",
       "experiments": [
         "EXP01",
         "EXP02",
-        "EXP08"
+        "EXP08",
+        "EXP22"
       ],
       "historical_assessment": {
         "implementation": "Yes",
@@ -1615,9 +1646,9 @@
     {
       "id": "C02",
       "capability": "Teach internal state through intermediate supervision",
-      "implementation": "No \u2014 research adapter only",
-      "evidence": "Untested",
-      "notes": "The existing supervised-state adapter targets full C; do not assume minimal compatibility. Port and validate only when needed.",
+      "implementation": "Partial \u2014 minimal research adapter",
+      "evidence": "Readout gain; joint credit unqualified",
+      "notes": "Prefix-byte local reconstruction lifts the frozen-head binding result to 83.37%; joint bounded credit reaches 61.23% and fails the binding gate. Implemented with numerical checks; not promoted.",
       "experiments": [
         "EXP01",
         "EXP04",
@@ -2150,7 +2181,7 @@
       "larger state and parameter sweeps"
     ],
     "status": "historical_conditional_estimate_not_current_execution_budget",
-    "note": "Historical 94-fit/31M-byte proposal, not an execution budget. EXP00 actual costs are under EXP00.execution. EXP01 actual online costs total 24.2M bytes including pilot/copy controls, with offline diagnostic fits recorded separately. Register a new EXP01-B budget and audit fold before fitting; do not automatically launch the four-arm state screen.",
+    "note": "Historical 94-fit/31M-byte proposal, not an execution budget. EXP00 actual costs are under EXP00.execution. EXP01 actual online costs total 24.2M bytes including pilot/copy controls, with offline diagnostic fits recorded separately. Register a new EXP01-C budget and audit fold before fitting; do not automatically launch the four-arm state screen. EXP01-B is now complete at 49.5M actual charged bytes including pilots and learned controls; next is EXP01-C/EXP22, not automatic slot expansion.",
     "historical_comparator": "full_C_warmup"
   },
   "planned_outputs": [

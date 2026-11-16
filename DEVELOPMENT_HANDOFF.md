@@ -2,15 +2,16 @@
 
 15 November 2026 (America/Denver). Runtime baseline: minimal corrected C, checkpoint v19, source `317fbcd023b9d9b3c2b359ba8f99f3dadbf46783`.
 
-**Next action: EXP01-B — learn factorized query/key selection and value readout online over existing evidence.** EXP00 and EXP01's initial diagnostic screen are complete. The screen localizes two-key binding failure to selection/readout learning: minimal L3 supports 99.93% strict first-query recovery with a separately supervised offline probe, while native two-answer exactness is 49.45%. Generic online heads do not repair it. Minimal v19 remains the production default.
+**Next action: EXP01-C / EXP22 — stabilize query-time access across query positions and constituent boundaries using existing state.** EXP01-B is complete: the online factorized readout with local prefix reconstruction improves native two-answer exactness from 50.03% to 83.37% across seeds 1/7/19. Query ablation returns it to 50.13%. Mean frozen offset accuracy is only 26.73%; joint credit reaches 61.23%. The 95% binding gate is not met. Minimal v19 remains the production default; retain the new adapter as a reproducible control.
 
 ## Read first
 
 1. [Current minimal capability matrix](docs/capabilities/SHoEbox_Minimal_Capability_Matrix.md): all 66 capabilities and eight engineering enablers.
 2. [Minimal baseline specification and qualification](reports/minimal_core/SHoEbox_Minimal_Core_Baseline.md).
-3. [EXP01 findings, literature and costs](reports/exp01/SHoEbox_EXP01_Query_Readout.md) and [implemented adapter/commands](experiments/query_readout/README.md).
-4. [Completed EXP00 results](reports/exp00/README.md) and [task/control implementation](experiments/mad_next/README.md).
-5. [Research plan](docs/capabilities/SHoEbox_Capability_Research.md) and [machine-readable backlog](docs/capabilities/SHoEbox_Experiment_Backlog.json).
+3. [EXP01-B online factorized results](reports/exp01b/SHoEbox_EXP01B_Online_Factorized_Readout.md) and [source/commands](experiments/factorized_readout/README.md).
+4. [EXP01 findings, literature and costs](reports/exp01/SHoEbox_EXP01_Query_Readout.md) and [implemented adapter/commands](experiments/query_readout/README.md).
+5. [Completed EXP00 results](reports/exp00/README.md) and [task/control implementation](experiments/mad_next/README.md).
+6. [Research plan](docs/capabilities/SHoEbox_Capability_Research.md) and [machine-readable backlog](docs/capabilities/SHoEbox_Experiment_Backlog.json).
 
 ## Runtime contract
 
@@ -111,13 +112,48 @@ Formal charged training is 21M bytes, plus 1.7M pilot and 1.5M copy-control
 bytes: **24.2M actual online training bytes**. Offline probe fits are recorded
 separately. Compact evidence and citations are in `reports/exp01/`.
 
-## EXP01-B execution contract and remaining qualification
+## Completed EXP01-B: online factorized selection
+
+The rank-16 selector decodes a query, two keys and two values from existing L3,
+selects once, and supplies a residual to the native 256-byte decoder. It adds
+9,535 fitted parameters (deducted from the banks), 1,032 normalization bytes and
+zero persistent sequence state. The auxiliary labels are observed prefix bytes;
+no parsed record index, symbolic store or label enters inference. An online RLS
+address control adds 33,808 bytes of bounded optimizer state and reaches 81.12% exact.
+
+| Arm | Held-out native exact | Both query orders |
+| --- | ---: | ---: |
+| Native 500K | 50.03% | 0.00% |
+| Answer-only frozen head | 53.78% | 16.67% |
+| Local-credit frozen head | 83.37% | 65.10% |
+| Local-credit joint model | 61.23% | 27.34% |
+| RLS addresses, frozen core | 81.12% | 59.90% |
+
+Six arms, three seeds, new grouped world folds, 250K warmup plus 2M continuation
+bytes per branch. Total actual training: 49.5M bytes including development pilots
+and positive controls. The learned record-encoded positive control scores 100%.
+Public/runtime tests pass: 98 Python tests, 27,253 new optimized/sanitizer checks,
+plus the existing native suite. Candidate language/copy and 1M/5M promotion
+campaigns remain gated on binding. Historical full-C findings stay separate.
+
+The first-query ridge probe still recovers every label on development data;
+fitting a shared head across both query positions weakens key decoding. Frozen
+padding-offset and full-block-delay audits expose a further boundary/access
+problem. **Do not extend the optimizer sweep or add slots first.** Separate the
+current query cue from stable key/value evidence in existing completed/partial
+constituents; compare equal-capacity views, train across boundary offsets, then
+use a new audit fold. Once selection is reliable, stabilize joint local credit.
+
+See [the report](reports/exp01b/SHoEbox_EXP01B_Online_Factorized_Readout.md) for
+per-seed scores, interventions, all offsets, delays, timings and accounting.
+
+## Historical EXP01 execution contract and remaining qualification
 
 The original diagnosis contract below remains the qualification roadmap. The
 first screen covered native rollout, frozen/joint online readouts, separate
 representation sources, counterfactual query orders, and training-only probe
-normalization. Full write-to-read delay sweeps, all 64 answer offsets, optimizer
-confirmation, and language regressions remain pending. Do not label those
+normalization. EXP01-B now adds all 64 frozen answer offsets and separate full-block delays;
+optimizer confirmation and candidate language regressions remain pending. Do not label those
 completed from the first screen.
 
 1. **Verify architecture and fixture selection.** Use minimal v19 as the production baseline and explicit full C/warmup as the historical comparator. Record actual fitted parameters, state inventory, seeds and source hashes. Start with a single key/value binding and no distractor writes; then use the balanced two-key fixture with distinct values and independent record/query order.
@@ -129,22 +165,16 @@ completed from the first screen.
 
 The comparative calibration gate remains shortcut-normalized exactness in the declared band, with learned controls and the required seed/sample counts. A diagnostic may explain a failure without clearing that gate; do not present it as a capability promotion.
 
-The existing `experiments/query_readout/` adapter and registered train/audit runner
-reuse `experiments/mad_next/` fixtures. Reproduction is documented there. Build
-the next candidate with separate query/key selection and value decoding, using
-[key-value memory separation](https://aclanthology.org/D16-1147/), plus direct
-local credit from already observed constituents. Compare that credit with
-answer-only training at matched capacity. Keep parsed record IDs and the
-offline probe out of native inference. Require native exactness ≥95%, no seed
-below 90%, query counterfactuals, one-pass cost, and the remaining regression
-checks before default promotion. Register a new audit fold after these results
-have informed the new design.
+The earlier `experiments/query_readout/` adapter and registered train/audit runner
+reuse `experiments/mad_next/` fixtures. Reproduction is documented there. The implemented factorized successor is in `experiments/factorized_readout/`.
+Keep its native exactness, query counterfactual, state and cost gates for EXP01-C.
+Register a new audit fold after these results have informed the next design.
 
 ## Following work
 
 | Order | Packages | Implementation target |
 | --- | --- | --- |
-| 1 | EXP01-B | Online factorized query/key selection and value readout; then native qualification |
+| 1 | EXP01-C / EXP22 | Stable query-time access across positions/offsets; then joint credit and native qualification |
 | 2 | EXP02/03 | Independent state capacity; delay, interference, eviction and retrieval |
 | 3 | EXP04/05 | Initialization, set/copy/swap; selective erase/write and state correction |
 | 4 | EXP06/07/22 | Useful 16/64-byte summaries; suitable objectives; query-time/boundary access |
@@ -165,6 +195,8 @@ python -m multiscale.tests.run_all
 python -m unittest experiments.mad.test_protocol experiments.mad_next.test_exp00 -v
 python -m unittest experiments.query_readout.test_adapter -v
 python -m experiments.query_readout.check_native
+python -m unittest experiments.factorized_readout.test_adapter -v
+python -m experiments.factorized_readout.check_native
 python -m experiments.mad.run --core minimal --preset smoke --execute --out /tmp/minimal-mad-smoke.json
 ```
 

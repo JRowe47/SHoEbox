@@ -1,0 +1,67 @@
+{
+  "experiment": "EXP01-B",
+  "core": "minimal-v19",
+  "seeds": [
+    1,
+    7,
+    19
+  ],
+  "parameters": 500000,
+  "arms": [
+    "native",
+    "matched",
+    "answer_frozen",
+    "local_frozen",
+    "local_joint",
+    "rls_frozen"
+  ],
+  "warmup_bytes": 250000,
+  "continuation_bytes": 2000000,
+  "eval_interval": 500000,
+  "head_rate": 0.16,
+  "local_weight": 1,
+  "training_cases": 2048,
+  "development_cases": 512,
+  "test_cases": 1024,
+  "key_pool": 48,
+  "vocab": 2,
+  "fold_salt": "SHoEbox-EXP01B-online-factorized-v1\u0000",
+  "selection": "all fixed-horizon arms audited; no test selection",
+  "gate": {
+    "mean_native_exact": 0.95,
+    "min_seed_native_exact": 0.9
+  },
+  "offset_audit_cases": 64,
+  "counterfactual_cases": 256,
+  "cpus": [
+    0,
+    1,
+    2
+  ],
+  "source_hashes": {
+    "experiments/factorized_readout/check_native.py": "9fe86869176d8aee083eb8c0cecb952b96d2164db085b1996b035877daaab49f",
+    "experiments/factorized_readout/__init__.py": "52d4bb5d8e7e0cbfb61afbd26a03ae7d8f14daa89e2e77db40e7d96e8b6296fc",
+    "experiments/factorized_readout/test_adapter.py": "5e6786d2281b0551558da142f25e55b9ce2fbda46c12d82fce3e98081f959b47",
+    "experiments/factorized_readout/adapter.py": "1f704436ca51e42381485235b62dba4ab55b35f7546531da20e2f5d5ebb0f3ba",
+    "experiments/factorized_readout/pilot_rates.py": "f97f00ce6c51d49214230ebb2bc155faf855f8ad7b6cbadade11a9aa13eae9d7",
+    "experiments/factorized_readout/run.py": "7d12273c0506009377447f80efd4ae742bde2dcfb9b9d42c26759b1123549e00",
+    "experiments/factorized_readout/tasks.py": "075d061fcce7412618b428215ddd0a6e143d6796ccc8ff7e9cfe1eb2465f4c5c",
+    "experiments/factorized_readout/pilot.py": "0876bb674c6070c6e040738d8d61bfe2a8c89299f72dd7069f8fa3d4450b7c89",
+    "experiments/factorized_readout/readout.hpp": "36326546549753f3c62339cfbd685e02596193f11f7875a1abf10b271a8c5c95",
+    "experiments/factorized_readout/api.cpp": "293a9bf5ea0029db54e359a0157efe65ab43dd9103a5fca5645aaa5fe4098045",
+    "experiments/factorized_readout/native_test.cpp": "7230e14eab7e5a7df70f03f615452930f6e77edd31f41d31ef697a97cc79452b",
+    "experiments/query_readout/run.py": "36730498f1b6871b15608c00ec622d3ba5b3a64855c02cb9e3279d3d4905451c",
+    "experiments/mad_next/tasks.py": "a7d5ef2404a7cf029ff44f806758f089b88832826083e8a4b97b8b05a351f616",
+    "multiscale/native.cpp": "adf6f9618b7e132884d46ada126d9b8378447fcb43a7f0f50a1a7b52e3db67ef",
+    "multiscale/address_memory.hpp": "9fc024b0f20c4620d32f324e765cb94c2983003fff2b44af5d34309f6990e152",
+    "multiscale/loops.hpp": "6feca8464cb14f192e07ce546855f70746f28c74a7b7a908b1672a114582952e",
+    "multiscale/native.hpp": "c7468172895aa8a7df7dadb470c85c8dbb72ea8025753808da47f1b138c58e59",
+    "multiscale/recall.hpp": "d5c1821da38cd223f4fc8897e7560d419ffa42214781d6d9639a4e6ec10207be",
+    "multiscale/recall_credit.hpp": "c40804261d56f6f1fb8ecabd0ebff9ba83c8916c0409a6153c14f8087de587e8",
+    "multiscale/route_learning.hpp": "e8c39be21196f287cec71615dbf0532860ac0c1874e20d6f671b951e7400dc92",
+    "multiscale/routing_geometry.hpp": "cba720017b4aa3d1438e3a6af24834e0ab6d2511228e5cd25ae4eeab457311aa",
+    "multiscale/routing_geometry_impl.hpp": "bc54d07a0218478649ed59b993a71402d05e42c86489bb77622a948519f465f1",
+    "multiscale/semantic_laces.hpp": "503118419675b1a6636893c49cfa2f0571b8d6f0df51570bee390b29f13715b1",
+    "multiscale/semantic_laces_impl.hpp": "f7c2be3fa569e74298d7cb28aac203705e2fa65da2a5262ff9d7d5695cd61aaf"
+  }
+}

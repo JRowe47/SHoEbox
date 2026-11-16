@@ -1,5 +1,15 @@
 # SHoEbox handoff
 
+## 2026-11-15 — EXP01-B online factorized selection completed
+
+Minimal-v19 research adapter: 83.37% held-out native two-answer exactness versus
+50.03% native, across three seeds. Query ablation: 50.13%; all-offset mean: 26.73%.
+9,535 added fitted parameters within 500K total, zero extra sequence state,
+7.5% measured inference throughput cost. No default promotion. Next: stable
+query-time access across query positions and hierarchy boundaries (EXP01-C / EXP22).
+See [results](reports/exp01b/SHoEbox_EXP01B_Online_Factorized_Readout.md) and
+[the current handoff](DEVELOPMENT_HANDOFF.md). Older entries below are historical.
+
 ## 2026-11-15 - MAD-style capability protocols and current development release
 
 The current development chain is integrated for main: corrected C and upper

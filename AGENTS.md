@@ -2,8 +2,10 @@
 
 - Before new capability work, read `DEVELOPMENT_HANDOFF.md` and
   `docs/capabilities/SHoEbox_Minimal_Capability_Matrix.md`. EXP00 is complete
-  on full C; EXP01's initial query/readout screen is complete. The next item
-  is EXP01-B: online factorized query/key/value selection over existing evidence.
+  on full C; EXP01-B's online factorized readout screen is complete. The next item
+  is EXP01-C / EXP22: stable query-time access across positions and boundaries.
+  The research adapter reaches 83.37% native exactness but 26.73% across offsets;
+  its gain does not qualify default promotion. Read `reports/exp01b/`.
   Record the selected core explicitly and keep historical/full-C evidence
   separate from minimal-v19 qualifications.
 
