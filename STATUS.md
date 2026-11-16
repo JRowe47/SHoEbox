@@ -1,5 +1,23 @@
 # SHoEbox handoff
 
+## 2026-11-15 - MAD-style capability protocols and current development release
+
+The current development chain is integrated for main: corrected C and upper
+credit controls, bounded route-local learning rates, selective multiscale loops,
+and the separate structured-state supervision research adapter.
+
+Added [MAD-style protocols](experiments/mad/README.md) for six adapted MAD task
+families and variable tracking, composition and pointer chasing. The runner
+controls data/difficulty/parameter/state budgets, fits matched optimizer grids,
+selects on development data, and records held-out task scores, compute costs,
+exact checkpoint reloads and frozen mechanism interventions. Compression uses
+a single 64-float bottleneck and a counted MLP readout; other tasks use masked
+native byte supervision. The runtime and selected corrected-C defaults are
+unchanged by the protocol addition.
+
+The small qualification run is an execution check, not a capability comparison.
+See `experiments/mad/VERIFICATION.md` for the measured checks and reproduction.
+
 ## 2026-11-16 - Verified intermediate-state supervision screen
 
 Added an isolated corrected-C research adapter with verified register programs,

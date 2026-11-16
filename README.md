@@ -1,5 +1,14 @@
 # SHoEbox
 
+## Capability development protocols
+
+[MAD-style experiments](experiments/mad/README.md) provide nine reproducible
+synthetic tasks, independent difficulty controls, parameter/state accounting,
+paired optimization sweeps, development/test separation, learning-versus-cost
+curves, and frozen loop/memory/expert interventions. Start with
+`python -m experiments.mad.run --preset smoke`; add `--execute --out /tmp/mad.json`
+to run the smoke qualification.
+
 ## Selected runtime: corrected multiscale routing C
 
 The default `shoe_multiscale` model is **corrected C**: exact prototype search,
