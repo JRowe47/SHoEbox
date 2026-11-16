@@ -1,0 +1,32 @@
+test_controls_exact_and_policy_separation (experiments.query_first_retention.test_research.A2Tests.test_controls_exact_and_policy_separation) ... ok
+test_cursor_finish_and_lifecycle (experiments.query_first_retention.test_research.A2Tests.test_cursor_finish_and_lifecycle) ... ERROR
+test_fresh_grouping_and_reserved_exclusion (experiments.query_first_retention.test_research.A2Tests.test_fresh_grouping_and_reserved_exclusion) ... ok
+test_interpreter_and_no_shortcuts (experiments.query_first_retention.test_research.A2Tests.test_interpreter_and_no_shortcuts) ... ok
+test_labels_causal_third_value (experiments.query_first_retention.test_research.A2Tests.test_labels_causal_third_value) ... ok
+test_python_native_parity_and_readonly (experiments.query_first_retention.test_research.A2Tests.test_python_native_parity_and_readonly) ... ok
+
+======================================================================
+ERROR: test_cursor_finish_and_lifecycle (experiments.query_first_retention.test_research.A2Tests.test_cursor_finish_and_lifecycle)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/scratch/23b2e6e479a1/SHoEbox/experiments/query_first_retention/test_research.py", line 126, in test_cursor_finish_and_lifecycle
+    with self.assertRaises(RuntimeError):a.probe()
+                                         ^^^^^^^^^
+  File "/workspace/scratch/23b2e6e479a1/SHoEbox/experiments/query_first_retention/backend.py", line 83, in probe
+    out=(C.c_double*10000)();self.call('a2_probe',out);return np.array(out)
+                             ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/scratch/23b2e6e479a1/SHoEbox/experiments/joint_cold_gate/adapter.py", line 79, in call
+    if getattr(self.lib,name)(self._alive(),*args):raise RuntimeError(self.lib.ms_error().decode())
+       ^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/ctypes/__init__.py", line 392, in __getattr__
+    func = self.__getitem__(name)
+           ^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/ctypes/__init__.py", line 397, in __getitem__
+    func = self._FuncPtr((name_or_ordinal, self))
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: /tmp/shoebox-exp0305a2/3d3099e11b6e71270146/model.so: undefined symbol: a2_probe. Did you mean: 'qr_probs'?
+
+----------------------------------------------------------------------
+Ran 6 tests in 2.907s
+
+FAILED (errors=1)

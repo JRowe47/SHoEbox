@@ -1,10 +1,19 @@
 # SHoEbox development
 
-- Latest focused work: read `reports/exp0305/SHoEbox_EXP0305_Report.md`,
+- Latest focused work: EXP03/05-A2 is complete and fails development. Read
+  `reports/exp0305a2/SHoEbox_EXP0305_A2_Report.md` and `A3_REGISTRATION.md`
+  there. Query-first selection raises competing-binding exactness to 92.97%
+  and corrected three-value overwrite to 66.02%, below unchanged gates.
+  Both old/new versions survive; exact-distance recency ties never activate.
+  Keep E8 public and both A1/A2 audits closed. A3 continuous chronological
+  matching is preregistered, not implemented or fitted. Preserve fresh binary
+  regression, all exclusions, original numerics/costs and direct-main authority.
+
+- Prior A1 work: read `reports/exp0305/SHoEbox_EXP0305_Report.md`,
   `A2_REGISTRATION.md` and `A2_FIXTURE_AMENDMENT.md` in that directory. A1
   improves retention using existing slots but fails the capability gate. E8
-  remains the qualified default. A2 is preregistered, not fitted; its three-value
-  overwrite correction is mandatory because the binary fixture has a perfect
+  remains the qualified default. The original A2 registration and its three-value
+  overwrite correction remain binding because the binary fixture has a perfect
   latest-value shortcut. Keep its failed scores/costs and the A1 audit closed.
 
 - Before new capability work, read `DEVELOPMENT_HANDOFF.md`,

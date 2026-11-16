@@ -1,0 +1,19 @@
+581 E8 native checks passed
+581 E8 native checks passed
+110 E8 request checks passed
+110 E8 request checks passed
+83 A1 replacement/lifecycle checks passed
+83 A1 replacement/lifecycle checks passed
+terminate called after throwing an instance of 'std::runtime_error'
+  what():  A2 selection check 10
+Traceback (most recent call last):
+  File "<frozen runpy>", line 198, in _run_module_as_main
+  File "<frozen runpy>", line 88, in _run_code
+  File "/workspace/scratch/23b2e6e479a1/SHoEbox/experiments/query_first_retention/check_native.py", line 52, in <module>
+    if __name__=='__main__':main()
+                            ^^^^^^
+  File "/workspace/scratch/23b2e6e479a1/SHoEbox/experiments/query_first_retention/check_native.py", line 51, in main
+    subprocess.run([str(exe)],check=True,env={**os.environ,'ASAN_OPTIONS':'detect_leaks=0:halt_on_error=1','UBSAN_OPTIONS':'halt_on_error=1:print_stacktrace=1'})
+  File "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/subprocess.py", line 571, in run
+    raise CalledProcessError(retcode, process.args,
+subprocess.CalledProcessError: Command '['/tmp/exp0305a2-native-_0d48nii/test']' died with <Signals.SIGABRT: 6>.

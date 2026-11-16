@@ -1,5 +1,31 @@
 # SHoEbox development handoff
 
+16 November 2026 (America/Denver). **EXP03/EXP05-A2 is complete; qualified
+public E8 remains unchanged.** Read [the A2 report](reports/exp0305a2/SHoEbox_EXP0305_A2_Report.md),
+[execution lock](reports/exp0305a2/EXECUTION_LOCK.md) and
+[next A3 registration](reports/exp0305a2/A3_REGISTRATION.md).
+
+Matched fresh E8/A1/A2 fits use the mandatory three-value overwrite correction,
+three seeds and exactly 20.25M charged bytes. Query-first selection raises
+competing-binding exactness 37.89% →92.97% and overwrite 26.17% →66.02%,
+but fails unchanged development gates. Clean binding is 94.14%; fresh binary
+regression is 93.16%; throughput is 68.07% of native (80% required).
+A1/A2 audit worlds remain closed. No generic/capacity
+promotion campaign or additional prior sweep was started.
+
+The frozen trace retains and shortlists both old/new versions for every changed
+key. A2 predicts the old value in 29.69% of changed-key teacher-fed answers;
+no distances tie exactly, so its recency tie-break never fires. A3 preregisters
+continuous chronological matching, fresh exclusions and another fixed matched
+20.25M-byte experiment. A3 has not been implemented or fitted. All original
+thresholds, full-byte autoregression, explicit local-vs-generic objectives and
+public/historical policies remain binding. Verified completed work, including
+failures, may be committed/pushed directly to main; never force-push. Deliver
+ordinary downloadable Markdown, PNGs, resumable archive and copy/paste prompt.
+
+Historical handoff entries follow; the current A2 status above supersedes their
+older next-step statements. Original findings and costs remain preserved.
+
 16 November 2026. **EXP03/EXP05-A1 is complete; public E8 is unchanged.**
 Read [the interference/retention report](reports/exp0305/SHoEbox_EXP0305_Report.md),
 [A1 registration](reports/exp0305/A1_REGISTRATION.md),
