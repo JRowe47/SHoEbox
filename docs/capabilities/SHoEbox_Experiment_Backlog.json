@@ -2,7 +2,7 @@
   "title": "SHoEbox capability development backlog",
   "revision": 2,
   "date": "2026-11-15",
-  "status": "planned_not_executed",
+  "status": "in_progress",
   "runtime_commit": "6384d8ca072075ec58010b4c3d5964e9e60fcd3e",
   "evidence_commit": "d899a1a49b1af2f4a2cf0c89b000da69ea5f3597",
   "experiments": [
@@ -26,7 +26,25 @@
       "question": "Can the fixture distinguish the intended operation from a cheap shortcut, at a difficulty a small trained model can actually learn?",
       "design": "Retain the nine published tasks as historical fixtures. Add balanced two-key binding, initialization/query-only, single set/copy/swap, and a one-hop graph with independently randomized queries. Verify labels with a separate interpreter. Add a small attention-based lookup model and a state-gated recurrent model as task-appropriate learned positive controls, with their own recorded training and state budgets. Their role is learnability, not an automatic efficiency ranking.",
       "evaluation": "Score exact episodes, changed-target accuracy, unchanged-register preservation, native-byte rollout, all registered shortcuts, and counterfactual query/operation swaps. Group equivalent latent problems in one split. Add padding-offset sweeps and confirm ignored labels cannot change encoder state.",
-      "decision": "Advance comparative studies only on a calibrated setting. If the symbolic oracle passes but both learned controls fail, investigate training, encoding, or labels before redesigning SHoEbox. Preserve uncalibrated repair results as diagnostics rather than promotion evidence."
+      "decision": "Advance comparative studies only on a calibrated setting. If the symbolic oracle passes but both learned controls fail, investigate training, encoding, or labels before redesigning SHoEbox. Preserve uncalibrated repair results as diagnostics rather than promotion evidence.",
+      "status": "completed",
+      "execution": {
+        "date_utc": "2026-11-16",
+        "report": "reports/exp00/README.md",
+        "results": "reports/exp00/results.json",
+        "implementation": "experiments/mad_next/",
+        "formal_fits": 48,
+        "pilot_fits": 12,
+        "formal_training_bytes": 897000000,
+        "pilot_training_bytes": 301552768,
+        "comparative_settings_eligible": 0,
+        "learned_control_development_settings_passed": 8,
+        "held_out_learned_control_exact": 1.0,
+        "binding_C_exact": 0.5006510416666666,
+        "binding_shortcut_exact": 0.5,
+        "gate": "diagnostic_repair_required",
+        "production_promotion": null
+      }
     },
     {
       "id": "EXP01",
@@ -48,7 +66,9 @@
       "question": "Is the value missing, or is the model failing to select and decode an available value for the current key?",
       "design": "Begin with two distinct key/value pairs, no irrelevant records, both query orders, and randomized names. Compare corrected C; a query-conditioned low-rank readout with the core frozen; and the same readout trained end to end. Deduct added readout parameters from bank capacity. Use raw/centered/standardized frozen probes with the same fitting procedure, and a matched-capacity generic head. Keep explicit query-index access as a diagnostic oracle only.",
       "evaluation": "Require whole-episode correctness and the right answer change when only the query is swapped. Separately inspect addressed reads, retained reads, final L3, and their combinations through identical probes. Freeze observation state while swapping queries to expose input-order copying. Run one-key initialization/query tests if two-key binding remains unsolved.",
-      "decision": "A readout-only win selects the cheaper repair. If a matched probe can decode a value but native generation cannot, repair query/readout integration. If neither can recover it, pass the failure to EXP02/EXP03. Stop broad optimizer searches once this distinction is clear."
+      "decision": "A readout-only win selects the cheaper repair. If a matched probe can decode a value but native generation cannot, repair query/readout integration. If neither can recover it, pass the failure to EXP02/EXP03. Stop broad optimizer searches once this distinction is clear.",
+      "status": "ready_for_diagnostic_execution",
+      "execution_entry": "Use the locked balanced binding fixture; begin with single-binding write/read/query probes. Comparative architecture testing remains gated."
     },
     {
       "id": "EXP02",
@@ -1643,5 +1663,6 @@
     "selected checkpoint provenance",
     "PNG learning/resource curves",
     "capability evidence updates"
-  ]
+  ],
+  "execution_updated_utc": "2026-11-16"
 }
