@@ -1,0 +1,150 @@
+#pragma once
+#include "native.hpp"
+#include <memory>
+
+namespace shoe {
+constexpr int QRANK=16, VRANK=8, QINPUT=D, MINPUT=0;
+using LowRank=std::array<float,QRANK>;
+using ValueCode=std::array<float,VRANK>;
+using Labels=std::array<int32_t,5>;
+using Affine=std::array<float,D+1>;
+struct QueryHead {
+    std::array<Affine,5> gate{}; // four within-pair phases, then current-query recognizer
+    std::array<Affine,5*QRANK> key{};
+    std::array<Affine,4*VRANK> value{};
+    std::array<float,255*VRANK> output{};
+    std::array<float,255> bias{};
+};
+constexpr int QPARAMS=sizeof(QueryHead)/sizeof(float);
+struct QueryCache {
+    Vec query_raw{}; std::array<Vec,2> raw{};
+    LowRank query{};std::array<LowRank,2> keys{};
+    std::array<ValueCode,2> values{};ValueCode h{};
+    std::array<int,2> slots{{-1,-1}},phases{{0,0}};
+    std::array<float,2> scores{{-1e30f,-1e30f}};
+    int query_slot=-1;float attention=.5f;
+};
+inline Vec source_vector(const Vec& stable){Vec x=stable;for(auto& z:x)z*=8;return x;}
+inline float affine(const Affine& p,const Vec& x){return p[D]+dot(p.data(),x.data());}
+// Reconstruction targets only. Neither function is called by inference.
+inline float byte_code(int byte,int coordinate){
+    uint32_t x=uint32_t(byte+1)*0x9e3779b9u+uint32_t(coordinate+1)*0x85ebca6bu;
+    x^=x>>16;x*=0x7feb352du;x^=x>>15;x*=0x846ca68bu;x^=x>>16;
+    return x&1?.7f:-.7f;
+}
+inline float value_code(int byte,int coordinate){return ((byte>>coordinate)&1)?.7f:-.7f;}
+inline void affine_step(Affine& p,const Vec& x,float error,float rate){
+    const float lr=rate/(1+energy(x));
+    for(int j=0;j<D;++j)p[j]-=lr*error*x[j];p[D]-=lr*error;
+}
+inline void reconstruct(Affine& p,const Vec& x,float target,float rate){
+    float z=std::tanh(affine(p,x));affine_step(p,x,(z-target)*(1-z*z),rate);
+}
+
+// Paired values are mixed only AFTER query/key comparison. Miller et al.,
+// EMNLP 2016, sections 3.1-3.2, https://aclanthology.org/D16-1147/.
+// Fixed constituent phases are coordinate roles, not parsed record locations.
+// Top-two source routing is trained by a separate local presence loss; no
+// derivative through the discrete top-k operation is claimed.
+inline QueryCache query_forward(const QueryHead& p,const Model& m,int lesion=0){
+    QueryCache c;const auto& queries=m.levels[0].retained;
+    float qbest=-1e30f;
+    for(int k=0;k<queries.count;++k){Vec x=source_vector(queries.units[k].stable);
+        float score=affine(p.gate[4],x)-.5f*float(queries.clock-queries.units[k].born);
+        if(score>qbest){qbest=score;c.query_slot=k;c.query_raw=x;}}
+    for(int r=0;r<QRANK;++r)c.query[r]=std::tanh(affine(p.key[4*QRANK+r],c.query_raw));
+    if(lesion==2)c.query={};
+    const auto& records=m.levels[1].retained;
+    for(int k=0;k<records.count;++k){Vec x=source_vector(records.units[k].stable);
+        if(lesion==3)x={};
+        for(int phase=0;phase<4;++phase){float score=affine(p.gate[phase],x);
+            int place=score>c.scores[0]?0:(score>c.scores[1]?1:2);
+            if(place==2)continue;
+            if(place==0){c.scores[1]=c.scores[0];c.slots[1]=c.slots[0];c.phases[1]=c.phases[0];c.raw[1]=c.raw[0];}
+            c.scores[place]=score;c.slots[place]=k;c.phases[place]=phase;c.raw[place]=x;
+        }
+    }
+    for(int k=0;k<2;++k){int phase=c.phases[k];
+        for(int r=0;r<QRANK;++r)c.keys[k][r]=std::tanh(affine(p.key[phase*QRANK+r],c.raw[k]));
+        for(int r=0;r<VRANK;++r)c.values[k][r]=std::tanh(affine(p.value[phase*VRANK+r],c.raw[k]));
+    }
+    float difference=0;
+    for(int r=0;r<QRANK;++r){float a=c.query[r]-c.keys[0][r],b=c.query[r]-c.keys[1][r];difference+=b*b-a*a;}
+    c.attention=sigmoid(4*difference);
+    if(lesion==2||lesion==4)c.attention=.5f;
+    if(lesion==5)c.attention=1-c.attention;
+    if(lesion==6)std::swap(c.values[0],c.values[1]);
+    for(int r=0;r<VRANK;++r)c.h[r]=c.attention*c.values[0][r]+(1-c.attention)*c.values[1][r];
+    return c;
+}
+
+struct QueryAdapter {
+    std::unique_ptr<Model> model;QueryHead head{};QueryCache cache{};
+    std::array<float,255> errors{};
+    int kind=0;bool training=true,joint=true;float rate=.16f,auxiliary=1.f;
+    uint64_t targets=0,local_updates=0;int lesion=0;
+    QueryAdapter(int parameters,uint32_t seed,bool minimal,int k,bool learn_core):
+        model(std::make_unique<Model>(4,parameters-(k?QPARAMS:0),seed,false,false,minimal)),kind(k),joint(learn_core){
+        if(k<0||k>1)throw std::invalid_argument("invalid constituent head");
+        model->semantic_laces=false;model->routing_arm=2;model->balance_policy=2;
+        std::mt19937 rng(seed^0x50414952u);std::normal_distribution<float> n(0,.002f);
+        for(auto& row:head.key)for(auto& x:row)x=n(rng);
+        for(auto& row:head.value)for(auto& x:row)x=n(rng);
+        if(!joint)model->inference(false);
+    }
+    QueryAdapter(const QueryAdapter& a):model(std::make_unique<Model>(*a.model)),head(a.head),cache(a.cache),errors(a.errors),
+        kind(a.kind),training(a.training),joint(a.joint),rate(a.rate),auxiliary(a.auxiliary),targets(a.targets),local_updates(a.local_updates),lesion(a.lesion){}
+    void local(const Labels& labels){
+        if(!training||!kind||auxiliary==0)return;
+        const float lr=rate*auxiliary;
+        if(model->bytes>=2){Vec x=source_vector(model->levels[0].retained.last);bool yes=labels[0]>=0;
+            affine_step(head.gate[4],x,(sigmoid(affine(head.gate[4],x))-yes)*(yes?4.f:1.f),lr);
+            if(yes)for(int r=0;r<QRANK;++r)reconstruct(head.key[4*QRANK+r],x,byte_code(labels[0],r),lr*4);
+            ++local_updates;
+        }
+        if(model->bytes>=8&&model->bytes%4==0){Vec x=source_vector(model->levels[1].retained.last);
+            for(int phase=0;phase<4;++phase){bool yes=labels[phase+1]>=0;
+                affine_step(head.gate[phase],x,(sigmoid(affine(head.gate[phase],x))-yes)*(yes?4.f:1.f),lr);
+                if(yes){int key=labels[phase+1]/256,value=labels[phase+1]%256;
+                    for(int r=0;r<QRANK;++r)reconstruct(head.key[phase*QRANK+r],x,byte_code(key,r),lr*4);
+                    for(int r=0;r<VRANK;++r)reconstruct(head.value[phase*VRANK+r],x,value_code(value,r),lr*4);
+                }
+            }++local_updates;
+        }
+    }
+    void prepare(){cache=query_forward(head,*model,lesion);errors={};}
+    float logit(int node)const{return !kind||lesion==1?0:head.bias[node]+dot(head.output.data()+node*VRANK,cache.h.data(),VRANK);}
+    void backward(std::array<RecallValue,4>&){
+        if(!training||!kind)return;
+        float lr=rate/(1+dot(cache.h.data(),cache.h.data(),VRANK));
+        for(int n=0;n<255;++n)if(errors[n]){
+            for(int r=0;r<VRANK;++r)head.output[n*VRANK+r]-=lr*errors[n]*cache.h[r];
+            head.bias[n]-=rate*.05f*errors[n];
+        }++targets;
+    }
+};
+inline thread_local QueryAdapter* active_query=nullptr;
+struct QueryScope {QueryAdapter* before;explicit QueryScope(QueryAdapter& a):before(active_query){active_query=&a;}~QueryScope(){active_query=before;}};
+inline QueryAdapter* query_adapter(const Model* m){return active_query&&active_query->model.get()==m?active_query:nullptr;}
+inline void query_prepare(const Model* m){if(auto* a=query_adapter(m))if(a->kind)a->prepare();}
+inline float query_logit(const Model* m,int n){auto* a=query_adapter(m);return a?a->logit(n):0;}
+inline void query_error(const Model* m,int n,float e){if(auto* a=query_adapter(m))a->errors[n]=e;}
+inline void query_backward(const Model* m,std::array<RecallValue,4>& g){if(auto* a=query_adapter(m))a->backward(g);}
+inline std::string query_save(const QueryAdapter& a){
+    Writer w;uint64_t magic=0x31445041514853ULL;uint32_t version=1;w.pod(magic);w.pod(version);
+    auto core=save(*a.model);uint64_t size=core.size();w.pod(size);w.out+=core;
+    w.pod(a.head);w.pod(a.kind);w.pod(a.training);w.pod(a.joint);w.pod(a.rate);w.pod(a.auxiliary);w.pod(a.targets);w.pod(a.local_updates);w.pod(a.lesion);return w.out;
+}
+inline std::unique_ptr<QueryAdapter> query_load(const char* raw,size_t size){
+    Reader r{raw,size};uint64_t magic,n;uint32_t version;r.pod(magic);r.pod(version);r.pod(n);
+    if(magic!=0x31445041514853ULL||version!=1||n>r.n)throw std::runtime_error("invalid paired checkpoint");
+    auto a=std::make_unique<QueryAdapter>(500000,1,true,0,true);a->model=std::make_unique<Model>(load(r.p,n));r.p+=n;r.n-=n;
+    uint8_t training,joint;r.pod(a->head);r.pod(a->kind);r.pod(training);r.pod(joint);r.pod(a->rate);r.pod(a->auxiliary);r.pod(a->targets);r.pod(a->local_updates);r.pod(a->lesion);
+    if(training>1||joint>1)throw std::runtime_error("invalid flags");a->training=training;a->joint=joint;
+    if(r.n||a->kind<0||a->kind>1||a->lesion<0||a->lesion>6||a->model->levels.size()!=4||a->model->training!=(a->training&&a->joint)||
+       !std::isfinite(a->rate)||a->rate<0||!std::isfinite(a->auxiliary)||a->auxiliary<0||(a->training&&a->lesion))throw std::runtime_error("invalid policy");
+    auto finite=[](const auto& xs){for(auto x:xs)if(!std::isfinite(x))throw std::runtime_error("nonfinite parameters");};
+    for(auto& x:a->head.gate)finite(x);for(auto& x:a->head.key)finite(x);for(auto& x:a->head.value)finite(x);finite(a->head.output);finite(a->head.bias);
+    return a;
+}
+} // namespace shoe
