@@ -1,8 +1,8 @@
 # SHoEbox capability research and development plan
 
-**Revision 5 · 15 November 2026 (America/Denver)**
+**Revision 6 · 16 November 2026 (America/Denver)**
 
-Current baseline: minimal corrected C, v19, at `317fbcd023b9d9b3c2b359ba8f99f3dadbf46783`. This revision adds the completed EXP01-B online factorized readout screen and advances query-time access across positions/boundaries as EXP01-C / EXP22.
+Current baseline: minimal corrected C, v19, at `317fbcd023b9d9b3c2b359ba8f99f3dadbf46783`. Revision 6 completes EXP01-C / EXP22 query-time access and selects EXP01-D: preserve constituent-level key/value association before pooling.
 
 **Development decision: repair query binding, retention, and state transitions first; then establish composition and useful upper-level computation; then return to inference-time reasoning.** Use the minimal corrected-C core as the production control and retain full C as a historical comparator. The online factorized readout is implemented and tested; its aligned gain does not survive boundary shifts. The next build separates current-query cues from stable existing evidence across positions and boundaries. A matched-capacity working-slot alternative remains gated on demonstrated state limitations. Deeper recurrence remains a later intervention.
 
@@ -22,13 +22,15 @@ prior assessments remain preserved separately in the backlog and git history.
 
 This plan defines **24 experiment packages**, a **32-paper working bibliography**, and a mapping of **all 66 capabilities plus eight engineering enablers** to development work. The 66 include 62 core capabilities and four optional multimodal capabilities. Early packages specify focused mechanism tests; later packages contain separately scored qualification suites. The original research revision preceded execution; the updates below record calibration and the initial binding diagnosis. No native capability promotion follows from these results.
 
+**Current execution update — 16 November 2026 (America/Denver).** EXP01-C is complete. Pooled views decode the current query at 100% in both diagnostic positions, but native two-answer exactness is 44.56% versus 50.20% native. Selection falls from 96.22% at the first query to 50.52% at the second; value decoding also remains weak. Record-containing constituents are present in every inspected phase/delay case. No promotion. **Next: EXP01-D / EXP22, preserve key/value association within each constituent before pooling and handle intra-constituent phase.** [Results and registered protocol](../../reports/exp01c/SHoEbox_EXP01C_Query_Access.md). Actual fitting: 28M bytes including pilots and controls.
+
 **EXP01 diagnostic update — 15 November 2026 (America/Denver).** The initial
 36-branch screen is complete on explicitly named minimal/full cores. Minimal
 native two-answer binding is 49.45%; the generic rank-16 online heads remain near
 the 50% shortcut. A train-only, separately supervised factorized probe of the
 64-float L3 state recovers the first queried binding at 99.93% strict held-out
 accuracy. This localizes the next work to query/key/value selection and credit.
-**Next: EXP01-B, an online factorized readout over existing evidence**, followed
+**Historical next step (subsequently completed): EXP01-B, an online factorized readout over existing evidence**, followed
 by native query counterfactuals, offset/delay tests, and regression qualification.
 EXP02 slots remain gated. [Code, literature, costs, and evidence](../../reports/exp01/SHoEbox_EXP01_Query_Readout.md).
 
@@ -145,7 +147,7 @@ For loops, run the full cross-table of **training depth × frozen inference dept
 
 ## 4. Experiment catalog
 
-EXP00 is complete on full C. EXP01's initial screen and EXP01-B are complete; EXP01-C / EXP22 access repair is next. IDs are stable handles for implementation issues and future reports. Dependencies refer to usable results, not simply completed runs. The papers motivate an intervention or evaluation; the candidate designs are SHoEbox adaptations.
+EXP00 is complete on full C. EXP01's initial, B and C screens are complete; EXP01-D / EXP22 constituent-level key/value pairing is next. IDs are stable handles for implementation issues and future reports. Dependencies refer to usable results, not simply completed runs. The papers motivate an intervention or evaluation; the candidate designs are SHoEbox adaptations.
 
 
 ### EXP00 — Repair calibration and establish learned positive controls
@@ -164,7 +166,7 @@ EXP00 is complete on full C. EXP01's initial screen and EXP01-B are complete; EX
 
 ### EXP01 — Localize query binding versus readout failure
 
-**Status:** initial screen and EXP01-B complete; stable query-time access is next.
+**Status:** initial, B and C screens complete; per-constituent key/value pairing is next. EXP01-C does not qualify promotion; see the current update above.
 The online local-credit candidate reaches 83.37% native exactness, 65.10% both-query-order success and 26.73% across frozen offsets. No promotion. [Report](../../reports/exp01b/SHoEbox_EXP01B_Online_Factorized_Readout.md).
 The successful offline probe uses intermediate labels and predicted-symbol
 matching; it is not native online binding. The minimal default stays v19.
@@ -509,7 +511,7 @@ matching; it is not native online binding. The minimal default stays v19.
 
 ## 5. First concrete development tranche
 
-**EXP01-B is complete; execute EXP01-C / EXP22 query-time access next.** The new online local-credit head improves aligned binding but fails the promotion and offset gates. Stabilize address/value views across query positions and boundaries before adding state. The four-arm table below remains a conditional follow-up, not an instruction to launch EXP02. EXP03 can use frozen checkpoints for retention diagnostics.
+**EXP01-C is complete; execute EXP01-D / EXP22 constituent-level key/value pairing next.** Query cues are now readable, while second-query key selection and value decoding fail. Retain source identity through decoding and selection before adding state. The four-arm table below remains a conditional follow-up, not an instruction to launch EXP02. EXP03 can use frozen checkpoints for retention diagnostics.
 
 The conditional comparison starts at **500K nominal parameters**, records actual fitted counts, and uses balanced two-key binding, distinct values, no additional distractor writes, and independent record/query order. The single-value copy control has now been run; it is not unseen-mapping qualification. Preserve minimal C and its byte interface; retain full C as a named comparator. Freeze a calibrated setting before a comparative sweep.
 
@@ -532,7 +534,7 @@ All arms have matched total fitted parameters, with readout/projection costs ded
 | Locked control/challenger confirmation | 2 arms × 5 seeds × 1M bytes | 10 | 10.00M |
 | **Total if all gates advance** | | **94** | **31.00M** |
 
-This revision-2 table is a conditional planning estimate, not actual EXP00 spending or a current execution instruction. EXP00 completed with 897M formal bytes plus 301,552,768 development-pilot bytes. EXP01 has its own registered screen and costs (24.2M actual online bytes including pilots/controls). EXP01-B completed at 49.5M actual bytes. Register a fresh EXP01-C budget and audit fold before fitting; do not rerun EXP00 or automatically launch this 94-fit screen. Calibration/positive-control failure stops the next stage. Confirmation keeps the selected architecture and optimizer policy fixed at 500K parameters while extending exposure to 1M bytes; larger parameter sizes are separate follow-ups. Exact/interpreter checks and frozen probes add evaluation time, not training fits. Natural-language regression runs, new positive-control searches, and expanded state sweeps require separately registered budgets; their costs must not disappear from a later total.
+This revision-2 table is a conditional planning estimate, not actual EXP00 spending or a current execution instruction. EXP00 completed with 897M formal bytes plus 301,552,768 development-pilot bytes. EXP01 has its own registered screen and costs (24.2M actual online bytes including pilots/controls). EXP01-B completed at 49.5M actual bytes. EXP01-C completed at 28M actual training bytes. Register a fresh EXP01-D budget and audit fold before fitting; do not rerun EXP00 or automatically launch this 94-fit screen. Calibration/positive-control failure stops the next stage. Confirmation keeps the selected architecture and optimizer policy fixed at 500K parameters while extending exposure to 1M bytes; larger parameter sizes are separate follow-ups. Exact/interpreter checks and frozen probes add evaluation time, not training fits. Natural-language regression runs, new positive-control searches, and expanded state sweeps require separately registered budgets; their costs must not disappear from a later total.
 
 ### First-tranche outcomes
 
@@ -549,7 +551,7 @@ This revision-2 table is a conditional planning estimate, not actual EXP00 spend
 | Task definitions | Historical `experiments/mad/tasks.py`; completed EXP00 `experiments/mad_next/tasks.py` | Reuse balanced binding/atomic-state fixtures and independent interpreters; add only missing one-binding, corrupted-cue or isolated boundary diagnostics |
 | Model adapter | `experiments/mad/backend.py` / `BenchModel`; `experiments/query_readout/adapter.py` | Online factorized selection; current adapter already has frozen/joint heads, explicit cores, probes and lesions |
 | Run registration | `experiments/mad/run.py`, protocol files | Shortcut-aware calibration beside legacy scoring, matched searches, fixed audit folds, actual budget accounting |
-| Research namespace | `experiments/mad_next/` implements EXP00; `experiments/query_readout/` implements the initial EXP01 screen; `experiments/factorized_readout/` implements EXP01-B | Extend with EXP01-C / EXP22 access repair and a new audit fold |
+| Research namespace | `experiments/mad_next/` implements EXP00; `experiments/query_readout/` implements the initial EXP01 screen; `experiments/factorized_readout/` implements EXP01-B | `experiments/query_access/` implements EXP01-C; next: EXP01-D constituent-level pairing |
 | Native model/readout | Current multiscale runtime and research bridge | Query conditioning, slot read/write interfaces, normalizer snapshot, bounded temporary state |
 | Update policies | Selected memory block | Isolated write/transition variants; scalar references and derivative checks before optimized paths |
 | Refinement | Full-research selective-loop interface; absent from minimal | Preserve the old cell as a named control; introduce separate observation/working/retrieval/candidate state only after prerequisites |
@@ -632,3 +634,9 @@ Minimal qualification establishes narrow next-byte learning, short selective cop
 **Revision 5 changes:** completes EXP01-B with rank-16 selection/value readout, local prefix reconstruction and online RLS control; records three-seed native/counterfactual/offset/delay results, one-pass costs and passing checks. M07/C02 distinguish the research gain from the unpromoted default. EXP01-C / EXP22 access repair is next.
 
 **Companion files:** [DEVELOPMENT_HANDOFF.md](../../DEVELOPMENT_HANDOFF.md) is the next-session entry point. `SHoEbox_Minimal_Capability_Matrix.md` is the current capability view. `SHoEbox_Experiment_Backlog.json` contains experiment cards, paper URLs, current and historical capability assessments, execution status and separately scoped budget records. `SHoEbox_Development_Roadmap.png` retains the revision-2 dependency proposal.
+
+**Revision 6 changes:** completes EXP01-C with matched-capacity views, all-offset training, separate query-position metrics, delay/counterfactual/lesion audits, read-only evidence-presence inspection and isolated costs. Query cues improve; native binding and throughput gates fail. Minimal v19 stays default. Next is EXP01-D / EXP22 per-constituent key/value pairing before pooling.
+
+- **S11 — EXP01-C:** [query-access results and costs](../../reports/exp01c/SHoEbox_EXP01C_Query_Access.md); 28M actual training bytes, three seeds, minimal v19 only, no promotion.
+- **P34 — Dai et al., ACL 2019:** [Transformer-XL](https://aclanthology.org/P19-1285/), completed context access across boundaries; adapted without a new cache.
+- **P35 — Sun et al., 2023:** [RetNet](https://arxiv.org/abs/2307.08621), within-chunk versus recurrent contributions motivate the provisional/completed comparison; not a RetNet implementation.

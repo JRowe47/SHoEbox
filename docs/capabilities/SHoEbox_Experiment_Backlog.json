@@ -1,7 +1,7 @@
 {
   "title": "SHoEbox capability development backlog",
-  "revision": 5,
-  "date": "2026-11-15",
+  "revision": 6,
+  "date": "2026-11-16",
   "status": "in_progress",
   "runtime_commit": "317fbcd023b9d9b3c2b359ba8f99f3dadbf46783",
   "evidence_commit": "d899a1a49b1af2f4a2cf0c89b000da69ea5f3597",
@@ -66,14 +66,16 @@
         "P03",
         "P31",
         "P32",
-        "P33"
+        "P33",
+        "P34",
+        "P35"
       ],
       "question": "Is the value missing, or is the model failing to select and decode an available value for the current key?",
       "design": "Begin with a single binding, then two distinct key/value pairs, no irrelevant records, both query orders and randomized names. Explicitly compare minimal v19 and full C with coverage-only warmup. Add a query-conditioned low-rank readout with the core frozen and then trained end to end, plus a matched-capacity generic head. Deduct head parameters from bank capacity. Fit raw/centered/standardized probes identically. Keep query-index oracle access outside scored native inference.",
       "evaluation": "Require autoregressive whole-episode correctness and correct answer changes under query swaps; score full-256-byte output separately from restricted output. Probe addressed reads, retained reads and final L3 separately and jointly; distinguish immediate write availability, pre-query retention, query-conditioned selection and native decoding. Use one-binding initialization/query tests first, then the locked balanced two-key fixture.",
       "decision": "A readout-only win selects the cheaper repair. If a matched probe can decode a value but native generation cannot, repair query/readout integration. If neither can recover it, pass the failure to EXP02/EXP03. Stop broad optimizer searches once this distinction is clear.",
-      "status": "online_factorized_screen_complete_binding_gate_not_met",
-      "execution_entry": "EXP01-C / EXP22: stable query-time access to existing completed/partial state across query positions and boundaries, then controlled joint local credit. New audit fold required; slots remain gated.",
+      "status": "query_access_screen_complete_binding_gate_not_met",
+      "execution_entry": "EXP01-D / EXP22: preserve per-constituent key/value association before pooling; handle within-constituent phase, compare stable/learned channels; keep the readable query separate. Register fresh budgets and audit fold. No slot expansion yet.",
       "results": {
         "report": "reports/exp01/SHoEbox_EXP01_Query_Readout.md",
         "comparison_branches": 36,
@@ -112,6 +114,34 @@
         "extra_fitted_parameters": 9535,
         "extra_persistent_sequence_state_bytes": 0,
         "actual_training_bytes": 49500000,
+        "default_promoted": false
+      },
+      "query_access_results": {
+        "report": "reports/exp01c/SHoEbox_EXP01C_Query_Access.md",
+        "core": "minimal-v19",
+        "comparison_branches": 12,
+        "seeds": [
+          1,
+          7,
+          19
+        ],
+        "native_exact": 0.501953125,
+        "shared_l3_exact": 0.3863932291666667,
+        "split_exact": 0.3844401041666667,
+        "pooled_exact": 0.4456380208333333,
+        "pooled_query_decode_by_answer": [
+          1.0,
+          1.0
+        ],
+        "pooled_selection_by_answer": [
+          0.9622395833333334,
+          0.5052083333333334
+        ],
+        "pooled_all_offsets_exact": 0.4628092447916667,
+        "pooled_both_query_orders_exact": 0.19010416666666666,
+        "inference_relative": 0.7138755954721935,
+        "actual_training_bytes": 28000000,
+        "extra_persistent_sequence_state_bytes": 0,
         "default_promoted": false
       }
     },
@@ -657,14 +687,18 @@
       ],
       "papers": [
         "P16",
-        "P30"
+        "P30",
+        "P34",
+        "P35"
       ],
       "question": "Do fixed boundaries prevent relevant state from becoming available when it is needed?",
       "design": "First compare fixed grouping under every answer offset and a query-time read of already observed partial/completed state. If that diagnoses boundary dependence, compare fixed groups with causal delimiter-based, entropy-based or learned segmentation in a separate backend. Match average event counts and report boundary-policy costs. Keep byte evidence and emitted targets causal.",
       "evaluation": "Measure binding/transition accuracy by offset, language NLL/time, event counts, completion latency, checkpoint continuation and behavior on long unbroken spans. No target-driven boundary labels may enter inference, and no partial group may expose future bytes. Test worst-case work/state bounds as well as averages.",
       "decision": "Adopt dynamic boundaries only if they solve a measured timing/composition problem at an acceptable cost. A cheap query-time access repair should win over a full hierarchy change when both achieve the same result.",
       "minimal_baseline_note": "Test query-time access to minimal partial/completed summaries first; introduce segmentation only after a boundary-dependent failure.",
-      "execution_entry": "Coordinate the next EXP01-C repair: EXP01-B local head falls from 83.37% aligned to 26.73% averaged across all frozen offsets. Test current-query versus stable evidence views before changing segmentation."
+      "execution_entry": "EXP01-D / EXP22: preserve per-constituent key/value association before pooling; handle within-constituent phase, compare stable/learned channels; keep the readable query separate. Register fresh budgets and audit fold. No slot expansion yet.",
+      "status": "query_access_screen_complete_no_promotion",
+      "report": "reports/exp01c/SHoEbox_EXP01C_Query_Access.md"
     },
     {
       "id": "EXP23",
@@ -955,6 +989,22 @@
       "status": "Sussillo and Abbott; Neuron 2009",
       "when": "EXP01-B online RLS control",
       "use": "Bounded recursive inverse-covariance updates for address readouts; frozen-core control, not FORCE dynamics."
+    },
+    {
+      "id": "P34",
+      "title": "Transformer-XL: Attentive Language Models beyond a Fixed-Length Context",
+      "url": "https://aclanthology.org/P19-1285/",
+      "status": "Dai et al.; ACL 2019",
+      "when": "EXP01-C query-time access",
+      "use": "Completed-context reuse across boundaries; adapted to existing state without a new attention cache."
+    },
+    {
+      "id": "P35",
+      "title": "Retentive Network: A Successor to Transformer for Large Language Models",
+      "url": "https://arxiv.org/abs/2307.08621",
+      "status": "Sun et al.; 2023",
+      "when": "EXP01-C provisional/completed comparison",
+      "use": "Within-chunk and recurrent contributions motivate the split view; no RetNet recurrence is implemented."
     }
   ],
   "capability_coverage": [
@@ -1260,8 +1310,8 @@
       "id": "M07",
       "capability": "Bind a newly observed value to the right query",
       "implementation": "Yes \u2014 memory path; research selector",
-      "evidence": "Default unworking; narrow adapter gain",
-      "notes": "EXP01-B online local-credit adapter reaches 83.37% native exact versus 50.03% native; query ablation 50.13%, all-offset mean 26.73%. Not promoted. Next: EXP01-C / EXP22 stable query-time access.",
+      "evidence": "Default unworking; query diagnostic gain, binding unqualified",
+      "notes": "EXP01-C all-offset-trained pooled views: 44.56% native exact versus 50.20% native, query decoding 100% at both positions, second-query selection 50.52%. No promotion. Next EXP01-D / EXP22: preserve per-constituent key/value association.",
       "experiments": [
         "EXP01",
         "EXP02",
@@ -2230,6 +2280,7 @@
     "capability_matrix": "docs/capabilities/SHoEbox_Minimal_Capability_Matrix.md",
     "handoff": "DEVELOPMENT_HANDOFF.md"
   },
-  "documentation_updated_local_date": "2026-11-15",
-  "new_training_in_documentation_update": true
+  "documentation_updated_local_date": "2026-11-16",
+  "new_training_in_documentation_update": true,
+  "current_evidence_report": "reports/exp01c/SHoEbox_EXP01C_Query_Access.md"
 }

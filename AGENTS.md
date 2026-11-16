@@ -2,10 +2,13 @@
 
 - Before new capability work, read `DEVELOPMENT_HANDOFF.md` and
   `docs/capabilities/SHoEbox_Minimal_Capability_Matrix.md`. EXP00 is complete
-  on full C; EXP01-B's online factorized readout screen is complete. The next item
-  is EXP01-C / EXP22: stable query-time access across positions and boundaries.
-  The research adapter reaches 83.37% native exactness but 26.73% across offsets;
-  its gain does not qualify default promotion. Read `reports/exp01b/`.
+  on full C; EXP01-C's query-access screen is complete. The next item is
+  EXP01-D / EXP22: preserve constituent-level key/value association before
+  pooling, with within-constituent phase handled explicitly. Pooled views decode
+  the current query at 100% in both positions, but reach only 44.56% native
+  two-answer exactness versus 50.20% native. Record-containing constituents remain
+  present in the tested offsets/delays; second-query selection falls to 50.52%.
+  No promotion. Read `reports/exp01c/` and preserve `reports/exp01b/` as history.
   Record the selected core explicitly and keep historical/full-C evidence
   separate from minimal-v19 qualifications.
 

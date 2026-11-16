@@ -1,17 +1,18 @@
 # SHoEbox development handoff
 
-15 November 2026 (America/Denver). Runtime baseline: minimal corrected C, checkpoint v19, source `317fbcd023b9d9b3c2b359ba8f99f3dadbf46783`.
+16 November 2026 (America/Denver). Runtime baseline: minimal corrected C, checkpoint v19, source `317fbcd023b9d9b3c2b359ba8f99f3dadbf46783`.
 
-**Next action: EXP01-C / EXP22 — stabilize query-time access across query positions and constituent boundaries using existing state.** EXP01-B is complete: the online factorized readout with local prefix reconstruction improves native two-answer exactness from 50.03% to 83.37% across seeds 1/7/19. Query ablation returns it to 50.13%. Mean frozen offset accuracy is only 26.73%; joint credit reaches 61.23%. The 95% binding gate is not met. Minimal v19 remains the production default; retain the new adapter as a reproducible control.
+**Next action: EXP01-D / EXP22 — preserve constituent-level key/value association before pooling.** EXP01-C is complete. Across all-offset training and a fresh held-out fold, pooled views reach 44.56% native two-answer exactness versus 50.20% native and 38.64% shared-L3 control. Diagnostic current-query decoding is 100% at both positions, but selection falls from 96.22% on the first query to 50.52% on the second. Record-containing stable constituents remain present in every inspected phase/delay case through +256 bytes, including native-generated prefixes. Inference throughput costs 28.6%. No promotion; minimal v19 remains the production default.
 
 ## Read first
 
 1. [Current minimal capability matrix](docs/capabilities/SHoEbox_Minimal_Capability_Matrix.md): all 66 capabilities and eight engineering enablers.
 2. [Minimal baseline specification and qualification](reports/minimal_core/SHoEbox_Minimal_Core_Baseline.md).
-3. [EXP01-B online factorized results](reports/exp01b/SHoEbox_EXP01B_Online_Factorized_Readout.md) and [source/commands](experiments/factorized_readout/README.md).
-4. [EXP01 findings, literature and costs](reports/exp01/SHoEbox_EXP01_Query_Readout.md) and [implemented adapter/commands](experiments/query_readout/README.md).
-5. [Completed EXP00 results](reports/exp00/README.md) and [task/control implementation](experiments/mad_next/README.md).
-6. [Research plan](docs/capabilities/SHoEbox_Capability_Research.md) and [machine-readable backlog](docs/capabilities/SHoEbox_Experiment_Backlog.json).
+3. [EXP01-C query-access results](reports/exp01c/SHoEbox_EXP01C_Query_Access.md), [registered protocol](reports/exp01c/PROTOCOL.md) and [reproduction](experiments/query_access/README.md).
+4. [EXP01-B online factorized results](reports/exp01b/SHoEbox_EXP01B_Online_Factorized_Readout.md) and [source/commands](experiments/factorized_readout/README.md).
+5. [EXP01 findings, literature and costs](reports/exp01/SHoEbox_EXP01_Query_Readout.md) and [implemented adapter/commands](experiments/query_readout/README.md).
+6. [Completed EXP00 results](reports/exp00/README.md) and [task/control implementation](experiments/mad_next/README.md).
+7. [Research plan](docs/capabilities/SHoEbox_Capability_Research.md) and [machine-readable backlog](docs/capabilities/SHoEbox_Experiment_Backlog.json).
 
 ## Runtime contract
 
@@ -147,6 +148,44 @@ use a new audit fold. Once selection is reliable, stabilize joint local credit.
 See [the report](reports/exp01b/SHoEbox_EXP01B_Online_Factorized_Readout.md) for
 per-seed scores, interventions, all offsets, delays, timings and accounting.
 
+## Completed EXP01-C / EXP22: query-time views
+
+Twelve formal branches: native, EXP01-B-equivalent shared L3, provisional query /
+completed-evidence split, and learned pools over existing completed/partial
+constituents. All heads add 9,535 fitted parameters within the nominal 500K
+budget. Three seeds, 250K warmup plus 2M continuation bytes, all 64 training
+phases and fresh grouped audit worlds. No persistent sequence state is added.
+
+| Arm | Native both-answer exactness | First answer | Second answer |
+| --- | ---: | ---: | ---: |
+| Native | 50.20% | 50.20% | 50.20% |
+| Shared L3 | 38.64% | 50.72% | 50.52% |
+| Split frontier | 38.44% | 50.65% | 50.46% |
+| Pooled views | 44.56% | 65.92% | 55.37% |
+
+Pooled first/second diagnostic key decoding is 81.25%/38.93% for key 0 and
+93.88%/26.95% for key 1; query decoding is 100% in both positions. Value decoding
+remains roughly 62–72%. Both-query-orders native exactness is 19.01%; boundary
+mean is 46.28%, worst phase mean 23.44%; +256 delay mean 35.32%. Signature
+presence is 100% for the query and both record-containing eight-byte pairs
+through all tested delays. This is an external presence diagnostic, not a native
+byte-decoding oracle. Pooled inference is 15,398 bytes/CPU-s versus 21,569 native.
+
+Total actual fitting is 28M charged bytes: 1.75M pilot, 25.5M formal and 0.75M
+positive controls. Controls score 100%. All 105 Python tests and 36,497 new
+native checks pass; existing native checks also pass optimized/ASan/UBSan.
+No default promotion or joint/language/scaling qualification occurred.
+
+**Next design:** keep the separately readable current query, decode a key and its
+value together from each existing constituent before mixing records, then use
+shared query-conditioned weights for both. Test within-constituent phase and
+stable versus learned content channels. Do not add a parser, oracle source index,
+new slots or optimizer sweep as a substitute for preserving key/value pairing.
+Register new pilot/formal budgets and a fresh audit fold. Keep the 95% mean /
+90% minimum-seed native binding gate and the counterfactual, boundary, delay,
+regression and cost gates. The EXP01-C pooled head is a reproducible control,
+not a replacement for minimal v19.
+
 ## Historical EXP01 execution contract and remaining qualification
 
 The original diagnosis contract below remains the qualification roadmap. The
@@ -174,7 +213,7 @@ Register a new audit fold after these results have informed the next design.
 
 | Order | Packages | Implementation target |
 | --- | --- | --- |
-| 1 | EXP01-C / EXP22 | Stable query-time access across positions/offsets; then joint credit and native qualification |
+| 1 | EXP01-D / EXP22 | Preserve per-constituent key/value pairing and handle phase before pooling; then joint credit and native qualification |
 | 2 | EXP02/03 | Independent state capacity; delay, interference, eviction and retrieval |
 | 3 | EXP04/05 | Initialization, set/copy/swap; selective erase/write and state correction |
 | 4 | EXP06/07/22 | Useful 16/64-byte summaries; suitable objectives; query-time/boundary access |
@@ -197,6 +236,8 @@ python -m unittest experiments.query_readout.test_adapter -v
 python -m experiments.query_readout.check_native
 python -m unittest experiments.factorized_readout.test_adapter -v
 python -m experiments.factorized_readout.check_native
+python -m unittest experiments.query_access.test_adapter -v
+python -m experiments.query_access.check_native
 python -m experiments.mad.run --core minimal --preset smoke --execute --out /tmp/minimal-mad-smoke.json
 ```
 

@@ -6,9 +6,9 @@ Start with [DEVELOPMENT_HANDOFF.md](DEVELOPMENT_HANDOFF.md) for the minimal v19
 contract, measured capability results and the next execution step. The
 [current capability matrix](docs/capabilities/SHoEbox_Minimal_Capability_Matrix.md)
 tracks all 66 capabilities and eight engineering enablers against minimal.
-EXP01-B is complete: the online factorized readout reaches **83.37% native
-binding exactness** versus 50.03% native. **EXP01-C / EXP22 query-time access
-across positions and boundaries is next**; v19 remains the default.
+EXP01-C is complete: query decoding reaches **100%** in both diagnostic positions,
+but native binding reaches only **44.56%**, versus 50.20% native. **EXP01-D /
+EXP22 constituent-level key/value association is next**; v19 remains the default.
 New studies must select minimal/full explicitly and keep their evidence separate.
 
 ## Capability development protocols
@@ -22,11 +22,12 @@ to run the smoke qualification.
 
 ## Selected runtime: minimal corrected-C core
 
-**Latest capability development:** [EXP01-B online factorized readout](reports/exp01b/SHoEbox_EXP01B_Online_Factorized_Readout.md)
-adds one-pass query/key selection, value decoding and bounded online learning.
-The three-seed gain requires local reconstruction credit; offset accuracy remains
-26.73%, so the candidate stays a research adapter. Source, citations and commands:
-[`experiments/factorized_readout`](experiments/factorized_readout/README.md).
+**Latest capability development:** [EXP01-C query-time access](reports/exp01c/SHoEbox_EXP01C_Query_Access.md)
+compares equal-capacity readouts over completed and partial state. Query cues are
+readable, but second-query key selection and value decoding remain inadequate.
+Record-containing constituents survive every inspected phase/delay case; the
+next readout should preserve their key/value pairing. No promotion. Source,
+citations and commands: [`experiments/query_access`](experiments/query_access/README.md).
 
 The default `shoe_multiscale` model is the **minimal corrected-C core (v19)**.
 Sparse experts run at the 1/4-byte scales; ordered, trainable summaries run at

@@ -1,5 +1,17 @@
 # SHoEbox handoff
 
+## 2026-11-16 — EXP01-C query-time access completed
+
+New bounded research views decode the current query at 100% in both diagnostic
+positions, but pooled native two-answer exactness is 44.56% versus 50.20% native.
+First/second selection: 96.22% / 50.52%; existing record-containing constituents
+remain present across tested phases and delays. Inference costs 28.6%; no
+promotion. All 105 Python tests, 36,497 new native checks and the existing native
+sanitizer suite pass. Actual fitting: 28M bytes including pilot and controls.
+Next: EXP01-D / EXP22, preserve per-constituent key/value association before pooling.
+[Report](reports/exp01c/SHoEbox_EXP01C_Query_Access.md) ·
+[Protocol](reports/exp01c/PROTOCOL.md) · [Source](experiments/query_access/README.md).
+
 ## 2026-11-15 — EXP01-B online factorized selection completed
 
 Minimal-v19 research adapter: 83.37% held-out native two-answer exactness versus

@@ -1,6 +1,6 @@
 # SHoEbox minimal-baseline capability matrix
 
-15 November 2026 (America/Denver) · Runtime: minimal corrected C, v19 · Source: `317fbcd023b9d9b3c2b359ba8f99f3dadbf46783`.
+16 November 2026 (America/Denver) · Runtime: minimal corrected C, v19 · Source: `317fbcd023b9d9b3c2b359ba8f99f3dadbf46783`.
 
 Current inventory: **62 core capabilities, four optional multimodal capabilities, and eight engineering enablers**. This matrix is the current implementation/evidence view. The older full-C assessments are preserved in each backlog row's `historical_assessment` and in repository history.
 
@@ -26,7 +26,7 @@ Three paired seeds (1, 7, 19), nominal 500K models. FineWeb used 1M next-byte ta
 | Selective-copy token / exact whole-answer accuracy | 73.70% / 47.40% | 73.83% / 47.66% |
 | Final-state reconstruction token / exact whole-answer accuracy | 70.77% / 22.14% | 80.14% / 40.36% |
 
-Memory-read removal reduces minimal copy from 73.83% to 11.85%; zeroing final L3 state reduces reconstruction from 80.14% to 7.42%. Reconstruction uses a separately trained decoder included in the parameter budget, not the native language head. These are the existing qualification results; this documentation update ran no training.
+Memory-read removal reduces minimal copy from 73.83% to 11.85%; zeroing final L3 state reduces reconstruction from 80.14% to 7.42%. Reconstruction uses a separately trained decoder included in the parameter budget, not the native language head. This table reproduces the earlier minimal qualification. The new EXP01-C training results are identified separately below.
 
 [Protocol, raw results and verification](../../reports/minimal_core/SHoEbox_Minimal_Core_Baseline.md) · [Development handoff](../../DEVELOPMENT_HANDOFF.md) · [Experiment plan](SHoEbox_Capability_Research.md).
 
@@ -58,7 +58,7 @@ Memory-read removal reduces minimal copy from 73.83% to 11.85%; zeroing final L3
 | M04 | Compress observed content into a usable bounded state | Yes — research decoder | Narrow | Minimal final-L3 reconstruction: 80.14% token accuracy, 40.36% exact; separately trained MLP decoder included in the budget. Next: EXP00, EXP02. |
 | M05 | Use remembered information in prediction | Yes | In principle | Disabling addressed and retained reads lowers minimal copy token accuracy from 73.83% to 11.85%; establishes causal use on this task. Next: EXP01, EXP03, EXP08. |
 | M06 | Store and recover exact externally supplied bindings | Yes — explicit API | Untested | bind/lookup/payload entry points remain available; automatic association dispatch is excluded from minimal. Earlier exact-API evidence is historical; no new minimal-specific binding qualification is claimed. Next: EXP14. |
-| M07 | Bind a newly observed value to the right query | Yes — memory path; research selector | Default unworking; narrow adapter gain | EXP01-B online local-credit adapter reaches 83.37% native exact versus 50.03% native; query ablation 50.13%, all-offset mean 26.73%. Not promoted. Next: EXP01-C / EXP22 stable query-time access. |
+| M07 | Bind a newly observed value to the right query | Yes — memory path; research selector | Default unworking; query diagnostic gain, binding unqualified | EXP01-B aligned gain remains historical. EXP01-C offset-trained pooled views reach 44.56% native exact versus 50.20% native; query decoding 100% at both positions, second selection 50.52%. No promotion. Next: EXP01-D / EXP22 preserve constituent-level key/value association. |
 | M08 | Retain information through longer delays and interference | Yes — memory path | Untested | Full C failed the longer-delay probe. Recheck minimal while separating delay, distractor writes, eviction and retrieval. Next: EXP03, EXP05. |
 | M09 | Recall despite noisy or approximate cues | Yes — memory path | Untested | Prior noisy/fuzzy full-C probes failed; minimal noisy-cue behavior is unqualified. Next: EXP03. |
 | M10 | Update working variables without overwriting unrelated state | Partial | Untested | Research tasks exist; full-C initialization/set/copy/swap failed EXP00. No successful minimal state-update workflow. Next: EXP04, EXP05. |
@@ -141,4 +141,4 @@ Memory-read removal reduces minimal copy from 73.83% to 11.85%; zeroing final L3
 
 ## Next development decision
 
-EXP01-B is complete. [Online factorized results](../../reports/exp01b/SHoEbox_EXP01B_Online_Factorized_Readout.md) show 83.37% native exactness with local reconstruction credit, versus 50.03% native. All-offset mean accuracy is 26.73%; no default promotion. Next: EXP01-C / EXP22 stable query-time access across positions and boundaries, then joint credit and regression qualification. Slots, upper experts and reasoning loops remain gated. See [the handoff](../../DEVELOPMENT_HANDOFF.md).
+EXP01-C is complete. [Query-access results](../../reports/exp01c/SHoEbox_EXP01C_Query_Access.md) show 100% current-query diagnostic decoding at both positions but only 44.56% native whole-episode exactness. Both record-containing constituents remain present across the tested phases/delays; second-query key selection and value decoding remain the bottleneck. Next: EXP01-D / EXP22, preserve per-constituent key/value association and handle phase before pooling, then joint credit and regression qualification. Minimal v19 remains the default; slots and reasoning loops remain gated. See [the handoff](../../DEVELOPMENT_HANDOFF.md).

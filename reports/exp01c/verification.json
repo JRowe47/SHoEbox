@@ -1,0 +1,32 @@
+{
+  "python_tests": 105,
+  "runtime_python": 48,
+  "existing_research_python": 50,
+  "new_access_python": 7,
+  "new_native_checks_per_build": 36497,
+  "optimized_native_pass": true,
+  "asan_ubsan_native_pass": true,
+  "existing_native_suite_pass": true,
+  "leak_sanitizer": false,
+  "production_and_historical_source_unchanged": true,
+  "exp01b_numerical_parity_test": true,
+  "checkpoint_boundary_continuation": true,
+  "preregistered_fit_and_audit_runtime_hashes_unchanged": true,
+  "only_changed_registered_files": [
+    "experiments/query_access/test_adapter.py",
+    "experiments/query_access/native_test.cpp"
+  ],
+  "changed_test_reason": "Added independent per-answer scoring and sanitizer ABI coverage; fitted/evaluation math unchanged.",
+  "commands": [
+    "python -m multiscale.tests.run_all --no-leak-check",
+    "python -m unittest experiments.mad.test_protocol experiments.mad_next.test_exp00 experiments.query_readout.test_adapter experiments.factorized_readout.test_adapter -v",
+    "python -m unittest experiments.query_access.test_adapter -v",
+    "python -m experiments.query_access.check_native --no-leak-check"
+  ],
+  "log_sha256": {
+    "verification_runtime.txt": "e1694269eb8acd36d53e2d6f9203b7d7e1025e75ae7d9aca1a768c0292e2c7e7",
+    "verification_research.txt": "4de731795f044ba43e9dc8476157b29dc7f5c148930761b4745daaa07f8f1e2f",
+    "verification_access_python.txt": "9799d1c39b3be7afaa56e5622ded3112a1eeef9c33cc66a71a4c8fee732f870b",
+    "verification_access_native.txt": "3cf1be02f00bb29e13ea63adbec2218a166b52c3503b46c41c969fb4107b2e93"
+  }
+}
