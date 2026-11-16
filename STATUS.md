@@ -1,5 +1,25 @@
 # SHoEbox handoff
 
+## 2026-11-16 - Verified intermediate-state supervision screen
+
+Added an isolated corrected-C research adapter with verified register programs,
+final-only / extra-head / direct-state controls, bounded L2/L3 credit, causal
+label timing, exact live checkpoints, and frozen state/permutation diagnostics.
+The public runtime, loop implementation and defaults are unchanged.
+
+Six seed-7 fits at nominal 1M/5M consumed 2M mixed bytes each. Direct state credit
+scored 14.84% / 12.89% audit accuracy, versus final-only 13.67% / 10.94% and
+head-only 14.06% / 11.13%. Chance is 12.5%; both intervals versus final-only include zero. The 5M
+state-versus-head-only interval is positive (+0.39 to +3.12 points).
+Frozen standardized probes recover 16.80–24.61% across the six models, while mean
+replacement barely affects the online head. No configuration is promoted.
+Next: isolate centered readout and persistent binding slots before learned halting.
+
+Six Python tests and 19 native checks pass, including finite differences,
+epoch retirement, exact continuation, and ASan/UBSan. See the
+[protocol](experiments/structured_state/README.md) and
+[results](experiments/structured_state/RESULTS.md).
+
 ## 2026-11-15 - Selective multiscale loops
 
 Added completed-constituent refinement on the corrected-C/route-learning branch:

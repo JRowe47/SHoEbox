@@ -24,6 +24,7 @@ retain their original policies and unfinished stream state when loaded.
 [Usage and architecture](multiscale/README.md) |
 [Route-local learning rates](multiscale/ROUTE_LEARNING.md) |
 [Selective multiscale loops](multiscale/SELECTIVE_LOOPS.md) |
+[Verified state-supervision research](experiments/structured_state/README.md) |
 [L2/L3 investigation](experiments/upper_credit/README.md) |
 [Historical D selection](multiscale/ROUTING_D.md).
 
