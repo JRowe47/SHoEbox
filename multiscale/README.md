@@ -8,6 +8,12 @@ post-warmup absence penalty is removed. Saved policies remain reproducible.
 
 ## Quick start
 
+Optional completed-constituent refinement is available with `Model(loops={})`:
+extra pass budgets 0/1/2/2 at the 1/4/16/64-byte scales, shared expert weights,
+64-value working state and convergence stopping. See
+[selective multiscale loops](SELECTIVE_LOOPS.md) for training, inference and
+checkpoint behavior. The ordinary corrected-C control remains reproducible.
+
 Requirements: Python 3.10+, NumPy, a C++17 compiler, and a CPU. The first API use
 compiles the native library into a temporary cache. Set `CXX` to select a compiler
 or `SHOE_MULTISCALE_CACHE` to select a cache directory.

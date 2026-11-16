@@ -136,6 +136,11 @@ void Model::forward_event(int scale,const std::array<Vec,GROUP>& child,const std
     const auto& expert=l.experts[e.expert];
     mv(expert.w,routing_arm?l.routing.events[slot].expert_input:e.input,e.residual);
     if(scale)for(int i=0;i<D;++i)e.content[i]=std::tanh(e.input[i]+expert.bias[i]+e.gate*e.residual[i]);
+    if(loop_policy.steps[scale]){
+        LoopTrace* trace=nullptr;
+        if(training){l.loops.traces.emplace_back();trace=&l.loops.traces.back();}
+        e.content=loop_forward(expert,e.content,e.gate,loop_policy,scale,trace,l.loops.stats);
+    }
     if(training){
         e.content_id=int(l.constituents.size());Constituent c;
         c.input=e.input;c.content=e.content;c.residual=e.residual;c.children=e.children;c.lengths=e.lengths;
@@ -308,8 +313,13 @@ void Model::retire_constituents(){
                 const RoutingTrace* rt=routing_arm?&l.routing.constituents[ci]:nullptr;++ci;
                 int k=0;for(;k<int(selected.size());++k)if(selected[k]==c.expert)break;
                 if(k==int(selected.size())){selected.push_back(c.expert);eg.emplace_back();}
-                const auto& expert=l.experts[c.expert];Vec pre{},du{};float dgate=0;
-                for(int i=0;i<D;++i){pre[i]=c.grad[i]*(1-c.content[i]*c.content[i]);eg[k].bias[i]+=pre[i];du[i]=pre[i];dgate+=pre[i]*c.residual[i];}
+                const auto& expert=l.experts[c.expert];Vec pre{},du{},dc=c.grad;float dgate=0;
+                const Vec* base=&c.content;
+                if(loop_policy.steps[scale]){
+                    const auto& trace=l.loops.traces.at(ci-1);base=&trace.state[0];
+                    dc=loop_backward(expert,c.gate,loop_policy,trace,dc,eg[k],dgate);
+                }
+                for(int i=0;i<D;++i){pre[i]=dc[i]*(1-(*base)[i]*(*base)[i]);eg[k].bias[i]+=pre[i];du[i]=pre[i];dgate+=pre[i]*c.residual[i];}
                 Vec gated=pre;for(auto& x:gated)x*=c.gate;outer(eg[k].w,gated,rt?rt->expert_input:c.input);vjp(expert.w,gated,du);
                 float margin=dgate*c.gate_derivative;
                 touched[c.expert]=touched[c.runner]=1;
@@ -341,7 +351,7 @@ void Model::retire_constituents(){
             for(size_t k=0;k<keys.size();++k)if(touched[k])update_index(l,int(k));
             for(const auto& c:l.constituents)advance_route(l,c.expert);
         }
-        l.constituents.clear();l.routing.constituents.clear();l.s.child_ids.fill(-1);++l.content_updates;
+        l.constituents.clear();l.loops.traces.clear();l.routing.constituents.clear();l.s.child_ids.fill(-1);++l.content_updates;
     }
     epoch_bytes=0;
     if(semantic_laces)lace_maintain();
@@ -435,6 +445,7 @@ double Model::run(const uint8_t* x,const uint8_t* y,size_t n){
 }
 void Model::finish(){if(training){for(size_t l=0;l<levels.size();++l)flush(int(l));retire_constituents();}}
 void Model::reset(bool clear_store){
+    for(auto& l:levels)l.loops.stats=LoopStats{};
     finish();for(auto& l:levels){l.routing.reset_stream();l.laces.stream=LaceStream{};l.s=Stream{};l.retained=RecallStream{};l.read_now=RecallRead{};l.credit_edges=l.content_updates=0;l.task_gradient_energy=l.child_gradient_energy=0;}
     recalled={};previous_query={};cached_gain={};cached_bias={};features={};payload={};payload_count=0;have_query=false;bytes=0;route_comparisons=0;
     if(clear_store)store.clear();
@@ -443,12 +454,13 @@ void Model::inference(bool cold){
     // Snapshot fitted weights as they stand. Do not silently train/drain the
     // source to evaluate; pending derivatives are deliberately discarded.
     training=false;memory_writes=false;epoch_bytes=0;
+    for(auto& l:levels)std::vector<LoopTrace>().swap(l.loops.traces);
     for(auto& l:levels){l.recall_credit_state=RecallCreditState{};l.recall_content_gradient.clear();l.routing.reset_stream();l.constituents.clear();l.s.child_ids.fill(-1);l.s.count=0;l.s.events={};l.s.address_events={};l.s.negatives={};l.s.negative_count=0;l.s.negative_cursor=0;}
     if(cold)reset(false);
 }
 
-std::string save(const Model& m){
-    Writer w;uint64_t magic=0x31534d454f4853ULL;w.pod(magic);uint32_t version=m.checkpoint_version();w.pod(version);
+static std::string save_base(const Model& m){
+    Writer w;uint64_t magic=0x31534d454f4853ULL;w.pod(magic);uint32_t version=m.base_checkpoint_version();w.pod(version);
     uint32_t abi=sizeof(Constituent)^sizeof(Event)^sizeof(Stream)^sizeof(AssociationStore)^sizeof(RecallParameters)^sizeof(RecallStream)^sizeof(RecallRead);w.pod(abi);
     if(version>=11){uint32_t payload=m.payload_version();w.pod(payload);}
     int count=int(m.levels.size()),target=int(m.parameter_count())-(m.routing_arm==3?int(m.levels.size()-1)*D*D:0);w.pod(count);w.pod(target);w.pod(m.indexed);w.pod(m.associations);
@@ -482,7 +494,7 @@ std::string save(const Model& m){
     }
     return w.out;
 }
-Model load(const char* p,size_t n){
+static Model load_base(const char* p,size_t n){
     Reader r{p,n};uint64_t magic;uint32_t version,abi;r.pod(magic);r.pod(version);r.pod(abi);
     if(magic!=0x31534d454f4853ULL||version<5||(version>12&&version!=17)||abi!=(sizeof(Constituent)^sizeof(Event)^sizeof(Stream)^sizeof(AssociationStore)^sizeof(RecallParameters)^sizeof(RecallStream)^sizeof(RecallRead)))throw std::runtime_error("incompatible multiscale checkpoint");
     const bool credit_extension=version>=11,recall_extension=version>=12;
@@ -584,6 +596,62 @@ Model load(const char* p,size_t n){
     if(r.n)throw std::runtime_error("unexpected trailing checkpoint data");
     return m;
 }
+
+// v18 wraps an unchanged v6--v12/v17 payload. Old stream ABI and policy remain
+// byte-for-byte reproducible; only explicitly configured loops get an extension.
+std::string save(const Model& m){
+    std::string base=save_base(m);if(!m.loop_policy.configured)return base;
+    Writer w;uint64_t magic=0x31534d454f4853ULL;uint32_t version=18,format=1;
+    w.pod(magic);w.pod(version);w.pod(format);
+    uint64_t bytes=base.size();w.pod(bytes);w.out+=base;
+    w.pod(m.loop_policy.steps);w.pod(m.loop_policy.strength);w.pod(m.loop_policy.tolerance);
+    for(const auto& l:m.levels){const auto& s=l.loops.stats;
+        w.pod(s.events);w.pod(s.passes);w.pod(s.converged);w.pod(s.budget_hits);
+        w.pod(s.last_steps);w.pod(s.last_relative_change);
+        uint64_t size=l.loops.traces.size();w.pod(size);
+        for(const auto& trace:l.loops.traces){
+            w.pod(trace.steps);
+            for(int k=0;k<=trace.steps;++k)w.pod(trace.state[k]);
+            for(int k=0;k<trace.steps;++k)w.pod(trace.proposal[k]);
+        }
+    }
+    return w.out;
+}
+static Model load_loops(const char* p,size_t n){
+    Reader r{p,n};uint64_t magic;uint32_t version,format;r.pod(magic);r.pod(version);r.pod(format);
+    if(magic!=0x31534d454f4853ULL||version!=18||format!=1)throw std::runtime_error("invalid loop checkpoint header");
+    uint64_t bytes;r.pod(bytes);if(bytes>r.n)throw std::runtime_error("truncated loop base payload");
+    Model m=load_base(r.p,size_t(bytes));r.p+=bytes;r.n-=bytes;
+    auto& policy=m.loop_policy;policy.configured=true;
+    r.pod(policy.steps);r.pod(policy.strength);r.pod(policy.tolerance);policy.validate(m.levels.size());
+    if(m.semantic_laces)throw std::runtime_error("loops require stable expert identities; disable semantic laces");
+    for(size_t i=0;i<m.levels.size();++i){auto& l=m.levels[i];auto& s=l.loops.stats;
+        r.pod(s.events);r.pod(s.passes);r.pod(s.converged);r.pod(s.budget_hits);
+        r.pod(s.last_steps);r.pod(s.last_relative_change);
+        if(s.last_steps<0||s.last_steps>MAX_LOOPS||!std::isfinite(s.last_relative_change)||s.last_relative_change<0||
+           s.passes<s.events||s.converged>s.events||s.budget_hits!=s.events-s.converged||
+           (s.events&&s.passes/s.events>MAX_LOOPS))throw std::runtime_error("invalid loop counters");
+        uint64_t size;r.pod(size);
+        if(size!=(m.training&&policy.steps[i]?l.constituents.size():0))throw std::runtime_error("invalid loop tape size");
+        l.loops.traces.resize(size);
+        for(size_t j=0;j<size;++j){auto& trace=l.loops.traces[j];r.pod(trace.steps);
+            if(trace.steps<1||trace.steps>policy.steps[i])throw std::runtime_error("invalid loop depth");
+            auto read_vec=[&](Vec& v){r.pod(v);for(float x:v)if(!std::isfinite(x)||std::abs(x)>1.000001f)
+                throw std::runtime_error("invalid loop trace");};
+            for(int k=0;k<=trace.steps;++k)read_vec(trace.state[k]);
+            for(int k=0;k<trace.steps;++k)read_vec(trace.proposal[k]);
+            if(trace.state[trace.steps]!=l.constituents[j].content)throw std::runtime_error("loop output does not match constituent");
+        }
+    }
+    if(r.n)throw std::runtime_error("unexpected trailing loop data");
+    return m;
+}
+Model load(const char* p,size_t n){
+    // Keep dispatch free of Model-sized locals: old callers can already have
+    // several large association stores on their stack.
+    Reader r{p,n};uint64_t magic;uint32_t version;r.pod(magic);r.pod(version);
+    return version==18?load_loops(p,n):load_base(p,n);
+}
 } // namespace shoe
 
 namespace {thread_local std::string error;template<class F> int guard(F f){try{f();error.clear();return 0;}catch(const std::exception& e){error=e.what();return -1;}}}
@@ -599,6 +667,34 @@ int ms_observe(void* p,uint8_t byte,float* out){return guard([&]{auto& m=*static
 int ms_logits(void* p,float* out){return guard([&]{static_cast<shoe::Model*>(p)->log_probs(out);});}
 int ms_reset(void* p,int clear){return guard([&]{static_cast<shoe::Model*>(p)->reset(clear);});}
 int ms_finish(void* p){return guard([&]{static_cast<shoe::Model*>(p)->finish();});}
+int ms_loops(void* p,const int* steps,int count,float strength,float tolerance){return guard([&]{
+    auto& m=*static_cast<shoe::Model*>(p);
+    if(count!=int(m.levels.size()))throw std::invalid_argument("one loop budget is required per level");
+    auto policy=m.loop_policy;policy.configured=true;policy.steps.fill(0);
+    std::copy_n(steps,count,policy.steps.begin());policy.strength=strength;policy.tolerance=tolerance;
+    policy.validate(m.levels.size());
+    if(m.semantic_laces)throw std::invalid_argument("loops require stable expert identities; disable semantic laces");
+    // Do not drain implicitly: rejected changes must leave the model untouched.
+    if(m.epoch_bytes)throw std::logic_error("configure loops after an explicit finish or on a fresh model");
+    for(const auto& l:m.levels)if(!l.constituents.empty()||l.s.count)
+        throw std::logic_error("configure loops after retiring pending credit");
+    m.loop_policy=policy;
+    for(size_t i=0;i<m.levels.size();++i)if(policy.steps[i]){
+        int span=1;for(size_t k=0;k<i;++k)span*=shoe::GROUP;
+        if(m.training)m.levels[i].loops.traces.reserve(m.epoch_limit/span+1);
+    }
+});}
+int ms_loop_stats(void* p,double* out){return guard([&]{
+    const auto& m=*static_cast<shoe::Model*>(p);std::fill_n(out,48,0.);
+    out[0]=m.loop_policy.configured;out[1]=m.loop_policy.strength;out[2]=m.loop_policy.tolerance;
+    out[3]=m.levels.size();
+    for(size_t i=0;i<m.levels.size();++i){const auto& l=m.levels[i];const auto& s=l.loops.stats;size_t o=4+10*i;
+        out[o]=m.loop_policy.steps[i];out[o+1]=s.events;out[o+2]=s.passes;out[o+3]=s.converged;
+        out[o+4]=s.budget_hits;out[o+5]=s.last_steps;out[o+6]=s.last_relative_change;
+        out[o+7]=l.loops.traces.size();out[o+8]=l.loops.traces.size()*sizeof(shoe::LoopTrace);
+        out[o+9]=l.loops.traces.capacity()*sizeof(shoe::LoopTrace);
+    }
+});}
 int ms_configure(void* p,float lr,float head,float aux,float route){return guard([&]{
     if(!std::isfinite(lr)||!std::isfinite(head)||!std::isfinite(aux)||!std::isfinite(route)||lr<0||head<0||aux<0||route<0)throw std::invalid_argument("rates must be finite and nonnegative");
     auto& m=*static_cast<shoe::Model*>(p);for(float rate:{lr,head,route})m.route_learning.validate_rate(rate);
@@ -678,6 +774,7 @@ int ms_routing_stats(void* p,double* out){return guard([&]{auto& m=*static_cast<
 int ms_laces(void* p,int enabled){return guard([&]{auto& m=*static_cast<shoe::Model*>(p);
     if(enabled&&m.routing_arm)throw std::invalid_argument("routing arms cannot enable semantic laces");
     if(enabled&&m.route_learning.configured)throw std::invalid_argument("route learning requires stable expert identities");
+    if(enabled&&m.loop_policy.configured)throw std::invalid_argument("loops require stable expert identities");
     if(enabled!=0&&enabled!=1)throw std::invalid_argument("invalid lace policy");
     if(m.semantic_laces!=bool(enabled)){m.finish();m.semantic_laces=enabled;if(enabled)m.lace_policy=2;}
 });}

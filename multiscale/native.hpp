@@ -65,6 +65,7 @@ template<class T> void step(T& p,const T& g,float lr){
 #include "recall_credit.hpp"
 
 struct Expert {Mat w{};Vec bias{},key{};};
+#include "loops.hpp"
 struct Shared {
     Mat recurrent{},gain{},bias{},predict{};
     std::array<float,D*K> read{};
@@ -116,6 +117,7 @@ struct Stream {
 
 struct Level {
     std::vector<Expert> experts;
+    LoopState loops{};
     std::vector<uint64_t> lr_visits;
     // Derived exact-search cache. Coordinates are contiguous across 16 experts
     // so SIMD preserves each dot product's original accumulation order.
@@ -233,6 +235,7 @@ struct Model {
     std::array<float,4> language_credit{{1,1,1,1}};
     std::array<float,4> recall_credit{{0,0,0,0}};
     RouteLearning route_learning{};
+    LoopPolicy loop_policy{};
     float route_multiplier(const Level& l,int expert)const{return route_learning.multiplier(l.lr_visits[expert]);}
     void advance_route(Level& l,int expert){
         if(route_learning.enabled&&l.lr_visits[expert]!=UINT64_MAX)++l.lr_visits[expert];
@@ -266,7 +269,8 @@ struct Model {
     uint32_t payload_version()const{
         return routing_arm?(routing_arm>=2&&balance_policy?(balance_policy==2?10:9):8):(lace_policy==1?6:7);
     }
-    uint32_t checkpoint_version()const{
+    uint32_t checkpoint_version()const{return loop_policy.configured?18:base_checkpoint_version();}
+    uint32_t base_checkpoint_version()const{
         if(route_learning.configured)return 17; // 13--16 were private credit experiments.
         if(recall_credit!=std::array<float,4>{{0,0,0,0}})return 12;
         return language_credit==std::array<float,4>{{1,1,1,1}}?payload_version():11;

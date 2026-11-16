@@ -17,6 +17,9 @@ def main():
     train.add_argument("--targets",type=int);train.add_argument("--learning-rate",type=float,default=None)
     train.add_argument("--slow-rate",type=float);train.add_argument("--query-rate",type=float)
     train.add_argument("--head-rate",type=float)
+    train.add_argument("--loop-steps",type=int,nargs='+',help="extra passes per scale; four-level preset: 0 1 2 2")
+    train.add_argument("--loop-strength",type=float,help="anchored refinement strength in (0,1], default 0.25")
+    train.add_argument("--loop-tolerance",type=float,help="relative convergence tolerance; 0 fixes depth, default 0.01")
     train.add_argument("--route-lr",action=argparse.BooleanOptionalAction,default=None,
                        help="enable bounded route-local LR cycles; explicit changes retire pending credit on resume")
     train.add_argument("--lr-lower",type=float);train.add_argument("--lr-upper",type=float)
@@ -43,8 +46,14 @@ def main():
     sample=sub.add_parser("generate");sample.add_argument("--checkpoint",required=True)
     sample.add_argument("--prompt",default="ROMEO:\n");sample.add_argument("--length",type=int,default=512)
     sample.add_argument("--temperature",type=float,default=.8);sample.add_argument("--seed",type=int,default=7)
+    sample.add_argument("--loop-steps",type=int,nargs='+',help="override extra passes on a frozen inference copy")
+    sample.add_argument("--loop-strength",type=float)
+    sample.add_argument("--loop-tolerance",type=float)
     inspect=sub.add_parser("inspect");inspect.add_argument("--checkpoint",required=True)
     args=parser.parse_args()
+    if args.command in ("train","generate"):
+        if args.loop_steps is None and (args.loop_strength is not None or args.loop_tolerance is not None):
+            parser.error("--loop-strength and --loop-tolerance require --loop-steps")
     if args.command=="train":
         if any(v is not None for v in (args.lr_lower,args.lr_upper,args.lr_amplitude,args.lr_period)) and args.route_lr is None:
             parser.error("cycle bounds, amplitude and period require --route-lr or --no-route-lr")
@@ -57,6 +66,12 @@ def main():
                          routing_arm=args.routing_arm,semantic_laces=args.semantic_laces,balance_policy=args.balance_policy,
                          language_credit=args.language_credit,recall_credit=args.recall_credit)
         with m:
+            if args.loop_steps is not None:
+                if args.resume:m.finish()
+                policy=m.loop_stats()
+                m.configure_loops(steps=args.loop_steps,
+                                  strength=policy['strength'] if args.loop_strength is None else args.loop_strength,
+                                  tolerance=policy['tolerance'] if args.loop_tolerance is None else args.loop_tolerance)
             # An explicit controller change retires credit under the saved
             # policy before applying either new base rates or cycle settings.
             if args.route_lr is not None and args.resume:m.finish()
@@ -82,7 +97,15 @@ def main():
     else:
         with Model.load(args.checkpoint) as m:
             if args.command=="inspect":print(json.dumps(m.stats(),indent=2))
-            else:print(m.generate(args.prompt,length=args.length,temperature=args.temperature,seed=args.seed).decode("utf-8","replace"))
+            elif args.loop_steps is None:
+                print(m.generate(args.prompt,length=args.length,temperature=args.temperature,seed=args.seed).decode("utf-8","replace"))
+            else:
+                with m.inference_copy() as frozen:
+                    policy=frozen.loop_stats()
+                    frozen.configure_loops(steps=args.loop_steps,
+                                           strength=policy['strength'] if args.loop_strength is None else args.loop_strength,
+                                           tolerance=policy['tolerance'] if args.loop_tolerance is None else args.loop_tolerance)
+                    print(frozen.generate(args.prompt,length=args.length,temperature=args.temperature,seed=args.seed).decode("utf-8","replace"))
 
 
 if __name__=="__main__":main()

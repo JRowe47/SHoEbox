@@ -27,6 +27,7 @@ def _library(profile="addressed"):
     if profile in ("addressed", "addressed_v4"):
         source += (directory / "recall.hpp").read_bytes()
     if profile == "addressed":
+        source += (directory / "loops.hpp").read_bytes()
         source += (directory / "recall_credit.hpp").read_bytes()
         source += (directory / "route_learning.hpp").read_bytes()
     if profile == "addressed":
@@ -64,6 +65,7 @@ def _library(profile="addressed"):
     if profile in ("addressed", "addressed_v4"):
         specs.update(ms_recall_intervene=([p, i], i), ms_recall_stats=([p, p], i))
     if profile == "addressed":
+        specs.update(ms_loops=([p,p,i,f,f],i), ms_loop_stats=([p,p],i))
         specs.update(ms_learning=([p, f, f, f, f], i), ms_learning_stats=([p, p], i),
                      ms_laces=([p,i],i), ms_lace_stats=([p,p],i),
                      ms_lace_intervene=([p,i],i), ms_lace_records=([p,p],i),
@@ -94,7 +96,7 @@ def _bytes(x):
 class Model:
     def __init__(self, *, levels=4, parameters=1_000_000, seed=7, router=None, associations=False,
                  memory_profile="addressed", semantic_laces=None, routing_arm=None, balance_policy=None,
-                 language_credit=None, recall_credit=None, route_lr=None):
+                 language_credit=None, recall_credit=None, route_lr=None, loops=None):
         """Create corrected C with coverage warmup and no mature usage penalty.
 
         Explicit C/D arms retain legacy balancing unless balance_policy="warmup".
@@ -136,6 +138,11 @@ class Model:
                 raise ValueError("route learning requires the addressed runtime with semantic laces disabled")
             if not isinstance(route_lr, dict):
                 raise TypeError("route_lr must be a configuration dictionary")
+        if loops is not None:
+            if memory_profile != "addressed" or semantic_laces:
+                raise ValueError("loops require the addressed runtime with semantic laces disabled")
+            if not isinstance(loops, dict):
+                raise TypeError("loops must be a configuration dictionary")
         self._profile = memory_profile
         self._lib = _library(memory_profile)
         self._handle = self._lib.ms_create(levels, parameters, seed, router == "indexed", associations)
@@ -151,6 +158,46 @@ class Model:
                 self.set_recall_credit(recall_credit)
             if route_lr is not None:
                 self.configure_route_lr(**route_lr)
+            if loops is not None:
+                self.configure_loops(**loops)
+
+    def configure_loops(self, *, steps=None, strength=.25, tolerance=.01):
+        """Refine completed upper constituents with shared expert weights.
+
+        The default budget is (0,1,2,2), truncated to the model's level count.
+        Budgets count extra passes, in 0..4; the byte level must remain zero.
+        tolerance=0 uses fixed depth, otherwise relative state convergence can
+        stop early. Call finish() explicitly before changing a training model.
+        A frozen model may change its budget for inference depth experiments.
+        """
+        if self._profile != "addressed":
+            raise ValueError("loops require the addressed runtime")
+        topology=np.zeros(48,np.float64)
+        self._check(self._lib.ms_stats(self._alive(),topology.ctypes.data))
+        count=int(topology[7])
+        if steps is None:steps=(0,1,2,2)[:count]
+        values=np.asarray(steps)
+        if (values.shape!=(count,) or values.dtype.kind not in 'iu' or
+                np.any(values<0) or np.any(values>4) or values[0]!=0):
+            raise ValueError("steps requires one integer in 0..4 per level, with zero for the byte level")
+        if not np.isfinite(strength) or not 0<strength<=1 or not np.isfinite(tolerance) or not 0<=tolerance<=1:
+            raise ValueError("strength must be in (0,1] and tolerance in [0,1]")
+        values=np.ascontiguousarray(values,dtype=np.int32)
+        self._check(self._lib.ms_loops(self._alive(),values.ctypes.data,count,strength,tolerance))
+
+    def loop_stats(self):
+        if self._profile != "addressed":
+            raise ValueError("loops require the addressed runtime")
+        a=np.zeros(48,np.float64);self._check(self._lib.ms_loop_stats(self._alive(),a.ctypes.data))
+        levels=[]
+        for i in range(int(a[3])):
+            x=a[4+i*10:14+i*10]
+            levels.append(dict(max_steps=int(x[0]),events=int(x[1]),passes=int(x[2]),
+                               converged=int(x[3]),budget_hits=int(x[4]),last_steps=int(x[5]),
+                               last_relative_change=float(x[6]),pending_traces=int(x[7]),
+                               tape_bytes=int(x[8]),allocated_tape_bytes=int(x[9])))
+        return dict(configured=bool(a[0]),strength=float(a[1]),tolerance=float(a[2]),
+                    stopping="convergence" if a[2]>0 else "fixed",levels=levels)
 
     @staticmethod
     def _clock(value, name, minimum=0):
@@ -501,6 +548,7 @@ class Model:
             result['language_credit']=gains[:levels].tolist()
             result['recall_credit']=gains[4:4+levels].tolist()
             result['route_learning']=self.route_lr_stats()
+            result['loops']=self.loop_stats()
             lace=np.zeros(64,np.float64);self._check(self._lib.ms_lace_stats(self._alive(),lace.ctypes.data))
             result["checkpoint_version"]=int(lace[2])
             routing = np.zeros(64, np.float64)
@@ -531,7 +579,7 @@ class Model:
         if len(raw) < 16:
             raise ValueError("truncated native checkpoint")
         version = struct.unpack_from("=I", raw, 8)[0]
-        profiles = {1: "legacy", 2: "addressed_v2", 3: "addressed_v3", 4: "addressed_v4", 5: "addressed", 6: "addressed", 7: "addressed", 8: "addressed", 9: "addressed", 10: "addressed", 11: "addressed", 12: "addressed", 17: "addressed"}
+        profiles = {1: "legacy", 2: "addressed_v2", 3: "addressed_v3", 4: "addressed_v4", 5: "addressed", 6: "addressed", 7: "addressed", 8: "addressed", 9: "addressed", 10: "addressed", 11: "addressed", 12: "addressed", 17: "addressed", 18: "addressed"}
         if version not in profiles:
             raise ValueError("unsupported multiscale checkpoint version")
         profile = profiles[version]

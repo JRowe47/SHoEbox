@@ -21,6 +21,12 @@ def main():
     compiler=os.environ.get("CXX","g++")
     with tempfile.TemporaryDirectory(prefix="shoe-multiscale-test-") as tmp:
         executable=Path(tmp)/"checks"
+        loop_source=[ROOT/"multiscale/native.cpp",ROOT/"multiscale/tests/loop_tests.cpp"]
+        run([compiler,"-std=c++17","-O2","-ffp-contract=off",*loop_source,"-o",executable])
+        run([executable])
+        run([compiler,"-std=c++17","-O1","-g","-fno-omit-frame-pointer","-fsanitize=address,undefined",
+             "-ffp-contract=off",*loop_source,"-o",executable])
+        run([executable],env={**os.environ,"ASAN_OPTIONS":f"detect_leaks={int(not args.no_leak_check)}:halt_on_error=1","UBSAN_OPTIONS":"halt_on_error=1:print_stacktrace=1"})
         source=[ROOT/"multiscale/native.cpp",ROOT/"multiscale/tests/native_tests.cpp"]
         run([compiler,"-std=c++17","-O2","-ffp-contract=off",*source,"-o",executable])
         run([executable])

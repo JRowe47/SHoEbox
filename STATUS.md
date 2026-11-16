@@ -1,5 +1,19 @@
 # SHoEbox handoff
 
+## 2026-11-15 - Selective multiscale loops
+
+Added completed-constituent refinement on the corrected-C/route-learning branch:
+shared expert weights, 64-value working state, per-scale 0–4 extra passes,
+convergence stopping, full constituent credit and v18 pending-state checkpoints.
+`Model(loops={})` selects 0/1/2/2 extra passes; ordinary C remains the control.
+
+The three-seed, 1M-target Tiny Shakespeare screen averages 1.861549 NLL vs
+1.853721 for C, with 4.06% lower training and 0.93% lower inference throughput.
+No learned halting policy is claimed. All 44 Python tests and native regression
+harnesses, including 1,439 loop checks and ASan/UBSan, pass. See
+[implementation](multiscale/SELECTIVE_LOOPS.md) and
+[measurements](experiments/selective_loops/README.md).
+
 ## 2026-11-14 - Action 7 dedicated inference
 
 Implemented `forward-only-v1`, with explicit entry/resume boundaries and
