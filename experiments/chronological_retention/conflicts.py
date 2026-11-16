@@ -32,6 +32,9 @@ def main():
         slots=[k for k in range(count) if np.array_equal(units[k,1:],sig)]
         for k in slots:
          items.append(dict(value=val,target=val==target,slot=k,phase=ph,born=int(units[k,0]),recognized=bool(decoded[k,ph,0]>0),decoded_key=int(decoded[k,ph,1]),decoded_value=int(decoded[k,ph,2]),query_distance=float(decoded[k,ph,4]),shortlisted=any(k==s and ph==p for s,p in selected)))
+       probe=f.probe() if arm in ('a2','a3') else None
+       query_energy=None if probe is None else float(np.square(probe[9690:9706]).sum())
+       key_parameters=None if probe is None else probe[325:5525].reshape(5,16,65)
        candidates=[]
        for k in range(count):
         for ph in range(4):
@@ -40,7 +43,8 @@ def main():
          for owner,occurrences in known.items():
           for val,sig,phase in occurrences:
            if phase==ph and np.array_equal(units[k,1:],sig):owners.append((owner,val))
-         candidates.append(dict(slot=k,phase=ph,born=int(units[k,0]),distance=float(decoded[k,ph,4]),owners=owners,
+         key_energy=None if probe is None else float(np.square(np.tanh(key_parameters[ph]@np.r_[units[k,1:]*8,1])).sum())
+         candidates.append(dict(key_energy=key_energy,slot=k,phase=ph,born=int(units[k,0]),distance=float(decoded[k,ph,4]),owners=owners,
            recognized_score=float(decoded[k,ph,0]),decoded_key=int(decoded[k,ph,1]),decoded_value=int(decoded[k,ph,2])))
        remaining=0.
        for cand in sorted(candidates,key=lambda x:(-x['born'],x['slot'],x['phase'])):
@@ -57,7 +61,7 @@ def main():
         category='latest_target' if (q,target) in owners else ('old_value' if any(kk==q for kk,v in owners) else ('other_key' if owners else 'unannotated'))
         mass[category]+=float(d[0]) if j==0 else 1.-float(d[0])
        records.append(dict(condition=condition,presentation=index,answer=answer,changed=q==c.updated_key,query=q,target=target,prediction=pred,
-        query_correct=int(d[1])==q,attention=float(d[0]),selected_keys=[int(d[2]),int(d[3])],selected_values=[int(d[4]),int(d[5])],occurrences=items,candidates=candidates,selected_mass=mass))
+        query_correct=int(d[1])==q,attention=float(d[0]),selected_keys=[int(d[2]),int(d[3])],selected_values=[int(d[4]),int(d[5])],occurrences=items,candidates=candidates,selected_mass=mass,query_energy=query_energy))
        answer+=1
    assert original==path.read_bytes()
    summaries={}

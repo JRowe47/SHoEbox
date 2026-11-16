@@ -1,5 +1,38 @@
 # SHoEbox development handoff
 
+16 November 2026 (America/Denver). **EXP03/EXP05-A3 is complete; qualified
+public E8 remains unchanged.** Read [the A3 report](reports/exp0305a3/SHoEbox_EXP0305_A3_Report.md),
+[execution lock](reports/exp0305a3/EXECUTION_LOCK.md) and
+[next A4 registration](reports/exp0305a3/A4_REGISTRATION.md) in full.
+
+Matched fresh E8/A2/A3 fits use three seeds and exactly 20.25M charged bytes.
+A3 continuous chronological matching raises corrected three-value overwrite
+76.82% →95.96% versus matched A2; changed-key accuracy reaches 100%. Competing
+bindings fall 95.31% →85.81%, clean binding is 94.66%, diverse-256 is 60.81%,
+and isolated throughput is 71.75% native. The unchanged development gate fails;
+A1/A2/A3 audits stay closed. No generic/capacity promotion or E8 prior sweep.
+
+The frozen trace eliminates old-value predictions (20.31% →0%) while unrelated
+key mass grows 4.36% →10.39% on competing bindings. Required signature survival
+at diverse-256 is 85.94%, a separate retention failure. A4 registers a fixed
+query-relative match band, preserving chronology, admission and state. It is
+not implemented or fitted. Use fresh folds excluding all historical opened
+audits, reserved A1/A2/A3 audits and A2/A3 dev/binary worlds; preserve every
+threshold, sample count and local-versus-generic objective distinction.
+
+206 Python tests, native/ASan/UBSan checks, 14 historical trajectories and all
+18 actual model/cursor pairs pass. Optimized A3 selection equals exhaustive
+selection before fitting. Every formal fitting dependency and final lock
+verifies; original E8/public/historical sources are unchanged. Code, detailed
+costs, primary PNGs and exact resume instructions are in the report directory.
+
+Verified completed work, including failed research, may be committed/pushed
+directly to main under the user's explicit authorization; never force-push.
+Deliver ordinary downloadable Markdown, PNGs, resumable code/evidence archive
+and a copy/paste prompt preserving that authorization. No Pages or Spaces.
+Historical entries below preserve original findings/costs; this A3 status
+supersedes their older next-step statements.
+
 16 November 2026 (America/Denver). **EXP03/EXP05-A2 is complete; qualified
 public E8 remains unchanged.** Read [the A2 report](reports/exp0305a2/SHoEbox_EXP0305_A2_Report.md),
 [execution lock](reports/exp0305a2/EXECUTION_LOCK.md) and

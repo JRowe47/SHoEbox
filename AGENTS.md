@@ -1,5 +1,16 @@
 # SHoEbox development
 
+- Latest focused work: EXP03/05-A3 is complete and fails development. Read
+  `reports/exp0305a3/SHoEbox_EXP0305_A3_Report.md` and its `A4_REGISTRATION.md`
+  in full. Chronological matching raises corrected overwrite to 95.96% and
+  changed-key accuracy to 100%, but competing bindings fall to 85.81%, clean
+  binding is 94.66%, and speed is 71.75% of native. All original gates remain.
+  Keep qualified E8 public and A1/A2/A3 audits closed. A4 query-relative
+  chronological matching is preregistered, not implemented or fitted. Preserve
+  fresh binary regression, all prior exclusions plus A3 dev/binary/reserved
+  audit worlds, old numerics/costs and direct-main publication authority.
+  The A2/A1 entries below are preserved historical context.
+
 - Latest focused work: EXP03/05-A2 is complete and fails development. Read
   `reports/exp0305a2/SHoEbox_EXP0305_A2_Report.md` and `A3_REGISTRATION.md`
   there. Query-first selection raises competing-binding exactness to 92.97%

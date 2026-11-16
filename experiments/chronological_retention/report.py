@@ -44,7 +44,7 @@ def main():
  for r in result['rows']:
   compact.append(dict(seed=r['seed'],arms={arm:{k:v for k,v in x.items() if k in ('development','binary_regression','curve','inventory','initial_inventory','checkpoint_sha256','cursor_sha256','evaluation_cpu_seconds','cpu_seconds','wall_seconds')} for arm,x in r['arms'].items()}))
  write(ev/'development.json',compact_evidence(compact));write(ev/'conflicts_summary.json',[dict(seed=r['seed'],arm=r['arm'],summary=r['summary']) for r in conflicts['rows']])
- for source,dest in [('prefit.json','prefit.json'),('a3/plan.json','plan.json'),('a3/selection.json','selection.json'),('extended/results.json','extended.json'),('benchmark.json','benchmark.json'),('update_metrics.json','update_metrics.json'),('cursors.json','cursors.json'),('history.json','history.json'),('environment.json','environment.json'),('conflicts.lock.json','conflicts_lock.json')]:shutil.copy2(w/source,ev/dest)
+ for source,dest in [('prefit.json','prefit.json'),('a3/plan.json','plan.json'),('a3/selection.json','selection.json'),('extended/results.json','extended.json'),('benchmark.json','benchmark.json'),('update_metrics.json','update_metrics.json'),('cursors.json','cursors.json'),('history.json','history.json'),('environment.json','environment.json'),('matching_geometry.json','matching_geometry.json'),('analyze_matching_initial.py','analyze_matching_initial.py.txt'),('conflicts.lock.json','conflicts_lock.json')]:shutil.copy2(w/source,ev/dest)
  write(ev/'extended.json',compact_evidence(ext))
  for p in w.glob('*_process.json'):shutil.copy2(p,ev/p.name)
  for p in w.glob('*.txt'):shutil.copy2(p,ev/p.name)
@@ -59,6 +59,7 @@ def main():
    if arm=='a3':
     for x,y in zip(xx+.25,vals):ax.text(x,y+1,f'{y:.1f}',ha='center',fontsize=9)
   ax.axhline(gate,color='#6b7280',ls='--',lw=1,label=f'{gate}% mean gate');ax.set_ylim(0,108);ax.set_xticks(xx,[NAMES[c].replace(' ','\n',1) for c in conds]);ax.set_title(title,fontsize=12);ax.grid(axis='y',alpha=.15);ax.set_axisbelow(True)
+ axes[1].text(.99,91.5,'90% mean gate',transform=axes[1].get_yaxis_transform(),ha='right',fontsize=9,color='#6b7280')
  axes[0].set_ylabel('Native whole-episode exactness (%)');axes[0].legend(ncol=2,loc='upper left',bbox_to_anchor=(0,-.23),frameon=False)
  fig.suptitle('EXP03/05-A3 • continuous chronological matching',fontsize=17,fontweight='bold');fig.tight_layout();fig.savefig(o/'SHoEbox_EXP0305_A3_Results.png',bbox_inches='tight');plt.close(fig)
  fig,ax=plt.subplots(figsize=(9,4.5));names=list(speed['rows']);vals=[100*speed['rows'][n]['relative_native'] for n in names]
