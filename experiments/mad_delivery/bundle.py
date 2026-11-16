@@ -196,6 +196,8 @@ lines+=["","The standardized probe is trained only on separate training-fold exa
  "",
  "Two-binding recall is the positive exception: four-pass training improves held-out token accuracy from 55.86% to 60.81%, a +4.95-point paired mean, with seed interval [+0.78, +8.20]. Evaluating those same four-pass-trained models with no extra passes still scores 60.42%. Thus almost all of the improvement persists without the repeated inference computation; this supports a training effect, not useful additional reasoning at inference.",
  "",
+ "Whole-episode recall remains weak: the four-pass model answers both queries correctly on 30.99% of episodes, while a query-blind control that simply emits the supplied values in their original order gets 53.12%. The token-accuracy improvement therefore does not establish reliable binding of each value to its query.",
+ "",
  "Selective copy stays essentially unchanged (87.76% control, 88.02% with two extra passes, 86.33% with four). Composition and pointer chasing show no consistent gain; two-pass variable tracking worsens. The loop policies typically cost a few percent of training throughput.",
  "",
  "Retention is a concrete failure: on independently generated 64-byte-delay cases, the no-loop selective-copy control falls from 87.76% to 14.84%, and two-binding recall falls from 55.86% to 18.88%. This measures generalization to longer delays, rather than the ceiling after dedicated delay training. Removing addressed and retained reads also collapses copying, so the model uses these memories but does not retain the task robustly under this distribution shift.",
@@ -223,7 +225,6 @@ lines+=["","The standardized probe is trained only on separate training-fold exa
  "Reproduction uses the registered scripts under experiments/mad_capabilities and experiments/mad_followup on the research/mad-capabilities branch. The source patch is included with the raw JSON evidence. Datasets, trained weights and compiled binaries are excluded.",
  ""]
 (OUT/"SHoEbox_MAD_Capability_Research.md").write_text("\n".join(lines))
-(ROOT/"source.patch").write_bytes(subprocess.check_output(["git","diff","6384d8ca072075ec58010b4c3d5964e9e60fcd3e","--",".github/workflows/mad-capabilities.yml",".github/workflows/mad-procedural.yml","experiments/mad_capabilities","experiments/mad_followup","experiments/mad_delivery",".github/workflows/mad-delivery.yml"]))
 for p in OUT.iterdir():
     if p.is_file():shutil.copy2(p,ROOT/p.name)
 print("REPORT_READY",str(OUT),flush=True)
@@ -257,3 +258,5 @@ Commands:
 This is SHoEbox's byte adaptation and registered state extension of MAD, not an
 original MAD leaderboard score. Full task contracts remain in experiments/mad.
 """)
+
+(ROOT/"source.patch").write_bytes(subprocess.check_output(["git","diff","6384d8ca072075ec58010b4c3d5964e9e60fcd3e","--",".github/workflows/mad-capabilities.yml",".github/workflows/mad-procedural.yml","experiments/mad_capabilities","experiments/mad_followup","experiments/mad_delivery",".github/workflows/mad-delivery.yml"]))
