@@ -1,6 +1,6 @@
 {
   "title": "SHoEbox capability development backlog",
-  "revision": 3,
+  "revision": 4,
   "date": "2026-11-15",
   "status": "in_progress",
   "runtime_commit": "317fbcd023b9d9b3c2b359ba8f99f3dadbf46783",
@@ -63,14 +63,32 @@
       ],
       "papers": [
         "P02",
-        "P03"
+        "P03",
+        "P31",
+        "P32"
       ],
       "question": "Is the value missing, or is the model failing to select and decode an available value for the current key?",
       "design": "Begin with a single binding, then two distinct key/value pairs, no irrelevant records, both query orders and randomized names. Explicitly compare minimal v19 and full C with coverage-only warmup. Add a query-conditioned low-rank readout with the core frozen and then trained end to end, plus a matched-capacity generic head. Deduct head parameters from bank capacity. Fit raw/centered/standardized probes identically. Keep query-index oracle access outside scored native inference.",
       "evaluation": "Require autoregressive whole-episode correctness and correct answer changes under query swaps; score full-256-byte output separately from restricted output. Probe addressed reads, retained reads and final L3 separately and jointly; distinguish immediate write availability, pre-query retention, query-conditioned selection and native decoding. Use one-binding initialization/query tests first, then the locked balanced two-key fixture.",
       "decision": "A readout-only win selects the cheaper repair. If a matched probe can decode a value but native generation cannot, repair query/readout integration. If neither can recover it, pass the failure to EXP02/EXP03. Stop broad optimizer searches once this distinction is clear.",
-      "status": "ready_for_diagnostic_execution",
-      "execution_entry": "Read DEVELOPMENT_HANDOFF.md. Implement and validate explicit minimal/full selection for EXP01. Reuse completed EXP00 fixtures and controls; register a fresh diagnostic budget. EXP01 has not been run.",
+      "status": "initial_diagnostic_complete_online_factorized_readout_next",
+      "execution_entry": "EXP01-B: learn separate query/key selection and value decoding online over existing evidence. Keep native v19 unchanged until the native binding, counterfactual, cost and regression gates pass.",
+      "results": {
+        "report": "reports/exp01/SHoEbox_EXP01_Query_Readout.md",
+        "comparison_branches": 36,
+        "cores": [
+          "minimal",
+          "full"
+        ],
+        "seeds": [
+          1,
+          7,
+          19
+        ],
+        "minimal_native_two_answer_exact": 0.4944661458333333,
+        "minimal_factorized_offline_first_query_strict": 0.9993489583333334,
+        "default_promoted": false
+      },
       "baseline_cores": [
         "minimal",
         "full"
@@ -122,7 +140,7 @@
         "P23"
       ],
       "question": "What specifically destroys usable information between observation and query?",
-      "design": "Start with crossed delay {0,16,64,256} bytes and binding count {1,2,4}; introduce repeated neutral filler, diverse irrelevant filler, and competing keyed writes separately. Train a delay mixture, then test both its range and 2×/4× longer delays. Contrast no-op clock advancement with normal writes, freeze-writes during distractors, and addressed/retained-read lesions separately. Reproduce the historical routing-A cue fixture beside C, then require multi-value evidence.",
+      "design": "Start with crossed delay {0,16,64,256} bytes and binding count {1,2,4}; introduce repeated neutral filler, diverse irrelevant filler, and competing keyed writes separately. Train a delay mixture, then test both its range and 2\u00d7/4\u00d7 longer delays. Contrast no-op clock advancement with normal writes, freeze-writes during distractors, and addressed/retained-read lesions separately. Reproduce the historical routing-A cue fixture beside C, then require multi-value evidence.",
       "evaluation": "Measure exact binding, per-record occupancy/eviction, value decodability immediately after writing and before querying, query-dependent read quality, and precision under distractors. For noisy cues, vary substitution/edit noise independently of delay and key count; include ambiguous-key cases with a declared answer policy. The current fuzzy_recall task varies byte-string widths; add explicit corrupted-cue tasks rather than equating width with noise robustness.",
       "decision": "If values remain decodable but queries fail, return to EXP01. If disabling distractor writes restores performance, prioritize EXP05. If failures follow record eviction, test the bounded-cache arm of EXP14. Report trained-range retention separately from delay extrapolation."
     },
@@ -174,7 +192,7 @@
         "P09"
       ],
       "question": "Are retention failures caused by coupled erase/write decisions, insufficient transition expressivity, or accumulated drift?",
-      "design": "Run separate arms: existing update; independent erase/write gates inspired by Gated DeltaNet-2/FG²-GDN; two or four DeltaProduct-style transition substeps; and a bounded nonlinear state-dependent correction. Add a small context-replay memory objective only if online overwriting remains the diagnosed issue. Keep the readout and target memory interface fixed; count all state/projection costs. A dense reference update must be validated before deriving a compressed MinKron equivalent.",
+      "design": "Run separate arms: existing update; independent erase/write gates inspired by Gated DeltaNet-2/FG\u00b2-GDN; two or four DeltaProduct-style transition substeps; and a bounded nonlinear state-dependent correction. Add a small context-replay memory objective only if online overwriting remains the diagnosed issue. Keep the readout and target memory interface fixed; count all state/projection costs. A dense reference update must be validated before deriving a compressed MinKron equivalent.",
       "evaluation": "Use overwrite-one-of-many, alternating updates, copy/swap cycles, and identity cycles that should return to the same symbolic state. Measure error after perturbing state, within-state spread versus between-state separation, exact rollout horizon, and unrelated-binding loss. Include a small state-gated RNN as an error-control reference.",
       "decision": "Choose the smallest intervention that fixes the diagnosed failure. A higher-rank affine transition and a state-dependent error corrector answer different questions. SHoEbox already includes nonlinear computation, so the affine-model theorem is a diagnostic motivation, not a proof that the whole architecture must fail. Do not stack all update changes before isolating a winner."
     },
@@ -666,7 +684,7 @@
       "url": "https://arxiv.org/abs/2312.04927",
       "status": "Arora et al.; 2023 record",
       "when": "Read now",
-      "use": "Multi-query associative recall and query-dependent access. EXP00–03/08."
+      "use": "Multi-query associative recall and query-dependent access. EXP00\u201303/08."
     },
     {
       "id": "P03",
@@ -682,11 +700,11 @@
       "url": "https://arxiv.org/abs/2605.22791v2",
       "status": "Hatamizadeh et al.; 6 Nov 2026 revision; record states NeurIPS 2026 acceptance",
       "when": "Read now",
-      "use": "Independent erase/write gates; inspect §3.1 and gate ablations. Adapt one selected memory block, not the whole backbone. EXP05."
+      "use": "Independent erase/write gates; inspect \u00a73.1 and gate ablations. Adapt one selected memory block, not the whole backbone. EXP05."
     },
     {
       "id": "P05",
-      "title": "FG²-GDN: Enhancing Long-Context Gated Delta Networks with Doubly Fine-Grained Control",
+      "title": "FG\u00b2-GDN: Enhancing Long-Context Gated Delta Networks with Doubly Fine-Grained Control",
       "url": "https://arxiv.org/abs/2604.19021v3",
       "status": "Sun et al.; 31 Aug 2026 preprint revision",
       "when": "Read with P04",
@@ -706,7 +724,7 @@
       "url": "https://arxiv.org/abs/2605.07755v3",
       "status": "Chung et al.; 11 Nov 2026 revision; record states NeurIPS 2026",
       "when": "Read now",
-      "use": "Perturbation recovery, state separation and finite-horizon drift; compare state-dependent correction. EXP04–06."
+      "use": "Perturbation recovery, state separation and finite-horizon drift; compare state-dependent correction. EXP04\u201306."
     },
     {
       "id": "P08",
@@ -728,7 +746,7 @@
       "id": "P10",
       "title": "Universal Transformers Need Memory: Depth-State Trade-offs in Adaptive Recursive Reasoning",
       "url": "https://arxiv.org/abs/2604.21999",
-      "status": "Sapunov; April–May 2026 preprint",
+      "status": "Sapunov; April\u2013May 2026 preprint",
       "when": "Read for state design",
       "use": "Scratchpad/depth separation and initialization diagnostics; choose SHoEbox slot counts empirically. EXP02/10."
     },
@@ -882,7 +900,7 @@
       "url": "https://arxiv.org/abs/2211.09110",
       "status": "Liang et al.; HELM, 2022/2023",
       "when": "For qualification design",
-      "use": "Separate accuracy, calibration, robustness and efficiency across scenarios; avoids one aggregate capability label. EXP15–19/21/23."
+      "use": "Separate accuracy, calibration, robustness and efficiency across scenarios; avoids one aggregate capability label. EXP15\u201319/21/23."
     },
     {
       "id": "P30",
@@ -891,6 +909,22 @@
       "status": "Pagnoni et al.; 2024 paper",
       "when": "Only if boundaries are a blocker",
       "use": "Causal entropy-driven byte patches and matched-compute segmentation tests. EXP22."
+    },
+    {
+      "id": "P31",
+      "title": "Hadamard Product for Low-rank Bilinear Pooling",
+      "url": "https://arxiv.org/abs/1610.04325",
+      "status": "Kim et al.; ICLR 2017",
+      "when": "EXP01 readout control",
+      "use": "Low-rank multiplicative conditioning and matched additive control; implemented in the initial screen."
+    },
+    {
+      "id": "P32",
+      "title": "Key-Value Memory Networks for Directly Reading Documents",
+      "url": "https://aclanthology.org/D16-1147/",
+      "status": "Miller et al.; EMNLP 2016",
+      "when": "EXP01-B next",
+      "use": "Separate addressing from returned content; train the factorized readout online."
     }
   ],
   "capability_coverage": [
@@ -1099,7 +1133,7 @@
     },
     {
       "id": "M01",
-      "capability": "Memorize stable key–value facts in weights",
+      "capability": "Memorize stable key\u2013value facts in weights",
       "implementation": "Yes",
       "evidence": "Untested",
       "notes": "Weight learning is retained. Fixed-table memorization was demonstrated in the earlier full-C development screen; minimal retest pending.",
@@ -1147,7 +1181,7 @@
     {
       "id": "M04",
       "capability": "Compress observed content into a usable bounded state",
-      "implementation": "Yes — research decoder",
+      "implementation": "Yes \u2014 research decoder",
       "evidence": "Narrow",
       "notes": "Minimal final-L3 reconstruction: 80.14% token accuracy, 40.36% exact; separately trained MLP decoder included in the budget.",
       "experiments": [
@@ -1155,7 +1189,7 @@
         "EXP02"
       ],
       "historical_assessment": {
-        "implementation": "Yes — research adapter",
+        "implementation": "Yes \u2014 research adapter",
         "evidence": "Narrow",
         "scope": "Pre-minimal inventory; full corrected C unless its qualifier names an API, adapter or historical routing A. Not a minimal-v19 result."
       }
@@ -1180,14 +1214,14 @@
     {
       "id": "M06",
       "capability": "Store and recover exact externally supplied bindings",
-      "implementation": "Yes — explicit API",
+      "implementation": "Yes \u2014 explicit API",
       "evidence": "Untested",
       "notes": "bind/lookup/payload entry points remain available; automatic association dispatch is excluded from minimal. Earlier exact-API evidence is historical; no new minimal-specific binding qualification is claimed.",
       "experiments": [
         "EXP14"
       ],
       "historical_assessment": {
-        "implementation": "Yes — optional API",
+        "implementation": "Yes \u2014 optional API",
         "evidence": "Narrow",
         "scope": "Pre-minimal inventory; full corrected C unless its qualifier names an API, adapter or historical routing A. Not a minimal-v19 result."
       }
@@ -1195,9 +1229,9 @@
     {
       "id": "M07",
       "capability": "Bind a newly observed value to the right query",
-      "implementation": "Yes — memory path",
-      "evidence": "Untested",
-      "notes": "Full-C EXP00 binding scored 50.07% exact versus the 50% input-order shortcut. Minimal-specific binding remains the next diagnostic.",
+      "implementation": "Yes \u2014 memory path",
+      "evidence": "Unworking at tested operating point",
+      "notes": "Minimal EXP01 native two-answer exactness is 49.45% versus the 50% input-order shortcut. The offline factorized L3 probe reaches 99.93% on the first query, localizing available information rather than native online binding. Next: EXP01-B online factorized query/key selection and value readout.",
       "experiments": [
         "EXP01",
         "EXP02",
@@ -1212,7 +1246,7 @@
     {
       "id": "M08",
       "capability": "Retain information through longer delays and interference",
-      "implementation": "Yes — memory path",
+      "implementation": "Yes \u2014 memory path",
       "evidence": "Untested",
       "notes": "Full C failed the longer-delay probe. Recheck minimal while separating delay, distractor writes, eviction and retrieval.",
       "experiments": [
@@ -1228,7 +1262,7 @@
     {
       "id": "M09",
       "capability": "Recall despite noisy or approximate cues",
-      "implementation": "Yes — memory path",
+      "implementation": "Yes \u2014 memory path",
       "evidence": "Untested",
       "notes": "Prior noisy/fuzzy full-C probes failed; minimal noisy-cue behavior is unqualified.",
       "experiments": [
@@ -1251,7 +1285,7 @@
         "EXP05"
       ],
       "historical_assessment": {
-        "implementation": "Yes — research tasks",
+        "implementation": "Yes \u2014 research tasks",
         "evidence": "Unworking",
         "scope": "Pre-minimal inventory; full corrected C unless its qualifier names an API, adapter or historical routing A. Not a minimal-v19 result."
       }
@@ -1345,7 +1379,7 @@
         "EXP03"
       ],
       "historical_assessment": {
-        "implementation": "Yes — historical A",
+        "implementation": "Yes \u2014 historical A",
         "evidence": "Narrow",
         "scope": "Pre-minimal inventory; full corrected C unless its qualifier names an API, adapter or historical routing A. Not a minimal-v19 result."
       }
@@ -1361,7 +1395,7 @@
         "EXP10"
       ],
       "historical_assessment": {
-        "implementation": "Yes — research task",
+        "implementation": "Yes \u2014 research task",
         "evidence": "Unworking",
         "scope": "Pre-minimal inventory; full corrected C unless its qualifier names an API, adapter or historical routing A. Not a minimal-v19 result."
       }
@@ -1378,7 +1412,7 @@
         "EXP10"
       ],
       "historical_assessment": {
-        "implementation": "Yes — research task",
+        "implementation": "Yes \u2014 research task",
         "evidence": "Unworking",
         "scope": "Pre-minimal inventory; full corrected C unless its qualifier names an API, adapter or historical routing A. Not a minimal-v19 result."
       }
@@ -1508,7 +1542,7 @@
         "EXP21"
       ],
       "historical_assessment": {
-        "implementation": "Yes — research probes",
+        "implementation": "Yes \u2014 research probes",
         "evidence": "Unworking",
         "scope": "Pre-minimal inventory; full corrected C unless its qualifier names an API, adapter or historical routing A. Not a minimal-v19 result."
       }
@@ -1563,7 +1597,7 @@
     {
       "id": "C01",
       "capability": "Learn useful conditional specialization in upper experts",
-      "implementation": "No — excluded",
+      "implementation": "No \u2014 excluded",
       "evidence": "Untested",
       "notes": "Minimal has no 16/64-byte expert banks. Study summary contribution first; any restored upper experts are a separately named candidate.",
       "experiments": [
@@ -1581,7 +1615,7 @@
     {
       "id": "C02",
       "capability": "Teach internal state through intermediate supervision",
-      "implementation": "No — research adapter only",
+      "implementation": "No \u2014 research adapter only",
       "evidence": "Untested",
       "notes": "The existing supervised-state adapter targets full C; do not assume minimal compatibility. Port and validate only when needed.",
       "experiments": [
@@ -1590,7 +1624,7 @@
         "EXP07"
       ],
       "historical_assessment": {
-        "implementation": "Yes — research adapter",
+        "implementation": "Yes \u2014 research adapter",
         "evidence": "In principle",
         "scope": "Pre-minimal inventory; full corrected C unless its qualifier names an API, adapter or historical routing A. Not a minimal-v19 result."
       }
@@ -1598,14 +1632,14 @@
     {
       "id": "C03",
       "capability": "Improve answers by performing extra latent refinement",
-      "implementation": "No — full research only",
+      "implementation": "No \u2014 full research only",
       "evidence": "Untested",
       "notes": "Existing refinement loops are excluded from minimal; prior full-C tests did not establish useful inference-time refinement.",
       "experiments": [
         "EXP10"
       ],
       "historical_assessment": {
-        "implementation": "Yes — optional loops",
+        "implementation": "Yes \u2014 optional loops",
         "evidence": "Unworking",
         "scope": "Pre-minimal inventory; full corrected C unless its qualifier names an API, adapter or historical routing A. Not a minimal-v19 result."
       }
@@ -1613,14 +1647,14 @@
     {
       "id": "C04",
       "capability": "Stop refinement when its state has converged",
-      "implementation": "No — full research only",
+      "implementation": "No \u2014 full research only",
       "evidence": "Untested",
       "notes": "Convergence stopping exists only with the full-research loops, not in minimal one-pass prediction.",
       "experiments": [
         "EXP11"
       ],
       "historical_assessment": {
-        "implementation": "Yes — optional loops",
+        "implementation": "Yes \u2014 optional loops",
         "evidence": "In principle",
         "scope": "Pre-minimal inventory; full corrected C unless its qualifier names an API, adapter or historical routing A. Not a minimal-v19 result."
       }
@@ -2023,14 +2057,14 @@
     {
       "id": "E07",
       "capability": "Route-local learning-rate control",
-      "implementation": "No — full research only",
+      "implementation": "No \u2014 full research only",
       "evidence": "Untested",
       "notes": "Route-local learning-rate cycles are excluded from minimal. Independent base fast/slow/query rates remain.",
       "experiments": [
         "EXP21"
       ],
       "historical_assessment": {
-        "implementation": "Yes — optional",
+        "implementation": "Yes \u2014 optional",
         "evidence": "In principle",
         "scope": "Pre-minimal inventory; full corrected C unless its qualifier names an API, adapter or historical routing A. Not a minimal-v19 result."
       }
@@ -2045,7 +2079,7 @@
         "EXP22"
       ],
       "historical_assessment": {
-        "implementation": "No — current runtime",
+        "implementation": "No \u2014 current runtime",
         "evidence": "Untested",
         "scope": "Pre-minimal inventory; full corrected C unless its qualifier names an API, adapter or historical routing A. Not a minimal-v19 result."
       }
@@ -2116,7 +2150,7 @@
       "larger state and parameter sweeps"
     ],
     "status": "historical_conditional_estimate_not_current_execution_budget",
-    "note": "The 94-fit/31M-byte table preceded EXP00. EXP00 actual costs are recorded under EXP00.execution. Do not rerun completed EXP00 or launch the four-arm screen automatically; register a separate EXP01 diagnostic budget after fixture checks.",
+    "note": "Historical 94-fit/31M-byte proposal, not an execution budget. EXP00 actual costs are under EXP00.execution. EXP01 actual online costs total 24.2M bytes including pilot/copy controls, with offline diagnostic fits recorded separately. Register a new EXP01-B budget and audit fold before fitting; do not automatically launch the four-arm state screen.",
     "historical_comparator": "full_C_warmup"
   },
   "planned_outputs": [
@@ -2166,5 +2200,5 @@
     "handoff": "DEVELOPMENT_HANDOFF.md"
   },
   "documentation_updated_local_date": "2026-11-15",
-  "new_training_in_documentation_update": false
+  "new_training_in_documentation_update": true
 }

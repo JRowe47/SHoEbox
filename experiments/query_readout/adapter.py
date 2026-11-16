@@ -54,7 +54,7 @@ def library():
         'qr_configure':([p,f,f,f],i),'qr_reset':([p],i),'qr_finish':([p],i),'qr_observe':([p,C.c_uint8],i),
         'qr_probs':([p,fp],i),'qr_train':([p,s,s,s,n,dp,C.POINTER(n)],i),
         'qr_score':([p,s,s,n,i,i,i,dp],i),'qr_clone':([p,i,i],p),'qr_adopt':([p,p],i),
-        'qr_features':([p,fp],i),'qr_info':([p,dp],i),
+        'qr_features':([p,fp],i),'qr_info':([p,dp],i),'qr_benchmark':([p,s,n,n,dp],i),
         'qr_save':([p,p,n,C.POINTER(n)],i),'qr_load':([s,n],p)}
     for name,(args,result) in specs.items():fn=getattr(lib,name);fn.argtypes=args;fn.restype=result
     _LIB=lib;return lib
@@ -106,6 +106,9 @@ class Adapter:
         self.call('qr_score',ep.data,ep.mask,len(ep.data),VALUE,vocab,rollout,out);return list(out)
     def features(self):
         out=(C.c_float*FEATURES)();self.call('qr_features',out);return np.array(out)
+    def benchmark(self,data,count):
+        if not data or count<0:raise ValueError('nonempty data and nonnegative count required')
+        out=C.c_double();self.call('qr_benchmark',data,len(data),count,C.byref(out));return out.value
     def inventory(self):
         out=(C.c_double*15)();self.call('qr_info',out)
         return dict(core_parameters=int(out[0]),readout_parameters=int(out[1]),parameters=int(out[0]+out[1]),

@@ -1,4 +1,5 @@
 import unittest
+from dataclasses import replace
 import numpy as np
 from .adapter import Adapter,PARAMETERS
 from experiments.mad_next.tasks import Spec,dataset
@@ -62,6 +63,34 @@ class QueryTests(unittest.TestCase):
         with Adapter() as a:
             used,targets,_,_=a.train_episode(ep,13)
             self.assertEqual((used,targets),(13,0));self.assertEqual(a.inventory()['bytes'],13)
+
+    def test_probe_stops_before_first_answer(self):
+        from .probe import collect
+        ep=dataset(Spec('binding',vocab=2),4,'train')[0]
+        altered=bytearray(ep.data)
+        for i,masked in enumerate(ep.mask):
+            if masked:altered[i]=ord('z')
+        with Adapter(kind='native') as a:
+            before=a.dumps();x,_=collect(a,[ep,replace(ep,data=bytes(altered))])
+            for values in x.values():np.testing.assert_array_equal(values[0],values[1])
+            self.assertEqual(before,a.dumps())
+
+    def test_probe_normalization_uses_training_only(self):
+        from .probe import ridge
+        rng=np.random.default_rng(9);x=rng.normal(size=(64,8));y=(x[:,0]>0).astype(int);z=rng.normal(size=(8,8))
+        for mode in ('raw','centered','standardized'):
+            first,_=ridge(x,y,z,2,mode)
+            expanded,_=ridge(x,y,np.concatenate((z,10000*z)),2,mode)
+            np.testing.assert_array_equal(first,expanded[:8])
+
+    def test_single_copy_semantics(self):
+        from .single_copy import single_cases
+        from experiments.mad_next.tasks import parse,solve
+        spec=Spec('binding',vocab=2)
+        for ep in single_cases(spec,'train',16):
+            records,queries=parse(ep)
+            self.assertEqual((len(records),len(queries),sum(ep.mask)),(1,1,1))
+            self.assertEqual(solve(ep,spec),ep.answer)
 
 
 if __name__=='__main__':unittest.main()

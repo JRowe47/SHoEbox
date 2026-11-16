@@ -117,7 +117,11 @@ inline std::unique_ptr<QueryAdapter> query_load(const char* raw,size_t size){
     if(magic!=0x31524555514853ULL||version!=1||n>r.n)throw std::runtime_error("invalid query checkpoint");
     auto a=std::make_unique<QueryAdapter>(500000,1,true,0,true);
     a->model=std::make_unique<Model>(load(r.p,n));r.p+=n;r.n-=n;
-    r.pod(a->head);r.pod(a->kind);r.pod(a->training);r.pod(a->joint);r.pod(a->rate);r.pod(a->targets);r.pod(a->lesion);
+    uint8_t training,joint;
+    static_assert(sizeof(bool)==1,"checkpoint boolean ABI");
+    r.pod(a->head);r.pod(a->kind);r.pod(training);r.pod(joint);r.pod(a->rate);r.pod(a->targets);r.pod(a->lesion);
+    if(training>1||joint>1)throw std::runtime_error("invalid query training flags");
+    a->training=training;a->joint=joint;
     if(r.n||a->kind<0||a->kind>2||a->lesion<0||a->lesion>3||a->model->levels.size()!=4||
        a->model->training!=(a->training&&a->joint)||!std::isfinite(a->rate)||a->rate<0||
        (a->training&&a->lesion))throw std::runtime_error("invalid query policy");

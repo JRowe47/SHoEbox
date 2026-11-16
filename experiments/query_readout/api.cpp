@@ -66,6 +66,11 @@ int qr_info(void* p,double* out){return guard([&]{auto& a=*static_cast<shoe::Que
     for(int l=0;l<4;++l)out[9+l]=m.levels[l].experts.size();
     out[13]=sizeof(shoe::QueryHead);out[14]=sizeof(shoe::QueryAdapter);
 });}
+int qr_benchmark(void* p,const uint8_t* data,size_t size,size_t count,double* checksum){return guard([&]{
+    auto& a=*static_cast<shoe::QueryAdapter*>(p);if(a.training||!size)throw std::invalid_argument("frozen nonempty benchmark required");
+    shoe::QueryScope scope(a);*checksum=0;float lp[256];
+    for(size_t t=0;t<count;++t){a.model->observe(data[t%size]);a.model->log_probs(lp);*checksum+=lp[data[(t+1)%size]];}
+});}
 int qr_save(void* p,char* out,size_t capacity,size_t* size){return guard([&]{
     auto raw=shoe::query_save(*static_cast<shoe::QueryAdapter*>(p));*size=raw.size();
     if(out){if(capacity<raw.size())throw std::invalid_argument("small buffer");std::memcpy(out,raw.data(),raw.size());}

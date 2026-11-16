@@ -1,0 +1,3343 @@
+{
+  "plan": {
+    "experiment": "EXP01",
+    "version": 1,
+    "parameters": 500000,
+    "seeds": [
+      1,
+      7,
+      19
+    ],
+    "cores": [
+      "minimal",
+      "full"
+    ],
+    "vocab": 2,
+    "warmup_bytes": 250000,
+    "continuation_bytes": 500000,
+    "eval_interval": 250000,
+    "head_rate": 0.16,
+    "data_seed": 20261115,
+    "arms": [
+      "native",
+      "native_matched_core",
+      "additive_frozen",
+      "bilinear_frozen",
+      "additive_joint",
+      "bilinear_joint"
+    ],
+    "selection": "fixed final horizon; all registered arms audited; no test selection",
+    "cpus": [
+      0,
+      1,
+      2,
+      3
+    ],
+    "source_hashes": {
+      "experiments/query_readout/check_native.py": "9fe86869176d8aee083eb8c0cecb952b96d2164db085b1996b035877daaab49f",
+      "experiments/query_readout/__init__.py": "52d4bb5d8e7e0cbfb61afbd26a03ae7d8f14daa89e2e77db40e7d96e8b6296fc",
+      "experiments/query_readout/test_adapter.py": "2ab7baae0359287fc762571de6914145e14f586652b585edf6156904040f3d2a",
+      "experiments/query_readout/adapter.py": "f313edd199e83ed314730d8ef8467e49069f8b7de138e3216515e457af37d036",
+      "experiments/query_readout/run.py": "36730498f1b6871b15608c00ec622d3ba5b3a64855c02cb9e3279d3d4905451c",
+      "experiments/query_readout/readout.hpp": "d43652dad08f5c7f837087f446b31985e702e9c9c6ec235b8c6b65034b203a23",
+      "experiments/query_readout/api.cpp": "bcb9149fb9e49812c82db21f40711a6af4b385166f3fefe90ba88edf0d20b564",
+      "experiments/query_readout/native_test.cpp": "426e7b350659e39a7086b8163410c1c7445ffadd5d11260c21c4aa5493d3fcfa",
+      "multiscale/native.cpp": "adf6f9618b7e132884d46ada126d9b8378447fcb43a7f0f50a1a7b52e3db67ef",
+      "multiscale/address_memory.hpp": "9fc024b0f20c4620d32f324e765cb94c2983003fff2b44af5d34309f6990e152",
+      "multiscale/loops.hpp": "6feca8464cb14f192e07ce546855f70746f28c74a7b7a908b1672a114582952e",
+      "multiscale/native.hpp": "c7468172895aa8a7df7dadb470c85c8dbb72ea8025753808da47f1b138c58e59",
+      "multiscale/recall.hpp": "d5c1821da38cd223f4fc8897e7560d419ffa42214781d6d9639a4e6ec10207be",
+      "multiscale/recall_credit.hpp": "c40804261d56f6f1fb8ecabd0ebff9ba83c8916c0409a6153c14f8087de587e8",
+      "multiscale/route_learning.hpp": "e8c39be21196f287cec71615dbf0532860ac0c1874e20d6f671b951e7400dc92",
+      "multiscale/routing_geometry.hpp": "cba720017b4aa3d1438e3a6af24834e0ab6d2511228e5cd25ae4eeab457311aa",
+      "multiscale/routing_geometry_impl.hpp": "bc54d07a0218478649ed59b993a71402d05e42c86489bb77622a948519f465f1",
+      "multiscale/semantic_laces.hpp": "503118419675b1a6636893c49cfa2f0571b8d6f0df51570bee390b29f13715b1",
+      "multiscale/semantic_laces_impl.hpp": "f7c2be3fa569e74298d7cb28aac203705e2fa65da2a5262ff9d7d5695cd61aaf"
+    },
+    "scope": "diagnostic fixed-recipe screen, not full EXP01 promotion grid"
+  },
+  "rows": [
+    {
+      "core": "full",
+      "seed": 1,
+      "arms": {
+        "native": {
+          "test": {
+            "cases": 1024,
+            "teacher_forced": {
+              "token_accuracy": 0.74755859375,
+              "exact": 0.4951171875,
+              "native_token_accuracy": 0.74755859375,
+              "native_exact": 0.4951171875,
+              "task_nll": 0.38019160058314966,
+              "native_nll": 0.3820370383593854
+            },
+            "restricted_rollout": {
+              "token_accuracy": 0.4951171875,
+              "exact": 0.4951171875,
+              "native_token_accuracy": 0.4951171875,
+              "native_exact": 0.4951171875,
+              "task_nll": 1.4463091522942921,
+              "native_nll": 1.4481547070217857
+            },
+            "native_rollout": {
+              "token_accuracy": 0.4951171875,
+              "exact": 0.4951171875,
+              "native_token_accuracy": 0.4951171875,
+              "native_exact": 0.4951171875,
+              "task_nll": 1.4463091522942921,
+              "native_nll": 1.4481547070217857
+            }
+          },
+          "query_pair_exact": 0.2421875,
+          "single_pass_cpu_seconds_per_episode": 0.0019000436250000002
+        },
+        "native_matched_core": {
+          "test": {
+            "cases": 1024,
+            "teacher_forced": {
+              "token_accuracy": 0.751953125,
+              "exact": 0.50390625,
+              "native_token_accuracy": 0.751953125,
+              "native_exact": 0.50390625,
+              "task_nll": 0.35535840739843283,
+              "native_nll": 0.356589304210047
+            },
+            "restricted_rollout": {
+              "token_accuracy": 0.50390625,
+              "exact": 0.50390625,
+              "native_token_accuracy": 0.50390625,
+              "native_exact": 0.50390625,
+              "task_nll": 1.5622417508166586,
+              "native_nll": 1.563535675049252
+            },
+            "native_rollout": {
+              "token_accuracy": 0.50390625,
+              "exact": 0.50390625,
+              "native_token_accuracy": 0.50390625,
+              "native_exact": 0.50390625,
+              "task_nll": 1.5622417508166586,
+              "native_nll": 1.563535675049252
+            }
+          },
+          "query_pair_exact": 0.1171875,
+          "single_pass_cpu_seconds_per_episode": 0.0019303244140625037
+        },
+        "additive_frozen": {
+          "test": {
+            "cases": 1024,
+            "teacher_forced": {
+              "token_accuracy": 0.75634765625,
+              "exact": 0.5126953125,
+              "native_token_accuracy": 0.75634765625,
+              "native_exact": 0.5126953125,
+              "task_nll": 0.37259390817272064,
+              "native_nll": 0.3759195719176205
+            },
+            "restricted_rollout": {
+              "token_accuracy": 0.5126953125,
+              "exact": 0.5126953125,
+              "native_token_accuracy": 0.5126953125,
+              "native_exact": 0.5126953125,
+              "task_nll": 1.130685153615817,
+              "native_nll": 1.1339454509711686
+            },
+            "native_rollout": {
+              "token_accuracy": 0.5126953125,
+              "exact": 0.5126953125,
+              "native_token_accuracy": 0.5126953125,
+              "native_exact": 0.5126953125,
+              "task_nll": 1.130685153615817,
+              "native_nll": 1.1339454509711686
+            }
+          },
+          "query_pair_exact": 0.2109375,
+          "lesions": {
+            "no_head": {
+              "cases": 256,
+              "teacher_forced": {
+                "token_accuracy": 0.759765625,
+                "exact": 0.51953125,
+                "native_token_accuracy": 0.759765625,
+                "native_exact": 0.51953125,
+                "task_nll": 0.3794350681220674,
+                "native_nll": 0.3834596825945482
+              },
+              "restricted_rollout": {
+                "token_accuracy": 0.51953125,
+                "exact": 0.51953125,
+                "native_token_accuracy": 0.51953125,
+                "native_exact": 0.51953125,
+                "task_nll": 1.0961267324986275,
+                "native_nll": 1.1003176753220032
+              },
+              "native_rollout": {
+                "token_accuracy": 0.51953125,
+                "exact": 0.51953125,
+                "native_token_accuracy": 0.51953125,
+                "native_exact": 0.51953125,
+                "task_nll": 1.0961267324986275,
+                "native_nll": 1.1003176753220032
+              }
+            },
+            "no_query": {
+              "cases": 256,
+              "teacher_forced": {
+                "token_accuracy": 0.759765625,
+                "exact": 0.51953125,
+                "native_token_accuracy": 0.759765625,
+                "native_exact": 0.51953125,
+                "task_nll": 0.3737163342089861,
+                "native_nll": 0.378415591085286
+              },
+              "restricted_rollout": {
+                "token_accuracy": 0.51953125,
+                "exact": 0.51953125,
+                "native_token_accuracy": 0.51953125,
+                "native_exact": 0.51953125,
+                "task_nll": 1.1095129387988878,
+                "native_nll": 1.1144350605500222
+              },
+              "native_rollout": {
+                "token_accuracy": 0.51953125,
+                "exact": 0.51953125,
+                "native_token_accuracy": 0.51953125,
+                "native_exact": 0.51953125,
+                "task_nll": 1.1095129387988878,
+                "native_nll": 1.1144350605500222
+              }
+            },
+            "no_reads": {
+              "cases": 256,
+              "teacher_forced": {
+                "token_accuracy": 0.751953125,
+                "exact": 0.50390625,
+                "native_token_accuracy": 0.751953125,
+                "native_exact": 0.50390625,
+                "task_nll": 0.3822048222765267,
+                "native_nll": 0.3850188755459385
+              },
+              "restricted_rollout": {
+                "token_accuracy": 0.50390625,
+                "exact": 0.50390625,
+                "native_token_accuracy": 0.50390625,
+                "native_exact": 0.50390625,
+                "task_nll": 1.0096727147755742,
+                "native_nll": 1.0122998814258608
+              },
+              "native_rollout": {
+                "token_accuracy": 0.50390625,
+                "exact": 0.50390625,
+                "native_token_accuracy": 0.50390625,
+                "native_exact": 0.50390625,
+                "task_nll": 1.0096727147755742,
+                "native_nll": 1.0122998814258608
+              }
+            }
+          },
+          "single_pass_cpu_seconds_per_episode": 0.0024465705937500026
+        },
+        "bilinear_frozen": {
+          "test": {
+            "cases": 1024,
+            "teacher_forced": {
+              "token_accuracy": 0.7568359375,
+              "exact": 0.513671875,
+              "native_token_accuracy": 0.7568359375,
+              "native_exact": 0.513671875,
+              "task_nll": 0.36661132188503054,
+              "native_nll": 0.3703754720854704
+            },
+            "restricted_rollout": {
+              "token_accuracy": 0.513671875,
+              "exact": 0.513671875,
+              "native_token_accuracy": 0.513671875,
+              "native_exact": 0.513671875,
+              "task_nll": 1.1992762991702313,
+              "native_nll": 1.2029287359696355
+            },
+            "native_rollout": {
+              "token_accuracy": 0.513671875,
+              "exact": 0.513671875,
+              "native_token_accuracy": 0.513671875,
+              "native_exact": 0.513671875,
+              "task_nll": 1.1992762991702313,
+              "native_nll": 1.2029287359696355
+            }
+          },
+          "query_pair_exact": 0.1640625,
+          "lesions": {
+            "no_head": {
+              "cases": 256,
+              "teacher_forced": {
+                "token_accuracy": 0.759765625,
+                "exact": 0.51953125,
+                "native_token_accuracy": 0.759765625,
+                "native_exact": 0.51953125,
+                "task_nll": 0.3794350681220674,
+                "native_nll": 0.3834596825945482
+              },
+              "restricted_rollout": {
+                "token_accuracy": 0.51953125,
+                "exact": 0.51953125,
+                "native_token_accuracy": 0.51953125,
+                "native_exact": 0.51953125,
+                "task_nll": 1.0961267324986275,
+                "native_nll": 1.1003176753220032
+              },
+              "native_rollout": {
+                "token_accuracy": 0.51953125,
+                "exact": 0.51953125,
+                "native_token_accuracy": 0.51953125,
+                "native_exact": 0.51953125,
+                "task_nll": 1.0961267324986275,
+                "native_nll": 1.1003176753220032
+              }
+            },
+            "no_query": {
+              "cases": 256,
+              "teacher_forced": {
+                "token_accuracy": 0.759765625,
+                "exact": 0.51953125,
+                "native_token_accuracy": 0.759765625,
+                "native_exact": 0.51953125,
+                "task_nll": 0.3793767479211814,
+                "native_nll": 0.38326569729906623
+              },
+              "restricted_rollout": {
+                "token_accuracy": 0.51953125,
+                "exact": 0.51953125,
+                "native_token_accuracy": 0.51953125,
+                "native_exact": 0.51953125,
+                "task_nll": 1.0966453871041026,
+                "native_nll": 1.1006951011659112
+              },
+              "native_rollout": {
+                "token_accuracy": 0.51953125,
+                "exact": 0.51953125,
+                "native_token_accuracy": 0.51953125,
+                "native_exact": 0.51953125,
+                "task_nll": 1.0966453871041026,
+                "native_nll": 1.1006951011659112
+              }
+            },
+            "no_reads": {
+              "cases": 256,
+              "teacher_forced": {
+                "token_accuracy": 0.767578125,
+                "exact": 0.53515625,
+                "native_token_accuracy": 0.767578125,
+                "native_exact": 0.53515625,
+                "task_nll": 0.37954298285063687,
+                "native_nll": 0.3834385917543841
+              },
+              "restricted_rollout": {
+                "token_accuracy": 0.53515625,
+                "exact": 0.53515625,
+                "native_token_accuracy": 0.53515625,
+                "native_exact": 0.53515625,
+                "task_nll": 1.0752397811862353,
+                "native_nll": 1.0792723203849164
+              },
+              "native_rollout": {
+                "token_accuracy": 0.53515625,
+                "exact": 0.53515625,
+                "native_token_accuracy": 0.53515625,
+                "native_exact": 0.53515625,
+                "task_nll": 1.0752397811862353,
+                "native_nll": 1.0792723203849164
+              }
+            }
+          },
+          "single_pass_cpu_seconds_per_episode": 0.0030493755000000067
+        },
+        "additive_joint": {
+          "test": {
+            "cases": 1024,
+            "teacher_forced": {
+              "token_accuracy": 0.7578125,
+              "exact": 0.515625,
+              "native_token_accuracy": 0.7578125,
+              "native_exact": 0.515625,
+              "task_nll": 0.3552587618154777,
+              "native_nll": 0.35637831258588903
+            },
+            "restricted_rollout": {
+              "token_accuracy": 0.515625,
+              "exact": 0.515625,
+              "native_token_accuracy": 0.515625,
+              "native_exact": 0.515625,
+              "task_nll": 1.5115236950845174,
+              "native_nll": 1.5126270418854801
+            },
+            "native_rollout": {
+              "token_accuracy": 0.515625,
+              "exact": 0.515625,
+              "native_token_accuracy": 0.515625,
+              "native_exact": 0.515625,
+              "task_nll": 1.5115236950845174,
+              "native_nll": 1.5126270418854801
+            }
+          },
+          "query_pair_exact": 0.2265625,
+          "lesions": {
+            "no_head": {
+              "cases": 256,
+              "teacher_forced": {
+                "token_accuracy": 0.7578125,
+                "exact": 0.515625,
+                "native_token_accuracy": 0.7578125,
+                "native_exact": 0.515625,
+                "task_nll": 0.355965940559264,
+                "native_nll": 0.3571260089070165
+              },
+              "restricted_rollout": {
+                "token_accuracy": 0.515625,
+                "exact": 0.515625,
+                "native_token_accuracy": 0.515625,
+                "native_exact": 0.515625,
+                "task_nll": 1.514703851971619,
+                "native_nll": 1.5159059057618833
+              },
+              "native_rollout": {
+                "token_accuracy": 0.515625,
+                "exact": 0.515625,
+                "native_token_accuracy": 0.515625,
+                "native_exact": 0.515625,
+                "task_nll": 1.514703851971619,
+                "native_nll": 1.5159059057618833
+              }
+            },
+            "no_query": {
+              "cases": 256,
+              "teacher_forced": {
+                "token_accuracy": 0.74609375,
+                "exact": 0.4921875,
+                "native_token_accuracy": 0.74609375,
+                "native_exact": 0.4921875,
+                "task_nll": 0.3559889613201281,
+                "native_nll": 0.3571473178485576
+              },
+              "restricted_rollout": {
+                "token_accuracy": 0.4921875,
+                "exact": 0.4921875,
+                "native_token_accuracy": 0.4921875,
+                "native_exact": 0.4921875,
+                "task_nll": 1.5502413473281236,
+                "native_nll": 1.5513540847214244
+              },
+              "native_rollout": {
+                "token_accuracy": 0.4921875,
+                "exact": 0.4921875,
+                "native_token_accuracy": 0.4921875,
+                "native_exact": 0.4921875,
+                "task_nll": 1.5502413473281236,
+                "native_nll": 1.5513540847214244
+              }
+            },
+            "no_reads": {
+              "cases": 256,
+              "teacher_forced": {
+                "token_accuracy": 0.751953125,
+                "exact": 0.50390625,
+                "native_token_accuracy": 0.751953125,
+                "native_exact": 0.50390625,
+                "task_nll": 0.35598963422876256,
+                "native_nll": 0.3570869841323656
+              },
+              "restricted_rollout": {
+                "token_accuracy": 0.50390625,
+                "exact": 0.50390625,
+                "native_token_accuracy": 0.50390625,
+                "native_exact": 0.50390625,
+                "task_nll": 1.5374263639279497,
+                "native_nll": 1.538566082514535
+              },
+              "native_rollout": {
+                "token_accuracy": 0.50390625,
+                "exact": 0.50390625,
+                "native_token_accuracy": 0.50390625,
+                "native_exact": 0.50390625,
+                "task_nll": 1.5374263639279497,
+                "native_nll": 1.538566082514535
+              }
+            }
+          },
+          "single_pass_cpu_seconds_per_episode": 0.001944909195312483
+        },
+        "bilinear_joint": {
+          "test": {
+            "cases": 1024,
+            "teacher_forced": {
+              "token_accuracy": 0.75048828125,
+              "exact": 0.5009765625,
+              "native_token_accuracy": 0.75048828125,
+              "native_exact": 0.5009765625,
+              "task_nll": 0.3546850776851506,
+              "native_nll": 0.35593157626067295
+            },
+            "restricted_rollout": {
+              "token_accuracy": 0.5009765625,
+              "exact": 0.5009765625,
+              "native_token_accuracy": 0.5009765625,
+              "native_exact": 0.5009765625,
+              "task_nll": 1.589647457877235,
+              "native_nll": 1.5909257740602243
+            },
+            "native_rollout": {
+              "token_accuracy": 0.5009765625,
+              "exact": 0.5009765625,
+              "native_token_accuracy": 0.5009765625,
+              "native_exact": 0.5009765625,
+              "task_nll": 1.589647457877235,
+              "native_nll": 1.5909257740602243
+            }
+          },
+          "query_pair_exact": 0.1640625,
+          "lesions": {
+            "no_head": {
+              "cases": 256,
+              "teacher_forced": {
+                "token_accuracy": 0.7734375,
+                "exact": 0.546875,
+                "native_token_accuracy": 0.7734375,
+                "native_exact": 0.546875,
+                "task_nll": 0.35471198408347077,
+                "native_nll": 0.35599250352379386
+              },
+              "restricted_rollout": {
+                "token_accuracy": 0.546875,
+                "exact": 0.546875,
+                "native_token_accuracy": 0.546875,
+                "native_exact": 0.546875,
+                "task_nll": 1.429683355032069,
+                "native_nll": 1.4310133338713058
+              },
+              "native_rollout": {
+                "token_accuracy": 0.546875,
+                "exact": 0.546875,
+                "native_token_accuracy": 0.546875,
+                "native_exact": 0.546875,
+                "task_nll": 1.429683355032069,
+                "native_nll": 1.4310133338713058
+              }
+            },
+            "no_query": {
+              "cases": 256,
+              "teacher_forced": {
+                "token_accuracy": 0.763671875,
+                "exact": 0.52734375,
+                "native_token_accuracy": 0.763671875,
+                "native_exact": 0.52734375,
+                "task_nll": 0.3546301926117557,
+                "native_nll": 0.35588661504425545
+              },
+              "restricted_rollout": {
+                "token_accuracy": 0.52734375,
+                "exact": 0.52734375,
+                "native_token_accuracy": 0.52734375,
+                "native_exact": 0.52734375,
+                "task_nll": 1.4792921650827935,
+                "native_nll": 1.4805837056383098
+              },
+              "native_rollout": {
+                "token_accuracy": 0.52734375,
+                "exact": 0.52734375,
+                "native_token_accuracy": 0.52734375,
+                "native_exact": 0.52734375,
+                "task_nll": 1.4792921650827935,
+                "native_nll": 1.4805837056383098
+              }
+            },
+            "no_reads": {
+              "cases": 256,
+              "teacher_forced": {
+                "token_accuracy": 0.759765625,
+                "exact": 0.51953125,
+                "native_token_accuracy": 0.759765625,
+                "native_exact": 0.51953125,
+                "task_nll": 0.35462134084141683,
+                "native_nll": 0.35587794278490037
+              },
+              "restricted_rollout": {
+                "token_accuracy": 0.51953125,
+                "exact": 0.51953125,
+                "native_token_accuracy": 0.51953125,
+                "native_exact": 0.51953125,
+                "task_nll": 1.496678989097868,
+                "native_nll": 1.4979690938607746
+              },
+              "native_rollout": {
+                "token_accuracy": 0.51953125,
+                "exact": 0.51953125,
+                "native_token_accuracy": 0.51953125,
+                "native_exact": 0.51953125,
+                "task_nll": 1.496678989097868,
+                "native_nll": 1.4979690938607746
+              }
+            }
+          },
+          "single_pass_cpu_seconds_per_episode": 0.0024817703125000756
+        }
+      },
+      "test_sha256": "bb63e83911e65c6e4be983a0afdb956285638fbdfc647f3d1abbf0f830c603cb",
+      "shortcuts": {
+        "majority_supplied": {
+          "token_accuracy": 0.5,
+          "exact_accuracy": 0.0,
+          "kind": "deterministic_shortcut"
+        },
+        "input_order": {
+          "token_accuracy": 0.5,
+          "exact_accuracy": 0.5,
+          "kind": "deterministic_shortcut"
+        },
+        "last_supplied": {
+          "token_accuracy": 0.5,
+          "exact_accuracy": 0.0,
+          "kind": "deterministic_shortcut"
+        },
+        "uniform_chance": {
+          "token_accuracy": 0.5,
+          "exact_accuracy": 0.25,
+          "kind": "expected_independent_guesses"
+        }
+      }
+    },
+    {
+      "core": "full",
+      "seed": 7,
+      "arms": {
+        "native": {
+          "test": {
+            "cases": 1024,
+            "teacher_forced": {
+              "token_accuracy": 0.75146484375,
+              "exact": 0.5029296875,
+              "native_token_accuracy": 0.75146484375,
+              "native_exact": 0.5029296875,
+              "task_nll": 0.3552474067592688,
+              "native_nll": 0.3582360957348101
+            },
+            "restricted_rollout": {
+              "token_accuracy": 0.5029296875,
+              "exact": 0.5029296875,
+              "native_token_accuracy": 0.5029296875,
+              "native_exact": 0.5029296875,
+              "task_nll": 1.5802724710139933,
+              "native_nll": 1.5833208370666512
+            },
+            "native_rollout": {
+              "token_accuracy": 0.5029296875,
+              "exact": 0.5029296875,
+              "native_token_accuracy": 0.5029296875,
+              "native_exact": 0.5029296875,
+              "task_nll": 1.5802724710139933,
+              "native_nll": 1.5833208370666512
+            }
+          },
+          "query_pair_exact": 0.234375,
+          "single_pass_cpu_seconds_per_episode": 0.0019235137968750537
+        },
+        "native_matched_core": {
+          "test": {
+            "cases": 1024,
+            "teacher_forced": {
+              "token_accuracy": 0.744140625,
+              "exact": 0.48828125,
+              "native_token_accuracy": 0.744140625,
+              "native_exact": 0.48828125,
+              "task_nll": 0.3524266329767526,
+              "native_nll": 0.35408409972416166
+            },
+            "restricted_rollout": {
+              "token_accuracy": 0.48828125,
+              "exact": 0.48828125,
+              "native_token_accuracy": 0.48828125,
+              "native_exact": 0.48828125,
+              "task_nll": 1.7080751061701758,
+              "native_nll": 1.709700430316559
+            },
+            "native_rollout": {
+              "token_accuracy": 0.48828125,
+              "exact": 0.48828125,
+              "native_token_accuracy": 0.48828125,
+              "native_exact": 0.48828125,
+              "task_nll": 1.7080751061701758,
+              "native_nll": 1.709700430316559
+            }
+          },
+          "query_pair_exact": 0.1328125,
+          "single_pass_cpu_seconds_per_episode": 0.002045453781249984
+        },
+        "additive_frozen": {
+          "test": {
+            "cases": 1024,
+            "teacher_forced": {
+              "token_accuracy": 0.7529296875,
+              "exact": 0.505859375,
+              "native_token_accuracy": 0.7529296875,
+              "native_exact": 0.505859375,
+              "task_nll": 0.3710307809359818,
+              "native_nll": 0.3747691781300091
+            },
+            "restricted_rollout": {
+              "token_accuracy": 0.505859375,
+              "exact": 0.505859375,
+              "native_token_accuracy": 0.505859375,
+              "native_exact": 0.505859375,
+              "task_nll": 1.1868035984609147,
+              "native_nll": 1.190534002154891
+            },
+            "native_rollout": {
+              "token_accuracy": 0.505859375,
+              "exact": 0.505859375,
+              "native_token_accuracy": 0.505859375,
+              "native_exact": 0.505859375,
+              "task_nll": 1.1868035984609147,
+              "native_nll": 1.190534002154891
+            }
+          },
+          "query_pair_exact": 0.171875,
+          "lesions": {
+            "no_head": {
+              "cases": 256,
+              "teacher_forced": {
+                "token_accuracy": 0.76171875,
+                "exact": 0.5234375,
+                "native_token_accuracy": 0.76171875,
+                "native_exact": 0.5234375,
+                "task_nll": 0.38630643370643386,
+                "native_nll": 0.39086234841670375
+              },
+              "restricted_rollout": {
+                "token_accuracy": 0.5234375,
+                "exact": 0.5234375,
+                "native_token_accuracy": 0.5234375,
+                "native_exact": 0.5234375,
+                "task_nll": 1.1240809736993,
+                "native_nll": 1.128588433148252
+              },
+              "native_rollout": {
+                "token_accuracy": 0.5234375,
+                "exact": 0.5234375,
+                "native_token_accuracy": 0.5234375,
+                "native_exact": 0.5234375,
+                "task_nll": 1.1240809736993,
+                "native_nll": 1.128588433148252
+              }
+            },
+            "no_query": {
+              "cases": 256,
+              "teacher_forced": {
+                "token_accuracy": 0.755859375,
+                "exact": 0.51171875,
+                "native_token_accuracy": 0.755859375,
+                "native_exact": 0.51171875,
+                "task_nll": 0.3873774944839544,
+                "native_nll": 0.392613162564885
+              },
+              "restricted_rollout": {
+                "token_accuracy": 0.51171875,
+                "exact": 0.51171875,
+                "native_token_accuracy": 0.51171875,
+                "native_exact": 0.51171875,
+                "task_nll": 1.1174457295755627,
+                "native_nll": 1.1226090913460212
+              },
+              "native_rollout": {
+                "token_accuracy": 0.51171875,
+                "exact": 0.51171875,
+                "native_token_accuracy": 0.51171875,
+                "native_exact": 0.51171875,
+                "task_nll": 1.1174457295755627,
+                "native_nll": 1.1226090913460212
+              }
+            },
+            "no_reads": {
+              "cases": 256,
+              "teacher_forced": {
+                "token_accuracy": 0.75,
+                "exact": 0.5,
+                "native_token_accuracy": 0.75,
+                "native_exact": 0.5,
+                "task_nll": 0.4035657422736896,
+                "native_nll": 0.406757375358211
+              },
+              "restricted_rollout": {
+                "token_accuracy": 0.5,
+                "exact": 0.5,
+                "native_token_accuracy": 0.5,
+                "native_exact": 0.5,
+                "task_nll": 0.8907663505822764,
+                "native_nll": 0.8940067174407886
+              },
+              "native_rollout": {
+                "token_accuracy": 0.5,
+                "exact": 0.5,
+                "native_token_accuracy": 0.5,
+                "native_exact": 0.5,
+                "task_nll": 0.8907663505822764,
+                "native_nll": 0.8940067174407886
+              }
+            }
+          },
+          "single_pass_cpu_seconds_per_episode": 0.002105924054687458
+        },
+        "bilinear_frozen": {
+          "test": {
+            "cases": 1024,
+            "teacher_forced": {
+              "token_accuracy": 0.744140625,
+              "exact": 0.48828125,
+              "native_token_accuracy": 0.744140625,
+              "native_exact": 0.48828125,
+              "task_nll": 0.35967680970645394,
+              "native_nll": 0.36392240669397324
+            },
+            "restricted_rollout": {
+              "token_accuracy": 0.48828125,
+              "exact": 0.48828125,
+              "native_token_accuracy": 0.48828125,
+              "native_exact": 0.48828125,
+              "task_nll": 1.3704588610304678,
+              "native_nll": 1.3747084524743514
+            },
+            "native_rollout": {
+              "token_accuracy": 0.48828125,
+              "exact": 0.48828125,
+              "native_token_accuracy": 0.48828125,
+              "native_exact": 0.48828125,
+              "task_nll": 1.3704588610304678,
+              "native_nll": 1.3747084524743514
+            }
+          },
+          "query_pair_exact": 0.1484375,
+          "lesions": {
+            "no_head": {
+              "cases": 256,
+              "teacher_forced": {
+                "token_accuracy": 0.76171875,
+                "exact": 0.5234375,
+                "native_token_accuracy": 0.76171875,
+                "native_exact": 0.5234375,
+                "task_nll": 0.38630643370643386,
+                "native_nll": 0.39086234841670375
+              },
+              "restricted_rollout": {
+                "token_accuracy": 0.5234375,
+                "exact": 0.5234375,
+                "native_token_accuracy": 0.5234375,
+                "native_exact": 0.5234375,
+                "task_nll": 1.1240809736993,
+                "native_nll": 1.128588433148252
+              },
+              "native_rollout": {
+                "token_accuracy": 0.5234375,
+                "exact": 0.5234375,
+                "native_token_accuracy": 0.5234375,
+                "native_exact": 0.5234375,
+                "task_nll": 1.1240809736993,
+                "native_nll": 1.128588433148252
+              }
+            },
+            "no_query": {
+              "cases": 256,
+              "teacher_forced": {
+                "token_accuracy": 0.763671875,
+                "exact": 0.52734375,
+                "native_token_accuracy": 0.763671875,
+                "native_exact": 0.52734375,
+                "task_nll": 0.38671939576114644,
+                "native_nll": 0.3911015843459609
+              },
+              "restricted_rollout": {
+                "token_accuracy": 0.52734375,
+                "exact": 0.52734375,
+                "native_token_accuracy": 0.52734375,
+                "native_exact": 0.52734375,
+                "task_nll": 1.119991474895854,
+                "native_nll": 1.1243285140208172
+              },
+              "native_rollout": {
+                "token_accuracy": 0.52734375,
+                "exact": 0.52734375,
+                "native_token_accuracy": 0.52734375,
+                "native_exact": 0.52734375,
+                "task_nll": 1.119991474895854,
+                "native_nll": 1.1243285140208172
+              }
+            },
+            "no_reads": {
+              "cases": 256,
+              "teacher_forced": {
+                "token_accuracy": 0.7578125,
+                "exact": 0.515625,
+                "native_token_accuracy": 0.7578125,
+                "native_exact": 0.515625,
+                "task_nll": 0.38744241840307087,
+                "native_nll": 0.3918305442748533
+              },
+              "restricted_rollout": {
+                "token_accuracy": 0.515625,
+                "exact": 0.515625,
+                "native_token_accuracy": 0.515625,
+                "native_exact": 0.515625,
+                "task_nll": 1.1290583277328756,
+                "native_nll": 1.1334096136670269
+              },
+              "native_rollout": {
+                "token_accuracy": 0.515625,
+                "exact": 0.515625,
+                "native_token_accuracy": 0.515625,
+                "native_exact": 0.515625,
+                "task_nll": 1.1290583277328756,
+                "native_nll": 1.1334096136670269
+              }
+            }
+          },
+          "single_pass_cpu_seconds_per_episode": 0.0019327235156250122
+        },
+        "additive_joint": {
+          "test": {
+            "cases": 1024,
+            "teacher_forced": {
+              "token_accuracy": 0.75341796875,
+              "exact": 0.5068359375,
+              "native_token_accuracy": 0.75341796875,
+              "native_exact": 0.5068359375,
+              "task_nll": 0.35168026221368687,
+              "native_nll": 0.3532751466518107
+            },
+            "restricted_rollout": {
+              "token_accuracy": 0.5068359375,
+              "exact": 0.5068359375,
+              "native_token_accuracy": 0.5068359375,
+              "native_exact": 0.5068359375,
+              "task_nll": 1.6722890222345208,
+              "native_nll": 1.6738685133208264
+            },
+            "native_rollout": {
+              "token_accuracy": 0.5068359375,
+              "exact": 0.5068359375,
+              "native_token_accuracy": 0.5068359375,
+              "native_exact": 0.5068359375,
+              "task_nll": 1.6722890222345208,
+              "native_nll": 1.6738685133208264
+            }
+          },
+          "query_pair_exact": 0.1796875,
+          "lesions": {
+            "no_head": {
+              "cases": 256,
+              "teacher_forced": {
+                "token_accuracy": 0.76171875,
+                "exact": 0.5234375,
+                "native_token_accuracy": 0.76171875,
+                "native_exact": 0.5234375,
+                "task_nll": 0.3491083684644877,
+                "native_nll": 0.350799480036585
+              },
+              "restricted_rollout": {
+                "token_accuracy": 0.5234375,
+                "exact": 0.5234375,
+                "native_token_accuracy": 0.5234375,
+                "native_exact": 0.5234375,
+                "task_nll": 1.5887659388714719,
+                "native_nll": 1.5904240725622003
+              },
+              "native_rollout": {
+                "token_accuracy": 0.5234375,
+                "exact": 0.5234375,
+                "native_token_accuracy": 0.5234375,
+                "native_exact": 0.5234375,
+                "task_nll": 1.5887659388714719,
+                "native_nll": 1.5904240725622003
+              }
+            },
+            "no_query": {
+              "cases": 256,
+              "teacher_forced": {
+                "token_accuracy": 0.7578125,
+                "exact": 0.515625,
+                "native_token_accuracy": 0.7578125,
+                "native_exact": 0.515625,
+                "task_nll": 0.35041626709806706,
+                "native_nll": 0.35218349298224894
+              },
+              "restricted_rollout": {
+                "token_accuracy": 0.515625,
+                "exact": 0.515625,
+                "native_token_accuracy": 0.515625,
+                "native_exact": 0.515625,
+                "task_nll": 1.6045019531302316,
+                "native_nll": 1.606227408962468
+              },
+              "native_rollout": {
+                "token_accuracy": 0.515625,
+                "exact": 0.515625,
+                "native_token_accuracy": 0.515625,
+                "native_exact": 0.515625,
+                "task_nll": 1.6045019531302316,
+                "native_nll": 1.606227408962468
+              }
+            },
+            "no_reads": {
+              "cases": 256,
+              "teacher_forced": {
+                "token_accuracy": 0.751953125,
+                "exact": 0.50390625,
+                "native_token_accuracy": 0.751953125,
+                "native_exact": 0.50390625,
+                "task_nll": 0.34950890795486295,
+                "native_nll": 0.3510049843403067
+              },
+              "restricted_rollout": {
+                "token_accuracy": 0.50390625,
+                "exact": 0.50390625,
+                "native_token_accuracy": 0.50390625,
+                "native_exact": 0.50390625,
+                "task_nll": 1.5145975251206694,
+                "native_nll": 1.5161276715107306
+              },
+              "native_rollout": {
+                "token_accuracy": 0.50390625,
+                "exact": 0.50390625,
+                "native_token_accuracy": 0.50390625,
+                "native_exact": 0.50390625,
+                "task_nll": 1.5145975251206694,
+                "native_nll": 1.5161276715107306
+              }
+            }
+          },
+          "single_pass_cpu_seconds_per_episode": 0.001955567523437396
+        },
+        "bilinear_joint": {
+          "test": {
+            "cases": 1024,
+            "teacher_forced": {
+              "token_accuracy": 0.755859375,
+              "exact": 0.51171875,
+              "native_token_accuracy": 0.755859375,
+              "native_exact": 0.51171875,
+              "task_nll": 0.35150386271386164,
+              "native_nll": 0.35263452660518624
+            },
+            "restricted_rollout": {
+              "token_accuracy": 0.51171875,
+              "exact": 0.51171875,
+              "native_token_accuracy": 0.51171875,
+              "native_exact": 0.51171875,
+              "task_nll": 1.6486850073415498,
+              "native_nll": 1.6498164072251598
+            },
+            "native_rollout": {
+              "token_accuracy": 0.51171875,
+              "exact": 0.51171875,
+              "native_token_accuracy": 0.51171875,
+              "native_exact": 0.51171875,
+              "task_nll": 1.6486850073415498,
+              "native_nll": 1.6498164072251598
+            }
+          },
+          "query_pair_exact": 0.2265625,
+          "lesions": {
+            "no_head": {
+              "cases": 256,
+              "teacher_forced": {
+                "token_accuracy": 0.76171875,
+                "exact": 0.5234375,
+                "native_token_accuracy": 0.76171875,
+                "native_exact": 0.5234375,
+                "task_nll": 0.34853419227657956,
+                "native_nll": 0.34968806491019677
+              },
+              "restricted_rollout": {
+                "token_accuracy": 0.5234375,
+                "exact": 0.5234375,
+                "native_token_accuracy": 0.5234375,
+                "native_exact": 0.5234375,
+                "task_nll": 1.570467371254375,
+                "native_nll": 1.5716156716248406
+              },
+              "native_rollout": {
+                "token_accuracy": 0.5234375,
+                "exact": 0.5234375,
+                "native_token_accuracy": 0.5234375,
+                "native_exact": 0.5234375,
+                "task_nll": 1.570467371254375,
+                "native_nll": 1.5716156716248406
+              }
+            },
+            "no_query": {
+              "cases": 256,
+              "teacher_forced": {
+                "token_accuracy": 0.796875,
+                "exact": 0.59375,
+                "native_token_accuracy": 0.796875,
+                "native_exact": 0.59375,
+                "task_nll": 0.3484213763914701,
+                "native_nll": 0.3495517205651595
+              },
+              "restricted_rollout": {
+                "token_accuracy": 0.59375,
+                "exact": 0.59375,
+                "native_token_accuracy": 0.59375,
+                "native_exact": 0.59375,
+                "task_nll": 1.3805565511665217,
+                "native_nll": 1.381686005049687
+              },
+              "native_rollout": {
+                "token_accuracy": 0.59375,
+                "exact": 0.59375,
+                "native_token_accuracy": 0.59375,
+                "native_exact": 0.59375,
+                "task_nll": 1.3805565511665217,
+                "native_nll": 1.381686005049687
+              }
+            },
+            "no_reads": {
+              "cases": 256,
+              "teacher_forced": {
+                "token_accuracy": 0.7890625,
+                "exact": 0.578125,
+                "native_token_accuracy": 0.7890625,
+                "native_exact": 0.578125,
+                "task_nll": 0.3484151604514009,
+                "native_nll": 0.3495457794988397
+              },
+              "restricted_rollout": {
+                "token_accuracy": 0.578125,
+                "exact": 0.578125,
+                "native_token_accuracy": 0.578125,
+                "native_exact": 0.578125,
+                "task_nll": 1.4131866355813052,
+                "native_nll": 1.4143167554721003
+              },
+              "native_rollout": {
+                "token_accuracy": 0.578125,
+                "exact": 0.578125,
+                "native_token_accuracy": 0.578125,
+                "native_exact": 0.578125,
+                "task_nll": 1.4131866355813052,
+                "native_nll": 1.4143167554721003
+              }
+            }
+          },
+          "single_pass_cpu_seconds_per_episode": 0.0019539423203125406
+        }
+      },
+      "test_sha256": "bb63e83911e65c6e4be983a0afdb956285638fbdfc647f3d1abbf0f830c603cb",
+      "shortcuts": {
+        "majority_supplied": {
+          "token_accuracy": 0.5,
+          "exact_accuracy": 0.0,
+          "kind": "deterministic_shortcut"
+        },
+        "input_order": {
+          "token_accuracy": 0.5,
+          "exact_accuracy": 0.5,
+          "kind": "deterministic_shortcut"
+        },
+        "last_supplied": {
+          "token_accuracy": 0.5,
+          "exact_accuracy": 0.0,
+          "kind": "deterministic_shortcut"
+        },
+        "uniform_chance": {
+          "token_accuracy": 0.5,
+          "exact_accuracy": 0.25,
+          "kind": "expected_independent_guesses"
+        }
+      }
+    },
+    {
+      "core": "full",
+      "seed": 19,
+      "arms": {
+        "native": {
+          "test": {
+            "cases": 1024,
+            "teacher_forced": {
+              "token_accuracy": 0.74365234375,
+              "exact": 0.4873046875,
+              "native_token_accuracy": 0.74365234375,
+              "native_exact": 0.4873046875,
+              "task_nll": 0.3785979093603991,
+              "native_nll": 0.38082953228376937
+            },
+            "restricted_rollout": {
+              "token_accuracy": 0.4873046875,
+              "exact": 0.4873046875,
+              "native_token_accuracy": 0.4873046875,
+              "native_exact": 0.4873046875,
+              "task_nll": 1.2279924399248028,
+              "native_nll": 1.2302237069654893
+            },
+            "native_rollout": {
+              "token_accuracy": 0.4873046875,
+              "exact": 0.4873046875,
+              "native_token_accuracy": 0.4873046875,
+              "native_exact": 0.4873046875,
+              "task_nll": 1.2279924399248028,
+              "native_nll": 1.2302237069654893
+            }
+          },
+          "query_pair_exact": 0.2578125,
+          "single_pass_cpu_seconds_per_episode": 0.0019343734609374996
+        },
+        "native_matched_core": {
+          "test": {
+            "cases": 1024,
+            "teacher_forced": {
+              "token_accuracy": 0.74072265625,
+              "exact": 0.4814453125,
+              "native_token_accuracy": 0.74072265625,
+              "native_exact": 0.4814453125,
+              "task_nll": 0.3620858815303432,
+              "native_nll": 0.3647077578580138
+            },
+            "restricted_rollout": {
+              "token_accuracy": 0.4814453125,
+              "exact": 0.4814453125,
+              "native_token_accuracy": 0.4814453125,
+              "native_exact": 0.4814453125,
+              "task_nll": 1.68164607526478,
+              "native_nll": 1.6843033524629618
+            },
+            "native_rollout": {
+              "token_accuracy": 0.4814453125,
+              "exact": 0.4814453125,
+              "native_token_accuracy": 0.4814453125,
+              "native_exact": 0.4814453125,
+              "task_nll": 1.68164607526478,
+              "native_nll": 1.6843033524629618
+            }
+          },
+          "query_pair_exact": 0.265625,
+          "single_pass_cpu_seconds_per_episode": 0.001903149929687542
+        },
+        "additive_frozen": {
+          "test": {
+            "cases": 1024,
+            "teacher_forced": {
+              "token_accuracy": 0.75048828125,
+              "exact": 0.5009765625,
+              "native_token_accuracy": 0.75048828125,
+              "native_exact": 0.5009765625,
+              "task_nll": 0.37648941156629323,
+              "native_nll": 0.38038456904314444
+            },
+            "restricted_rollout": {
+              "token_accuracy": 0.5009765625,
+              "exact": 0.5009765625,
+              "native_token_accuracy": 0.5009765625,
+              "native_exact": 0.5009765625,
+              "task_nll": 1.2087657036931736,
+              "native_nll": 1.2127589343731415
+            },
+            "native_rollout": {
+              "token_accuracy": 0.5009765625,
+              "exact": 0.5009765625,
+              "native_token_accuracy": 0.5009765625,
+              "native_exact": 0.5009765625,
+              "task_nll": 1.2087657036931736,
+              "native_nll": 1.2127589343731415
+            }
+          },
+          "query_pair_exact": 0.171875,
+          "lesions": {
+            "no_head": {
+              "cases": 256,
+              "teacher_forced": {
+                "token_accuracy": 0.765625,
+                "exact": 0.53125,
+                "native_token_accuracy": 0.765625,
+                "native_exact": 0.53125,
+                "task_nll": 0.39147916745561817,
+                "native_nll": 0.396000777152949
+              },
+              "restricted_rollout": {
+                "token_accuracy": 0.53125,
+                "exact": 0.53125,
+                "native_token_accuracy": 0.53125,
+                "native_exact": 0.53125,
+                "task_nll": 0.9762761355418578,
+                "native_nll": 0.9807538907189155
+              },
+              "native_rollout": {
+                "token_accuracy": 0.53125,
+                "exact": 0.53125,
+                "native_token_accuracy": 0.53125,
+                "native_exact": 0.53125,
+                "task_nll": 0.9762761355418578,
+                "native_nll": 0.9807538907189155
+              }
+            },
+            "no_query": {
+              "cases": 256,
+              "teacher_forced": {
+                "token_accuracy": 0.775390625,
+                "exact": 0.55078125,
+                "native_token_accuracy": 0.775390625,
+                "native_exact": 0.55078125,
+                "task_nll": 0.37133874078356416,
+                "native_nll": 0.37638779397457256
+              },
+              "restricted_rollout": {
+                "token_accuracy": 0.55078125,
+                "exact": 0.55078125,
+                "native_token_accuracy": 0.55078125,
+                "native_exact": 0.55078125,
+                "task_nll": 1.0990617970112284,
+                "native_nll": 1.1042518591893895
+              },
+              "native_rollout": {
+                "token_accuracy": 0.55078125,
+                "exact": 0.55078125,
+                "native_token_accuracy": 0.55078125,
+                "native_exact": 0.55078125,
+                "task_nll": 1.0990617970112284,
+                "native_nll": 1.1042518591893895
+              }
+            },
+            "no_reads": {
+              "cases": 256,
+              "teacher_forced": {
+                "token_accuracy": 0.75,
+                "exact": 0.5,
+                "native_token_accuracy": 0.75,
+                "native_exact": 0.5,
+                "task_nll": 0.3931424922207614,
+                "native_nll": 0.39654216173585155
+              },
+              "restricted_rollout": {
+                "token_accuracy": 0.5,
+                "exact": 0.5,
+                "native_token_accuracy": 0.5,
+                "native_exact": 0.5,
+                "task_nll": 1.0489480219460152,
+                "native_nll": 1.0521801359536767
+              },
+              "native_rollout": {
+                "token_accuracy": 0.5,
+                "exact": 0.5,
+                "native_token_accuracy": 0.5,
+                "native_exact": 0.5,
+                "task_nll": 1.0489480219460152,
+                "native_nll": 1.0521801359536767
+              }
+            }
+          },
+          "single_pass_cpu_seconds_per_episode": 0.002167965914062542
+        },
+        "bilinear_frozen": {
+          "test": {
+            "cases": 1024,
+            "teacher_forced": {
+              "token_accuracy": 0.74951171875,
+              "exact": 0.4990234375,
+              "native_token_accuracy": 0.74951171875,
+              "native_exact": 0.4990234375,
+              "task_nll": 0.37050625883505334,
+              "native_nll": 0.3746221094847897
+            },
+            "restricted_rollout": {
+              "token_accuracy": 0.4990234375,
+              "exact": 0.4990234375,
+              "native_token_accuracy": 0.4990234375,
+              "native_exact": 0.4990234375,
+              "task_nll": 1.3092749592265984,
+              "native_nll": 1.3135101903562827
+            },
+            "native_rollout": {
+              "token_accuracy": 0.4990234375,
+              "exact": 0.4990234375,
+              "native_token_accuracy": 0.4990234375,
+              "native_exact": 0.4990234375,
+              "task_nll": 1.3092749592265984,
+              "native_nll": 1.3135101903562827
+            }
+          },
+          "query_pair_exact": 0.171875,
+          "lesions": {
+            "no_head": {
+              "cases": 256,
+              "teacher_forced": {
+                "token_accuracy": 0.765625,
+                "exact": 0.53125,
+                "native_token_accuracy": 0.765625,
+                "native_exact": 0.53125,
+                "task_nll": 0.39147916745561817,
+                "native_nll": 0.396000777152949
+              },
+              "restricted_rollout": {
+                "token_accuracy": 0.53125,
+                "exact": 0.53125,
+                "native_token_accuracy": 0.53125,
+                "native_exact": 0.53125,
+                "task_nll": 0.9762761355418578,
+                "native_nll": 0.9807538907189155
+              },
+              "native_rollout": {
+                "token_accuracy": 0.53125,
+                "exact": 0.53125,
+                "native_token_accuracy": 0.53125,
+                "native_exact": 0.53125,
+                "task_nll": 0.9762761355418578,
+                "native_nll": 0.9807538907189155
+              }
+            },
+            "no_query": {
+              "cases": 256,
+              "teacher_forced": {
+                "token_accuracy": 0.75390625,
+                "exact": 0.5078125,
+                "native_token_accuracy": 0.75390625,
+                "native_exact": 0.5078125,
+                "task_nll": 0.3905401653061902,
+                "native_nll": 0.39488882098157774
+              },
+              "restricted_rollout": {
+                "token_accuracy": 0.5078125,
+                "exact": 0.5078125,
+                "native_token_accuracy": 0.5078125,
+                "native_exact": 0.5078125,
+                "task_nll": 1.0334079325189913,
+                "native_nll": 1.03757320839577
+              },
+              "native_rollout": {
+                "token_accuracy": 0.5078125,
+                "exact": 0.5078125,
+                "native_token_accuracy": 0.5078125,
+                "native_exact": 0.5078125,
+                "task_nll": 1.0334079325189913,
+                "native_nll": 1.03757320839577
+              }
+            },
+            "no_reads": {
+              "cases": 256,
+              "teacher_forced": {
+                "token_accuracy": 0.75,
+                "exact": 0.5,
+                "native_token_accuracy": 0.75,
+                "native_exact": 0.5,
+                "task_nll": 0.3927932877043418,
+                "native_nll": 0.39713952239981154
+              },
+              "restricted_rollout": {
+                "token_accuracy": 0.5,
+                "exact": 0.5,
+                "native_token_accuracy": 0.5,
+                "native_exact": 0.5,
+                "task_nll": 1.0462984065172722,
+                "native_nll": 1.0504198270864435
+              },
+              "native_rollout": {
+                "token_accuracy": 0.5,
+                "exact": 0.5,
+                "native_token_accuracy": 0.5,
+                "native_exact": 0.5,
+                "task_nll": 1.0462984065172722,
+                "native_nll": 1.0504198270864435
+              }
+            }
+          },
+          "single_pass_cpu_seconds_per_episode": 0.0019463510078124857
+        },
+        "additive_joint": {
+          "test": {
+            "cases": 1024,
+            "teacher_forced": {
+              "token_accuracy": 0.7490234375,
+              "exact": 0.498046875,
+              "native_token_accuracy": 0.7490234375,
+              "native_exact": 0.498046875,
+              "task_nll": 0.3612670974066198,
+              "native_nll": 0.3643013812196614
+            },
+            "restricted_rollout": {
+              "token_accuracy": 0.498046875,
+              "exact": 0.498046875,
+              "native_token_accuracy": 0.498046875,
+              "native_exact": 0.498046875,
+              "task_nll": 1.6621298344571374,
+              "native_nll": 1.6651976940224813
+            },
+            "native_rollout": {
+              "token_accuracy": 0.498046875,
+              "exact": 0.498046875,
+              "native_token_accuracy": 0.498046875,
+              "native_exact": 0.498046875,
+              "task_nll": 1.6621298344571374,
+              "native_nll": 1.6651976940224813
+            }
+          },
+          "query_pair_exact": 0.265625,
+          "lesions": {
+            "no_head": {
+              "cases": 256,
+              "teacher_forced": {
+                "token_accuracy": 0.76953125,
+                "exact": 0.5390625,
+                "native_token_accuracy": 0.76953125,
+                "native_exact": 0.5390625,
+                "task_nll": 0.35299840414485684,
+                "native_nll": 0.35612823631436186
+              },
+              "restricted_rollout": {
+                "token_accuracy": 0.5390625,
+                "exact": 0.5390625,
+                "native_token_accuracy": 0.5390625,
+                "native_exact": 0.5390625,
+                "task_nll": 1.5422917397718447,
+                "native_nll": 1.5454563476419025
+              },
+              "native_rollout": {
+                "token_accuracy": 0.5390625,
+                "exact": 0.5390625,
+                "native_token_accuracy": 0.5390625,
+                "native_exact": 0.5390625,
+                "task_nll": 1.5422917397718447,
+                "native_nll": 1.5454563476419025
+              }
+            },
+            "no_query": {
+              "cases": 256,
+              "teacher_forced": {
+                "token_accuracy": 0.76953125,
+                "exact": 0.5390625,
+                "native_token_accuracy": 0.76953125,
+                "native_exact": 0.5390625,
+                "task_nll": 0.35285052719879073,
+                "native_nll": 0.35600450189576804
+              },
+              "restricted_rollout": {
+                "token_accuracy": 0.5390625,
+                "exact": 0.5390625,
+                "native_token_accuracy": 0.5390625,
+                "native_exact": 0.5390625,
+                "task_nll": 1.5448644584746853,
+                "native_nll": 1.5480489519927687
+              },
+              "native_rollout": {
+                "token_accuracy": 0.5390625,
+                "exact": 0.5390625,
+                "native_token_accuracy": 0.5390625,
+                "native_exact": 0.5390625,
+                "task_nll": 1.5448644584746853,
+                "native_nll": 1.5480489519927687
+              }
+            },
+            "no_reads": {
+              "cases": 256,
+              "teacher_forced": {
+                "token_accuracy": 0.775390625,
+                "exact": 0.55078125,
+                "native_token_accuracy": 0.775390625,
+                "native_exact": 0.55078125,
+                "task_nll": 0.35274944084004534,
+                "native_nll": 0.35568987095211924
+              },
+              "restricted_rollout": {
+                "token_accuracy": 0.55078125,
+                "exact": 0.55078125,
+                "native_token_accuracy": 0.55078125,
+                "native_exact": 0.55078125,
+                "task_nll": 1.5144866314794094,
+                "native_nll": 1.517454871033351
+              },
+              "native_rollout": {
+                "token_accuracy": 0.55078125,
+                "exact": 0.55078125,
+                "native_token_accuracy": 0.55078125,
+                "native_exact": 0.55078125,
+                "task_nll": 1.5144866314794094,
+                "native_nll": 1.517454871033351
+              }
+            }
+          },
+          "single_pass_cpu_seconds_per_episode": 0.0020463385781249732
+        },
+        "bilinear_joint": {
+          "test": {
+            "cases": 1024,
+            "teacher_forced": {
+              "token_accuracy": 0.74267578125,
+              "exact": 0.4853515625,
+              "native_token_accuracy": 0.74267578125,
+              "native_exact": 0.4853515625,
+              "task_nll": 0.36070967647406516,
+              "native_nll": 0.3635892377263872
+            },
+            "restricted_rollout": {
+              "token_accuracy": 0.4853515625,
+              "exact": 0.4853515625,
+              "native_token_accuracy": 0.4853515625,
+              "native_exact": 0.4853515625,
+              "task_nll": 1.7130667997730284,
+              "native_nll": 1.715978436477485
+            },
+            "native_rollout": {
+              "token_accuracy": 0.4853515625,
+              "exact": 0.4853515625,
+              "native_token_accuracy": 0.4853515625,
+              "native_exact": 0.4853515625,
+              "task_nll": 1.7130667997730284,
+              "native_nll": 1.715978436477485
+            }
+          },
+          "query_pair_exact": 0.2578125,
+          "lesions": {
+            "no_head": {
+              "cases": 256,
+              "teacher_forced": {
+                "token_accuracy": 0.767578125,
+                "exact": 0.53515625,
+                "native_token_accuracy": 0.767578125,
+                "native_exact": 0.53515625,
+                "task_nll": 0.35188937738675696,
+                "native_nll": 0.3548391810936664
+              },
+              "restricted_rollout": {
+                "token_accuracy": 0.53515625,
+                "exact": 0.53515625,
+                "native_token_accuracy": 0.53515625,
+                "native_exact": 0.53515625,
+                "task_nll": 1.5336847203389674,
+                "native_nll": 1.5366646342972672
+              },
+              "native_rollout": {
+                "token_accuracy": 0.53515625,
+                "exact": 0.53515625,
+                "native_token_accuracy": 0.53515625,
+                "native_exact": 0.53515625,
+                "task_nll": 1.5336847203389674,
+                "native_nll": 1.5366646342972672
+              }
+            },
+            "no_query": {
+              "cases": 256,
+              "teacher_forced": {
+                "token_accuracy": 0.7734375,
+                "exact": 0.546875,
+                "native_token_accuracy": 0.7734375,
+                "native_exact": 0.546875,
+                "task_nll": 0.351744046208635,
+                "native_nll": 0.3546323072596351
+              },
+              "restricted_rollout": {
+                "token_accuracy": 0.546875,
+                "exact": 0.546875,
+                "native_token_accuracy": 0.546875,
+                "native_exact": 0.546875,
+                "task_nll": 1.5061052049450634,
+                "native_nll": 1.5090194188774149
+              },
+              "native_rollout": {
+                "token_accuracy": 0.546875,
+                "exact": 0.546875,
+                "native_token_accuracy": 0.546875,
+                "native_exact": 0.546875,
+                "task_nll": 1.5061052049450634,
+                "native_nll": 1.5090194188774149
+              }
+            },
+            "no_reads": {
+              "cases": 256,
+              "teacher_forced": {
+                "token_accuracy": 0.775390625,
+                "exact": 0.55078125,
+                "native_token_accuracy": 0.775390625,
+                "native_exact": 0.55078125,
+                "task_nll": 0.35175848246631214,
+                "native_nll": 0.3546473458422952
+              },
+              "restricted_rollout": {
+                "token_accuracy": 0.55078125,
+                "exact": 0.55078125,
+                "native_token_accuracy": 0.55078125,
+                "native_exact": 0.55078125,
+                "task_nll": 1.500263656773684,
+                "native_nll": 1.5031785622322786
+              },
+              "native_rollout": {
+                "token_accuracy": 0.55078125,
+                "exact": 0.55078125,
+                "native_token_accuracy": 0.55078125,
+                "native_exact": 0.55078125,
+                "task_nll": 1.500263656773684,
+                "native_nll": 1.5031785622322786
+              }
+            }
+          },
+          "single_pass_cpu_seconds_per_episode": 0.0019387910078125792
+        }
+      },
+      "test_sha256": "bb63e83911e65c6e4be983a0afdb956285638fbdfc647f3d1abbf0f830c603cb",
+      "shortcuts": {
+        "majority_supplied": {
+          "token_accuracy": 0.5,
+          "exact_accuracy": 0.0,
+          "kind": "deterministic_shortcut"
+        },
+        "input_order": {
+          "token_accuracy": 0.5,
+          "exact_accuracy": 0.5,
+          "kind": "deterministic_shortcut"
+        },
+        "last_supplied": {
+          "token_accuracy": 0.5,
+          "exact_accuracy": 0.0,
+          "kind": "deterministic_shortcut"
+        },
+        "uniform_chance": {
+          "token_accuracy": 0.5,
+          "exact_accuracy": 0.25,
+          "kind": "expected_independent_guesses"
+        }
+      }
+    },
+    {
+      "core": "minimal",
+      "seed": 1,
+      "arms": {
+        "native": {
+          "test": {
+            "cases": 1024,
+            "teacher_forced": {
+              "token_accuracy": 0.74609375,
+              "exact": 0.4921875,
+              "native_token_accuracy": 0.74609375,
+              "native_exact": 0.4921875,
+              "task_nll": 0.3530452336653071,
+              "native_nll": 0.35424515992656325
+            },
+            "restricted_rollout": {
+              "token_accuracy": 0.4921875,
+              "exact": 0.4921875,
+              "native_token_accuracy": 0.4921875,
+              "native_exact": 0.4921875,
+              "task_nll": 1.6594579920441186,
+              "native_nll": 1.6607011177039794
+            },
+            "native_rollout": {
+              "token_accuracy": 0.4921875,
+              "exact": 0.4921875,
+              "native_token_accuracy": 0.4921875,
+              "native_exact": 0.4921875,
+              "task_nll": 1.6594579920441186,
+              "native_nll": 1.6607011177039794
+            }
+          },
+          "query_pair_exact": 0.1328125,
+          "single_pass_cpu_seconds_per_episode": 0.0019019989375000032
+        },
+        "native_matched_core": {
+          "test": {
+            "cases": 1024,
+            "teacher_forced": {
+              "token_accuracy": 0.740234375,
+              "exact": 0.48046875,
+              "native_token_accuracy": 0.740234375,
+              "native_exact": 0.48046875,
+              "task_nll": 0.36969199990814483,
+              "native_nll": 0.37123242631219
+            },
+            "restricted_rollout": {
+              "token_accuracy": 0.48046875,
+              "exact": 0.48046875,
+              "native_token_accuracy": 0.48046875,
+              "native_exact": 0.48046875,
+              "task_nll": 1.2726056674812658,
+              "native_nll": 1.2741458288480771
+            },
+            "native_rollout": {
+              "token_accuracy": 0.48046875,
+              "exact": 0.48046875,
+              "native_token_accuracy": 0.48046875,
+              "native_exact": 0.48046875,
+              "task_nll": 1.2726056674812658,
+              "native_nll": 1.2741458288480771
+            }
+          },
+          "query_pair_exact": 0.21875,
+          "single_pass_cpu_seconds_per_episode": 0.001963629726562499
+        },
+        "additive_frozen": {
+          "test": {
+            "cases": 1024,
+            "teacher_forced": {
+              "token_accuracy": 0.748046875,
+              "exact": 0.49609375,
+              "native_token_accuracy": 0.748046875,
+              "native_exact": 0.49609375,
+              "task_nll": 0.4015125976013423,
+              "native_nll": 0.40552043126626813
+            },
+            "restricted_rollout": {
+              "token_accuracy": 0.49609375,
+              "exact": 0.49609375,
+              "native_token_accuracy": 0.49609375,
+              "native_exact": 0.49609375,
+              "task_nll": 1.0171187048978858,
+              "native_nll": 1.0211045245923742
+            },
+            "native_rollout": {
+              "token_accuracy": 0.49609375,
+              "exact": 0.49609375,
+              "native_token_accuracy": 0.49609375,
+              "native_exact": 0.49609375,
+              "task_nll": 1.0171187048978858,
+              "native_nll": 1.0211045245923742
+            }
+          },
+          "query_pair_exact": 0.125,
+          "lesions": {
+            "no_head": {
+              "cases": 256,
+              "teacher_forced": {
+                "token_accuracy": 0.75390625,
+                "exact": 0.5078125,
+                "native_token_accuracy": 0.75390625,
+                "native_exact": 0.5078125,
+                "task_nll": 0.4123914709866338,
+                "native_nll": 0.41716416170675075
+              },
+              "restricted_rollout": {
+                "token_accuracy": 0.5078125,
+                "exact": 0.5078125,
+                "native_token_accuracy": 0.5078125,
+                "native_exact": 0.5078125,
+                "task_nll": 0.932354948502212,
+                "native_nll": 0.9371208711600048
+              },
+              "native_rollout": {
+                "token_accuracy": 0.5078125,
+                "exact": 0.5078125,
+                "native_token_accuracy": 0.5078125,
+                "native_exact": 0.5078125,
+                "task_nll": 0.932354948502212,
+                "native_nll": 0.9371208711600048
+              }
+            },
+            "no_query": {
+              "cases": 256,
+              "teacher_forced": {
+                "token_accuracy": 0.75390625,
+                "exact": 0.5078125,
+                "native_token_accuracy": 0.75390625,
+                "native_exact": 0.5078125,
+                "task_nll": 0.3997090419997279,
+                "native_nll": 0.40519932539609727
+              },
+              "restricted_rollout": {
+                "token_accuracy": 0.5078125,
+                "exact": 0.5078125,
+                "native_token_accuracy": 0.5078125,
+                "native_exact": 0.5078125,
+                "task_nll": 0.9683411537824459,
+                "native_nll": 0.9738304674610845
+              },
+              "native_rollout": {
+                "token_accuracy": 0.5078125,
+                "exact": 0.5078125,
+                "native_token_accuracy": 0.5078125,
+                "native_exact": 0.5078125,
+                "task_nll": 0.9683411537824459,
+                "native_nll": 0.9738304674610845
+              }
+            },
+            "no_reads": {
+              "cases": 256,
+              "teacher_forced": {
+                "token_accuracy": 0.751953125,
+                "exact": 0.50390625,
+                "native_token_accuracy": 0.751953125,
+                "native_exact": 0.50390625,
+                "task_nll": 0.4115201354763366,
+                "native_nll": 0.4149113154562656
+              },
+              "restricted_rollout": {
+                "token_accuracy": 0.50390625,
+                "exact": 0.50390625,
+                "native_token_accuracy": 0.50390625,
+                "native_exact": 0.50390625,
+                "task_nll": 0.924003732952147,
+                "native_nll": 0.927384108035767
+              },
+              "native_rollout": {
+                "token_accuracy": 0.50390625,
+                "exact": 0.50390625,
+                "native_token_accuracy": 0.50390625,
+                "native_exact": 0.50390625,
+                "task_nll": 0.924003732952147,
+                "native_nll": 0.927384108035767
+              }
+            }
+          },
+          "single_pass_cpu_seconds_per_episode": 0.0022275931015625083
+        },
+        "bilinear_frozen": {
+          "test": {
+            "cases": 1024,
+            "teacher_forced": {
+              "token_accuracy": 0.74658203125,
+              "exact": 0.4931640625,
+              "native_token_accuracy": 0.74658203125,
+              "native_exact": 0.4931640625,
+              "task_nll": 0.38938402316897014,
+              "native_nll": 0.3937769431367997
+            },
+            "restricted_rollout": {
+              "token_accuracy": 0.4931640625,
+              "exact": 0.4931640625,
+              "native_token_accuracy": 0.4931640625,
+              "native_exact": 0.4931640625,
+              "task_nll": 1.0967355254234021,
+              "native_nll": 1.1011142393263071
+            },
+            "native_rollout": {
+              "token_accuracy": 0.4931640625,
+              "exact": 0.4931640625,
+              "native_token_accuracy": 0.4931640625,
+              "native_exact": 0.4931640625,
+              "task_nll": 1.0967355254234021,
+              "native_nll": 1.1011142393263071
+            }
+          },
+          "query_pair_exact": 0.1796875,
+          "lesions": {
+            "no_head": {
+              "cases": 256,
+              "teacher_forced": {
+                "token_accuracy": 0.75390625,
+                "exact": 0.5078125,
+                "native_token_accuracy": 0.75390625,
+                "native_exact": 0.5078125,
+                "task_nll": 0.4123914709866338,
+                "native_nll": 0.41716416170675075
+              },
+              "restricted_rollout": {
+                "token_accuracy": 0.5078125,
+                "exact": 0.5078125,
+                "native_token_accuracy": 0.5078125,
+                "native_exact": 0.5078125,
+                "task_nll": 0.932354948502212,
+                "native_nll": 0.9371208711600048
+              },
+              "native_rollout": {
+                "token_accuracy": 0.5078125,
+                "exact": 0.5078125,
+                "native_token_accuracy": 0.5078125,
+                "native_exact": 0.5078125,
+                "task_nll": 0.932354948502212,
+                "native_nll": 0.9371208711600048
+              }
+            },
+            "no_query": {
+              "cases": 256,
+              "teacher_forced": {
+                "token_accuracy": 0.751953125,
+                "exact": 0.50390625,
+                "native_token_accuracy": 0.751953125,
+                "native_exact": 0.50390625,
+                "task_nll": 0.4112074287183839,
+                "native_nll": 0.4157892322691623
+              },
+              "restricted_rollout": {
+                "token_accuracy": 0.50390625,
+                "exact": 0.50390625,
+                "native_token_accuracy": 0.50390625,
+                "native_exact": 0.50390625,
+                "task_nll": 0.9446657098107677,
+                "native_nll": 0.9492537153200828
+              },
+              "native_rollout": {
+                "token_accuracy": 0.50390625,
+                "exact": 0.50390625,
+                "native_token_accuracy": 0.50390625,
+                "native_exact": 0.50390625,
+                "task_nll": 0.9446657098107677,
+                "native_nll": 0.9492537153200828
+              }
+            },
+            "no_reads": {
+              "cases": 256,
+              "teacher_forced": {
+                "token_accuracy": 0.751953125,
+                "exact": 0.50390625,
+                "native_token_accuracy": 0.751953125,
+                "native_exact": 0.50390625,
+                "task_nll": 0.4118439302845005,
+                "native_nll": 0.41642960952958674
+              },
+              "restricted_rollout": {
+                "token_accuracy": 0.50390625,
+                "exact": 0.50390625,
+                "native_token_accuracy": 0.50390625,
+                "native_exact": 0.50390625,
+                "task_nll": 0.9435804531908231,
+                "native_nll": 0.9481724350298464
+              },
+              "native_rollout": {
+                "token_accuracy": 0.50390625,
+                "exact": 0.50390625,
+                "native_token_accuracy": 0.50390625,
+                "native_exact": 0.50390625,
+                "task_nll": 0.9435804531908231,
+                "native_nll": 0.9481724350298464
+              }
+            }
+          },
+          "single_pass_cpu_seconds_per_episode": 0.0024788532656249695
+        },
+        "additive_joint": {
+          "test": {
+            "cases": 1024,
+            "teacher_forced": {
+              "token_accuracy": 0.74267578125,
+              "exact": 0.4853515625,
+              "native_token_accuracy": 0.74267578125,
+              "native_exact": 0.4853515625,
+              "task_nll": 0.3686676392123106,
+              "native_nll": 0.37025813257355367
+            },
+            "restricted_rollout": {
+              "token_accuracy": 0.4853515625,
+              "exact": 0.4853515625,
+              "native_token_accuracy": 0.4853515625,
+              "native_exact": 0.4853515625,
+              "task_nll": 1.269188751451421,
+              "native_nll": 1.2707786060645958
+            },
+            "native_rollout": {
+              "token_accuracy": 0.4853515625,
+              "exact": 0.4853515625,
+              "native_token_accuracy": 0.4853515625,
+              "native_exact": 0.4853515625,
+              "task_nll": 1.269188751451421,
+              "native_nll": 1.2707786060645958
+            }
+          },
+          "query_pair_exact": 0.1796875,
+          "lesions": {
+            "no_head": {
+              "cases": 256,
+              "teacher_forced": {
+                "token_accuracy": 0.7578125,
+                "exact": 0.515625,
+                "native_token_accuracy": 0.7578125,
+                "native_exact": 0.515625,
+                "task_nll": 0.36724791020730174,
+                "native_nll": 0.3688916882565536
+              },
+              "restricted_rollout": {
+                "token_accuracy": 0.515625,
+                "exact": 0.515625,
+                "native_token_accuracy": 0.515625,
+                "native_exact": 0.515625,
+                "task_nll": 1.182617646034336,
+                "native_nll": 1.1842655816162733
+              },
+              "native_rollout": {
+                "token_accuracy": 0.515625,
+                "exact": 0.515625,
+                "native_token_accuracy": 0.515625,
+                "native_exact": 0.515625,
+                "task_nll": 1.182617646034336,
+                "native_nll": 1.1842655816162733
+              }
+            },
+            "no_query": {
+              "cases": 256,
+              "teacher_forced": {
+                "token_accuracy": 0.76171875,
+                "exact": 0.5234375,
+                "native_token_accuracy": 0.76171875,
+                "native_exact": 0.5234375,
+                "task_nll": 0.367286870761532,
+                "native_nll": 0.3689609609909894
+              },
+              "restricted_rollout": {
+                "token_accuracy": 0.5234375,
+                "exact": 0.5234375,
+                "native_token_accuracy": 0.5234375,
+                "native_exact": 0.5234375,
+                "task_nll": 1.1654590431693634,
+                "native_nll": 1.1671393242731938
+              },
+              "native_rollout": {
+                "token_accuracy": 0.5234375,
+                "exact": 0.5234375,
+                "native_token_accuracy": 0.5234375,
+                "native_exact": 0.5234375,
+                "task_nll": 1.1654590431693634,
+                "native_nll": 1.1671393242731938
+              }
+            },
+            "no_reads": {
+              "cases": 256,
+              "teacher_forced": {
+                "token_accuracy": 0.751953125,
+                "exact": 0.50390625,
+                "native_token_accuracy": 0.751953125,
+                "native_exact": 0.50390625,
+                "task_nll": 0.3671414869347523,
+                "native_nll": 0.36866956354151625
+              },
+              "restricted_rollout": {
+                "token_accuracy": 0.50390625,
+                "exact": 0.50390625,
+                "native_token_accuracy": 0.50390625,
+                "native_exact": 0.50390625,
+                "task_nll": 1.2170446682897937,
+                "native_nll": 1.218567501281541
+              },
+              "native_rollout": {
+                "token_accuracy": 0.50390625,
+                "exact": 0.50390625,
+                "native_token_accuracy": 0.50390625,
+                "native_exact": 0.50390625,
+                "task_nll": 1.2170446682897937,
+                "native_nll": 1.218567501281541
+              }
+            }
+          },
+          "single_pass_cpu_seconds_per_episode": 0.0022965717109375006
+        },
+        "bilinear_joint": {
+          "test": {
+            "cases": 1024,
+            "teacher_forced": {
+              "token_accuracy": 0.74462890625,
+              "exact": 0.4892578125,
+              "native_token_accuracy": 0.74462890625,
+              "native_exact": 0.4892578125,
+              "task_nll": 0.367905121761621,
+              "native_nll": 0.36959020557924305
+            },
+            "restricted_rollout": {
+              "token_accuracy": 0.4892578125,
+              "exact": 0.4892578125,
+              "native_token_accuracy": 0.4892578125,
+              "native_exact": 0.4892578125,
+              "task_nll": 1.2841975540528507,
+              "native_nll": 1.2858796576965688
+            },
+            "native_rollout": {
+              "token_accuracy": 0.4892578125,
+              "exact": 0.4892578125,
+              "native_token_accuracy": 0.4892578125,
+              "native_exact": 0.4892578125,
+              "task_nll": 1.2841975540528507,
+              "native_nll": 1.2858796576965688
+            }
+          },
+          "query_pair_exact": 0.21875,
+          "lesions": {
+            "no_head": {
+              "cases": 256,
+              "teacher_forced": {
+                "token_accuracy": 0.76171875,
+                "exact": 0.5234375,
+                "native_token_accuracy": 0.76171875,
+                "native_exact": 0.5234375,
+                "task_nll": 0.36784093515180993,
+                "native_nll": 0.36956839961021615
+              },
+              "restricted_rollout": {
+                "token_accuracy": 0.5234375,
+                "exact": 0.5234375,
+                "native_token_accuracy": 0.5234375,
+                "native_exact": 0.5234375,
+                "task_nll": 1.1649104507081487,
+                "native_nll": 1.1666331570741022
+              },
+              "native_rollout": {
+                "token_accuracy": 0.5234375,
+                "exact": 0.5234375,
+                "native_token_accuracy": 0.5234375,
+                "native_exact": 0.5234375,
+                "task_nll": 1.1649104507081487,
+                "native_nll": 1.1666331570741022
+              }
+            },
+            "no_query": {
+              "cases": 256,
+              "teacher_forced": {
+                "token_accuracy": 0.76953125,
+                "exact": 0.5390625,
+                "native_token_accuracy": 0.76953125,
+                "native_exact": 0.5390625,
+                "task_nll": 0.3678724598428024,
+                "native_nll": 0.36956552472929616
+              },
+              "restricted_rollout": {
+                "token_accuracy": 0.5390625,
+                "exact": 0.5390625,
+                "native_token_accuracy": 0.5390625,
+                "native_exact": 0.5390625,
+                "task_nll": 1.1368615024081838,
+                "native_nll": 1.1385519036002734
+              },
+              "native_rollout": {
+                "token_accuracy": 0.5390625,
+                "exact": 0.5390625,
+                "native_token_accuracy": 0.5390625,
+                "native_exact": 0.5390625,
+                "task_nll": 1.1368615024081838,
+                "native_nll": 1.1385519036002734
+              }
+            },
+            "no_reads": {
+              "cases": 256,
+              "teacher_forced": {
+                "token_accuracy": 0.767578125,
+                "exact": 0.53515625,
+                "native_token_accuracy": 0.767578125,
+                "native_exact": 0.53515625,
+                "task_nll": 0.36786574251185694,
+                "native_nll": 0.3695596402067167
+              },
+              "restricted_rollout": {
+                "token_accuracy": 0.53515625,
+                "exact": 0.53515625,
+                "native_token_accuracy": 0.53515625,
+                "native_exact": 0.53515625,
+                "task_nll": 1.1412806002664901,
+                "native_nll": 1.1429724652753066
+              },
+              "native_rollout": {
+                "token_accuracy": 0.53515625,
+                "exact": 0.53515625,
+                "native_token_accuracy": 0.53515625,
+                "native_exact": 0.53515625,
+                "task_nll": 1.1412806002664901,
+                "native_nll": 1.1429724652753066
+              }
+            }
+          },
+          "single_pass_cpu_seconds_per_episode": 0.002178659945312522
+        }
+      },
+      "test_sha256": "bb63e83911e65c6e4be983a0afdb956285638fbdfc647f3d1abbf0f830c603cb",
+      "shortcuts": {
+        "majority_supplied": {
+          "token_accuracy": 0.5,
+          "exact_accuracy": 0.0,
+          "kind": "deterministic_shortcut"
+        },
+        "input_order": {
+          "token_accuracy": 0.5,
+          "exact_accuracy": 0.5,
+          "kind": "deterministic_shortcut"
+        },
+        "last_supplied": {
+          "token_accuracy": 0.5,
+          "exact_accuracy": 0.0,
+          "kind": "deterministic_shortcut"
+        },
+        "uniform_chance": {
+          "token_accuracy": 0.5,
+          "exact_accuracy": 0.25,
+          "kind": "expected_independent_guesses"
+        }
+      }
+    },
+    {
+      "core": "minimal",
+      "seed": 7,
+      "arms": {
+        "native": {
+          "test": {
+            "cases": 1024,
+            "teacher_forced": {
+              "token_accuracy": 0.74853515625,
+              "exact": 0.4970703125,
+              "native_token_accuracy": 0.74853515625,
+              "native_exact": 0.4970703125,
+              "task_nll": 0.3788472479953189,
+              "native_nll": 0.38087012828418665
+            },
+            "restricted_rollout": {
+              "token_accuracy": 0.4970703125,
+              "exact": 0.4970703125,
+              "native_token_accuracy": 0.4970703125,
+              "native_exact": 0.4970703125,
+              "task_nll": 1.1948100966297852,
+              "native_nll": 1.196838397956526
+            },
+            "native_rollout": {
+              "token_accuracy": 0.4970703125,
+              "exact": 0.4970703125,
+              "native_token_accuracy": 0.4970703125,
+              "native_exact": 0.4970703125,
+              "task_nll": 1.1948100966297852,
+              "native_nll": 1.196838397956526
+            }
+          },
+          "query_pair_exact": 0.15625,
+          "single_pass_cpu_seconds_per_episode": 0.0019298893281250035
+        },
+        "native_matched_core": {
+          "test": {
+            "cases": 1024,
+            "teacher_forced": {
+              "token_accuracy": 0.7529296875,
+              "exact": 0.505859375,
+              "native_token_accuracy": 0.7529296875,
+              "native_exact": 0.505859375,
+              "task_nll": 0.3533429887385817,
+              "native_nll": 0.3545546454777764
+            },
+            "restricted_rollout": {
+              "token_accuracy": 0.505859375,
+              "exact": 0.505859375,
+              "native_token_accuracy": 0.505859375,
+              "native_exact": 0.505859375,
+              "task_nll": 1.6551926829786774,
+              "native_nll": 1.6563726462403565
+            },
+            "native_rollout": {
+              "token_accuracy": 0.505859375,
+              "exact": 0.505859375,
+              "native_token_accuracy": 0.505859375,
+              "native_exact": 0.505859375,
+              "task_nll": 1.6551926829786774,
+              "native_nll": 1.6563726462403565
+            }
+          },
+          "query_pair_exact": 0.1015625,
+          "single_pass_cpu_seconds_per_episode": 0.001998348695312499
+        },
+        "additive_frozen": {
+          "test": {
+            "cases": 1024,
+            "teacher_forced": {
+              "token_accuracy": 0.73583984375,
+              "exact": 0.4716796875,
+              "native_token_accuracy": 0.73583984375,
+              "native_exact": 0.4716796875,
+              "task_nll": 0.37854350958371646,
+              "native_nll": 0.3837772291699366
+            },
+            "restricted_rollout": {
+              "token_accuracy": 0.4716796875,
+              "exact": 0.4716796875,
+              "native_token_accuracy": 0.4716796875,
+              "native_exact": 0.4716796875,
+              "task_nll": 1.1608486986753082,
+              "native_nll": 1.166123331997369
+            },
+            "native_rollout": {
+              "token_accuracy": 0.4716796875,
+              "exact": 0.4716796875,
+              "native_token_accuracy": 0.4716796875,
+              "native_exact": 0.4716796875,
+              "task_nll": 1.1608486986753082,
+              "native_nll": 1.166123331997369
+            }
+          },
+          "query_pair_exact": 0.1640625,
+          "lesions": {
+            "no_head": {
+              "cases": 256,
+              "teacher_forced": {
+                "token_accuracy": 0.759765625,
+                "exact": 0.51953125,
+                "native_token_accuracy": 0.759765625,
+                "native_exact": 0.51953125,
+                "task_nll": 0.38552681860958515,
+                "native_nll": 0.392357660606649
+              },
+              "restricted_rollout": {
+                "token_accuracy": 0.51953125,
+                "exact": 0.51953125,
+                "native_token_accuracy": 0.51953125,
+                "native_exact": 0.51953125,
+                "task_nll": 1.0824054568010604,
+                "native_nll": 1.089019753599132
+              },
+              "native_rollout": {
+                "token_accuracy": 0.51953125,
+                "exact": 0.51953125,
+                "native_token_accuracy": 0.51953125,
+                "native_exact": 0.51953125,
+                "task_nll": 1.0824054568010604,
+                "native_nll": 1.089019753599132
+              }
+            },
+            "no_query": {
+              "cases": 256,
+              "teacher_forced": {
+                "token_accuracy": 0.755859375,
+                "exact": 0.51171875,
+                "native_token_accuracy": 0.755859375,
+                "native_exact": 0.51171875,
+                "task_nll": 0.387817130131726,
+                "native_nll": 0.39575280396820744
+              },
+              "restricted_rollout": {
+                "token_accuracy": 0.51171875,
+                "exact": 0.51171875,
+                "native_token_accuracy": 0.51171875,
+                "native_exact": 0.51171875,
+                "task_nll": 1.0728729116078315,
+                "native_nll": 1.080527366775641
+              },
+              "native_rollout": {
+                "token_accuracy": 0.51171875,
+                "exact": 0.51171875,
+                "native_token_accuracy": 0.51171875,
+                "native_exact": 0.51171875,
+                "task_nll": 1.0728729116078315,
+                "native_nll": 1.080527366775641
+              }
+            },
+            "no_reads": {
+              "cases": 256,
+              "teacher_forced": {
+                "token_accuracy": 0.75,
+                "exact": 0.5,
+                "native_token_accuracy": 0.75,
+                "native_exact": 0.5,
+                "task_nll": 0.3911752878937509,
+                "native_nll": 0.39555296826983977
+              },
+              "restricted_rollout": {
+                "token_accuracy": 0.5,
+                "exact": 0.5,
+                "native_token_accuracy": 0.5,
+                "native_exact": 0.5,
+                "task_nll": 0.979817989306609,
+                "native_nll": 0.9843705071616569
+              },
+              "native_rollout": {
+                "token_accuracy": 0.5,
+                "exact": 0.5,
+                "native_token_accuracy": 0.5,
+                "native_exact": 0.5,
+                "task_nll": 0.979817989306609,
+                "native_nll": 0.9843705071616569
+              }
+            }
+          },
+          "single_pass_cpu_seconds_per_episode": 0.0021640762343750064
+        },
+        "bilinear_frozen": {
+          "test": {
+            "cases": 1024,
+            "teacher_forced": {
+              "token_accuracy": 0.75537109375,
+              "exact": 0.5107421875,
+              "native_token_accuracy": 0.75537109375,
+              "native_exact": 0.5107421875,
+              "task_nll": 0.3641831271884016,
+              "native_nll": 0.37014731603630935
+            },
+            "restricted_rollout": {
+              "token_accuracy": 0.5107421875,
+              "exact": 0.5107421875,
+              "native_token_accuracy": 0.5107421875,
+              "native_exact": 0.5107421875,
+              "task_nll": 1.2742999422302719,
+              "native_nll": 1.280233655781558
+            },
+            "native_rollout": {
+              "token_accuracy": 0.5107421875,
+              "exact": 0.5107421875,
+              "native_token_accuracy": 0.5107421875,
+              "native_exact": 0.5107421875,
+              "task_nll": 1.2742999422302719,
+              "native_nll": 1.280233655781558
+            }
+          },
+          "query_pair_exact": 0.1875,
+          "lesions": {
+            "no_head": {
+              "cases": 256,
+              "teacher_forced": {
+                "token_accuracy": 0.759765625,
+                "exact": 0.51953125,
+                "native_token_accuracy": 0.759765625,
+                "native_exact": 0.51953125,
+                "task_nll": 0.38552681860958515,
+                "native_nll": 0.392357660606649
+              },
+              "restricted_rollout": {
+                "token_accuracy": 0.51953125,
+                "exact": 0.51953125,
+                "native_token_accuracy": 0.51953125,
+                "native_exact": 0.51953125,
+                "task_nll": 1.0824054568010604,
+                "native_nll": 1.089019753599132
+              },
+              "native_rollout": {
+                "token_accuracy": 0.51953125,
+                "exact": 0.51953125,
+                "native_token_accuracy": 0.51953125,
+                "native_exact": 0.51953125,
+                "task_nll": 1.0824054568010604,
+                "native_nll": 1.089019753599132
+              }
+            },
+            "no_query": {
+              "cases": 256,
+              "teacher_forced": {
+                "token_accuracy": 0.763671875,
+                "exact": 0.52734375,
+                "native_token_accuracy": 0.763671875,
+                "native_exact": 0.52734375,
+                "task_nll": 0.3845152317368538,
+                "native_nll": 0.39097152133035706
+              },
+              "restricted_rollout": {
+                "token_accuracy": 0.52734375,
+                "exact": 0.52734375,
+                "native_token_accuracy": 0.52734375,
+                "native_exact": 0.52734375,
+                "task_nll": 1.082674191027152,
+                "native_nll": 1.0889414992743696
+              },
+              "native_rollout": {
+                "token_accuracy": 0.52734375,
+                "exact": 0.52734375,
+                "native_token_accuracy": 0.52734375,
+                "native_exact": 0.52734375,
+                "task_nll": 1.082674191027152,
+                "native_nll": 1.0889414992743696
+              }
+            },
+            "no_reads": {
+              "cases": 256,
+              "teacher_forced": {
+                "token_accuracy": 0.7578125,
+                "exact": 0.515625,
+                "native_token_accuracy": 0.7578125,
+                "native_exact": 0.515625,
+                "task_nll": 0.38528872778527806,
+                "native_nll": 0.391751425453549
+              },
+              "restricted_rollout": {
+                "token_accuracy": 0.515625,
+                "exact": 0.515625,
+                "native_token_accuracy": 0.515625,
+                "native_exact": 0.515625,
+                "task_nll": 1.0998753844335967,
+                "native_nll": 1.1061601980436535
+              },
+              "native_rollout": {
+                "token_accuracy": 0.515625,
+                "exact": 0.515625,
+                "native_token_accuracy": 0.515625,
+                "native_exact": 0.515625,
+                "task_nll": 1.0998753844335967,
+                "native_nll": 1.1061601980436535
+              }
+            }
+          },
+          "single_pass_cpu_seconds_per_episode": 0.0030474890234374885
+        },
+        "additive_joint": {
+          "test": {
+            "cases": 1024,
+            "teacher_forced": {
+              "token_accuracy": 0.75146484375,
+              "exact": 0.5029296875,
+              "native_token_accuracy": 0.75146484375,
+              "native_exact": 0.5029296875,
+              "task_nll": 0.35310996557973495,
+              "native_nll": 0.3546192607813623
+            },
+            "restricted_rollout": {
+              "token_accuracy": 0.5029296875,
+              "exact": 0.5029296875,
+              "native_token_accuracy": 0.5029296875,
+              "native_exact": 0.5029296875,
+              "task_nll": 1.6822220304845863,
+              "native_nll": 1.6836789459875945
+            },
+            "native_rollout": {
+              "token_accuracy": 0.5029296875,
+              "exact": 0.5029296875,
+              "native_token_accuracy": 0.5029296875,
+              "native_exact": 0.5029296875,
+              "task_nll": 1.6822220304845863,
+              "native_nll": 1.6836789459875945
+            }
+          },
+          "query_pair_exact": 0.09375,
+          "lesions": {
+            "no_head": {
+              "cases": 256,
+              "teacher_forced": {
+                "token_accuracy": 0.763671875,
+                "exact": 0.52734375,
+                "native_token_accuracy": 0.763671875,
+                "native_exact": 0.52734375,
+                "task_nll": 0.35184472498083086,
+                "native_nll": 0.3534520146226896
+              },
+              "restricted_rollout": {
+                "token_accuracy": 0.52734375,
+                "exact": 0.52734375,
+                "native_token_accuracy": 0.52734375,
+                "native_exact": 0.52734375,
+                "task_nll": 1.5829826800935687,
+                "native_nll": 1.5845245410596362
+              },
+              "native_rollout": {
+                "token_accuracy": 0.52734375,
+                "exact": 0.52734375,
+                "native_token_accuracy": 0.52734375,
+                "native_exact": 0.52734375,
+                "task_nll": 1.5829826800935687,
+                "native_nll": 1.5845245410596362
+              }
+            },
+            "no_query": {
+              "cases": 256,
+              "teacher_forced": {
+                "token_accuracy": 0.759765625,
+                "exact": 0.51953125,
+                "native_token_accuracy": 0.759765625,
+                "native_exact": 0.51953125,
+                "task_nll": 0.3517120463111464,
+                "native_nll": 0.3533463458429651
+              },
+              "restricted_rollout": {
+                "token_accuracy": 0.51953125,
+                "exact": 0.51953125,
+                "native_token_accuracy": 0.51953125,
+                "native_exact": 0.51953125,
+                "task_nll": 1.6014811619841207,
+                "native_nll": 1.6030794838281963
+              },
+              "native_rollout": {
+                "token_accuracy": 0.51953125,
+                "exact": 0.51953125,
+                "native_token_accuracy": 0.51953125,
+                "native_exact": 0.51953125,
+                "task_nll": 1.6014811619841207,
+                "native_nll": 1.6030794838281963
+              }
+            },
+            "no_reads": {
+              "cases": 256,
+              "teacher_forced": {
+                "token_accuracy": 0.765625,
+                "exact": 0.53125,
+                "native_token_accuracy": 0.765625,
+                "native_exact": 0.53125,
+                "task_nll": 0.35190297323001435,
+                "native_nll": 0.3533560931107331
+              },
+              "restricted_rollout": {
+                "token_accuracy": 0.53125,
+                "exact": 0.53125,
+                "native_token_accuracy": 0.53125,
+                "native_exact": 0.53125,
+                "task_nll": 1.5721388908836418,
+                "native_nll": 1.5735327721683916
+              },
+              "native_rollout": {
+                "token_accuracy": 0.53125,
+                "exact": 0.53125,
+                "native_token_accuracy": 0.53125,
+                "native_exact": 0.53125,
+                "task_nll": 1.5721388908836418,
+                "native_nll": 1.5735327721683916
+              }
+            }
+          },
+          "single_pass_cpu_seconds_per_episode": 0.002232140843750008
+        },
+        "bilinear_joint": {
+          "test": {
+            "cases": 1024,
+            "teacher_forced": {
+              "token_accuracy": 0.75390625,
+              "exact": 0.5078125,
+              "native_token_accuracy": 0.75390625,
+              "native_exact": 0.5078125,
+              "task_nll": 0.35340973371842294,
+              "native_nll": 0.3547036821263987
+            },
+            "restricted_rollout": {
+              "token_accuracy": 0.5078125,
+              "exact": 0.5078125,
+              "native_token_accuracy": 0.5078125,
+              "native_exact": 0.5078125,
+              "task_nll": 1.6426342825412519,
+              "native_nll": 1.643893186502396
+            },
+            "native_rollout": {
+              "token_accuracy": 0.5078125,
+              "exact": 0.5078125,
+              "native_token_accuracy": 0.5078125,
+              "native_exact": 0.5078125,
+              "task_nll": 1.6426342825412519,
+              "native_nll": 1.643893186502396
+            }
+          },
+          "query_pair_exact": 0.125,
+          "lesions": {
+            "no_head": {
+              "cases": 256,
+              "teacher_forced": {
+                "token_accuracy": 0.76171875,
+                "exact": 0.5234375,
+                "native_token_accuracy": 0.76171875,
+                "native_exact": 0.5234375,
+                "task_nll": 0.35235714878273516,
+                "native_nll": 0.3537002945572567
+              },
+              "restricted_rollout": {
+                "token_accuracy": 0.5234375,
+                "exact": 0.5234375,
+                "native_token_accuracy": 0.5234375,
+                "native_exact": 0.5234375,
+                "task_nll": 1.5658313445171579,
+                "native_nll": 1.5671269983349703
+              },
+              "native_rollout": {
+                "token_accuracy": 0.5234375,
+                "exact": 0.5234375,
+                "native_token_accuracy": 0.5234375,
+                "native_exact": 0.5234375,
+                "task_nll": 1.5658313445171579,
+                "native_nll": 1.5671269983349703
+              }
+            },
+            "no_query": {
+              "cases": 256,
+              "teacher_forced": {
+                "token_accuracy": 0.75,
+                "exact": 0.5,
+                "native_token_accuracy": 0.75,
+                "native_exact": 0.5,
+                "task_nll": 0.3522246190494003,
+                "native_nll": 0.3535333950947006
+              },
+              "restricted_rollout": {
+                "token_accuracy": 0.5,
+                "exact": 0.5,
+                "native_token_accuracy": 0.5,
+                "native_exact": 0.5,
+                "task_nll": 1.6270266081852365,
+                "native_nll": 1.6283032366845873
+              },
+              "native_rollout": {
+                "token_accuracy": 0.5,
+                "exact": 0.5,
+                "native_token_accuracy": 0.5,
+                "native_exact": 0.5,
+                "task_nll": 1.6270266081852365,
+                "native_nll": 1.6283032366845873
+              }
+            },
+            "no_reads": {
+              "cases": 256,
+              "teacher_forced": {
+                "token_accuracy": 0.75,
+                "exact": 0.5,
+                "native_token_accuracy": 0.75,
+                "native_exact": 0.5,
+                "task_nll": 0.35222841204709027,
+                "native_nll": 0.353537900702122
+              },
+              "restricted_rollout": {
+                "token_accuracy": 0.5,
+                "exact": 0.5,
+                "native_token_accuracy": 0.5,
+                "native_exact": 0.5,
+                "task_nll": 1.626933888310395,
+                "native_nll": 1.6282112266230797
+              },
+              "native_rollout": {
+                "token_accuracy": 0.5,
+                "exact": 0.5,
+                "native_token_accuracy": 0.5,
+                "native_exact": 0.5,
+                "task_nll": 1.626933888310395,
+                "native_nll": 1.6282112266230797
+              }
+            }
+          },
+          "single_pass_cpu_seconds_per_episode": 0.002019446773437572
+        }
+      },
+      "test_sha256": "bb63e83911e65c6e4be983a0afdb956285638fbdfc647f3d1abbf0f830c603cb",
+      "shortcuts": {
+        "majority_supplied": {
+          "token_accuracy": 0.5,
+          "exact_accuracy": 0.0,
+          "kind": "deterministic_shortcut"
+        },
+        "input_order": {
+          "token_accuracy": 0.5,
+          "exact_accuracy": 0.5,
+          "kind": "deterministic_shortcut"
+        },
+        "last_supplied": {
+          "token_accuracy": 0.5,
+          "exact_accuracy": 0.0,
+          "kind": "deterministic_shortcut"
+        },
+        "uniform_chance": {
+          "token_accuracy": 0.5,
+          "exact_accuracy": 0.25,
+          "kind": "expected_independent_guesses"
+        }
+      }
+    },
+    {
+      "core": "minimal",
+      "seed": 19,
+      "arms": {
+        "native": {
+          "test": {
+            "cases": 1024,
+            "teacher_forced": {
+              "token_accuracy": 0.7470703125,
+              "exact": 0.494140625,
+              "native_token_accuracy": 0.7470703125,
+              "native_exact": 0.494140625,
+              "task_nll": 0.36209417825639695,
+              "native_nll": 0.36360884559576334
+            },
+            "restricted_rollout": {
+              "token_accuracy": 0.494140625,
+              "exact": 0.494140625,
+              "native_token_accuracy": 0.494140625,
+              "native_exact": 0.494140625,
+              "task_nll": 1.4099774262612181,
+              "native_nll": 1.4115014193887419
+            },
+            "native_rollout": {
+              "token_accuracy": 0.494140625,
+              "exact": 0.494140625,
+              "native_token_accuracy": 0.494140625,
+              "native_exact": 0.494140625,
+              "task_nll": 1.4099774262612181,
+              "native_nll": 1.4115014193887419
+            }
+          },
+          "query_pair_exact": 0.2109375,
+          "single_pass_cpu_seconds_per_episode": 0.0019764488750000017
+        },
+        "native_matched_core": {
+          "test": {
+            "cases": 1024,
+            "teacher_forced": {
+              "token_accuracy": 0.74169921875,
+              "exact": 0.4833984375,
+              "native_token_accuracy": 0.74169921875,
+              "native_exact": 0.4833984375,
+              "task_nll": 0.370045832962659,
+              "native_nll": 0.3720485427353424
+            },
+            "restricted_rollout": {
+              "token_accuracy": 0.4833984375,
+              "exact": 0.4833984375,
+              "native_token_accuracy": 0.4833984375,
+              "native_exact": 0.4833984375,
+              "task_nll": 1.6216909019633987,
+              "native_nll": 1.623712087366016
+            },
+            "native_rollout": {
+              "token_accuracy": 0.4833984375,
+              "exact": 0.4833984375,
+              "native_token_accuracy": 0.4833984375,
+              "native_exact": 0.4833984375,
+              "task_nll": 1.6216909019633987,
+              "native_nll": 1.623712087366016
+            }
+          },
+          "query_pair_exact": 0.2734375,
+          "single_pass_cpu_seconds_per_episode": 0.0019363707890625026
+        },
+        "additive_frozen": {
+          "test": {
+            "cases": 1024,
+            "teacher_forced": {
+              "token_accuracy": 0.73974609375,
+              "exact": 0.48046875,
+              "native_token_accuracy": 0.73974609375,
+              "native_exact": 0.48046875,
+              "task_nll": 0.38495361145320756,
+              "native_nll": 0.3897861898017254
+            },
+            "restricted_rollout": {
+              "token_accuracy": 0.48046875,
+              "exact": 0.48046875,
+              "native_token_accuracy": 0.48046875,
+              "native_exact": 0.48046875,
+              "task_nll": 1.2379891219695796,
+              "native_nll": 1.2429407108265877
+            },
+            "native_rollout": {
+              "token_accuracy": 0.48046875,
+              "exact": 0.48046875,
+              "native_token_accuracy": 0.48046875,
+              "native_exact": 0.48046875,
+              "task_nll": 1.2379891219695796,
+              "native_nll": 1.2429407108265877
+            }
+          },
+          "query_pair_exact": 0.234375,
+          "lesions": {
+            "no_head": {
+              "cases": 256,
+              "teacher_forced": {
+                "token_accuracy": 0.77734375,
+                "exact": 0.5546875,
+                "native_token_accuracy": 0.77734375,
+                "native_exact": 0.5546875,
+                "task_nll": 0.37550500669866904,
+                "native_nll": 0.3811577881097037
+              },
+              "restricted_rollout": {
+                "token_accuracy": 0.5546875,
+                "exact": 0.5546875,
+                "native_token_accuracy": 0.5546875,
+                "native_exact": 0.5546875,
+                "task_nll": 1.0657449713264606,
+                "native_nll": 1.071302891432424
+              },
+              "native_rollout": {
+                "token_accuracy": 0.5546875,
+                "exact": 0.5546875,
+                "native_token_accuracy": 0.5546875,
+                "native_exact": 0.5546875,
+                "task_nll": 1.0657449713264606,
+                "native_nll": 1.071302891432424
+              }
+            },
+            "no_query": {
+              "cases": 256,
+              "teacher_forced": {
+                "token_accuracy": 0.77734375,
+                "exact": 0.5546875,
+                "native_token_accuracy": 0.77734375,
+                "native_exact": 0.5546875,
+                "task_nll": 0.3727290130000272,
+                "native_nll": 0.3786818498556386
+              },
+              "restricted_rollout": {
+                "token_accuracy": 0.5546875,
+                "exact": 0.5546875,
+                "native_token_accuracy": 0.5546875,
+                "native_exact": 0.5546875,
+                "task_nll": 1.0802016885270322,
+                "native_nll": 1.0860795530024916
+              },
+              "native_rollout": {
+                "token_accuracy": 0.5546875,
+                "exact": 0.5546875,
+                "native_token_accuracy": 0.5546875,
+                "native_exact": 0.5546875,
+                "task_nll": 1.0802016885270322,
+                "native_nll": 1.0860795530024916
+              }
+            },
+            "no_reads": {
+              "cases": 256,
+              "teacher_forced": {
+                "token_accuracy": 0.75390625,
+                "exact": 0.5078125,
+                "native_token_accuracy": 0.75390625,
+                "native_exact": 0.5078125,
+                "task_nll": 0.37523217273203974,
+                "native_nll": 0.3796995774137031
+              },
+              "restricted_rollout": {
+                "token_accuracy": 0.509765625,
+                "exact": 0.5078125,
+                "native_token_accuracy": 0.509765625,
+                "native_exact": 0.5078125,
+                "task_nll": 1.1000473833803504,
+                "native_nll": 1.104624044492084
+              },
+              "native_rollout": {
+                "token_accuracy": 0.509765625,
+                "exact": 0.5078125,
+                "native_token_accuracy": 0.509765625,
+                "native_exact": 0.5078125,
+                "task_nll": 1.1000473833803504,
+                "native_nll": 1.104624044492084
+              }
+            }
+          },
+          "single_pass_cpu_seconds_per_episode": 0.0025531439140625
+        },
+        "bilinear_frozen": {
+          "test": {
+            "cases": 1024,
+            "teacher_forced": {
+              "token_accuracy": 0.74462890625,
+              "exact": 0.4892578125,
+              "native_token_accuracy": 0.74462890625,
+              "native_exact": 0.4892578125,
+              "task_nll": 0.38085631376912216,
+              "native_nll": 0.38606641394744656
+            },
+            "restricted_rollout": {
+              "token_accuracy": 0.4892578125,
+              "exact": 0.4892578125,
+              "native_token_accuracy": 0.4892578125,
+              "native_exact": 0.4892578125,
+              "task_nll": 1.306676958852598,
+              "native_nll": 1.312010948930947
+            },
+            "native_rollout": {
+              "token_accuracy": 0.4892578125,
+              "exact": 0.4892578125,
+              "native_token_accuracy": 0.4892578125,
+              "native_exact": 0.4892578125,
+              "task_nll": 1.306676958852598,
+              "native_nll": 1.312010948930947
+            }
+          },
+          "query_pair_exact": 0.2578125,
+          "lesions": {
+            "no_head": {
+              "cases": 256,
+              "teacher_forced": {
+                "token_accuracy": 0.77734375,
+                "exact": 0.5546875,
+                "native_token_accuracy": 0.77734375,
+                "native_exact": 0.5546875,
+                "task_nll": 0.37550500669866904,
+                "native_nll": 0.3811577881097037
+              },
+              "restricted_rollout": {
+                "token_accuracy": 0.5546875,
+                "exact": 0.5546875,
+                "native_token_accuracy": 0.5546875,
+                "native_exact": 0.5546875,
+                "task_nll": 1.0657449713264606,
+                "native_nll": 1.071302891432424
+              },
+              "native_rollout": {
+                "token_accuracy": 0.5546875,
+                "exact": 0.5546875,
+                "native_token_accuracy": 0.5546875,
+                "native_exact": 0.5546875,
+                "task_nll": 1.0657449713264606,
+                "native_nll": 1.071302891432424
+              }
+            },
+            "no_query": {
+              "cases": 256,
+              "teacher_forced": {
+                "token_accuracy": 0.7734375,
+                "exact": 0.546875,
+                "native_token_accuracy": 0.7734375,
+                "native_exact": 0.546875,
+                "task_nll": 0.37412509954921763,
+                "native_nll": 0.3795125415090297
+              },
+              "restricted_rollout": {
+                "token_accuracy": 0.546875,
+                "exact": 0.546875,
+                "native_token_accuracy": 0.546875,
+                "native_exact": 0.546875,
+                "task_nll": 1.0705651451081988,
+                "native_nll": 1.0759150245794444
+              },
+              "native_rollout": {
+                "token_accuracy": 0.546875,
+                "exact": 0.546875,
+                "native_token_accuracy": 0.546875,
+                "native_exact": 0.546875,
+                "task_nll": 1.0705651451081988,
+                "native_nll": 1.0759150245794444
+              }
+            },
+            "no_reads": {
+              "cases": 256,
+              "teacher_forced": {
+                "token_accuracy": 0.771484375,
+                "exact": 0.54296875,
+                "native_token_accuracy": 0.771484375,
+                "native_exact": 0.54296875,
+                "task_nll": 0.3742207439847728,
+                "native_nll": 0.3796034120459808
+              },
+              "restricted_rollout": {
+                "token_accuracy": 0.54296875,
+                "exact": 0.54296875,
+                "native_token_accuracy": 0.54296875,
+                "native_exact": 0.54296875,
+                "task_nll": 1.0755223353499308,
+                "native_nll": 1.0808699923654785
+              },
+              "native_rollout": {
+                "token_accuracy": 0.54296875,
+                "exact": 0.54296875,
+                "native_token_accuracy": 0.54296875,
+                "native_exact": 0.54296875,
+                "task_nll": 1.0755223353499308,
+                "native_nll": 1.0808699923654785
+              }
+            }
+          },
+          "single_pass_cpu_seconds_per_episode": 0.0018963761640625187
+        },
+        "additive_joint": {
+          "test": {
+            "cases": 1024,
+            "teacher_forced": {
+              "token_accuracy": 0.7412109375,
+              "exact": 0.482421875,
+              "native_token_accuracy": 0.7412109375,
+              "native_exact": 0.482421875,
+              "task_nll": 0.3675904400057662,
+              "native_nll": 0.37051084514132526
+            },
+            "restricted_rollout": {
+              "token_accuracy": 0.482421875,
+              "exact": 0.482421875,
+              "native_token_accuracy": 0.482421875,
+              "native_exact": 0.482421875,
+              "task_nll": 1.6472114144603458,
+              "native_nll": 1.6501626755031111
+            },
+            "native_rollout": {
+              "token_accuracy": 0.482421875,
+              "exact": 0.482421875,
+              "native_token_accuracy": 0.482421875,
+              "native_exact": 0.482421875,
+              "task_nll": 1.6472114144603458,
+              "native_nll": 1.6501626755031111
+            }
+          },
+          "query_pair_exact": 0.2734375,
+          "lesions": {
+            "no_head": {
+              "cases": 256,
+              "teacher_forced": {
+                "token_accuracy": 0.75,
+                "exact": 0.5,
+                "native_token_accuracy": 0.75,
+                "native_exact": 0.5,
+                "task_nll": 0.35739763793412005,
+                "native_nll": 0.36045109244787454
+              },
+              "restricted_rollout": {
+                "token_accuracy": 0.5,
+                "exact": 0.5,
+                "native_token_accuracy": 0.5,
+                "native_exact": 0.5,
+                "task_nll": 1.5641623697529263,
+                "native_nll": 1.5672382431844198
+              },
+              "native_rollout": {
+                "token_accuracy": 0.5,
+                "exact": 0.5,
+                "native_token_accuracy": 0.5,
+                "native_exact": 0.5,
+                "task_nll": 1.5641623697529263,
+                "native_nll": 1.5672382431844198
+              }
+            },
+            "no_query": {
+              "cases": 256,
+              "teacher_forced": {
+                "token_accuracy": 0.751953125,
+                "exact": 0.50390625,
+                "native_token_accuracy": 0.751953125,
+                "native_exact": 0.50390625,
+                "task_nll": 0.3573966373617626,
+                "native_nll": 0.3604174905422042
+              },
+              "restricted_rollout": {
+                "token_accuracy": 0.50390625,
+                "exact": 0.50390625,
+                "native_token_accuracy": 0.50390625,
+                "native_exact": 0.50390625,
+                "task_nll": 1.5639441021974196,
+                "native_nll": 1.566991698784932
+              },
+              "native_rollout": {
+                "token_accuracy": 0.50390625,
+                "exact": 0.50390625,
+                "native_token_accuracy": 0.50390625,
+                "native_exact": 0.50390625,
+                "task_nll": 1.5639441021974196,
+                "native_nll": 1.566991698784932
+              }
+            },
+            "no_reads": {
+              "cases": 256,
+              "teacher_forced": {
+                "token_accuracy": 0.75390625,
+                "exact": 0.5078125,
+                "native_token_accuracy": 0.75390625,
+                "native_exact": 0.5078125,
+                "task_nll": 0.3573000126484298,
+                "native_nll": 0.3601947578158615
+              },
+              "restricted_rollout": {
+                "token_accuracy": 0.5078125,
+                "exact": 0.5078125,
+                "native_token_accuracy": 0.5078125,
+                "native_exact": 0.5078125,
+                "task_nll": 1.5550218529496942,
+                "native_nll": 1.5579465120699751
+              },
+              "native_rollout": {
+                "token_accuracy": 0.5078125,
+                "exact": 0.5078125,
+                "native_token_accuracy": 0.5078125,
+                "native_exact": 0.5078125,
+                "task_nll": 1.5550218529496942,
+                "native_nll": 1.5579465120699751
+              }
+            }
+          },
+          "single_pass_cpu_seconds_per_episode": 0.0019415011093749657
+        },
+        "bilinear_joint": {
+          "test": {
+            "cases": 1024,
+            "teacher_forced": {
+              "token_accuracy": 0.74267578125,
+              "exact": 0.4853515625,
+              "native_token_accuracy": 0.74267578125,
+              "native_exact": 0.4853515625,
+              "task_nll": 0.3678163157039081,
+              "native_nll": 0.37056229470488233
+            },
+            "restricted_rollout": {
+              "token_accuracy": 0.4853515625,
+              "exact": 0.4853515625,
+              "native_token_accuracy": 0.4853515625,
+              "native_exact": 0.4853515625,
+              "task_nll": 1.6594271323306917,
+              "native_nll": 1.6622131570159127
+            },
+            "native_rollout": {
+              "token_accuracy": 0.4853515625,
+              "exact": 0.4853515625,
+              "native_token_accuracy": 0.4853515625,
+              "native_exact": 0.4853515625,
+              "task_nll": 1.6594271323306917,
+              "native_nll": 1.6622131570159127
+            }
+          },
+          "query_pair_exact": 0.2578125,
+          "lesions": {
+            "no_head": {
+              "cases": 256,
+              "teacher_forced": {
+                "token_accuracy": 0.751953125,
+                "exact": 0.50390625,
+                "native_token_accuracy": 0.751953125,
+                "native_exact": 0.50390625,
+                "task_nll": 0.357347458900112,
+                "native_nll": 0.3601906211665664
+              },
+              "restricted_rollout": {
+                "token_accuracy": 0.50390625,
+                "exact": 0.50390625,
+                "native_token_accuracy": 0.50390625,
+                "native_exact": 0.50390625,
+                "task_nll": 1.5594340032597287,
+                "native_nll": 1.5623027194155839
+              },
+              "native_rollout": {
+                "token_accuracy": 0.50390625,
+                "exact": 0.50390625,
+                "native_token_accuracy": 0.50390625,
+                "native_exact": 0.50390625,
+                "task_nll": 1.5594340032597287,
+                "native_nll": 1.5623027194155839
+              }
+            },
+            "no_query": {
+              "cases": 256,
+              "teacher_forced": {
+                "token_accuracy": 0.755859375,
+                "exact": 0.51171875,
+                "native_token_accuracy": 0.755859375,
+                "native_exact": 0.51171875,
+                "task_nll": 0.35725437493469414,
+                "native_nll": 0.36002975749624966
+              },
+              "restricted_rollout": {
+                "token_accuracy": 0.51171875,
+                "exact": 0.51171875,
+                "native_token_accuracy": 0.51171875,
+                "native_exact": 0.51171875,
+                "task_nll": 1.5371539744389942,
+                "native_nll": 1.539965712603589
+              },
+              "native_rollout": {
+                "token_accuracy": 0.51171875,
+                "exact": 0.51171875,
+                "native_token_accuracy": 0.51171875,
+                "native_exact": 0.51171875,
+                "task_nll": 1.5371539744389942,
+                "native_nll": 1.539965712603589
+              }
+            },
+            "no_reads": {
+              "cases": 256,
+              "teacher_forced": {
+                "token_accuracy": 0.755859375,
+                "exact": 0.51171875,
+                "native_token_accuracy": 0.755859375,
+                "native_exact": 0.51171875,
+                "task_nll": 0.35725745854426955,
+                "native_nll": 0.3600319519518962
+              },
+              "restricted_rollout": {
+                "token_accuracy": 0.51171875,
+                "exact": 0.51171875,
+                "native_token_accuracy": 0.51171875,
+                "native_exact": 0.51171875,
+                "task_nll": 1.5371833281356595,
+                "native_nll": 1.5399941575124103
+              },
+              "native_rollout": {
+                "token_accuracy": 0.51171875,
+                "exact": 0.51171875,
+                "native_token_accuracy": 0.51171875,
+                "native_exact": 0.51171875,
+                "task_nll": 1.5371833281356595,
+                "native_nll": 1.5399941575124103
+              }
+            }
+          },
+          "single_pass_cpu_seconds_per_episode": 0.0018979085859375244
+        }
+      },
+      "test_sha256": "bb63e83911e65c6e4be983a0afdb956285638fbdfc647f3d1abbf0f830c603cb",
+      "shortcuts": {
+        "majority_supplied": {
+          "token_accuracy": 0.5,
+          "exact_accuracy": 0.0,
+          "kind": "deterministic_shortcut"
+        },
+        "input_order": {
+          "token_accuracy": 0.5,
+          "exact_accuracy": 0.5,
+          "kind": "deterministic_shortcut"
+        },
+        "last_supplied": {
+          "token_accuracy": 0.5,
+          "exact_accuracy": 0.0,
+          "kind": "deterministic_shortcut"
+        },
+        "uniform_chance": {
+          "token_accuracy": 0.5,
+          "exact_accuracy": 0.25,
+          "kind": "expected_independent_guesses"
+        }
+      }
+    }
+  ]
+}

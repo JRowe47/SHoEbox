@@ -2,7 +2,8 @@
 
 - Before new capability work, read `DEVELOPMENT_HANDOFF.md` and
   `docs/capabilities/SHoEbox_Minimal_Capability_Matrix.md`. EXP00 is complete
-  on full C; EXP01 query/readout diagnosis is the next unexecuted item.
+  on full C; EXP01's initial query/readout screen is complete. The next item
+  is EXP01-B: online factorized query/key/value selection over existing evidence.
   Record the selected core explicitly and keep historical/full-C evidence
   separate from minimal-v19 qualifications.
 

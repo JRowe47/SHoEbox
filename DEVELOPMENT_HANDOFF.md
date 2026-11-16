@@ -2,14 +2,15 @@
 
 15 November 2026 (America/Denver). Runtime baseline: minimal corrected C, checkpoint v19, source `317fbcd023b9d9b3c2b359ba8f99f3dadbf46783`.
 
-**Next action: EXP01 — diagnose query binding and native readout on explicitly selected minimal and full cores.** EXP00 is complete. EXP01 has not been executed. This handoff documents the already-published runtime and results; it adds no training or runtime changes.
+**Next action: EXP01-B — learn factorized query/key selection and value readout online over existing evidence.** EXP00 and EXP01's initial diagnostic screen are complete. The screen localizes two-key binding failure to selection/readout learning: minimal L3 supports 99.93% strict first-query recovery with a separately supervised offline probe, while native two-answer exactness is 49.45%. Generic online heads do not repair it. Minimal v19 remains the production default.
 
 ## Read first
 
 1. [Current minimal capability matrix](docs/capabilities/SHoEbox_Minimal_Capability_Matrix.md): all 66 capabilities and eight engineering enablers.
 2. [Minimal baseline specification and qualification](reports/minimal_core/SHoEbox_Minimal_Core_Baseline.md).
-3. [Completed EXP00 results](reports/exp00/README.md) and [task/control implementation](experiments/mad_next/README.md).
-4. [Research plan](docs/capabilities/SHoEbox_Capability_Research.md) and [machine-readable backlog](docs/capabilities/SHoEbox_Experiment_Backlog.json).
+3. [EXP01 findings, literature and costs](reports/exp01/SHoEbox_EXP01_Query_Readout.md) and [implemented adapter/commands](experiments/query_readout/README.md).
+4. [Completed EXP00 results](reports/exp00/README.md) and [task/control implementation](experiments/mad_next/README.md).
+5. [Research plan](docs/capabilities/SHoEbox_Capability_Research.md) and [machine-readable backlog](docs/capabilities/SHoEbox_Experiment_Backlog.json).
 
 ## Runtime contract
 
@@ -69,7 +70,7 @@ Three paired seeds, nominal 500K models. FineWeb: 1M next-byte targets per fit. 
 
 Removing addressed/retained reads lowers minimal copy accuracy to 11.85%. Zeroing final L3 state lowers reconstruction to 7.42%. The reconstruction decoder reads only final L3 state and is included in the fitted budget. This result qualifies bounded-state reconstruction, not semantic summarization or native-language answering.
 
-The published runtime qualification includes 48 runtime and 35 research Python tests, optimized/native sanitizer checks, 713 added minimal checks, exact minimal continuation and byte-identical continuation of seven historical policies. These are previously recorded checks, not tests rerun for this documentation update.
+The original runtime qualification included 48 runtime and 35 research Python tests, optimized/native sanitizer checks, 713 added minimal checks, exact minimal continuation and byte-identical continuation of seven historical policies. EXP01 reran the 48 runtime tests, the current 40 MAD/EXP00/query tests, and the complete native suite; its 1,992 added native checks also pass optimized and ASan/UBSan builds. See the EXP01 report for exact scope and source/log hashes.
 
 The existing short timing comparison does not justify a strong throughput claim. Preserve language, copy and reconstruction as regression fixtures; measure new work with isolated timing.
 
@@ -90,7 +91,34 @@ Controls use parsed records and independently registered budgets; their scores e
 
 Formal EXP00 cost: 897,000,000 encoded bytes. Development pilots: 301,552,768 bytes. The older 94-fit/31M-byte first-tranche table is a conditional planning estimate, not the actual EXP00 cost or an instruction to repeat the campaign.
 
-## EXP01 execution contract
+## Completed EXP01 initial screen
+
+| Measurement | Minimal | Full C |
+| --- | ---: | ---: |
+| Native two-answer exactness | 49.45% | 49.51% |
+| Single supplied-value copying | 99.35% | 98.70% |
+| Factorized strict first-query probe from L3 | 99.93% | 99.22% |
+
+The native endpoint uses full-256-byte autoregressive output. The probe is an
+offline, separately supervised diagnostic with predicted query/key/value heads;
+it does not qualify native binding. All six native/additive/bilinear arms remain
+near the 50% shortcut. No candidate is promoted and no production runtime file
+changes. The new native C++ adapter is online, one-pass, and adds no persistent
+sequence state or optimizer moments.
+
+There are 36 comparison branches across two explicit cores and three seeds.
+Formal charged training is 21M bytes, plus 1.7M pilot and 1.5M copy-control
+bytes: **24.2M actual online training bytes**. Offline probe fits are recorded
+separately. Compact evidence and citations are in `reports/exp01/`.
+
+## EXP01-B execution contract and remaining qualification
+
+The original diagnosis contract below remains the qualification roadmap. The
+first screen covered native rollout, frozen/joint online readouts, separate
+representation sources, counterfactual query orders, and training-only probe
+normalization. Full write-to-read delay sweeps, all 64 answer offsets, optimizer
+confirmation, and language regressions remain pending. Do not label those
+completed from the first screen.
 
 1. **Verify architecture and fixture selection.** Use minimal v19 as the production baseline and explicit full C/warmup as the historical comparator. Record actual fitted parameters, state inventory, seeds and source hashes. Start with a single key/value binding and no distractor writes; then use the balanced two-key fixture with distinct values and independent record/query order.
 2. **Locate the failing stage.** Measure value availability immediately after writing, after retention, at the query-conditioned read and at native decoding. Probe addressed reads, retained reads and final L3 state separately and in combination. Freeze the same observation state while changing only the query.
@@ -101,13 +129,22 @@ Formal EXP00 cost: 897,000,000 encoded bytes. Development pilots: 301,552,768 by
 
 The comparative calibration gate remains shortcut-normalized exactness in the declared band, with learned controls and the required seed/sample counts. A diagnostic may explain a failure without clearing that gate; do not present it as a capability promotion.
 
-No EXP01 runner exists in this handoff. Reuse `experiments/mad_next/` fixtures and controls, implement the required adapter/registration path, and document its actual invocation.
+The existing `experiments/query_readout/` adapter and registered train/audit runner
+reuse `experiments/mad_next/` fixtures. Reproduction is documented there. Build
+the next candidate with separate query/key selection and value decoding, using
+[key-value memory separation](https://aclanthology.org/D16-1147/), plus direct
+local credit from already observed constituents. Compare that credit with
+answer-only training at matched capacity. Keep parsed record IDs and the
+offline probe out of native inference. Require native exactness ≥95%, no seed
+below 90%, query counterfactuals, one-pass cost, and the remaining regression
+checks before default promotion. Register a new audit fold after these results
+have informed the new design.
 
 ## Following work
 
 | Order | Packages | Implementation target |
 | --- | --- | --- |
-| 1 | EXP01 | Query-conditioned access and native readout |
+| 1 | EXP01-B | Online factorized query/key selection and value readout; then native qualification |
 | 2 | EXP02/03 | Independent state capacity; delay, interference, eviction and retrieval |
 | 3 | EXP04/05 | Initialization, set/copy/swap; selective erase/write and state correction |
 | 4 | EXP06/07/22 | Useful 16/64-byte summaries; suitable objectives; query-time/boundary access |
@@ -126,6 +163,8 @@ Use the existing relevant runtime/native, causality, checkpoint and MAD checks f
 ```bash
 python -m multiscale.tests.run_all
 python -m unittest experiments.mad.test_protocol experiments.mad_next.test_exp00 -v
+python -m unittest experiments.query_readout.test_adapter -v
+python -m experiments.query_readout.check_native
 python -m experiments.mad.run --core minimal --preset smoke --execute --out /tmp/minimal-mad-smoke.json
 ```
 

@@ -6,7 +6,8 @@ Start with [DEVELOPMENT_HANDOFF.md](DEVELOPMENT_HANDOFF.md) for the minimal v19
 contract, measured capability results and the next execution step. The
 [current capability matrix](docs/capabilities/SHoEbox_Minimal_Capability_Matrix.md)
 tracks all 66 capabilities and eight engineering enablers against minimal.
-EXP00 is complete on historical full C; **EXP01 query/readout diagnosis is next**.
+EXP00 and the initial EXP01 screen are complete; **EXP01-B online factorized
+query/key/value readout is next**.
 New studies must select minimal/full explicitly and keep their evidence separate.
 
 ## Capability development protocols
@@ -19,6 +20,13 @@ curves, and frozen loop/memory/expert interventions. Start with
 to run the smoke qualification.
 
 ## Selected runtime: minimal corrected-C core
+
+**Next capability development:** [EXP01 query/readout diagnosis](reports/exp01/SHoEbox_EXP01_Query_Readout.md)
+is complete for the initial three-seed screen. A factorized diagnostic recovers
+the first binding from minimal L3 at 99.93%; generic online heads leave native
+two-answer binding near 50%. The next build is an online factorized query/key/value
+readout. The tested research adapters and citations are in
+[`experiments/query_readout`](experiments/query_readout/README.md).
 
 The default `shoe_multiscale` model is the **minimal corrected-C core (v19)**.
 Sparse experts run at the 1/4-byte scales; ordered, trainable summaries run at

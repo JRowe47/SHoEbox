@@ -7,8 +7,9 @@ and one-pass prediction. Full C remains available as `Model(core="full")`.
 For current capability status and the next implementation, use the
 [minimal capability matrix](../../docs/capabilities/SHoEbox_Minimal_Capability_Matrix.md)
 and [development handoff](../../DEVELOPMENT_HANDOFF.md). EXP00 is complete on full C;
-EXP01 query/readout diagnosis has not run. This report's qualification results
-remain unchanged.
+the initial [EXP01 query/readout screen](../exp01/SHoEbox_EXP01_Query_Readout.md)
+is complete. EXP01-B online factorized readout is next. This report's baseline
+qualification results remain unchanged.
 
 ## Architecture
 
@@ -132,8 +133,10 @@ python -m multiscale.tests.run_all
 
 The MAD v1 command retains `--core full` as its historical default; select
 `--core minimal` for new baseline studies. Explicit historical architecture
-options remain reproducible. The next capability task remains EXP01 query/readout
-diagnosis, with the architecture named explicitly in each comparison.
+options remain reproducible. The initial [EXP01 query/readout diagnosis](../exp01/SHoEbox_EXP01_Query_Readout.md)
+is now complete. Its next implementation is an online factorized query/key/value
+readout, with the architecture named explicitly in each comparison. Generic
+online output heads did not pass the native binding gate; v19 remains the default.
 
 Source, tests and compact evidence are committed. Trained weights, datasets and
 temporary model snapshots are excluded.
