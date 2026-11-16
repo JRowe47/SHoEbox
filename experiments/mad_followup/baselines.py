@@ -31,6 +31,9 @@ def predictions(ep,spec):
         majority=min(counts,key=lambda x:(-counts[x],x))
         result["query_blind_majority"]=[majority]*n
         result["last_supplied_value"]=[supplied[-1]]*n
+        if spec.task in ("recall","noisy_recall","fuzzy_recall"):
+            assert len(supplied)==n
+            result["query_blind_input_order"]=supplied.copy()
         result["uniform_supplied_value_distribution"]={str(k):v/len(supplied) for k,v in counts.items()}
     if spec.task in ("variable_tracking","composition"):
         state={}
