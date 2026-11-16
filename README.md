@@ -1,5 +1,14 @@
 # SHoEbox
 
+## Continue capability development
+
+Start with [DEVELOPMENT_HANDOFF.md](DEVELOPMENT_HANDOFF.md) for the minimal v19
+contract, measured capability results and the next execution step. The
+[current capability matrix](docs/capabilities/SHoEbox_Minimal_Capability_Matrix.md)
+tracks all 66 capabilities and eight engineering enablers against minimal.
+EXP00 is complete on historical full C; **EXP01 query/readout diagnosis is next**.
+New studies must select minimal/full explicitly and keep their evidence separate.
+
 ## Capability development protocols
 
 [MAD-style experiments](experiments/mad/README.md) provide nine reproducible

@@ -1,7 +1,8 @@
 # SHoEbox capability research and development plan
 
-**Revision 2 · 15 November 2026**  
-Revises `SHoEbox_Capability_Research.md` against the generalist capability matrix and completed MAD campaign.
+**Revision 3 · 15 November 2026 (America/Denver)**
+
+Current baseline: minimal corrected C, v19, at `317fbcd023b9d9b3c2b359ba8f99f3dadbf46783`. This revision reconciles implementation status and the development handoff; it adds no training results.
 
 **Development decision: repair query binding, retention, and state transitions first; then establish composition and useful upper-level computation; then return to inference-time reasoning.** Use the minimal corrected-C core as the new production control and retain full C as a historical comparator. The next build should be a small, query-conditioned state/readout experiment, with a matched-capacity working-slot alternative. Deeper recurrence is now a gated follow-on rather than the first intervention.
 
@@ -14,13 +15,18 @@ Historical results and EXP00 below still refer to full C; they are not relabeled
 as minimal results. Start EXP01 on explicitly selected minimal and full cores,
 recheck its fixtures, and attribute any change to the named architecture.
 
+**Start the next development session with [DEVELOPMENT_HANDOFF.md](../../DEVELOPMENT_HANDOFF.md).**
+The [minimal capability matrix](SHoEbox_Minimal_Capability_Matrix.md) is the current
+implementation/evidence inventory. It replaces the older full-C status view;
+prior assessments remain preserved separately in the backlog and git history.
+
 This plan defines **24 experiment packages**, a **30-paper working bibliography**, and a mapping of **all 66 capabilities plus eight engineering enablers** to development work. The 66 include 62 core capabilities and four optional multimodal capabilities. Early packages specify focused mechanism tests; later packages contain separately scored qualification suites. The original research revision preceded execution; the update below records the first completed item. No capability promotion follows from these calibration results.
 
 **Execution update — 16 November 2026 UTC.** EXP00 is complete: six new fixture families, eight settings, three seeds, 48 formal fits, and a locked held-out audit. Learned controls reach 100% exact on all six audited families. Corrected C scores 50.07% exact on balanced two-key binding versus the 50% input-order shortcut; none of the eight development settings clears the comparative calibration gate. **Proceed to EXP01 as a query/readout diagnostic repair.** Expanded control training was registered separately: 897M formal encoded bytes plus 301.55M in retained development-only pilots. [Results, code, costs, and reproduction instructions](../../reports/exp00/README.md).
 
 ## 1. Evidence that changes the original plan
 
-The current `main` was checked at `6384d8ca072075ec58010b4c3d5964e9e60fcd3e`. The completed research campaign is pinned separately at `d899a1a49b1af2f4a2cf0c89b000da69ea5f3597`. The latter is research evidence, not an assumption that its adaptations have entered production. [S1–S4]
+The historical full-C evidence below used `6384d8ca072075ec58010b4c3d5964e9e60fcd3e`; it predates minimal v19. The completed research campaign is pinned separately at `d899a1a49b1af2f4a2cf0c89b000da69ea5f3597`. The latter is research evidence, not an assumption that its adaptations have entered production. [S1–S4]
 
 | Recorded result | What it establishes | Development consequence |
 | --- | --- | --- |
@@ -35,21 +41,24 @@ The current `main` was checked at `6384d8ca072075ec58010b4c3d5964e9e60fcd3e`. Th
 
 The campaign completed **435 fits and 131.25M observed training bytes**. Its selected synthetic comparisons did not run a natural-language regression evaluation. Compression used a dedicated final-L3-state decoder; the historical long-delay cue success used routing A. Preserve both scopes. [S2,S3]
 
-The inventory currently records **0 generally demonstrated, 5 narrowly demonstrated, 4 demonstrated in principle, 9 unworking at their tested operating point, and 48 untested capabilities**. Implementation and evidence remain separate fields. In particular, “untested” stays distinct from “unworking.” [S2]
+The pre-minimal inventory recorded **0 generally demonstrated, 5 narrowly demonstrated, 4 demonstrated in principle, 9 unworking at their tested operating point, and 48 untested capabilities**. These are historical counts, not minimal-v19 counts; use the current minimal matrix for present status. Implementation and evidence remain separate fields. In particular, “untested” stays distinct from “unworking.” [S2]
 
 ### What is already implemented, and what is still proposed
 
-| Mechanism | Current position | Treatment in this plan |
+| Mechanism | Current minimal position | Treatment in this plan |
 | --- | --- | --- |
-| 1/4/16/64-byte hierarchy, exact corrected-C routing, addressed and retained reads | Implemented | Baseline |
-| Upper constituent refinement using the already selected expert | Implemented, optional; tested without general benefit | Negative/control arm, not a new implementation task |
-| State-change convergence stopping | Implemented | Compare with accuracy-aware allocation later |
-| Intermediate state-credit adapter | Implemented in research | Reuse with atomic tasks and head-only controls |
-| Independent query-addressable working slots | Proposed | EXP02 |
-| A candidate answer plus revisable workspace and per-pass retrieval | Proposed; not what the existing loop implements | EXP08/EXP10 |
-| Learned continuation, verifier search, tool execution | Missing integrated workflows | EXP11/EXP12/EXP18 |
+| 1/4-byte exact corrected-C sparse experts | Implemented | Production baseline |
+| 16/64-byte ordered trainable summaries; diagonal recurrence; constant output modulation | Implemented | Preserve; establish useful conditional information |
+| MinKron context, addressed and retained reads, reconstruction and child credit | Implemented | Preserve measured copy/reconstruction contributions |
+| Upper expert banks/routing/forecast heads and dynamic output modulation | Excluded from minimal | Restore only as a separately measured candidate |
+| Upper constituent refinement and convergence stopping | Full-research only | Historical controls after useful state/composition gates |
+| Route-local learning-rate cycles and experimental credit multipliers | Full-research only | Explicit compatible architecture; no silent minimal extension |
+| Intermediate state-credit adapter | Existing full-C research adapter | Validate/port minimal compatibility before use |
+| Independent query-addressable working slots | Proposed | EXP02 only if EXP01 identifies a state need |
+| Revisable workspace, candidate answer and per-pass retrieval | Proposed | EXP08/EXP10 |
+| Learned continuation, verifier search and tool execution | Missing integrated workflows | EXP11/EXP12/EXP18 |
 
-**Depth notation:** use `u` for extra passes and `K=1+u` for total applications. Current MAD tests use `u∈{0,1,2,4}` at L2/L3 with convergence stopping disabled. Four extra passes means five total applications, whereas the original proposal's four-total-pass illustration meant three extra. With L1 loops off, matrix applications per 64 observed bytes are `85+5u`: 85, 90, 95, and 105 respectively. The existing policy reuses its selected expert and adds no routing search. These are operation counts, not throughput forecasts. New workspace/query loops require fresh accounting. [S4,S5]
+**Historical depth notation:** `u` is extra passes and `K=1+u` total applications. The existing full-C MAD loop tests use `u∈{0,1,2,4}` at L2/L3; with L1 loops off, expert applications per 64 bytes are `85+5u`. This accounting belongs to the full architecture. Minimal uses one-pass prediction and has no upper expert applications; new workspace/query-loop candidates need their own accounting. [S4,S5]
 
 ## 2. Development sequence and gates
 
@@ -67,6 +76,8 @@ The inventory currently records **0 generally demonstrated, 5 narrowly demonstra
 These are dependency gates, not a requirement to finish every experiment in one wave before preparing the next. Language data and evaluators can be built early. Language qualification need not wait for adaptive halting, and useful one-pass solutions may advance without any looping module. Run EXP22 early only if boundary-offset tests in EXP06 identify a timing/segmentation bottleneck.
 
 ![Development dependencies and decision gates](SHoEbox_Development_Roadmap.png)
+
+The roadmap image records the revision-2 dependency proposal, not completed work or the current architecture. The handoff and backlog carry current execution and minimal-core status.
 
 ### Proposed acceptance standards
 
@@ -99,7 +110,7 @@ Randomize key identities, value identities, record order, query order, and irrel
 
 ### 3.2 Preserve fair selection and independent evidence
 
-- Screen at **500K fitted parameters**, then confirm useful mechanisms at 1M and 5M separately. The current four-level topology does not fit every 100K budget; smaller models require an explicit topology change.
+- Screen at **500K nominal parameters** and record actual fitted counts, then confirm useful mechanisms at 1M and 5M separately. For every size, verify the selected architecture's actual topology, parameter count and state inventory rather than inheriting a historical size assumption.
 - Use paired seeds **1, 7, 19** for development. Confirm locked finalists with **1, 7, 19, 31, 43** and reserved audit examples; publish every seed. Three-seed bootstrap intervals are exploratory, not strong precision estimates.
 - Retain equal six-policy searches: base LR multiplier `{0.5,1,2}` × native auxiliary weight `{0,0.1}`. Select by mean final development task NLL with identical seed coverage. New gate/adaptation hyperparameters receive a separately counted, equally budgeted search.
 - Keep initialization, finite training order, dataset hashes, observed-byte exposure, and document resets paired. Fix the schedule for the chosen horizon; do not simultaneously introduce route oscillation.
@@ -124,7 +135,7 @@ For loops, run the full cross-table of **training depth × frozen inference dept
 
 ## 4. Experiment catalog
 
-Every package below is planned. IDs are stable handles for implementation issues and future reports. Dependencies refer to usable results, not simply completed runs. The papers motivate an intervention or evaluation; the candidate designs are SHoEbox adaptations.
+EXP00 is complete on full C. EXP01 is ready for diagnostic execution; the remaining packages are planned. IDs are stable handles for implementation issues and future reports. Dependencies refer to usable results, not simply completed runs. The papers motivate an intervention or evaluation; the candidate designs are SHoEbox adaptations.
 
 
 ### EXP00 — Repair calibration and establish learned positive controls
@@ -146,11 +157,13 @@ Every package below is planned. IDs are stable handles for implementation issues
 **Priority:** P0 · **Wave:** B · **Capabilities:** M05, M07, C02  
 **Dependencies:** EXP00 · **Papers:** P02, P03
 
+**Entry status:** EXP00 is complete on full C; EXP01 is ready for diagnostic execution and has not run. Begin with one binding. See the handoff for explicit core selection and accounting.
+
 **Question.** Is the value missing, or is the model failing to select and decode an available value for the current key?
 
-**Experiment and controls.** Begin with two distinct key/value pairs, no irrelevant records, both query orders, and randomized names. Compare corrected C; a query-conditioned low-rank readout with the core frozen; and the same readout trained end to end. Deduct added readout parameters from bank capacity. Use raw/centered/standardized frozen probes with the same fitting procedure, and a matched-capacity generic head. Keep explicit query-index access as a diagnostic oracle only.
+**Experiment and controls.** Begin with a single binding, then two distinct key/value pairs, no irrelevant records, both query orders and randomized names. Explicitly compare minimal v19 and full C with coverage-only warmup. Add a query-conditioned low-rank readout with the core frozen and then trained end to end, plus a matched-capacity generic head. Deduct head parameters from bank capacity. Fit raw/centered/standardized probes identically. Keep query-index oracle access outside scored native inference.
 
-**Readout.** Require whole-episode correctness and the right answer change when only the query is swapped. Separately inspect addressed reads, retained reads, final L3, and their combinations through identical probes. Freeze observation state while swapping queries to expose input-order copying. Run one-key initialization/query tests if two-key binding remains unsolved.
+**Readout.** Require autoregressive whole-episode correctness and correct answer changes under query swaps; score full-256-byte output separately from restricted output. Probe addressed reads, retained reads and final L3 separately and jointly; distinguish immediate write availability, pre-query retention, query-conditioned selection and native decoding. Use one-binding initialization/query tests first, then the locked balanced two-key fixture.
 
 **Decision.** A readout-only win selects the cheaper repair. If a matched probe can decode a value but native generation cannot, repair query/readout integration. If neither can recover it, pass the failure to EXP02/EXP03. Stop broad optimizer searches once this distinction is clear.
 
@@ -159,6 +172,8 @@ Every package below is planned. IDs are stable handles for implementation issues
 
 **Priority:** P0 · **Wave:** B · **Capabilities:** M04, M07, M15  
 **Dependencies:** EXP00, EXP01 · **Papers:** P02, P10
+
+**Minimal baseline scope.** Add working-slot research candidates only after EXP01 shows a state/capacity need; match actual usable state bytes and total fitted parameters.
 
 **Question.** Does addressable, independently editable state solve binding more effectively than a larger undifferentiated state or more experts?
 
@@ -187,6 +202,8 @@ Every package below is planned. IDs are stable handles for implementation issues
 
 **Priority:** P0 · **Wave:** C · **Capabilities:** M10, C02, R02  
 **Dependencies:** EXP01, EXP02 · **Papers:** P06, P07
+
+**Minimal baseline scope.** Existing structured_state adapter targets full C; verify or port explicit minimal selection before comparing state-credit arms.
 
 **Question.** Can one operator update the intended register while preserving all others?
 
@@ -218,17 +235,19 @@ Every package below is planned. IDs are stable handles for implementation issues
 
 **Question.** Can L2/L3 preserve and transform information that the local byte path cannot solve from its immediate context?
 
-**Experiment and controls.** Use balanced tasks whose local suffixes are identical while the correct answer changes with an earlier binding or operator. First expose/query a completed upper state through the research adapter; then restore the native byte readout. Probe every prefix offset modulo 64 so answer placement cannot depend on the fixture always completing L3. Compare mean upper outputs, exchanged active expert transforms, and frozen upper contributions with intact lower processing.
+**Experiment and controls.** Use balanced tasks with identical local suffixes and different correct answers determined by an earlier binding/operator. On minimal, expose completed 16/64-byte summary state, then require native-byte answers. Sweep all prefix offsets modulo 64 and compare frozen/mean/zeroed summary contributions with intact lower processing. Full C is a separately named historical comparator; upper-expert restoration is a candidate only if justified.
 
-**Readout.** Require held-out task improvement plus useful upper-state and expert-permutation effects, recording how many active experts are actually exchanged. Test cross-task expert swaps and role-preserving renaming. Measure whether the needed fact is absent, encoded but inaccessible, or correct only at constituent boundaries.
+**Readout.** Require held-out improvement and useful input-dependent summary contributions. Track whether a fact is absent, encoded but inaccessible, or accessible only at group boundaries. Active-expert permutations apply only to expert-bearing arms; report their exchanged active-expert counts. No upper-expert permutation or specialization claim applies to minimal.
 
-**Decision.** If boundary timing is the failure, activate EXP22 or a separately measured query-time read of already available evidence. If representations are sound but expert swaps remain irrelevant, test expert-specific credit/input conditioning; do not force utilization and call it specialization. Promote C01 only when conditional specialization, not merely broad routing, is demonstrated.
+**Decision.** If timing is the failure, activate EXP22/query-time access. Restore upper experts only if a registered candidate beats the simpler summaries on held-out quality and measured cost. C01 requires actual upper experts and conditional specialization evidence.
 
 
 ### EXP07 — Compare future-structure and state-progress objectives
 
 **Priority:** P1 · **Wave:** C · **Capabilities:** C01, C02, R08, R10  
 **Dependencies:** EXP04, EXP06 · **Papers:** P11, P12
+
+**Minimal baseline scope.** Minimal has no upper forecast heads; add any new auxiliary heads as explicit research candidates with full cost and gradient accounting.
 
 **Question.** Which training target makes upper state useful beyond the next byte without conflicting with language learning?
 
@@ -272,6 +291,8 @@ Every package below is planned. IDs are stable handles for implementation issues
 **Priority:** P1 · **Wave:** E · **Capabilities:** C03, R01, R02, R07  
 **Dependencies:** EXP06, EXP08, EXP09 · **Papers:** P10, P15, P16, P17
 
+**Minimal baseline scope.** Minimal has no refinement loops. A new revisable workspace/retrieval loop is a separate candidate; existing full loops remain historical controls.
+
 **Question.** Does additional inference computation improve the same model after binding and transitions work?
 
 **Experiment and controls.** Preserve the current shared-expert refinement as a control. Add a separate candidate-answer state and a working workspace, anchored to immutable observed evidence. Compare a tied upper operator plus thought adapter with an equal-parameter small reasoning bank. Allow each thought to update its query; record reads and routes. Start with u={0,1,2,4}, fixed budgets and mixed-depth training; keep the observation clock, admissions, and target update count unchanged.
@@ -285,6 +306,8 @@ Every package below is planned. IDs are stable handles for implementation issues
 
 **Priority:** P2 · **Wave:** E · **Capabilities:** C04, C05  
 **Dependencies:** EXP10 · **Papers:** P17, P18, P19
+
+**Minimal baseline scope.** Minimal has no loop/halting controller. Compare allocation only after a candidate demonstrates useful extra inference passes.
 
 **Question.** Can the model buy the same useful reasoning with fewer passes and lower tail latency?
 
@@ -412,6 +435,8 @@ Every package below is planned. IDs are stable handles for implementation issues
 **Priority:** P1 · **Wave:** D · **Capabilities:** C11, C01, R08, R09, R11, E02  
 **Dependencies:** EXP06, EXP09 · **Papers:** P01, P13, P14
 
+**Minimal baseline scope.** Test minimal reuse in the 1/4-byte banks. C01 upper specialization applies only to explicit expert-bearing candidates.
+
 **Question.** Do experts learn reusable operations rather than task-specific encoding shortcuts?
 
 **Experiment and controls.** Train related tasks sharing primitives and unrelated controls with equal total bytes. Compare fresh training, frozen pretrained banks with new readouts, joint training, and controlled expert/route swaps. Randomize task labels and surface forms. Test whether a reusable operator transfers to new roles, values and task combinations.
@@ -426,6 +451,8 @@ Every package below is planned. IDs are stable handles for implementation issues
 **Priority:** P1 · **Wave:** Support · **Capabilities:** L01, M15, R10, E06, E07  
 **Dependencies:** EXP00, EXP02, EXP04 · **Papers:** P01, P29
 
+**Minimal baseline scope.** Fixed-rate minimal is the baseline. Route-rate cycles and inference-depth sweeps require explicitly compatible research architectures; never enable them silently on minimal.
+
 **Question.** Which resource actually moves the quality and capability frontier?
 
 **Experiment and controls.** Carry at most two successful mechanisms forward. Vary expert-bank parameters at fixed state, working/retained state at fixed weights, inference passes at fixed checkpoint, and training exposure at fixed architecture. Start at feasible 500K/1M/5M sizes; add 20M/100M only after smaller curves identify a useful trend. Compare the fixed corrected-C rate policy with route-local control in a separate arm.
@@ -439,6 +466,8 @@ Every package below is planned. IDs are stable handles for implementation issues
 
 **Priority:** P1 · **Wave:** Conditional · **Capabilities:** E08, E03, C01, L01, L10  
 **Dependencies:** EXP06 · **Papers:** P16, P30
+
+**Minimal baseline scope.** Test query-time access to minimal partial/completed summaries first; introduce segmentation only after a boundary-dependent failure.
 
 **Question.** Do fixed boundaries prevent relevant state from becoming available when it is needed?
 
@@ -465,9 +494,9 @@ Every package below is planned. IDs are stable handles for implementation issues
 
 ## 5. First concrete development tranche
 
-**Implement EXP00 and EXP01 first, then the minimum EXP02 adapter needed for a four-arm binding comparison.** Retention diagnostics in EXP03 can use those frozen checkpoints before starting another broad training grid.
+**EXP00 is complete; execute EXP01's write/read/query diagnosis next.** Reuse existing fixtures and controls with explicit minimal/full architecture selection. Add the minimum EXP02 adapter only if the diagnosis identifies a state-capacity need. EXP03 can then use frozen checkpoints for retention diagnostics before another broad training grid.
 
-The initial comparison uses **500K total fitted parameters**, balanced two-key binding, distinct values, no additional distractor writes, and independently randomized record/query order. Preserve corrected C and its byte interface. Freeze the calibrated setting before comparing architectures.
+The planned comparison starts at **500K nominal parameters**, records actual fitted counts, and uses balanced two-key binding, distinct values, no additional distractor writes, and independent record/query order. First establish the one-binding diagnostic. Preserve minimal C and its byte interface; retain full C as a named comparator. Freeze a calibrated setting before a comparative sweep.
 
 | Arm | Change | What it isolates |
 | --- | --- | --- |
@@ -478,7 +507,7 @@ The initial comparison uses **500K total fitted parameters**, balanced two-key b
 
 All arms have matched total fitted parameters, with readout/projection costs deducted from bank capacity. C/D match actual key/value/metadata state bytes; A/B deliberately retain the smaller current state. Frozen raw/conditioned probes and explicit-query oracles are diagnostics outside the scored native path. This is a declared state-capacity comparison, so the current harness needs a new inventory/checking mode before C/D can run.
 
-### Registered training ceiling
+### Historical conditional training estimate
 
 | Component | Calculation | Fits | Observed bytes |
 | --- | --- | ---: | ---: |
@@ -488,7 +517,7 @@ All arms have matched total fitted parameters, with readout/projection costs ded
 | Locked control/challenger confirmation | 2 arms × 5 seeds × 1M bytes | 10 | 10.00M |
 | **Total if all gates advance** | | **94** | **31.00M** |
 
-This is a planning ceiling for the binding tranche, not a claim that the budget guarantees success. Calibration/positive-control failure stops the next stage. Confirmation keeps the selected architecture and optimizer policy fixed at 500K parameters while extending exposure to 1M bytes; larger parameter sizes are separate follow-ups. Exact/interpreter checks and frozen probes add evaluation time, not training fits. Natural-language regression runs, new positive-control searches, and expanded state sweeps require separately registered budgets; their costs must not disappear from a later total.
+This revision-2 table is a conditional planning estimate, not actual EXP00 spending or a current execution instruction. EXP00 completed with 897M formal bytes plus 301,552,768 development-pilot bytes. Register a fresh EXP01 diagnostic budget before fitting; do not rerun EXP00 or automatically launch this 94-fit screen. Calibration/positive-control failure stops the next stage. Confirmation keeps the selected architecture and optimizer policy fixed at 500K parameters while extending exposure to 1M bytes; larger parameter sizes are separate follow-ups. Exact/interpreter checks and frozen probes add evaluation time, not training fits. Natural-language regression runs, new positive-control searches, and expanded state sweeps require separately registered budgets; their costs must not disappear from a later total.
 
 ### First-tranche outcomes
 
@@ -502,13 +531,13 @@ This is a planning ceiling for the binding tranche, not a claim that the budget 
 
 | Area | Existing integration point | Planned addition / required check |
 | --- | --- | --- |
-| Task definitions | `experiments/mad/tasks.py` | Versioned balanced binding, atomic state, corrupted-cue and boundary-offset generators; independent interpreters |
+| Task definitions | Historical `experiments/mad/tasks.py`; completed EXP00 `experiments/mad_next/tasks.py` | Reuse balanced binding/atomic-state fixtures and independent interpreters; add only missing one-binding, corrupted-cue or isolated boundary diagnostics |
 | Model adapter | `experiments/mad/backend.py` / `BenchModel` | Explicit readout/state-capacity experiment classes; frozen probes; separate memory lesions |
 | Run registration | `experiments/mad/run.py`, protocol files | Shortcut-aware calibration beside legacy scoring, matched searches, fixed audit folds, actual budget accounting |
-| Research namespace | Proposed `experiments/mad_next/` | EXP-ID manifests, candidate adapters, derived reports; names are planned, not existing commands |
+| Research namespace | Existing `experiments/mad_next/` implements EXP00 | Add and document EXP01 adapter/registration commands; no EXP01 runner is claimed yet |
 | Native model/readout | Current multiscale runtime and research bridge | Query conditioning, slot read/write interfaces, normalizer snapshot, bounded temporary state |
 | Update policies | Selected memory block | Isolated write/transition variants; scalar references and derivative checks before optimized paths |
-| Refinement | Existing selective-loop interface | Preserve the old cell as control; separate observation, working, retrieval and candidate states for new reasoning |
+| Refinement | Full-research selective-loop interface; absent from minimal | Preserve the old cell as a named control; introduce separate observation/working/retrieval/candidate state only after prerequisites |
 | Persistence | Current checkpoint/inference lifecycle | Exact continuation with new state; resets, pending updates and source-preserving frozen evaluation |
 | Measurement | MAD inventory and reports | Single-generation latency, peak RSS, controller/verifier cost, paired seed and audit reporting |
 
@@ -559,134 +588,23 @@ The most useful immediate reading order is **P01 → P02 → P03 → P04/P05 →
 
 ## 8. Complete capability coverage
 
-This table preserves the matrix's current implementation/evidence labels and assigns the next work. It is a coverage map, not a new evaluation. Historical and research-only qualifiers remain visible. All eight engineering enablers retain their separate scope.
+The [minimal-baseline capability matrix](SHoEbox_Minimal_Capability_Matrix.md) is the authoritative current status table for all **62 core capabilities, four optional modalities and eight engineering enablers**. It includes each capability's experiment IDs and distinguishes retained mechanisms, incomplete workflows, excluded extensions and minimal-specific evidence.
 
+The machine-readable `capability_coverage` rows in [the backlog](SHoEbox_Experiment_Backlog.json) carry the same current labels. Each row retains its previous full-C/API/research/routing-A label under `historical_assessment`. Historical failures do not become minimal failures; excluded loops and upper experts do not remain marked as implemented on minimal.
 
-### Language and communication
-
-| ID | Capability / enabler | Current implementation | Current evidence | Development packages |
-| --- | --- | --- | --- | --- |
-| L01 | Learn next-byte distributions | Yes | Narrow | EXP00, EXP13, EXP15, EXP21, EXP22 |
-| L02 | Fluent, grammatical text generation | Partial | Untested | EXP15 |
-| L03 | Semantic understanding, paraphrase and entailment | Partial | Untested | EXP16 |
-| L04 | Follow instructions and satisfy multiple constraints | Partial | Untested | EXP15 |
-| L05 | Dialogue, coreference and conversational intent | Partial | Untested | EXP15, EXP16 |
-| L06 | Summarize and synthesize without losing essential facts | Partial | Untested | EXP16 |
-| L07 | Extract, classify and organize information | Partial | Untested | EXP16 |
-| L08 | Rewrite, edit and transform text while preserving meaning | Partial | Untested | EXP15, EXP16 |
-| L09 | Multilingual understanding and translation | Partial | Untested | EXP15 |
-| L10 | Maintain coherence and constraints over long outputs | Partial | Untested | EXP15, EXP22 |
-| L11 | Produce reliable structured output | No | Untested | EXP15, EXP18 |
-| L12 | Answer questions grounded in supplied documents | Partial | Untested | EXP16 |
-| L13 | Creative writing and controllable style | Partial | Untested | EXP15 |
-
-
-### Knowledge, memory and state
-
-| ID | Capability / enabler | Current implementation | Current evidence | Development packages |
-| --- | --- | --- | --- | --- |
-| M01 | Memorize stable key–value facts in weights | Yes | In principle | EXP13 |
-| M02 | Acquire and retrieve broad factual and commonsense knowledge | Partial | Untested | EXP13, EXP16 |
-| M03 | Select and copy relevant short-context content | Yes | Narrow | EXP00, EXP03 |
-| M04 | Compress observed content into a usable bounded state | Yes — research adapter | Narrow | EXP00, EXP02 |
-| M05 | Use remembered information in prediction | Yes | In principle | EXP01, EXP03, EXP08 |
-| M06 | Store and recover exact externally supplied bindings | Yes — optional API | Narrow | EXP14 |
-| M07 | Bind a newly observed value to the right query | Yes | Unworking | EXP01, EXP02, EXP08 |
-| M08 | Retain information through longer delays and interference | Yes | Unworking | EXP03, EXP05 |
-| M09 | Recall despite noisy or approximate cues | Yes | Unworking | EXP03 |
-| M10 | Update working variables without overwriting unrelated state | Yes — research tasks | Unworking | EXP04, EXP05 |
-| M11 | Maintain useful episodic memory across sessions | Partial | Untested | EXP14 |
-| M12 | Track who said what, when, and with which source | Partial | Untested | EXP14, EXP16 |
-| M13 | Select memory writes, updates and forgetting appropriately | Partial | Untested | EXP03, EXP05, EXP14 |
-| M14 | Consolidate episodic experience into reusable knowledge | No | Untested | EXP14 |
-| M15 | Scale memory capacity independently of expert parameters | Partial | Untested | EXP02, EXP21 |
-| M16 | Retain a simple binary cue through repeated distractors | Yes — historical A | Narrow | EXP03 |
-
-
-### Reasoning and generalization
-
-| ID | Capability / enabler | Current implementation | Current evidence | Development packages |
-| --- | --- | --- | --- | --- |
-| R01 | Follow relations and retrieve through multiple hops | Yes — research task | Unworking | EXP08, EXP10 |
-| R02 | Compose operations and execute small programs | Yes — research task | Unworking | EXP04, EXP09, EXP10 |
-| R03 | Deduction, Boolean logic, negation and quantifiers | Partial | Untested | EXP17 |
-| R04 | Arithmetic, quantitative reasoning and units | Partial | Untested | EXP12, EXP17 |
-| R05 | Causal and counterfactual reasoning | Partial | Untested | EXP17 |
-| R06 | Temporal and spatial reasoning | Partial | Untested | EXP17 |
-| R07 | Plan, decompose goals and satisfy interacting constraints | No | Untested | EXP10, EXP17 |
-| R08 | Form abstractions, analogies and invariant concepts | Partial | Untested | EXP06, EXP07, EXP09, EXP20 |
-| R09 | Systematically recombine familiar parts in new combinations | Partial | Untested | EXP09, EXP20 |
-| R10 | Generalize to longer sequences and deeper computations | Yes — research probes | Unworking | EXP05, EXP07, EXP08, EXP09, EXP21 |
-| R11 | Learn a new task or rule from examples in the prompt | Partial | Untested | EXP09, EXP20 |
-| R12 | Generate and compare hypotheses using evidence | Partial | Untested | EXP17 |
-| R13 | Understand, generate and repair code | Partial | Untested | EXP12, EXP18 |
-
-
-### Learning and computation control
-
-| ID | Capability / enabler | Current implementation | Current evidence | Development packages |
-| --- | --- | --- | --- | --- |
-| C01 | Learn useful conditional specialization in upper experts | Yes | Unworking | EXP06, EXP07, EXP20, EXP22 |
-| C02 | Teach internal state through intermediate supervision | Yes — research adapter | In principle | EXP01, EXP04, EXP07 |
-| C03 | Improve answers by performing extra latent refinement | Yes — optional loops | Unworking | EXP10 |
-| C04 | Stop refinement when its state has converged | Yes — optional loops | In principle | EXP11 |
-| C05 | Allocate more computation to genuinely difficult inputs | No | Untested | EXP11 |
-| C06 | Search alternative solutions and select with a verifier | No | Untested | EXP12 |
-| C07 | Detect and correct its own mistakes | No | Untested | EXP12 |
-| C08 | Express calibrated uncertainty and abstain appropriately | No | Untested | EXP19 |
-| C09 | Learn from corrections, feedback and preferences | No | Untested | EXP14 |
-| C10 | Adapt continually while retaining prior capabilities | Partial | Untested | EXP14 |
-| C11 | Reuse experts and transfer learned skills between tasks | Partial | Untested | EXP20 |
-| C12 | Choose among recalling, reasoning, asking and using a tool | No | Untested | EXP18 |
-
-
-### Tools and dependable behavior
-
-| ID | Capability / enabler | Current implementation | Current evidence | Development packages |
-| --- | --- | --- | --- | --- |
-| T01 | Retrieve external documents and search for missing knowledge | No | Untested | EXP16, EXP18 |
-| T02 | Call functions/tools with correct arguments | No | Untested | EXP18 |
-| T03 | Use code execution and tests in a feedback loop | No | Untested | EXP18 |
-| T04 | Cite sources and attribute claims to the right evidence | No | Untested | EXP16 |
-| T05 | Carry out multi-step tasks while tracking goals and progress | No | Untested | EXP18 |
-| T06 | Separate authoritative instructions from quoted or untrusted data | No | Untested | EXP19 |
-| T07 | Maintain factual consistency and recognize contradictions | Partial | Untested | EXP16, EXP19 |
-| T08 | Follow intended behavioral boundaries consistently and robustly | No | Untested | EXP19 |
-
-
-### Optional multimodal expansion
-
-| ID | Capability / enabler | Current implementation | Current evidence | Development packages |
-| --- | --- | --- | --- | --- |
-| X01 | Understand images, OCR, charts and diagrams | No | Untested | EXP23 |
-| X02 | Understand and generate speech/audio | No | Untested | EXP23 |
-| X03 | Understand video and events over time | No | Untested | EXP23 |
-| X04 | Ground language in interactive environments | No | Untested | EXP23 |
-
-
-### Engineering enablers
-
-| ID | Capability / enabler | Current implementation | Current evidence | Development packages |
-| --- | --- | --- | --- | --- |
-| E01 | Byte input/output and streaming execution | Yes | Generally | EXP15 |
-| E02 | Sparse expert execution and exact routing | Yes | Generally | EXP20 |
-| E03 | Fixed 1/4/16/64-byte hierarchy and ordered composition | Yes | In principle | EXP06, EXP22 |
-| E04 | Causal local learning and credit through live constituents | Yes | In principle | EXP06 |
-| E05 | Exact checkpoint continuation and frozen evaluation | Yes | Generally | EXP00, EXP14 |
-| E06 | Bounded compute/state accounting and comparable evaluations | Yes | Generally | EXP00, EXP21 |
-| E07 | Route-local learning-rate control | Yes — optional | In principle | EXP21 |
-| E08 | Learned segmentation instead of fixed byte groups | No — current runtime | Untested | EXP22 |
-
+Minimal qualification establishes narrow next-byte learning, short selective copying and final-state reconstruction, plus causal memory use in principle. Broader language/reasoning capabilities remain unqualified. No new fit or capability promotion was performed for this documentation revision.
 
 ## 9. Source and revision record
 
-- **S1 — Runtime baseline:** [corrected-C main commit](https://github.com/JRowe47/SHoEbox/commit/6384d8ca072075ec58010b4c3d5964e9e60fcd3e), checked during this revision.
-- **S2 — Capability inventory:** `SHoEbox_Generalist_Capability_Matrix.md`, 15 November 2026; current text read in full. Its 66 capability IDs and eight enabler IDs are preserved above.
+- **S1 — Historical runtime:** [full corrected C](https://github.com/JRowe47/SHoEbox/commit/6384d8ca072075ec58010b4c3d5964e9e60fcd3e), used by the original research revision.
+- **S7 — Current runtime:** [minimal v19 baseline](https://github.com/JRowe47/SHoEbox/commit/317fbcd023b9d9b3c2b359ba8f99f3dadbf46783), [qualification](../../reports/minimal_core/SHoEbox_Minimal_Core_Baseline.md) and [current capability matrix](SHoEbox_Minimal_Capability_Matrix.md).
+- **S8 — Completed EXP00:** [report and actual costs](../../reports/exp00/README.md), historical full C; EXP01 remains unexecuted.
+- **S2 — Capability inventory:** `SHoEbox_Generalist_Capability_Matrix.md`, 15 November 2026; current text read in full. Its 66 capability IDs and eight enabler IDs are preserved in the current matrix and backlog.
 - **S3 — Completed measurements:** [SHoEbox MAD capability research](https://github.com/JRowe47/SHoEbox/blob/d899a1a49b1af2f4a2cf0c89b000da69ea5f3597/reports/mad_capabilities/SHoEbox_MAD_Capability_Research.md), read in full. All SHoEbox numerical findings quoted here are existing results.
 - **S4 — Published evaluation contracts:** [MAD protocol and task definitions](https://github.com/JRowe47/SHoEbox/blob/6384d8ca072075ec58010b4c3d5964e9e60fcd3e/experiments/mad/README.md), read in full. Shortcut-aware calibration, additional audit sizes, and proposed acceptance thresholds in this plan are extensions to that protocol.
-- **S5 — Current loop implementation:** [Selective multiscale refinement](https://github.com/JRowe47/SHoEbox/blob/6384d8ca072075ec58010b4c3d5964e9e60fcd3e/multiscale/SELECTIVE_LOOPS.md), read in full. This establishes the fixed selected expert, convergence-only stopping, extra-pass convention, and observation-clock contracts.
+- **S5 — Full-research loop implementation:** [Selective multiscale refinement](https://github.com/JRowe47/SHoEbox/blob/6384d8ca072075ec58010b4c3d5964e9e60fcd3e/multiscale/SELECTIVE_LOOPS.md), read in full. This establishes the fixed selected expert, convergence-only stopping, extra-pass convention, and observation-clock contracts.
 - **S6 — Superseded proposal:** the attached original `SHoEbox_Capability_Research.md`, 15 November 2026. Its loop-first order is replaced; useful separation of evidence, working state and candidate state is retained for the later reasoner experiment.
 
-**Revision changes:** binding/readout and retention move to the front; existing loops become controls; atomic state and state-capacity studies are explicit; calibration is checked against shortcuts; training effects and inference effects receive separate scores; all generalist capability rows receive development coverage; the reading list adds selective memory editing and state-error diagnostics; a 94-fit / 31M-byte first tranche is specified.
+**Revision 3 changes:** minimal v19 becomes the explicit baseline throughout; current capability labels are separated from historical evidence; EXP00 stays completed; EXP01 starts with one-binding diagnostics; upper-summary work is separated from absent upper experts; full-only loops/rate controls are scoped explicitly; the old 94-fit/31M-byte estimate is labeled historical. No runtime or training changes.
 
-**Companion files:** `SHoEbox_Experiment_Backlog.json` contains all experiment cards, paper URLs, dependency links, capability mappings and the first-tranche budget. `SHoEbox_Development_Roadmap.png` depicts proposed development gates, not experimental measurements.
+**Companion files:** [DEVELOPMENT_HANDOFF.md](../../DEVELOPMENT_HANDOFF.md) is the next-session entry point. `SHoEbox_Minimal_Capability_Matrix.md` is the current capability view. `SHoEbox_Experiment_Backlog.json` contains experiment cards, paper URLs, current and historical capability assessments, execution status and separately scoped budget records. `SHoEbox_Development_Roadmap.png` retains the revision-2 dependency proposal.

@@ -4,6 +4,12 @@ The public default is **minimal corrected C, checkpoint v19**. It keeps sparse
 experts at 1/4 bytes, ordered summaries at 16/64 bytes, bounded context and memory,
 and one-pass prediction. Full C remains available as `Model(core="full")`.
 
+For current capability status and the next implementation, use the
+[minimal capability matrix](../../docs/capabilities/SHoEbox_Minimal_Capability_Matrix.md)
+and [development handoff](../../DEVELOPMENT_HANDOFF.md). EXP00 is complete on full C;
+EXP01 query/readout diagnosis has not run. This report's qualification results
+remain unchanged.
+
 ## Architecture
 
 | Component | Minimal baseline |

@@ -1,5 +1,11 @@
 # SHoEbox development
 
+- Before new capability work, read `DEVELOPMENT_HANDOFF.md` and
+  `docs/capabilities/SHoEbox_Minimal_Capability_Matrix.md`. EXP00 is complete
+  on full C; EXP01 query/readout diagnosis is the next unexecuted item.
+  Record the selected core explicitly and keep historical/full-C evidence
+  separate from minimal-v19 qualifications.
+
 - The selected CPU runtime is the minimal corrected-C core, exposed by `shoe_multiscale.py` and
   implemented in `multiscale/`. Preserve `shoebox_reference.py` as the historical
   cortical comparator. New public models use v19: expert banks at 1/4 bytes,

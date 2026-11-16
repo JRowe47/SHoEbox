@@ -1,9 +1,9 @@
 {
   "title": "SHoEbox capability development backlog",
-  "revision": 2,
+  "revision": 3,
   "date": "2026-11-15",
   "status": "in_progress",
-  "runtime_commit": "6384d8ca072075ec58010b4c3d5964e9e60fcd3e",
+  "runtime_commit": "317fbcd023b9d9b3c2b359ba8f99f3dadbf46783",
   "evidence_commit": "d899a1a49b1af2f4a2cf0c89b000da69ea5f3597",
   "experiments": [
     {
@@ -39,11 +39,13 @@
         "pilot_training_bytes": 301552768,
         "comparative_settings_eligible": 0,
         "learned_control_development_settings_passed": 8,
-        "held_out_learned_control_exact": 1.0,
+        "held_out_learned_control_exact": 1,
         "binding_C_exact": 0.5006510416666666,
         "binding_shortcut_exact": 0.5,
         "gate": "diagnostic_repair_required",
-        "production_promotion": null
+        "production_promotion": null,
+        "core": "full",
+        "architecture_note": "Historical full corrected C; these measurements do not qualify minimal v19."
       }
     },
     {
@@ -64,11 +66,15 @@
         "P03"
       ],
       "question": "Is the value missing, or is the model failing to select and decode an available value for the current key?",
-      "design": "Begin with two distinct key/value pairs, no irrelevant records, both query orders, and randomized names. Compare corrected C; a query-conditioned low-rank readout with the core frozen; and the same readout trained end to end. Deduct added readout parameters from bank capacity. Use raw/centered/standardized frozen probes with the same fitting procedure, and a matched-capacity generic head. Keep explicit query-index access as a diagnostic oracle only.",
-      "evaluation": "Require whole-episode correctness and the right answer change when only the query is swapped. Separately inspect addressed reads, retained reads, final L3, and their combinations through identical probes. Freeze observation state while swapping queries to expose input-order copying. Run one-key initialization/query tests if two-key binding remains unsolved.",
+      "design": "Begin with a single binding, then two distinct key/value pairs, no irrelevant records, both query orders and randomized names. Explicitly compare minimal v19 and full C with coverage-only warmup. Add a query-conditioned low-rank readout with the core frozen and then trained end to end, plus a matched-capacity generic head. Deduct head parameters from bank capacity. Fit raw/centered/standardized probes identically. Keep query-index oracle access outside scored native inference.",
+      "evaluation": "Require autoregressive whole-episode correctness and correct answer changes under query swaps; score full-256-byte output separately from restricted output. Probe addressed reads, retained reads and final L3 separately and jointly; distinguish immediate write availability, pre-query retention, query-conditioned selection and native decoding. Use one-binding initialization/query tests first, then the locked balanced two-key fixture.",
       "decision": "A readout-only win selects the cheaper repair. If a matched probe can decode a value but native generation cannot, repair query/readout integration. If neither can recover it, pass the failure to EXP02/EXP03. Stop broad optimizer searches once this distinction is clear.",
       "status": "ready_for_diagnostic_execution",
-      "execution_entry": "Use the locked balanced binding fixture; begin with single-binding write/read/query probes. Comparative architecture testing remains gated."
+      "execution_entry": "Read DEVELOPMENT_HANDOFF.md. Implement and validate explicit minimal/full selection for EXP01. Reuse completed EXP00 fixtures and controls; register a fresh diagnostic budget. EXP01 has not been run.",
+      "baseline_cores": [
+        "minimal",
+        "full"
+      ]
     },
     {
       "id": "EXP02",
@@ -91,7 +97,8 @@
       "question": "Does addressable, independently editable state solve binding more effectively than a larger undifferentiated state or more experts?",
       "design": "Add a research adapter for 0/2/4/8 working slots, initially width 64. Keep keys, values, write gates, and candidate output separate. Use the EXP01 readout across state arms. Compare added slots with equal usable bytes in a flat state; separately hold total state fixed while changing slot count/width. Run a bank-size control at unchanged state. Account for key storage, projections and metadata; reserve no hidden symbolic binding path.",
       "evaluation": "Sweep distinct bindings 1/2/4/8 and reconstruction length/entropy. Report exact binding and exact reconstruction beside token scores. Ablate slots, shuffle slot keys, and zero only candidate-output state. Test whether adding slots helps at fixed weights and whether adding weights helps at fixed state.",
-      "decision": "Promote the smallest state arrangement that crosses the binding gate and outperforms the equal-state flat control, or retain a pure capacity win with that label. If only the head helps, do not add slots. If more slots merely postpone failure, characterize the capacity boundary before adding depth."
+      "decision": "Promote the smallest state arrangement that crosses the binding gate and outperforms the equal-state flat control, or retain a pure capacity win with that label. If only the head helps, do not add slots. If more slots merely postpone failure, characterize the capacity boundary before adding depth.",
+      "minimal_baseline_note": "Add working-slot research candidates only after EXP01 shows a state/capacity need; match actual usable state bytes and total fitted parameters."
     },
     {
       "id": "EXP03",
@@ -140,7 +147,8 @@
       "question": "Can one operator update the intended register while preserving all others?",
       "design": "Stage initialization/query, set, copy, swap, then increment/modular-add/xor. Start with two registers and two values; increase to four registers and eight values only after the simpler operation passes. Balance changed and unchanged queried registers and exclude accidental no-ops from the changed-target endpoint. Compare final-only, extra-head-label, and direct-state-credit arms with the same head and parameter budget.",
       "evaluation": "Use separate cloned prefix probes to query every register after each operation, so diagnostic queries do not alter the training stream. Score all-register exact state, changed-register correctness, untouched-register corruption, and native-byte answers. Compare raw versus conditioned readouts without changing their optimizer.",
-      "decision": "Require the atomic-state gate before chaining operations. If initialization fails, return to binding; if updates damage unrelated registers, move to selective writes; if correct states are unreadable, fix the readout. Intermediate-supervision gains alone do not close M10."
+      "decision": "Require the atomic-state gate before chaining operations. If initialization fails, return to binding; if updates damage unrelated registers, move to selective writes; if correct states are unreadable, fix the readout. Intermediate-supervision gains alone do not close M10.",
+      "minimal_baseline_note": "Existing structured_state adapter targets full C; verify or port explicit minimal selection before comparing state-credit arms."
     },
     {
       "id": "EXP05",
@@ -190,9 +198,9 @@
         "P16"
       ],
       "question": "Can L2/L3 preserve and transform information that the local byte path cannot solve from its immediate context?",
-      "design": "Use balanced tasks whose local suffixes are identical while the correct answer changes with an earlier binding or operator. First expose/query a completed upper state through the research adapter; then restore the native byte readout. Probe every prefix offset modulo 64 so answer placement cannot depend on the fixture always completing L3. Compare mean upper outputs, exchanged active expert transforms, and frozen upper contributions with intact lower processing.",
-      "evaluation": "Require held-out task improvement plus useful upper-state and expert-permutation effects, recording how many active experts are actually exchanged. Test cross-task expert swaps and role-preserving renaming. Measure whether the needed fact is absent, encoded but inaccessible, or correct only at constituent boundaries.",
-      "decision": "If boundary timing is the failure, activate EXP22 or a separately measured query-time read of already available evidence. If representations are sound but expert swaps remain irrelevant, test expert-specific credit/input conditioning; do not force utilization and call it specialization. Promote C01 only when conditional specialization, not merely broad routing, is demonstrated."
+      "design": "Use balanced tasks with identical local suffixes and different correct answers determined by an earlier binding/operator. On minimal, expose completed 16/64-byte summary state, then require native-byte answers. Sweep all prefix offsets modulo 64 and compare frozen/mean/zeroed summary contributions with intact lower processing. Full C is a separately named historical comparator; upper-expert restoration is a candidate only if justified.",
+      "evaluation": "Require held-out improvement and useful input-dependent summary contributions. Track whether a fact is absent, encoded but inaccessible, or accessible only at group boundaries. Active-expert permutations apply only to expert-bearing arms; report their exchanged active-expert counts. No upper-expert permutation or specialization claim applies to minimal.",
+      "decision": "If timing is the failure, activate EXP22/query-time access. Restore upper experts only if a registered candidate beats the simpler summaries on held-out quality and measured cost. C01 requires actual upper experts and conditional specialization evidence."
     },
     {
       "id": "EXP07",
@@ -216,7 +224,8 @@
       "question": "Which training target makes upper state useful beyond the next byte without conflicting with language learning?",
       "design": "Compare existing objectives; supervised next task-state/progress targets; occurrence-aware future constituent ordering; and detached soft future-byte distributions. Tag prediction horizons and sample negatives from similar local prefixes. Keep total auxiliary weight normalized across targets and depths; preserve final-only and extra-head-label controls.",
       "evaluation": "Score state-transition correctness, held-out task accuracy, causal upper-level contribution, and language learning per byte and per second. Teacher future states enter only delayed training targets, never earlier input features or memory. For Soft-MTP, begin with an explicit leaf-probability objective and finite-difference checks: its shared-linear-softmax shortcut does not directly apply to SHoEbox's binary-tree byte head.",
-      "decision": "Keep only an objective whose upper information contributes to answers and whose language/time trade-off earns its cost. If the extra labels help only the head, keep that cheaper result and leave the upper-computation claim open."
+      "decision": "Keep only an objective whose upper information contributes to answers and whose language/time trade-off earns its cost. If the extra labels help only the head, keep that cheaper result and leave the upper-computation claim open.",
+      "minimal_baseline_note": "Minimal has no upper forecast heads; add any new auxiliary heads as explicit research candidates with full cost and gradient accounting."
     },
     {
       "id": "EXP08",
@@ -293,7 +302,8 @@
       "question": "Does additional inference computation improve the same model after binding and transitions work?",
       "design": "Preserve the current shared-expert refinement as a control. Add a separate candidate-answer state and a working workspace, anchored to immutable observed evidence. Compare a tied upper operator plus thought adapter with an equal-parameter small reasoning bank. Allow each thought to update its query; record reads and routes. Start with u={0,1,2,4}, fixed budgets and mixed-depth training; keep the observation clock, admissions, and target update count unchanged.",
       "evaluation": "Evaluate every selected checkpoint at every frozen inference depth. Compare one-pass models at equal parameters and equal measured time. Score exact answers, correct-to-wrong revisions, query/slot interventions, and whether harder examples benefit more. Use short full-episode gradients first; normalize auxiliary losses and keep output supervision separate from meaningful subgoal supervision.",
-      "decision": "Require a positive same-checkpoint inference-depth effect across at least two calibrated task families before calling C03 useful latent refinement. If gains survive with u=0, retain a training-only option or distill it; if more passes hurt, keep the one-pass mode and revisit the update operator."
+      "decision": "Require a positive same-checkpoint inference-depth effect across at least two calibrated task families before calling C03 useful latent refinement. If gains survive with u=0, retain a training-only option or distill it; if more passes hurt, keep the one-pass mode and revisit the update operator.",
+      "minimal_baseline_note": "Minimal has no refinement loops. A new revisable workspace/retrieval loop is a separate candidate; existing full loops remain historical controls."
     },
     {
       "id": "EXP11",
@@ -315,7 +325,8 @@
       "question": "Can the model buy the same useful reasoning with fewer passes and lower tail latency?",
       "design": "Compare fixed depth, existing state-delta stopping, random allocation at matched mean compute, and a learned online continuation head. Train on measured marginal extra-pass value with a cost penalty; force occasional continuation during training to collect counterfactual labels. Use held-out mixed-difficulty inputs. After useful long trajectories exist, distill shorter trajectories against detached longer results.",
       "evaluation": "Report quality versus mean and p95 latency, average/p95 passes, missed-benefit cases, premature stops, correct-to-wrong revisions, and an explicitly labeled oracle stop ceiling. Count controller overhead and compare both matched-mean and matched-tail budgets. Test length extrapolation independently of difficulty correlation.",
-      "decision": "Keep learned allocation only if it improves the quality/time frontier over fixed and random allocation. State convergence alone retains its implementation label; accuracy-aware success is a different capability. Shortcut distillation starts only from a passing longer trajectory."
+      "decision": "Keep learned allocation only if it improves the quality/time frontier over fixed and random allocation. State convergence alone retains its implementation label; accuracy-aware success is a different capability. Shortcut distillation starts only from a passing longer trajectory.",
+      "minimal_baseline_note": "Minimal has no loop/halting controller. Compare allocation only after a candidate demonstrates useful extra inference passes."
     },
     {
       "id": "EXP12",
@@ -560,7 +571,8 @@
       "question": "Do experts learn reusable operations rather than task-specific encoding shortcuts?",
       "design": "Train related tasks sharing primitives and unrelated controls with equal total bytes. Compare fresh training, frozen pretrained banks with new readouts, joint training, and controlled expert/route swaps. Randomize task labels and surface forms. Test whether a reusable operator transfers to new roles, values and task combinations.",
       "evaluation": "Measure bytes/time to task threshold, final old/new accuracy, negative transfer, conditional expert-permutation effects, and reuse under renaming. Inspect route statistics only as supporting evidence; use held-out behavior and causal interventions to qualify semantic reuse.",
-      "decision": "Promote reusable modules only if they improve learning or performance on held-out related tasks while preserving earlier skills. If task-ID shortcuts explain the result, retain task specialization but leave transfer unqualified."
+      "decision": "Promote reusable modules only if they improve learning or performance on held-out related tasks while preserving earlier skills. If task-ID shortcuts explain the result, retain task specialization but leave transfer unqualified.",
+      "minimal_baseline_note": "Test minimal reuse in the 1/4-byte banks. C01 upper specialization applies only to explicit expert-bearing candidates."
     },
     {
       "id": "EXP21",
@@ -586,7 +598,8 @@
       "question": "Which resource actually moves the quality and capability frontier?",
       "design": "Carry at most two successful mechanisms forward. Vary expert-bank parameters at fixed state, working/retained state at fixed weights, inference passes at fixed checkpoint, and training exposure at fixed architecture. Start at feasible 500K/1M/5M sizes; add 20M/100M only after smaller curves identify a useful trend. Compare the fixed corrected-C rate policy with route-local control in a separate arm.",
       "evaluation": "Produce PNG curves for loss versus bytes/time, throughput, exact capability versus state and depth, and bytes/time to threshold. Record tuning cost and hardware. Extend runs only when development curves remain informative; use fresh data and observed loss to distinguish memorization, optimization plateaus and capacity limits.",
-      "decision": "Scale the resource with demonstrated marginal value. Reject a universal bytes-per-parameter rule from these short synthetic horizons. A larger bank that leaves the same memory failure unchanged triggers a state/update study, not another blind size increase."
+      "decision": "Scale the resource with demonstrated marginal value. Reject a universal bytes-per-parameter rule from these short synthetic horizons. A larger bank that leaves the same memory failure unchanged triggers a state/update study, not another blind size increase.",
+      "minimal_baseline_note": "Fixed-rate minimal is the baseline. Route-rate cycles and inference-depth sweeps require explicitly compatible research architectures; never enable them silently on minimal."
     },
     {
       "id": "EXP22",
@@ -610,7 +623,8 @@
       "question": "Do fixed boundaries prevent relevant state from becoming available when it is needed?",
       "design": "First compare fixed grouping under every answer offset and a query-time read of already observed partial/completed state. If that diagnoses boundary dependence, compare fixed groups with causal delimiter-based, entropy-based or learned segmentation in a separate backend. Match average event counts and report boundary-policy costs. Keep byte evidence and emitted targets causal.",
       "evaluation": "Measure binding/transition accuracy by offset, language NLL/time, event counts, completion latency, checkpoint continuation and behavior on long unbroken spans. No target-driven boundary labels may enter inference, and no partial group may expose future bytes. Test worst-case work/state bounds as well as averages.",
-      "decision": "Adopt dynamic boundaries only if they solve a measured timing/composition problem at an acceptable cost. A cheap query-time access repair should win over a full hierarchy change when both achieve the same result."
+      "decision": "Adopt dynamic boundaries only if they solve a measured timing/composition problem at an acceptable cost. A cheap query-time access repair should win over a full hierarchy change when both achieve the same result.",
+      "minimal_baseline_note": "Test query-time access to minimal partial/completed summaries first; introduce segmentation only after a boundary-dependent failure."
     },
     {
       "id": "EXP23",
@@ -885,712 +899,1156 @@
       "capability": "Learn next-byte distributions",
       "implementation": "Yes",
       "evidence": "Narrow",
+      "notes": "Minimal FineWeb test NLL 2.252588 at 500K nominal parameters after 1M targets; three seeds.",
       "experiments": [
         "EXP00",
         "EXP13",
         "EXP15",
         "EXP21",
         "EXP22"
-      ]
+      ],
+      "historical_assessment": {
+        "implementation": "Yes",
+        "evidence": "Narrow",
+        "scope": "Pre-minimal inventory; full corrected C unless its qualifier names an API, adapter or historical routing A. Not a minimal-v19 result."
+      }
     },
     {
       "id": "L02",
       "capability": "Fluent, grammatical text generation",
       "implementation": "Partial",
       "evidence": "Untested",
+      "notes": "Autoregressive generation exists; fluent, grammatical output has no current qualification.",
       "experiments": [
         "EXP15"
-      ]
+      ],
+      "historical_assessment": {
+        "implementation": "Partial",
+        "evidence": "Untested",
+        "scope": "Pre-minimal inventory; full corrected C unless its qualifier names an API, adapter or historical routing A. Not a minimal-v19 result."
+      }
     },
     {
       "id": "L03",
       "capability": "Semantic understanding, paraphrase and entailment",
       "implementation": "Partial",
       "evidence": "Untested",
+      "notes": "Generic byte learning or recurrent-state foundations exist; the complete capability has no current qualification.",
       "experiments": [
         "EXP16"
-      ]
+      ],
+      "historical_assessment": {
+        "implementation": "Partial",
+        "evidence": "Untested",
+        "scope": "Pre-minimal inventory; full corrected C unless its qualifier names an API, adapter or historical routing A. Not a minimal-v19 result."
+      }
     },
     {
       "id": "L04",
       "capability": "Follow instructions and satisfy multiple constraints",
       "implementation": "Partial",
       "evidence": "Untested",
+      "notes": "Generic byte learning or recurrent-state foundations exist; the complete capability has no current qualification.",
       "experiments": [
         "EXP15"
-      ]
+      ],
+      "historical_assessment": {
+        "implementation": "Partial",
+        "evidence": "Untested",
+        "scope": "Pre-minimal inventory; full corrected C unless its qualifier names an API, adapter or historical routing A. Not a minimal-v19 result."
+      }
     },
     {
       "id": "L05",
       "capability": "Dialogue, coreference and conversational intent",
       "implementation": "Partial",
       "evidence": "Untested",
+      "notes": "Generic byte learning or recurrent-state foundations exist; the complete capability has no current qualification.",
       "experiments": [
         "EXP15",
         "EXP16"
-      ]
+      ],
+      "historical_assessment": {
+        "implementation": "Partial",
+        "evidence": "Untested",
+        "scope": "Pre-minimal inventory; full corrected C unless its qualifier names an API, adapter or historical routing A. Not a minimal-v19 result."
+      }
     },
     {
       "id": "L06",
       "capability": "Summarize and synthesize without losing essential facts",
       "implementation": "Partial",
       "evidence": "Untested",
+      "notes": "Bounded-state reconstruction is measured separately and does not establish semantic summarization.",
       "experiments": [
         "EXP16"
-      ]
+      ],
+      "historical_assessment": {
+        "implementation": "Partial",
+        "evidence": "Untested",
+        "scope": "Pre-minimal inventory; full corrected C unless its qualifier names an API, adapter or historical routing A. Not a minimal-v19 result."
+      }
     },
     {
       "id": "L07",
       "capability": "Extract, classify and organize information",
       "implementation": "Partial",
       "evidence": "Untested",
+      "notes": "Generic byte learning or recurrent-state foundations exist; the complete capability has no current qualification.",
       "experiments": [
         "EXP16"
-      ]
+      ],
+      "historical_assessment": {
+        "implementation": "Partial",
+        "evidence": "Untested",
+        "scope": "Pre-minimal inventory; full corrected C unless its qualifier names an API, adapter or historical routing A. Not a minimal-v19 result."
+      }
     },
     {
       "id": "L08",
       "capability": "Rewrite, edit and transform text while preserving meaning",
       "implementation": "Partial",
       "evidence": "Untested",
+      "notes": "Generic byte learning or recurrent-state foundations exist; the complete capability has no current qualification.",
       "experiments": [
         "EXP15",
         "EXP16"
-      ]
+      ],
+      "historical_assessment": {
+        "implementation": "Partial",
+        "evidence": "Untested",
+        "scope": "Pre-minimal inventory; full corrected C unless its qualifier names an API, adapter or historical routing A. Not a minimal-v19 result."
+      }
     },
     {
       "id": "L09",
       "capability": "Multilingual understanding and translation",
       "implementation": "Partial",
       "evidence": "Untested",
+      "notes": "All-byte representation is available; multilingual competence is untested.",
       "experiments": [
         "EXP15"
-      ]
+      ],
+      "historical_assessment": {
+        "implementation": "Partial",
+        "evidence": "Untested",
+        "scope": "Pre-minimal inventory; full corrected C unless its qualifier names an API, adapter or historical routing A. Not a minimal-v19 result."
+      }
     },
     {
       "id": "L10",
       "capability": "Maintain coherence and constraints over long outputs",
       "implementation": "Partial",
       "evidence": "Untested",
+      "notes": "Generic byte learning or recurrent-state foundations exist; the complete capability has no current qualification.",
       "experiments": [
         "EXP15",
         "EXP22"
-      ]
+      ],
+      "historical_assessment": {
+        "implementation": "Partial",
+        "evidence": "Untested",
+        "scope": "Pre-minimal inventory; full corrected C unless its qualifier names an API, adapter or historical routing A. Not a minimal-v19 result."
+      }
     },
     {
       "id": "L11",
       "capability": "Produce reliable structured output",
       "implementation": "No",
       "evidence": "Untested",
+      "notes": "No dedicated integrated workflow in the minimal baseline.",
       "experiments": [
         "EXP15",
         "EXP18"
-      ]
+      ],
+      "historical_assessment": {
+        "implementation": "No",
+        "evidence": "Untested",
+        "scope": "Pre-minimal inventory; full corrected C unless its qualifier names an API, adapter or historical routing A. Not a minimal-v19 result."
+      }
     },
     {
       "id": "L12",
       "capability": "Answer questions grounded in supplied documents",
       "implementation": "Partial",
       "evidence": "Untested",
+      "notes": "Generic byte learning or recurrent-state foundations exist; the complete capability has no current qualification.",
       "experiments": [
         "EXP16"
-      ]
+      ],
+      "historical_assessment": {
+        "implementation": "Partial",
+        "evidence": "Untested",
+        "scope": "Pre-minimal inventory; full corrected C unless its qualifier names an API, adapter or historical routing A. Not a minimal-v19 result."
+      }
     },
     {
       "id": "L13",
       "capability": "Creative writing and controllable style",
       "implementation": "Partial",
       "evidence": "Untested",
+      "notes": "Generic byte learning or recurrent-state foundations exist; the complete capability has no current qualification.",
       "experiments": [
         "EXP15"
-      ]
+      ],
+      "historical_assessment": {
+        "implementation": "Partial",
+        "evidence": "Untested",
+        "scope": "Pre-minimal inventory; full corrected C unless its qualifier names an API, adapter or historical routing A. Not a minimal-v19 result."
+      }
     },
     {
       "id": "M01",
       "capability": "Memorize stable key–value facts in weights",
       "implementation": "Yes",
-      "evidence": "In principle",
+      "evidence": "Untested",
+      "notes": "Weight learning is retained. Fixed-table memorization was demonstrated in the earlier full-C development screen; minimal retest pending.",
       "experiments": [
         "EXP13"
-      ]
+      ],
+      "historical_assessment": {
+        "implementation": "Yes",
+        "evidence": "In principle",
+        "scope": "Pre-minimal inventory; full corrected C unless its qualifier names an API, adapter or historical routing A. Not a minimal-v19 result."
+      }
     },
     {
       "id": "M02",
       "capability": "Acquire and retrieve broad factual and commonsense knowledge",
       "implementation": "Partial",
       "evidence": "Untested",
+      "notes": "Generic byte learning or recurrent-state foundations exist; the complete capability has no current qualification.",
       "experiments": [
         "EXP13",
         "EXP16"
-      ]
+      ],
+      "historical_assessment": {
+        "implementation": "Partial",
+        "evidence": "Untested",
+        "scope": "Pre-minimal inventory; full corrected C unless its qualifier names an API, adapter or historical routing A. Not a minimal-v19 result."
+      }
     },
     {
       "id": "M03",
       "capability": "Select and copy relevant short-context content",
       "implementation": "Yes",
       "evidence": "Narrow",
+      "notes": "Minimal selective copy: 73.83% token accuracy, 47.66% exact whole answers.",
       "experiments": [
         "EXP00",
         "EXP03"
-      ]
+      ],
+      "historical_assessment": {
+        "implementation": "Yes",
+        "evidence": "Narrow",
+        "scope": "Pre-minimal inventory; full corrected C unless its qualifier names an API, adapter or historical routing A. Not a minimal-v19 result."
+      }
     },
     {
       "id": "M04",
       "capability": "Compress observed content into a usable bounded state",
-      "implementation": "Yes — research adapter",
+      "implementation": "Yes — research decoder",
       "evidence": "Narrow",
+      "notes": "Minimal final-L3 reconstruction: 80.14% token accuracy, 40.36% exact; separately trained MLP decoder included in the budget.",
       "experiments": [
         "EXP00",
         "EXP02"
-      ]
+      ],
+      "historical_assessment": {
+        "implementation": "Yes — research adapter",
+        "evidence": "Narrow",
+        "scope": "Pre-minimal inventory; full corrected C unless its qualifier names an API, adapter or historical routing A. Not a minimal-v19 result."
+      }
     },
     {
       "id": "M05",
       "capability": "Use remembered information in prediction",
       "implementation": "Yes",
       "evidence": "In principle",
+      "notes": "Disabling addressed and retained reads lowers minimal copy token accuracy from 73.83% to 11.85%; establishes causal use on this task.",
       "experiments": [
         "EXP01",
         "EXP03",
         "EXP08"
-      ]
+      ],
+      "historical_assessment": {
+        "implementation": "Yes",
+        "evidence": "In principle",
+        "scope": "Pre-minimal inventory; full corrected C unless its qualifier names an API, adapter or historical routing A. Not a minimal-v19 result."
+      }
     },
     {
       "id": "M06",
       "capability": "Store and recover exact externally supplied bindings",
-      "implementation": "Yes — optional API",
-      "evidence": "Narrow",
+      "implementation": "Yes — explicit API",
+      "evidence": "Untested",
+      "notes": "bind/lookup/payload entry points remain available; automatic association dispatch is excluded from minimal. Earlier exact-API evidence is historical; no new minimal-specific binding qualification is claimed.",
       "experiments": [
         "EXP14"
-      ]
+      ],
+      "historical_assessment": {
+        "implementation": "Yes — optional API",
+        "evidence": "Narrow",
+        "scope": "Pre-minimal inventory; full corrected C unless its qualifier names an API, adapter or historical routing A. Not a minimal-v19 result."
+      }
     },
     {
       "id": "M07",
       "capability": "Bind a newly observed value to the right query",
-      "implementation": "Yes",
-      "evidence": "Unworking",
+      "implementation": "Yes — memory path",
+      "evidence": "Untested",
+      "notes": "Full-C EXP00 binding scored 50.07% exact versus the 50% input-order shortcut. Minimal-specific binding remains the next diagnostic.",
       "experiments": [
         "EXP01",
         "EXP02",
         "EXP08"
-      ]
+      ],
+      "historical_assessment": {
+        "implementation": "Yes",
+        "evidence": "Unworking",
+        "scope": "Pre-minimal inventory; full corrected C unless its qualifier names an API, adapter or historical routing A. Not a minimal-v19 result."
+      }
     },
     {
       "id": "M08",
       "capability": "Retain information through longer delays and interference",
-      "implementation": "Yes",
-      "evidence": "Unworking",
+      "implementation": "Yes — memory path",
+      "evidence": "Untested",
+      "notes": "Full C failed the longer-delay probe. Recheck minimal while separating delay, distractor writes, eviction and retrieval.",
       "experiments": [
         "EXP03",
         "EXP05"
-      ]
+      ],
+      "historical_assessment": {
+        "implementation": "Yes",
+        "evidence": "Unworking",
+        "scope": "Pre-minimal inventory; full corrected C unless its qualifier names an API, adapter or historical routing A. Not a minimal-v19 result."
+      }
     },
     {
       "id": "M09",
       "capability": "Recall despite noisy or approximate cues",
-      "implementation": "Yes",
-      "evidence": "Unworking",
+      "implementation": "Yes — memory path",
+      "evidence": "Untested",
+      "notes": "Prior noisy/fuzzy full-C probes failed; minimal noisy-cue behavior is unqualified.",
       "experiments": [
         "EXP03"
-      ]
+      ],
+      "historical_assessment": {
+        "implementation": "Yes",
+        "evidence": "Unworking",
+        "scope": "Pre-minimal inventory; full corrected C unless its qualifier names an API, adapter or historical routing A. Not a minimal-v19 result."
+      }
     },
     {
       "id": "M10",
       "capability": "Update working variables without overwriting unrelated state",
-      "implementation": "Yes — research tasks",
-      "evidence": "Unworking",
+      "implementation": "Partial",
+      "evidence": "Untested",
+      "notes": "Research tasks exist; full-C initialization/set/copy/swap failed EXP00. No successful minimal state-update workflow.",
       "experiments": [
         "EXP04",
         "EXP05"
-      ]
+      ],
+      "historical_assessment": {
+        "implementation": "Yes — research tasks",
+        "evidence": "Unworking",
+        "scope": "Pre-minimal inventory; full corrected C unless its qualifier names an API, adapter or historical routing A. Not a minimal-v19 result."
+      }
     },
     {
       "id": "M11",
       "capability": "Maintain useful episodic memory across sessions",
       "implementation": "Partial",
       "evidence": "Untested",
+      "notes": "Checkpoint persistence exists; autonomous episodic admission, retrieval and answer use across sessions are unqualified.",
       "experiments": [
         "EXP14"
-      ]
+      ],
+      "historical_assessment": {
+        "implementation": "Partial",
+        "evidence": "Untested",
+        "scope": "Pre-minimal inventory; full corrected C unless its qualifier names an API, adapter or historical routing A. Not a minimal-v19 result."
+      }
     },
     {
       "id": "M12",
       "capability": "Track who said what, when, and with which source",
       "implementation": "Partial",
       "evidence": "Untested",
+      "notes": "Temporal/address features exist; semantic speaker, time and source attribution are unqualified.",
       "experiments": [
         "EXP14",
         "EXP16"
-      ]
+      ],
+      "historical_assessment": {
+        "implementation": "Partial",
+        "evidence": "Untested",
+        "scope": "Pre-minimal inventory; full corrected C unless its qualifier names an API, adapter or historical routing A. Not a minimal-v19 result."
+      }
     },
     {
       "id": "M13",
       "capability": "Select memory writes, updates and forgetting appropriately",
       "implementation": "Partial",
       "evidence": "Untested",
+      "notes": "Bounded write/replacement/reset policies exist; semantic write selection and correction handling are unfinished.",
       "experiments": [
         "EXP03",
         "EXP05",
         "EXP14"
-      ]
+      ],
+      "historical_assessment": {
+        "implementation": "Partial",
+        "evidence": "Untested",
+        "scope": "Pre-minimal inventory; full corrected C unless its qualifier names an API, adapter or historical routing A. Not a minimal-v19 result."
+      }
     },
     {
       "id": "M14",
       "capability": "Consolidate episodic experience into reusable knowledge",
       "implementation": "No",
       "evidence": "Untested",
+      "notes": "No dedicated integrated workflow in the minimal baseline.",
       "experiments": [
         "EXP14"
-      ]
+      ],
+      "historical_assessment": {
+        "implementation": "No",
+        "evidence": "Untested",
+        "scope": "Pre-minimal inventory; full corrected C unless its qualifier names an API, adapter or historical routing A. Not a minimal-v19 result."
+      }
     },
     {
       "id": "M15",
       "capability": "Scale memory capacity independently of expert parameters",
       "implementation": "Partial",
       "evidence": "Untested",
+      "notes": "State and retained memory exist; independently editable working-slot comparisons remain proposed.",
       "experiments": [
         "EXP02",
         "EXP21"
-      ]
+      ],
+      "historical_assessment": {
+        "implementation": "Partial",
+        "evidence": "Untested",
+        "scope": "Pre-minimal inventory; full corrected C unless its qualifier names an API, adapter or historical routing A. Not a minimal-v19 result."
+      }
     },
     {
       "id": "M16",
       "capability": "Retain a simple binary cue through repeated distractors",
-      "implementation": "Yes — historical A",
-      "evidence": "Narrow",
+      "implementation": "Partial",
+      "evidence": "Untested",
+      "notes": "The passing binary-cue regression was historical routing A. Reproduce it explicitly on minimal; do not inherit its result.",
       "experiments": [
         "EXP03"
-      ]
+      ],
+      "historical_assessment": {
+        "implementation": "Yes — historical A",
+        "evidence": "Narrow",
+        "scope": "Pre-minimal inventory; full corrected C unless its qualifier names an API, adapter or historical routing A. Not a minimal-v19 result."
+      }
     },
     {
       "id": "R01",
       "capability": "Follow relations and retrieve through multiple hops",
-      "implementation": "Yes — research task",
-      "evidence": "Unworking",
+      "implementation": "Partial",
+      "evidence": "Untested",
+      "notes": "One-hop graph exactness failed in full-C EXP00; minimal multi-hop retrieval remains unqualified.",
       "experiments": [
         "EXP08",
         "EXP10"
-      ]
+      ],
+      "historical_assessment": {
+        "implementation": "Yes — research task",
+        "evidence": "Unworking",
+        "scope": "Pre-minimal inventory; full corrected C unless its qualifier names an API, adapter or historical routing A. Not a minimal-v19 result."
+      }
     },
     {
       "id": "R02",
       "capability": "Compose operations and execute small programs",
-      "implementation": "Yes — research task",
-      "evidence": "Unworking",
+      "implementation": "Partial",
+      "evidence": "Untested",
+      "notes": "Prior full-C composition/state tasks failed. Establish atomic operations before chaining them on minimal.",
       "experiments": [
         "EXP04",
         "EXP09",
         "EXP10"
-      ]
+      ],
+      "historical_assessment": {
+        "implementation": "Yes — research task",
+        "evidence": "Unworking",
+        "scope": "Pre-minimal inventory; full corrected C unless its qualifier names an API, adapter or historical routing A. Not a minimal-v19 result."
+      }
     },
     {
       "id": "R03",
       "capability": "Deduction, Boolean logic, negation and quantifiers",
       "implementation": "Partial",
       "evidence": "Untested",
+      "notes": "Generic byte learning or recurrent-state foundations exist; the complete capability has no current qualification.",
       "experiments": [
         "EXP17"
-      ]
+      ],
+      "historical_assessment": {
+        "implementation": "Partial",
+        "evidence": "Untested",
+        "scope": "Pre-minimal inventory; full corrected C unless its qualifier names an API, adapter or historical routing A. Not a minimal-v19 result."
+      }
     },
     {
       "id": "R04",
       "capability": "Arithmetic, quantitative reasoning and units",
       "implementation": "Partial",
       "evidence": "Untested",
+      "notes": "Byte learning is available; unsuccessful historical modulo-add/xor probes do not qualify arithmetic.",
       "experiments": [
         "EXP12",
         "EXP17"
-      ]
+      ],
+      "historical_assessment": {
+        "implementation": "Partial",
+        "evidence": "Untested",
+        "scope": "Pre-minimal inventory; full corrected C unless its qualifier names an API, adapter or historical routing A. Not a minimal-v19 result."
+      }
     },
     {
       "id": "R05",
       "capability": "Causal and counterfactual reasoning",
       "implementation": "Partial",
       "evidence": "Untested",
+      "notes": "Generic byte learning or recurrent-state foundations exist; the complete capability has no current qualification.",
       "experiments": [
         "EXP17"
-      ]
+      ],
+      "historical_assessment": {
+        "implementation": "Partial",
+        "evidence": "Untested",
+        "scope": "Pre-minimal inventory; full corrected C unless its qualifier names an API, adapter or historical routing A. Not a minimal-v19 result."
+      }
     },
     {
       "id": "R06",
       "capability": "Temporal and spatial reasoning",
       "implementation": "Partial",
       "evidence": "Untested",
+      "notes": "Generic byte learning or recurrent-state foundations exist; the complete capability has no current qualification.",
       "experiments": [
         "EXP17"
-      ]
+      ],
+      "historical_assessment": {
+        "implementation": "Partial",
+        "evidence": "Untested",
+        "scope": "Pre-minimal inventory; full corrected C unless its qualifier names an API, adapter or historical routing A. Not a minimal-v19 result."
+      }
     },
     {
       "id": "R07",
       "capability": "Plan, decompose goals and satisfy interacting constraints",
       "implementation": "No",
       "evidence": "Untested",
+      "notes": "No dedicated integrated workflow in the minimal baseline.",
       "experiments": [
         "EXP10",
         "EXP17"
-      ]
+      ],
+      "historical_assessment": {
+        "implementation": "No",
+        "evidence": "Untested",
+        "scope": "Pre-minimal inventory; full corrected C unless its qualifier names an API, adapter or historical routing A. Not a minimal-v19 result."
+      }
     },
     {
       "id": "R08",
       "capability": "Form abstractions, analogies and invariant concepts",
       "implementation": "Partial",
       "evidence": "Untested",
+      "notes": "Ordered trainable summaries remain; semantic abstraction and invariance are not demonstrated.",
       "experiments": [
         "EXP06",
         "EXP07",
         "EXP09",
         "EXP20"
-      ]
+      ],
+      "historical_assessment": {
+        "implementation": "Partial",
+        "evidence": "Untested",
+        "scope": "Pre-minimal inventory; full corrected C unless its qualifier names an API, adapter or historical routing A. Not a minimal-v19 result."
+      }
     },
     {
       "id": "R09",
       "capability": "Systematically recombine familiar parts in new combinations",
       "implementation": "Partial",
       "evidence": "Untested",
+      "notes": "Ordered composition machinery exists; systematic transfer to unseen combinations is unqualified.",
       "experiments": [
         "EXP09",
         "EXP20"
-      ]
+      ],
+      "historical_assessment": {
+        "implementation": "Partial",
+        "evidence": "Untested",
+        "scope": "Pre-minimal inventory; full corrected C unless its qualifier names an API, adapter or historical routing A. Not a minimal-v19 result."
+      }
     },
     {
       "id": "R10",
       "capability": "Generalize to longer sequences and deeper computations",
-      "implementation": "Yes — research probes",
-      "evidence": "Unworking",
+      "implementation": "Partial",
+      "evidence": "Untested",
+      "notes": "Historical delay/depth probes failed; minimal sequence-length and computation-depth qualification is pending.",
       "experiments": [
         "EXP05",
         "EXP07",
         "EXP08",
         "EXP09",
         "EXP21"
-      ]
+      ],
+      "historical_assessment": {
+        "implementation": "Yes — research probes",
+        "evidence": "Unworking",
+        "scope": "Pre-minimal inventory; full corrected C unless its qualifier names an API, adapter or historical routing A. Not a minimal-v19 result."
+      }
     },
     {
       "id": "R11",
       "capability": "Learn a new task or rule from examples in the prompt",
       "implementation": "Partial",
       "evidence": "Untested",
+      "notes": "Generic byte learning or recurrent-state foundations exist; the complete capability has no current qualification.",
       "experiments": [
         "EXP09",
         "EXP20"
-      ]
+      ],
+      "historical_assessment": {
+        "implementation": "Partial",
+        "evidence": "Untested",
+        "scope": "Pre-minimal inventory; full corrected C unless its qualifier names an API, adapter or historical routing A. Not a minimal-v19 result."
+      }
     },
     {
       "id": "R12",
       "capability": "Generate and compare hypotheses using evidence",
       "implementation": "Partial",
       "evidence": "Untested",
+      "notes": "Generic byte learning or recurrent-state foundations exist; the complete capability has no current qualification.",
       "experiments": [
         "EXP17"
-      ]
+      ],
+      "historical_assessment": {
+        "implementation": "Partial",
+        "evidence": "Untested",
+        "scope": "Pre-minimal inventory; full corrected C unless its qualifier names an API, adapter or historical routing A. Not a minimal-v19 result."
+      }
     },
     {
       "id": "R13",
       "capability": "Understand, generate and repair code",
       "implementation": "Partial",
       "evidence": "Untested",
+      "notes": "Code can be represented/generated as bytes; execution correctness and repair are unqualified.",
       "experiments": [
         "EXP12",
         "EXP18"
-      ]
+      ],
+      "historical_assessment": {
+        "implementation": "Partial",
+        "evidence": "Untested",
+        "scope": "Pre-minimal inventory; full corrected C unless its qualifier names an API, adapter or historical routing A. Not a minimal-v19 result."
+      }
     },
     {
       "id": "C01",
       "capability": "Learn useful conditional specialization in upper experts",
-      "implementation": "Yes",
-      "evidence": "Unworking",
+      "implementation": "No — excluded",
+      "evidence": "Untested",
+      "notes": "Minimal has no 16/64-byte expert banks. Study summary contribution first; any restored upper experts are a separately named candidate.",
       "experiments": [
         "EXP06",
         "EXP07",
         "EXP20",
         "EXP22"
-      ]
+      ],
+      "historical_assessment": {
+        "implementation": "Yes",
+        "evidence": "Unworking",
+        "scope": "Pre-minimal inventory; full corrected C unless its qualifier names an API, adapter or historical routing A. Not a minimal-v19 result."
+      }
     },
     {
       "id": "C02",
       "capability": "Teach internal state through intermediate supervision",
-      "implementation": "Yes — research adapter",
-      "evidence": "In principle",
+      "implementation": "No — research adapter only",
+      "evidence": "Untested",
+      "notes": "The existing supervised-state adapter targets full C; do not assume minimal compatibility. Port and validate only when needed.",
       "experiments": [
         "EXP01",
         "EXP04",
         "EXP07"
-      ]
+      ],
+      "historical_assessment": {
+        "implementation": "Yes — research adapter",
+        "evidence": "In principle",
+        "scope": "Pre-minimal inventory; full corrected C unless its qualifier names an API, adapter or historical routing A. Not a minimal-v19 result."
+      }
     },
     {
       "id": "C03",
       "capability": "Improve answers by performing extra latent refinement",
-      "implementation": "Yes — optional loops",
-      "evidence": "Unworking",
+      "implementation": "No — full research only",
+      "evidence": "Untested",
+      "notes": "Existing refinement loops are excluded from minimal; prior full-C tests did not establish useful inference-time refinement.",
       "experiments": [
         "EXP10"
-      ]
+      ],
+      "historical_assessment": {
+        "implementation": "Yes — optional loops",
+        "evidence": "Unworking",
+        "scope": "Pre-minimal inventory; full corrected C unless its qualifier names an API, adapter or historical routing A. Not a minimal-v19 result."
+      }
     },
     {
       "id": "C04",
       "capability": "Stop refinement when its state has converged",
-      "implementation": "Yes — optional loops",
-      "evidence": "In principle",
+      "implementation": "No — full research only",
+      "evidence": "Untested",
+      "notes": "Convergence stopping exists only with the full-research loops, not in minimal one-pass prediction.",
       "experiments": [
         "EXP11"
-      ]
+      ],
+      "historical_assessment": {
+        "implementation": "Yes — optional loops",
+        "evidence": "In principle",
+        "scope": "Pre-minimal inventory; full corrected C unless its qualifier names an API, adapter or historical routing A. Not a minimal-v19 result."
+      }
     },
     {
       "id": "C05",
       "capability": "Allocate more computation to genuinely difficult inputs",
       "implementation": "No",
       "evidence": "Untested",
+      "notes": "No dedicated integrated workflow in the minimal baseline.",
       "experiments": [
         "EXP11"
-      ]
+      ],
+      "historical_assessment": {
+        "implementation": "No",
+        "evidence": "Untested",
+        "scope": "Pre-minimal inventory; full corrected C unless its qualifier names an API, adapter or historical routing A. Not a minimal-v19 result."
+      }
     },
     {
       "id": "C06",
       "capability": "Search alternative solutions and select with a verifier",
       "implementation": "No",
       "evidence": "Untested",
+      "notes": "No dedicated integrated workflow in the minimal baseline.",
       "experiments": [
         "EXP12"
-      ]
+      ],
+      "historical_assessment": {
+        "implementation": "No",
+        "evidence": "Untested",
+        "scope": "Pre-minimal inventory; full corrected C unless its qualifier names an API, adapter or historical routing A. Not a minimal-v19 result."
+      }
     },
     {
       "id": "C07",
       "capability": "Detect and correct its own mistakes",
       "implementation": "No",
       "evidence": "Untested",
+      "notes": "No dedicated integrated workflow in the minimal baseline.",
       "experiments": [
         "EXP12"
-      ]
+      ],
+      "historical_assessment": {
+        "implementation": "No",
+        "evidence": "Untested",
+        "scope": "Pre-minimal inventory; full corrected C unless its qualifier names an API, adapter or historical routing A. Not a minimal-v19 result."
+      }
     },
     {
       "id": "C08",
       "capability": "Express calibrated uncertainty and abstain appropriately",
       "implementation": "No",
       "evidence": "Untested",
+      "notes": "No dedicated integrated workflow in the minimal baseline.",
       "experiments": [
         "EXP19"
-      ]
+      ],
+      "historical_assessment": {
+        "implementation": "No",
+        "evidence": "Untested",
+        "scope": "Pre-minimal inventory; full corrected C unless its qualifier names an API, adapter or historical routing A. Not a minimal-v19 result."
+      }
     },
     {
       "id": "C09",
       "capability": "Learn from corrections, feedback and preferences",
       "implementation": "No",
       "evidence": "Untested",
+      "notes": "No dedicated integrated workflow in the minimal baseline.",
       "experiments": [
         "EXP14"
-      ]
+      ],
+      "historical_assessment": {
+        "implementation": "No",
+        "evidence": "Untested",
+        "scope": "Pre-minimal inventory; full corrected C unless its qualifier names an API, adapter or historical routing A. Not a minimal-v19 result."
+      }
     },
     {
       "id": "C10",
       "capability": "Adapt continually while retaining prior capabilities",
       "implementation": "Partial",
       "evidence": "Untested",
+      "notes": "Resumable online learning works; controlled retention of old capabilities during new learning is unqualified.",
       "experiments": [
         "EXP14"
-      ]
+      ],
+      "historical_assessment": {
+        "implementation": "Partial",
+        "evidence": "Untested",
+        "scope": "Pre-minimal inventory; full corrected C unless its qualifier names an API, adapter or historical routing A. Not a minimal-v19 result."
+      }
     },
     {
       "id": "C11",
       "capability": "Reuse experts and transfer learned skills between tasks",
       "implementation": "Partial",
       "evidence": "Untested",
+      "notes": "Shared lower expert banks exist; semantic skill transfer is untested.",
       "experiments": [
         "EXP20"
-      ]
+      ],
+      "historical_assessment": {
+        "implementation": "Partial",
+        "evidence": "Untested",
+        "scope": "Pre-minimal inventory; full corrected C unless its qualifier names an API, adapter or historical routing A. Not a minimal-v19 result."
+      }
     },
     {
       "id": "C12",
       "capability": "Choose among recalling, reasoning, asking and using a tool",
       "implementation": "No",
       "evidence": "Untested",
+      "notes": "No dedicated integrated workflow in the minimal baseline.",
       "experiments": [
         "EXP18"
-      ]
+      ],
+      "historical_assessment": {
+        "implementation": "No",
+        "evidence": "Untested",
+        "scope": "Pre-minimal inventory; full corrected C unless its qualifier names an API, adapter or historical routing A. Not a minimal-v19 result."
+      }
     },
     {
       "id": "T01",
       "capability": "Retrieve external documents and search for missing knowledge",
       "implementation": "No",
       "evidence": "Untested",
+      "notes": "No dedicated integrated workflow in the minimal baseline.",
       "experiments": [
         "EXP16",
         "EXP18"
-      ]
+      ],
+      "historical_assessment": {
+        "implementation": "No",
+        "evidence": "Untested",
+        "scope": "Pre-minimal inventory; full corrected C unless its qualifier names an API, adapter or historical routing A. Not a minimal-v19 result."
+      }
     },
     {
       "id": "T02",
       "capability": "Call functions/tools with correct arguments",
       "implementation": "No",
       "evidence": "Untested",
+      "notes": "No dedicated integrated workflow in the minimal baseline.",
       "experiments": [
         "EXP18"
-      ]
+      ],
+      "historical_assessment": {
+        "implementation": "No",
+        "evidence": "Untested",
+        "scope": "Pre-minimal inventory; full corrected C unless its qualifier names an API, adapter or historical routing A. Not a minimal-v19 result."
+      }
     },
     {
       "id": "T03",
       "capability": "Use code execution and tests in a feedback loop",
       "implementation": "No",
       "evidence": "Untested",
+      "notes": "No dedicated integrated workflow in the minimal baseline.",
       "experiments": [
         "EXP18"
-      ]
+      ],
+      "historical_assessment": {
+        "implementation": "No",
+        "evidence": "Untested",
+        "scope": "Pre-minimal inventory; full corrected C unless its qualifier names an API, adapter or historical routing A. Not a minimal-v19 result."
+      }
     },
     {
       "id": "T04",
       "capability": "Cite sources and attribute claims to the right evidence",
       "implementation": "No",
       "evidence": "Untested",
+      "notes": "No dedicated integrated workflow in the minimal baseline.",
       "experiments": [
         "EXP16"
-      ]
+      ],
+      "historical_assessment": {
+        "implementation": "No",
+        "evidence": "Untested",
+        "scope": "Pre-minimal inventory; full corrected C unless its qualifier names an API, adapter or historical routing A. Not a minimal-v19 result."
+      }
     },
     {
       "id": "T05",
       "capability": "Carry out multi-step tasks while tracking goals and progress",
       "implementation": "No",
       "evidence": "Untested",
+      "notes": "No dedicated integrated workflow in the minimal baseline.",
       "experiments": [
         "EXP18"
-      ]
+      ],
+      "historical_assessment": {
+        "implementation": "No",
+        "evidence": "Untested",
+        "scope": "Pre-minimal inventory; full corrected C unless its qualifier names an API, adapter or historical routing A. Not a minimal-v19 result."
+      }
     },
     {
       "id": "T06",
       "capability": "Separate authoritative instructions from quoted or untrusted data",
       "implementation": "No",
       "evidence": "Untested",
+      "notes": "No dedicated integrated workflow in the minimal baseline.",
       "experiments": [
         "EXP19"
-      ]
+      ],
+      "historical_assessment": {
+        "implementation": "No",
+        "evidence": "Untested",
+        "scope": "Pre-minimal inventory; full corrected C unless its qualifier names an API, adapter or historical routing A. Not a minimal-v19 result."
+      }
     },
     {
       "id": "T07",
       "capability": "Maintain factual consistency and recognize contradictions",
       "implementation": "Partial",
       "evidence": "Untested",
+      "notes": "Generic byte learning or recurrent-state foundations exist; the complete capability has no current qualification.",
       "experiments": [
         "EXP16",
         "EXP19"
-      ]
+      ],
+      "historical_assessment": {
+        "implementation": "Partial",
+        "evidence": "Untested",
+        "scope": "Pre-minimal inventory; full corrected C unless its qualifier names an API, adapter or historical routing A. Not a minimal-v19 result."
+      }
     },
     {
       "id": "T08",
       "capability": "Follow intended behavioral boundaries consistently and robustly",
       "implementation": "No",
       "evidence": "Untested",
+      "notes": "No dedicated integrated workflow in the minimal baseline.",
       "experiments": [
         "EXP19"
-      ]
+      ],
+      "historical_assessment": {
+        "implementation": "No",
+        "evidence": "Untested",
+        "scope": "Pre-minimal inventory; full corrected C unless its qualifier names an API, adapter or historical routing A. Not a minimal-v19 result."
+      }
     },
     {
       "id": "X01",
       "capability": "Understand images, OCR, charts and diagrams",
       "implementation": "No",
       "evidence": "Untested",
+      "notes": "No dedicated integrated workflow in the minimal baseline.",
       "experiments": [
         "EXP23"
-      ]
+      ],
+      "historical_assessment": {
+        "implementation": "No",
+        "evidence": "Untested",
+        "scope": "Pre-minimal inventory; full corrected C unless its qualifier names an API, adapter or historical routing A. Not a minimal-v19 result."
+      }
     },
     {
       "id": "X02",
       "capability": "Understand and generate speech/audio",
       "implementation": "No",
       "evidence": "Untested",
+      "notes": "No dedicated integrated workflow in the minimal baseline.",
       "experiments": [
         "EXP23"
-      ]
+      ],
+      "historical_assessment": {
+        "implementation": "No",
+        "evidence": "Untested",
+        "scope": "Pre-minimal inventory; full corrected C unless its qualifier names an API, adapter or historical routing A. Not a minimal-v19 result."
+      }
     },
     {
       "id": "X03",
       "capability": "Understand video and events over time",
       "implementation": "No",
       "evidence": "Untested",
+      "notes": "No dedicated integrated workflow in the minimal baseline.",
       "experiments": [
         "EXP23"
-      ]
+      ],
+      "historical_assessment": {
+        "implementation": "No",
+        "evidence": "Untested",
+        "scope": "Pre-minimal inventory; full corrected C unless its qualifier names an API, adapter or historical routing A. Not a minimal-v19 result."
+      }
     },
     {
       "id": "X04",
       "capability": "Ground language in interactive environments",
       "implementation": "No",
       "evidence": "Untested",
+      "notes": "No dedicated integrated workflow in the minimal baseline.",
       "experiments": [
         "EXP23"
-      ]
+      ],
+      "historical_assessment": {
+        "implementation": "No",
+        "evidence": "Untested",
+        "scope": "Pre-minimal inventory; full corrected C unless its qualifier names an API, adapter or historical routing A. Not a minimal-v19 result."
+      }
     },
     {
       "id": "E01",
       "capability": "Byte input/output and streaming execution",
       "implementation": "Yes",
-      "evidence": "Generally",
+      "evidence": "Verified engineering",
+      "notes": "Byte input/output and streaming lifecycle are retained and tested.",
       "experiments": [
         "EXP15"
-      ]
+      ],
+      "historical_assessment": {
+        "implementation": "Yes",
+        "evidence": "Generally",
+        "scope": "Pre-minimal inventory; full corrected C unless its qualifier names an API, adapter or historical routing A. Not a minimal-v19 result."
+      }
     },
     {
       "id": "E02",
       "capability": "Sparse expert execution and exact routing",
       "implementation": "Yes",
-      "evidence": "Generally",
+      "evidence": "Verified engineering",
+      "notes": "Exact corrected-C search and one selected expert operate at the 1/4-byte scales only.",
       "experiments": [
         "EXP20"
-      ]
+      ],
+      "historical_assessment": {
+        "implementation": "Yes",
+        "evidence": "Generally",
+        "scope": "Pre-minimal inventory; full corrected C unless its qualifier names an API, adapter or historical routing A. Not a minimal-v19 result."
+      }
     },
     {
       "id": "E03",
       "capability": "Fixed 1/4/16/64-byte hierarchy and ordered composition",
       "implementation": "Yes",
-      "evidence": "In principle",
+      "evidence": "Verified engineering",
+      "notes": "Four fixed clocks remain; 16/64-byte scales use ordered trainable summaries, diagonal recurrence and memory reads.",
       "experiments": [
         "EXP06",
         "EXP22"
-      ]
+      ],
+      "historical_assessment": {
+        "implementation": "Yes",
+        "evidence": "In principle",
+        "scope": "Pre-minimal inventory; full corrected C unless its qualifier names an API, adapter or historical routing A. Not a minimal-v19 result."
+      }
     },
     {
       "id": "E04",
       "capability": "Causal local learning and credit through live constituents",
       "implementation": "Yes",
-      "evidence": "In principle",
+      "evidence": "Verified engineering",
+      "notes": "Causal local learning, reconstruction and bounded child credit remain; summary derivatives and execution regressions were checked.",
       "experiments": [
         "EXP06"
-      ]
+      ],
+      "historical_assessment": {
+        "implementation": "Yes",
+        "evidence": "In principle",
+        "scope": "Pre-minimal inventory; full corrected C unless its qualifier names an API, adapter or historical routing A. Not a minimal-v19 result."
+      }
     },
     {
       "id": "E05",
       "capability": "Exact checkpoint continuation and frozen evaluation",
       "implementation": "Yes",
-      "evidence": "Generally",
+      "evidence": "Verified engineering",
+      "notes": "Minimal v19 exact continuation, partial groups and source-preserving frozen inference are tested; historical checkpoints retain their policies.",
       "experiments": [
         "EXP00",
         "EXP14"
-      ]
+      ],
+      "historical_assessment": {
+        "implementation": "Yes",
+        "evidence": "Generally",
+        "scope": "Pre-minimal inventory; full corrected C unless its qualifier names an API, adapter or historical routing A. Not a minimal-v19 result."
+      }
     },
     {
       "id": "E06",
       "capability": "Bounded compute/state accounting and comparable evaluations",
       "implementation": "Yes",
-      "evidence": "Generally",
+      "evidence": "Verified engineering",
+      "notes": "MAD/resource accounting and paired minimal qualification are implemented in research tooling.",
       "experiments": [
         "EXP00",
         "EXP21"
-      ]
+      ],
+      "historical_assessment": {
+        "implementation": "Yes",
+        "evidence": "Generally",
+        "scope": "Pre-minimal inventory; full corrected C unless its qualifier names an API, adapter or historical routing A. Not a minimal-v19 result."
+      }
     },
     {
       "id": "E07",
       "capability": "Route-local learning-rate control",
-      "implementation": "Yes — optional",
-      "evidence": "In principle",
+      "implementation": "No — full research only",
+      "evidence": "Untested",
+      "notes": "Route-local learning-rate cycles are excluded from minimal. Independent base fast/slow/query rates remain.",
       "experiments": [
         "EXP21"
-      ]
+      ],
+      "historical_assessment": {
+        "implementation": "Yes — optional",
+        "evidence": "In principle",
+        "scope": "Pre-minimal inventory; full corrected C unless its qualifier names an API, adapter or historical routing A. Not a minimal-v19 result."
+      }
     },
     {
       "id": "E08",
       "capability": "Learned segmentation instead of fixed byte groups",
-      "implementation": "No — current runtime",
+      "implementation": "No",
       "evidence": "Untested",
+      "notes": "Grouping stays fixed at 1/4/16/64 bytes; learned boundaries are proposed.",
       "experiments": [
         "EXP22"
-      ]
+      ],
+      "historical_assessment": {
+        "implementation": "No — current runtime",
+        "evidence": "Untested",
+        "scope": "Pre-minimal inventory; full corrected C unless its qualifier names an API, adapter or historical routing A. Not a minimal-v19 result."
+      }
     }
   ],
   "protocol": {
@@ -1620,13 +2078,15 @@
     "minimum_test_episodes": 1024,
     "initial_parameter_budget": 500000,
     "depth_definition": "u is extra passes; K = 1 + u",
-    "source_runtime": "https://github.com/JRowe47/SHoEbox/commit/6384d8ca072075ec58010b4c3d5964e9e60fcd3e",
-    "source_protocol": "https://github.com/JRowe47/SHoEbox/blob/6384d8ca072075ec58010b4c3d5964e9e60fcd3e/experiments/mad/README.md"
+    "source_runtime": "https://github.com/JRowe47/SHoEbox/commit/317fbcd023b9d9b3c2b359ba8f99f3dadbf46783",
+    "source_protocol": "https://github.com/JRowe47/SHoEbox/blob/6384d8ca072075ec58010b4c3d5964e9e60fcd3e/experiments/mad/README.md",
+    "historical_source_runtime": "https://github.com/JRowe47/SHoEbox/commit/6384d8ca072075ec58010b4c3d5964e9e60fcd3e",
+    "architecture_policy": "Use minimal v19 for new baseline studies; preserve full-C results and saved checkpoint semantics. The MAD v1 BenchModel defaults to full unless core is passed explicitly."
   },
   "first_tranche": {
     "task": "balanced two-key binding with distinct values and independent record/query order",
     "arms": [
-      "corrected_C",
+      "minimal_C",
       "query_readout",
       "query_readout_plus_flat_state",
       "query_readout_plus_4_slots"
@@ -1654,7 +2114,10 @@
       "language regression fits",
       "new positive-control searches",
       "larger state and parameter sweeps"
-    ]
+    ],
+    "status": "historical_conditional_estimate_not_current_execution_budget",
+    "note": "The 94-fit/31M-byte table preceded EXP00. EXP00 actual costs are recorded under EXP00.execution. Do not rerun completed EXP00 or launch the four-arm screen automatically; register a separate EXP01 diagnostic budget after fixture checks.",
+    "historical_comparator": "full_C_warmup"
   },
   "planned_outputs": [
     "registered protocol",
@@ -1664,5 +2127,44 @@
     "PNG learning/resource curves",
     "capability evidence updates"
   ],
-  "execution_updated_utc": "2026-11-16"
+  "execution_updated_utc": "2026-11-16",
+  "historical_runtime_commit": "6384d8ca072075ec58010b4c3d5964e9e60fcd3e",
+  "capability_coverage_scope": {
+    "architecture": "minimal corrected C",
+    "checkpoint_version": 19,
+    "as_of_runtime_commit": "317fbcd023b9d9b3c2b359ba8f99f3dadbf46783",
+    "history_field": "historical_assessment",
+    "rule": "Untested on minimal is distinct from a measured failure on full C. No broad generalist capability is generally demonstrated."
+  },
+  "baseline": {
+    "core": "minimal",
+    "routing_arm": "C",
+    "checkpoint_version": 19,
+    "width": 64,
+    "level_kinds": [
+      "expert",
+      "expert",
+      "summary",
+      "summary"
+    ],
+    "bytes_per_event": [
+      1,
+      4,
+      16,
+      64
+    ],
+    "production_source_commit": "317fbcd023b9d9b3c2b359ba8f99f3dadbf46783",
+    "historical_comparator": {
+      "core": "full",
+      "routing_arm": "C",
+      "balance_policy": "warmup",
+      "checkpoint_version": 10
+    },
+    "required_selection": "Pass core explicitly in every model/adapter; assert stats core, level_kinds, experts and actual parameters.",
+    "documentation": "reports/minimal_core/SHoEbox_Minimal_Core_Baseline.md",
+    "capability_matrix": "docs/capabilities/SHoEbox_Minimal_Capability_Matrix.md",
+    "handoff": "DEVELOPMENT_HANDOFF.md"
+  },
+  "documentation_updated_local_date": "2026-11-15",
+  "new_training_in_documentation_update": false
 }
