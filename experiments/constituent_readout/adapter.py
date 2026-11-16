@@ -12,7 +12,7 @@ HERE=Path(__file__).resolve().parent
 ROOT=HERE.parents[1]
 PARAMETERS=5*65+5*16*65+4*8*65+255*9
 FEATURES=5*64+5*16+1
-KINDS={'native':0,'paired':1}
+KINDS={'native':0,'paired':1,'paired_latest':2}
 LESIONS={None:0,'no_head':1,'no_query':2,'no_state':3,'uniform':4,'reverse':5,'unpair':6}
 _LIB=None
 
@@ -51,7 +51,7 @@ def library():
     lib=C.CDLL(str(path));p=C.c_void_p;i=C.c_int;f=C.c_float;n=C.c_size_t;s=C.c_char_p
     fp=C.POINTER(f);dp=C.POINTER(C.c_double)
     specs={'ms_error':([],s),'qr_new':([i,C.c_uint32,i,i,i],p),'qr_free':([p],None),
-        'qr_auxiliary':([p,f],i),'qr_configure':([p,f,f,f],i),'qr_reset':([p],i),'qr_finish':([p],i),'qr_observe':([p,C.c_uint8],i),
+        'qr_query_policy':([p,i],i),'qr_auxiliary':([p,f],i),'qr_configure':([p,f,f,f],i),'qr_reset':([p],i),'qr_finish':([p],i),'qr_observe':([p,C.c_uint8],i),
         'qr_probs':([p,fp],i),'qr_train':([p,s,s,s,C.POINTER(C.c_int32),n,dp,C.POINTER(n)],i),
         'qr_score':([p,s,s,n,i,i,i,dp],i),'qr_clone':([p,i,i],p),'qr_adopt':([p,p],i),
         'qr_diagnostic':([p,fp],i),'qr_info':([p,dp],i),'qr_benchmark':([p,s,n,n,dp],i),

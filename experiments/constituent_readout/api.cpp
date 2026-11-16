@@ -4,6 +4,11 @@ void* qr_new(int parameters,uint32_t seed,int minimal,int kind,int joint){
     catch(const std::exception& e){error=e.what();return nullptr;}
 }
 void qr_free(void* p){delete static_cast<shoe::QueryAdapter*>(p);}
+int qr_query_policy(void* p,int latest){return guard([&]{
+    auto& a=*static_cast<shoe::QueryAdapter*>(p);
+    if(a.training||!a.kind||latest<0||latest>1)throw std::invalid_argument("frozen query policy required");
+    a.kind=latest?2:1;
+});}
 int qr_configure(void* p,float rate,float scale,float auxiliary){return guard([&]{
     auto& a=*static_cast<shoe::QueryAdapter*>(p);
     if(!std::isfinite(rate)||rate<0||!std::isfinite(scale)||scale<=0||!std::isfinite(auxiliary)||auxiliary<0)

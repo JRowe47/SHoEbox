@@ -46,12 +46,15 @@ inline void reconstruct(Affine& p,const Vec& x,float target,float rate){
 // Fixed constituent phases are coordinate roles, not parsed record locations.
 // Top-two source routing is trained by a separate local presence loss; no
 // derivative through the discrete top-k operation is claimed.
-inline QueryCache query_forward(const QueryHead& p,const Model& m,int lesion=0){
+inline QueryCache query_forward(const QueryHead& p,const Model& m,int lesion=0,bool latest=false){
     QueryCache c;const auto& queries=m.levels[0].retained;
-    float qbest=-1e30f;
+    float qbest=-1e30f;int latest_slot=-1;uint64_t latest_born=0;Vec latest_raw{};
     for(int k=0;k<queries.count;++k){Vec x=source_vector(queries.units[k].stable);
-        float score=affine(p.gate[4],x)-.5f*float(queries.clock-queries.units[k].born);
+        float recognition=affine(p.gate[4],x);
+        if(latest&&recognition>0&&queries.units[k].born>latest_born){latest_slot=k;latest_born=queries.units[k].born;latest_raw=x;}
+        float score=recognition-.5f*float(queries.clock-queries.units[k].born);
         if(score>qbest){qbest=score;c.query_slot=k;c.query_raw=x;}}
+    if(latest_slot>=0){c.query_slot=latest_slot;c.query_raw=latest_raw;}
     for(int r=0;r<QRANK;++r)c.query[r]=std::tanh(affine(p.key[4*QRANK+r],c.query_raw));
     if(lesion==2)c.query={};
     const auto& records=m.levels[1].retained;
@@ -85,7 +88,7 @@ struct QueryAdapter {
     uint64_t targets=0,local_updates=0;int lesion=0;
     QueryAdapter(int parameters,uint32_t seed,bool minimal,int k,bool learn_core):
         model(std::make_unique<Model>(4,parameters-(k?QPARAMS:0),seed,false,false,minimal)),kind(k),joint(learn_core){
-        if(k<0||k>1)throw std::invalid_argument("invalid constituent head");
+        if(k<0||k>2)throw std::invalid_argument("invalid constituent head");
         model->semantic_laces=false;model->routing_arm=2;model->balance_policy=2;
         std::mt19937 rng(seed^0x50414952u);std::normal_distribution<float> n(0,.002f);
         for(auto& row:head.key)for(auto& x:row)x=n(rng);
@@ -112,7 +115,7 @@ struct QueryAdapter {
             }++local_updates;
         }
     }
-    void prepare(){cache=query_forward(head,*model,lesion);errors={};}
+    void prepare(){cache=query_forward(head,*model,lesion,kind==2);errors={};}
     float logit(int node)const{return !kind||lesion==1?0:head.bias[node]+dot(head.output.data()+node*VRANK,cache.h.data(),VRANK);}
     void backward(std::array<RecallValue,4>&){
         if(!training||!kind)return;
@@ -141,7 +144,7 @@ inline std::unique_ptr<QueryAdapter> query_load(const char* raw,size_t size){
     auto a=std::make_unique<QueryAdapter>(500000,1,true,0,true);a->model=std::make_unique<Model>(load(r.p,n));r.p+=n;r.n-=n;
     uint8_t training,joint;r.pod(a->head);r.pod(a->kind);r.pod(training);r.pod(joint);r.pod(a->rate);r.pod(a->auxiliary);r.pod(a->targets);r.pod(a->local_updates);r.pod(a->lesion);
     if(training>1||joint>1)throw std::runtime_error("invalid flags");a->training=training;a->joint=joint;
-    if(r.n||a->kind<0||a->kind>1||a->lesion<0||a->lesion>6||a->model->levels.size()!=4||a->model->training!=(a->training&&a->joint)||
+    if(r.n||a->kind<0||a->kind>2||a->lesion<0||a->lesion>6||a->model->levels.size()!=4||a->model->training!=(a->training&&a->joint)||
        !std::isfinite(a->rate)||a->rate<0||!std::isfinite(a->auxiliary)||a->auxiliary<0||(a->training&&a->lesion))throw std::runtime_error("invalid policy");
     auto finite=[](const auto& xs){for(auto x:xs)if(!std::isfinite(x))throw std::runtime_error("nonfinite parameters");};
     for(auto& x:a->head.gate)finite(x);for(auto& x:a->head.key)finite(x);for(auto& x:a->head.value)finite(x);finite(a->head.output);finite(a->head.bias);
