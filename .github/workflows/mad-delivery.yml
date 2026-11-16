@@ -1,0 +1,56 @@
+name: MAD research deliverables
+on:
+  push:
+    branches: ['research/mad-capabilities']
+    paths: ['.github/workflows/mad-delivery.yml', 'experiments/mad_delivery/**']
+  workflow_dispatch:
+permissions:
+  contents: write
+  actions: read
+env:
+  OPENBLAS_NUM_THREADS: '1'
+  OMP_NUM_THREADS: '1'
+  MKL_NUM_THREADS: '1'
+jobs:
+  package:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: research/mad-capabilities
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m pip install numpy matplotlib
+      - name: Verify shortcut baselines cannot read answers
+        run: python -m unittest experiments.mad_followup.test_baselines -v
+      - uses: actions/download-artifact@v4
+        with:
+          run-id: 43787654696
+          github-token: ${{ github.token }}
+          name: SHoEbox_MAD_Capability_Research
+          path: evidence
+      - uses: actions/download-artifact@v4
+        with:
+          run-id: 43787902832
+          github-token: ${{ github.token }}
+          pattern: mad-procedural-*
+          path: evidence
+          merge-multiple: true
+      - name: Build report and primary chart from complete measurements
+        run: python -u -m experiments.mad_delivery.bundle
+      - name: Publish compact results on research branch
+        run: |
+          git config user.name "SHoEbox research runner"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -- reports/mad_capabilities experiments/mad_capabilities/README.md
+          git commit -m "Record completed MAD capability research and measured conclusions [skip ci]"
+          git push origin HEAD:refs/heads/research/mad-capabilities
+      - uses: actions/upload-artifact@v4
+        with:
+          name: SHoEbox_MAD_Research_Code_and_Results
+          path: evidence/
+          retention-days: 90
+          if-no-files-found: error
