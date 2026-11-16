@@ -13,6 +13,12 @@ passing generic regressions, 1M/5M capacity and throughput gates.
 E8 is the new default, and explicit v19/historical policies are preserved. E2-family/E7 audits are now opened; no tuning against them.
 New studies must select minimal/full explicitly and keep their evidence separate.
 
+**Current focused research:** [EXP03/05-A4](reports/exp0305a4/SHoEbox_EXP0305_A4_Report.md)
+is complete and fails development: 86.72% competing bindings, 94.79% corrected
+overwrite and 68.35% native speed. E8 stays public; A1–A4 audits stay closed.
+[A5 local discriminative key reconstruction](reports/exp0305a4/A5_REGISTRATION.md)
+is registered, not implemented or fitted.
+
 ## Capability development protocols
 
 [MAD-style experiments](experiments/mad/README.md) provide nine reproducible
@@ -24,7 +30,7 @@ to run the smoke qualification.
 
 ## Selected runtime: minimal corrected-C core
 
-**Latest capability development:** [EXP01-E8 cold-start applicability](reports/exp01e8/SHoEbox_EXP01E8_Report.md)
+**Qualified public capability:** [EXP01-E8 cold-start applicability](reports/exp01e8/SHoEbox_EXP01E8_Report.md)
 initializes the local gate to 1/256 while preserving E7 and historical checkpoints.
 Its fixture-supervised research adapter passes held-out binding, language retention,
 language/copy/reconstruction and 1M/5M qualification. Generic byte objectives do not

@@ -1,5 +1,41 @@
 # SHoEbox development handoff
 
+16 November 2026 (America/Denver). **EXP03/EXP05-A4 is complete; qualified
+public E8 remains unchanged.** Read [the A4 report](reports/exp0305a4/SHoEbox_EXP0305_A4_Report.md),
+[execution lock](reports/exp0305a4/EXECUTION_LOCK.md) and
+[next A5 registration](reports/exp0305a4/A5_REGISTRATION.md) in full.
+
+Fresh matched E8/A3/A4, seeds 1/7/19, exactly 20.25M fitting bytes. A4 reaches
+86.72% competing bindings, 94.79% corrected overwrite, 95.90% clean binding,
+64.45% diverse256 and 68.35% native speed. Development fails at unchanged gates;
+A1/A2/A3/A4 audits stay closed. No generic/capacity qualification or prior sweep.
+
+The frozen trace reduces unrelated-key mixture mass 18.61% →12.41% versus
+matched A3 but reintroduces 5.21% old-value predictions on changed keys. Nearest
+query/key identity is only 92.19% correct on competing queries; same-key old/new
+vectors overlap different-key distances. A5 registers a fixed local discriminative
+key-reconstruction loss, keeping A4 inference/admission/state and all thresholds.
+It is not implemented or fitted. Use fresh folds excluding all historical groups,
+reserved A1/A2/A3/A4 audits and A2/A3/A4 dev/binary-regression worlds.
+
+Long-diverse signature survival is separately 96.875% on the 32-world trace.
+All 24 target removals occur under all-slots-recognized pressure; 16.97% of
+fully diverse incoming pairs are falsely recognized. Missing signatures and
+matching errors are distinct measured failures.
+
+214 Python tests, 13 additional cross-policy checks, native/ASan/UBSan checks,
+14 historical trajectories and all 18 actual model/cursor pairs pass. An
+independent exhaustive selector matches A4 exactly before fitting. Source,
+folds, final snapshots and results verify. Public/historical sources are unchanged.
+Downloadable Markdown, four primary PNGs, raw evidence, exact cursors and source
+bundle are provided. No datasets/checkpoints/binaries enter git.
+
+Completed verified work, including failures, is explicitly authorized for commit
+and push directly to main; preserve unrelated changes/history and never force-push.
+Deliver ordinary downloadable artifacts and a copy/paste prompt preserving this
+authority; no Pages or Spaces. Historical handoffs below preserve prior results
+and costs; this A4 status supersedes their earlier next-step statements.
+
 16 November 2026 (America/Denver). **EXP03/EXP05-A3 is complete; qualified
 public E8 remains unchanged.** Read [the A3 report](reports/exp0305a3/SHoEbox_EXP0305_A3_Report.md),
 [execution lock](reports/exp0305a3/EXECUTION_LOCK.md) and

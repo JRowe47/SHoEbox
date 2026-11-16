@@ -1,5 +1,18 @@
 # SHoEbox development
 
+- Current focused work: EXP03/05-A4 is complete and fails development. Read
+  `reports/exp0305a4/SHoEbox_EXP0305_A4_Report.md` and `A5_REGISTRATION.md`
+  in full. Competing bindings 86.72%, corrected overwrite 94.79%, diverse256
+  64.45%, isolated speed 68.35% native. Keep qualified public E8 and A1/A2/A3/A4
+  audits closed. Nearest-query identity errors and overlapping same/different-key
+  geometry motivate fixed local discriminative key reconstruction (A5), not
+  another matching-band sweep. Long-diverse false recognition/eviction is a
+  separately measured failure. Preserve every old score, cost, gate and policy.
+  Exclude all prior opened/reserved groups plus A4 dev/binary/audit worlds.
+  A5 is registered, not implemented or fitted. Read its exact local loss and
+  unchanged inference rule before acting. Direct verified main publication,
+  including failure, remains authorized. Entries below are historical context.
+
 - Latest focused work: EXP03/05-A3 is complete and fails development. Read
   `reports/exp0305a3/SHoEbox_EXP0305_A3_Report.md` and its `A4_REGISTRATION.md`
   in full. Chronological matching raises corrected overwrite to 95.96% and
