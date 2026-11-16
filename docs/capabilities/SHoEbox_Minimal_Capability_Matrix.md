@@ -6,7 +6,7 @@ Current inventory: **62 core capabilities, four optional multimodal capabilities
 
 **Yes** means a relevant executable mechanism remains; **Partial** means supporting pieces exist without a complete workflow; **No** means the capability is outside the minimal implementation. A research decoder is identified explicitly. **Untested** means no adequate minimal-specific capability result; it does not turn an old full-C failure into a minimal result. **Verified engineering** covers software contracts, not semantic competence.
 
-No broad generalist capability is generally demonstrated. Minimal evidence currently supports next-byte learning, short selective copying, bounded-state reconstruction, and causal use of memory on the copy task.
+No broad generalist capability is generally demonstrated. Minimal evidence supports next-byte learning, short selective copying, bounded-state reconstruction, and causal use of memory on the copy task. The separate EXP01-D3 research readout now qualifies narrow two-binding native recall across boundary phases and padding delays; it is not yet the production default.
 
 ## Retained architecture
 
@@ -26,7 +26,7 @@ Three paired seeds (1, 7, 19), nominal 500K models. FineWeb used 1M next-byte ta
 | Selective-copy token / exact whole-answer accuracy | 73.70% / 47.40% | 73.83% / 47.66% |
 | Final-state reconstruction token / exact whole-answer accuracy | 70.77% / 22.14% | 80.14% / 40.36% |
 
-Memory-read removal reduces minimal copy from 73.83% to 11.85%; zeroing final L3 state reduces reconstruction from 80.14% to 7.42%. Reconstruction uses a separately trained decoder included in the parameter budget, not the native language head. This table reproduces the earlier minimal qualification. The new EXP01-C training results are identified separately below.
+Memory-read removal reduces minimal copy from 73.83% to 11.85%; zeroing final L3 state reduces reconstruction from 80.14% to 7.42%. Reconstruction uses a separately trained decoder included in the parameter budget, not the native language head. This table reproduces the earlier minimal qualification. The new EXP01-D research results are identified separately below.
 
 [Protocol, raw results and verification](../../reports/minimal_core/SHoEbox_Minimal_Core_Baseline.md) · [Development handoff](../../DEVELOPMENT_HANDOFF.md) · [Experiment plan](SHoEbox_Capability_Research.md).
 
@@ -58,8 +58,8 @@ Memory-read removal reduces minimal copy from 73.83% to 11.85%; zeroing final L3
 | M04 | Compress observed content into a usable bounded state | Yes — research decoder | Narrow | Minimal final-L3 reconstruction: 80.14% token accuracy, 40.36% exact; separately trained MLP decoder included in the budget. Next: EXP00, EXP02. |
 | M05 | Use remembered information in prediction | Yes | In principle | Disabling addressed and retained reads lowers minimal copy token accuracy from 73.83% to 11.85%; establishes causal use on this task. Next: EXP01, EXP03, EXP08. |
 | M06 | Store and recover exact externally supplied bindings | Yes — explicit API | Untested | bind/lookup/payload entry points remain available; automatic association dispatch is excluded from minimal. Earlier exact-API evidence is historical; no new minimal-specific binding qualification is claimed. Next: EXP14. |
-| M07 | Bind a newly observed value to the right query | Yes — memory path; research selector | Default unworking; query diagnostic gain, binding unqualified | EXP01-B aligned gain remains historical. EXP01-C offset-trained pooled views reach 44.56% native exact versus 50.20% native; query decoding 100% at both positions, second selection 50.52%. No promotion. Next: EXP01-D / EXP22 preserve constituent-level key/value association. |
-| M08 | Retain information through longer delays and interference | Yes — memory path | Untested | Full C failed the longer-delay probe. Recheck minimal while separating delay, distractor writes, eviction and retrieval. Next: EXP03, EXP05. |
+| M07 | Bind a newly observed value to the right query | Yes — memory path; research paired readout | Research narrowly qualified; default unworking | EXP01-D3: 99.22% native whole-episode exactness on every seed versus 50.29% native; 96.88% both query orders; source/query/pairing ablations pass. Local window supervision; 9,900 budgeted weights; no extra sequence state. Next: EXP01-E joint and production qualification. |
+| M08 | Retain information through longer delays and interference | Yes — memory path; research readout | Narrow for padding delays; interference untested | EXP01-D3 reaches 100% through +64/+128/+256 unseen padding bytes across all offsets on the registered delay sample. Arbitrary distractors, additional bindings and eviction remain EXP03/05 work. |
 | M09 | Recall despite noisy or approximate cues | Yes — memory path | Untested | Prior noisy/fuzzy full-C probes failed; minimal noisy-cue behavior is unqualified. Next: EXP03. |
 | M10 | Update working variables without overwriting unrelated state | Partial | Untested | Research tasks exist; full-C initialization/set/copy/swap failed EXP00. No successful minimal state-update workflow. Next: EXP04, EXP05. |
 | M11 | Maintain useful episodic memory across sessions | Partial | Untested | Checkpoint persistence exists; autonomous episodic admission, retrieval and answer use across sessions are unqualified. Next: EXP14. |
@@ -92,7 +92,7 @@ Memory-read removal reduces minimal copy from 73.83% to 11.85%; zeroing final L3
 | ID | Capability | Minimal implementation | Minimal evidence | Scope and next work |
 | --- | --- | --- | --- | --- |
 | C01 | Learn useful conditional specialization in upper experts | No — excluded | Untested | Minimal has no 16/64-byte expert banks. Study summary contribution first; any restored upper experts are a separately named candidate. Next: EXP06, EXP07, EXP20, EXP22. |
-| C02 | Teach internal state through intermediate supervision | Partial — minimal research adapter | Readout gain; joint credit unqualified | Prefix-byte local reconstruction lifts the frozen-head binding result to 83.37%; joint bounded credit reaches 61.23% and fails the binding gate. Implemented with numerical checks; not promoted. |
+| C02 | Teach internal state through intermediate supervision | Partial — research local readout | Readout qualified; joint core credit unqualified | EXP01-D3 learns local presence and observed key/value decoding from fixed stable constituents, clearing binding/access gates. This does not establish learned upper-summary specialization. Joint native-core and generic byte-training qualification is next. |
 | C03 | Improve answers by performing extra latent refinement | No — full research only | Untested | Existing refinement loops are excluded from minimal; prior full-C tests did not establish useful inference-time refinement. Next: EXP10. |
 | C04 | Stop refinement when its state has converged | No — full research only | Untested | Convergence stopping exists only with the full-research loops, not in minimal one-pass prediction. Next: EXP11. |
 | C05 | Allocate more computation to genuinely difficult inputs | No | Untested | No dedicated integrated workflow in the minimal baseline. Next: EXP11. |
@@ -141,4 +141,6 @@ Memory-read removal reduces minimal copy from 73.83% to 11.85%; zeroing final L3
 
 ## Next development decision
 
-EXP01-C is complete. [Query-access results](../../reports/exp01c/SHoEbox_EXP01C_Query_Access.md) show 100% current-query diagnostic decoding at both positions but only 44.56% native whole-episode exactness. Both record-containing constituents remain present across the tested phases/delays; second-query key selection and value decoding remain the bottleneck. Next: EXP01-D / EXP22, preserve per-constituent key/value association and handle phase before pooling, then joint credit and regression qualification. Minimal v19 remains the default; slots and reasoning loops remain gated. See [the handoff](../../DEVELOPMENT_HANDOFF.md).
+EXP01-D3 / EXP22 passes the registered binding/access development gates: 99.22% native two-answer exactness on every seed versus 50.29% native; 99.63% all-offset mean, 98.44% worst offset, 96.88% both-query-orders exactness, and 100% at +64/+128/+256-byte delays. [Results and evidence](../../reports/exp01d/SHoEbox_EXP01D_Report.md) establish the paired constituent
+readout as the selected research solution. EXP01-E: integrate and qualify joint native-core learning and a learned residual-applicability gate, then language/copy/reconstruction and 1M/5M capacity regressions. Keep the D3 binding/delay fixture as a regression and minimal v19 as production until those gates pass.
+See [the handoff](../../DEVELOPMENT_HANDOFF.md).

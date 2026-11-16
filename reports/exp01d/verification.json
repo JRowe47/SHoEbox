@@ -1,0 +1,48 @@
+{
+  "python_tests": 118,
+  "runtime_python": 48,
+  "existing_research_python": 57,
+  "new_constituent_python": 13,
+  "new_native_checks_per_build": 6633,
+  "optimized_native_pass": true,
+  "asan_ubsan_native_pass": true,
+  "existing_native_suite_pass": true,
+  "leak_sanitizer": false,
+  "leak_sanitizer_reason": "ptrace-managed host; ASan and UBSan remain enabled",
+  "production_and_historical_source_unchanged": true,
+  "d1_policy_byte_identical": true,
+  "final_d3_outputs_and_continued_checkpoints_byte_identical": true,
+  "selected_checkpoint_outer_stream_resume": {
+    "seeds": [
+      1,
+      7,
+      19
+    ],
+    "additional_bytes": 1000,
+    "interrupt_after": 371,
+    "remaining": 629,
+    "all_byte_identical": true
+  },
+  "fit_and_audit_source_hash_checks_passed": true,
+  "post_audit_changed_registered_files": [
+    "experiments/constituent_readout/adapter.py",
+    "experiments/constituent_readout/test_latest.py",
+    "experiments/constituent_readout/readout.hpp",
+    "experiments/constituent_readout/api.cpp"
+  ],
+  "post_audit_change_reason": "Research default selects successful saved policy; inventory names local windows accurately; validate query-label byte range; explanatory comment and input-atomicity test. Valid-input outputs and continued checkpoints match the registered runtime byte-for-byte.",
+  "commands": [
+    "python -m multiscale.tests.run_all --no-leak-check",
+    "python -m unittest experiments.mad.test_protocol experiments.mad_next.test_exp00 experiments.query_readout.test_adapter experiments.factorized_readout.test_adapter experiments.query_access.test_adapter experiments.constituent_readout.test_adapter -v",
+    "python -m unittest experiments.constituent_readout.test_adapter experiments.constituent_readout.test_latest experiments.constituent_readout.test_spacers -v",
+    "python -m experiments.constituent_readout.check_native --no-leak-check",
+    "python -m experiments.constituent_readout.check_latest"
+  ],
+  "log_sha256": {
+    "verification_runtime.txt": "e2a4eb0be3e6975006db9a28320d0c7d7cd38041c2c63ce6fe074ae4158a337a",
+    "verification_research.txt": "e1f619ed5ca938aaf19e29bcf6a96673805ae13220f4913d08be9171321d8ebc",
+    "verification_final_python.txt": "1354094979cb5fe0df4300e5a832dae018e2f8aad04114ded89f60329e64945a",
+    "verification_native.txt": "b6f8d03536992a6baf33e6700fcfb349e09430e53e7640ce567a691addf6523e",
+    "verification_latest_native.txt": "739a01fafc7cff953652e59643cf7a77d52f8d5084da268112a96c86ef2514b6"
+  }
+}

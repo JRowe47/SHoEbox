@@ -24,7 +24,7 @@ int qr_observe(void* p,uint8_t b){return guard([&]{static_cast<shoe::QueryAdapte
 int qr_probs(void* p,float* out){return guard([&]{auto& a=*static_cast<shoe::QueryAdapter*>(p);shoe::QueryScope scope(a);a.model->log_probs(out);});}
 int qr_train(void* p,const uint8_t* x,const uint8_t* y,const uint8_t* mask,const int32_t* labels,size_t n,double* loss,size_t* targets){return guard([&]{
     auto& a=*static_cast<shoe::QueryAdapter*>(p);if(!a.training)throw std::logic_error("frozen query adapter");
-    if(labels)for(size_t i=0;i<n*5;++i)if(labels[i]<-1||labels[i]>65535)throw std::invalid_argument("invalid prefix label");
+    if(labels)for(size_t i=0;i<n*5;++i)if(labels[i]<-1||labels[i]>(i%5==0?255:65535))throw std::invalid_argument("invalid prefix label");
     shoe::QueryScope scope(a);*loss=0;*targets=0;
     for(size_t t=0;t<n;++t){a.model->observe(x[t]);if(labels){shoe::Labels lab;std::copy_n(labels+5*t,5,lab.begin());a.local(lab);}if(mask[t]){*loss+=a.model->teach(y[t]);++*targets;}}
 });}

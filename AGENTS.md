@@ -1,16 +1,17 @@
 # SHoEbox development
 
-- Before new capability work, read `DEVELOPMENT_HANDOFF.md` and
-  `docs/capabilities/SHoEbox_Minimal_Capability_Matrix.md`. EXP00 is complete
-  on full C; EXP01-C's query-access screen is complete. The next item is
-  EXP01-D / EXP22: preserve constituent-level key/value association before
-  pooling, with within-constituent phase handled explicitly. Pooled views decode
-  the current query at 100% in both positions, but reach only 44.56% native
-  two-answer exactness versus 50.20% native. Record-containing constituents remain
-  present in the tested offsets/delays; second-query selection falls to 50.52%.
-  No promotion. Read `reports/exp01c/` and preserve `reports/exp01b/` as history.
-  Record the selected core explicitly and keep historical/full-C evidence
-  separate from minimal-v19 qualifications.
+- Before new capability work, read `DEVELOPMENT_HANDOFF.md`,
+  `docs/capabilities/SHoEbox_Minimal_Capability_Matrix.md` and `reports/exp01d/`.
+  EXP01-D3 / EXP22 passes the binding/access development gates: 99.22% native
+  two-answer exactness across three seeds, every boundary offset above 98%,
+  and 100% through +256 padding bytes. Use the `paired_latest` research policy
+  with short-spacing training variation; preserve D1/D2 policies and evidence.
+  The next item is EXP01-E: joint native-core/readout integration and production
+  regression qualification, including a learned residual-applicability gate.
+  No default promotion yet. Minimal v19 remains the production control.
+  New slots and optimizer sweeps remain gated on a measured state failure.
+  Record the selected core explicitly; do not merge historical/full-C evidence
+  with minimal-v19 or research-adapter qualifications.
 
 - The selected CPU runtime is the minimal corrected-C core, exposed by `shoe_multiscale.py` and
   implemented in `multiscale/`. Preserve `shoebox_reference.py` as the historical

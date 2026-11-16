@@ -51,6 +51,8 @@ inline QueryCache query_forward(const QueryHead& p,const Model& m,int lesion=0,b
     float qbest=-1e30f;int latest_slot=-1;uint64_t latest_born=0;Vec latest_raw{};
     for(int k=0;k<queries.count;++k){Vec x=source_vector(queries.units[k].stable);
         float recognition=affine(p.gate[4],x);
+        // Recognition and recency are distinct decisions: confidence must not
+        // make an old query supersede a newer positively recognized occurrence.
         if(latest&&recognition>0&&queries.units[k].born>latest_born){latest_slot=k;latest_born=queries.units[k].born;latest_raw=x;}
         float score=recognition-.5f*float(queries.clock-queries.units[k].born);
         if(score>qbest){qbest=score;c.query_slot=k;c.query_raw=x;}}

@@ -17,6 +17,10 @@ class LatestTests(unittest.TestCase):
  def test_policy_change_is_frozen_only(self):
   with Adapter(kind='paired') as a:
    with self.assertRaises(RuntimeError):a.call('qr_query_policy',1)
+   before=a.dumps()
+   for bad in ([256,-1,-1,-1,-1],[1,65536,-1,-1,-1],[-2,-1,-1,-1,-1]):
+    with self.assertRaises(RuntimeError):a.run(b'x',b'y',bytes(1),np.array([bad],dtype=np.int32))
+    self.assertEqual(before,a.dumps())
    with a.clone() as f:
     old=f.dumps();f.call('qr_query_policy',1);self.assertEqual(f.inventory()['kind'],'paired_latest')
     f.call('qr_query_policy',0);self.assertEqual(old,f.dumps())

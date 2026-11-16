@@ -1,5 +1,20 @@
 # SHoEbox handoff
 
+## 2026-11-16 — EXP01-D3 binding/access development gate passed
+
+EXP01-D3 / EXP22 passes the registered binding/access development gates: 99.22% native two-answer exactness on every seed versus 50.29% native; 99.63% all-offset mean, 98.44% worst offset, 96.88% both-query-orders exactness, and 100% at +64/+128/+256-byte delays. Inference retains 88.74% of native throughput. The selected
+`paired_latest` research readout adds 9,900 budgeted fitted weights and zero
+sequence state. All 118 Python tests, 6,633 new optimized/sanitized checks per
+build and the existing native suite pass. Actual fitting: 63.75M bytes.
+
+EXP01-E: integrate and qualify joint native-core learning and a learned residual-applicability gate, then language/copy/reconstruction and 1M/5M capacity regressions. Keep the D3 binding/delay fixture as a regression and minimal v19 as production until those gates pass.
+[Report](reports/exp01d/SHoEbox_EXP01D_Report.md) · [Source](experiments/constituent_readout/README.md) ·
+[Continuation prompt](reports/exp01d/NEXT_CHAT_PROMPT.txt).
+
+Working checkpoints: selected D3, seeds 1/7/19, `spaced.qr` in the downloadable
+code/evidence archive; checkpoint hashes are in `reports/exp01d/d3_train.json`.
+Next reproduction command: `python -m experiments.constituent_readout.stage3 train --out /tmp/exp01d-reproduce --workers 3`.
+
 ## 2026-11-16 — EXP01-C query-time access completed
 
 New bounded research views decode the current query at 100% in both diagnostic

@@ -61,7 +61,7 @@ def library():
 
 
 class Adapter:
-    def __init__(self,parameters=500000,seed=1,core='minimal',kind='paired',joint=False,rate=.16,lr_scale=1.,auxiliary=.1,*,_ptr=None):
+    def __init__(self,parameters=500000,seed=1,core='minimal',kind='paired_latest',joint=False,rate=.16,lr_scale=1.,auxiliary=.1,*,_ptr=None):
         if core not in ('minimal','full'):raise ValueError('core must be named')
         self.lib=library();self.ptr=_ptr or self.lib.qr_new(parameters,seed,core=='minimal',KINDS[kind],joint)
         if not self.ptr:raise RuntimeError(self.lib.ms_error().decode())
@@ -119,7 +119,7 @@ class Adapter:
                     kind=list(KINDS)[int(out[6])],core='minimal' if out[7] else 'full',
                     readout_cache_bytes=int(out[8]),experts_per_level=list(map(int,out[9:13])),
                     allocated_head_bytes=int(out[13]),allocated_adapter_bytes=int(out[14]),
-                    added_persistent_sequence_state_bytes=0,optimizer_state_bytes=int(out[17]),rls_updates=int(out[18]),normalization_bytes=int(out[15]),normalization_samples=int(out[16]),existing_stream_and_retained_bytes=int(out[19]),source_count=int(out[20]),max_sources=64)
+                    added_persistent_sequence_state_bytes=0,optimizer_state_bytes=int(out[17]),rls_updates=int(out[18]),normalization_bytes=int(out[15]),normalization_samples=0,local_training_windows=int(out[16]),existing_stream_and_retained_bytes=int(out[19]),source_count=int(out[20]),max_sources=64)
     def dumps(self):
         n=C.c_size_t();self.call('qr_save',None,0,C.byref(n));buf=C.create_string_buffer(n.value)
         self.call('qr_save',buf,n.value,C.byref(n));payload=buf.raw

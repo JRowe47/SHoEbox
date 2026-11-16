@@ -1,10 +1,10 @@
 # SHoEbox capability research and development plan
 
-**Revision 6 · 16 November 2026 (America/Denver)**
+**Revision 7 · 16 November 2026 (America/Denver)**
 
-Current baseline: minimal corrected C, v19, at `317fbcd023b9d9b3c2b359ba8f99f3dadbf46783`. Revision 6 completes EXP01-C / EXP22 query-time access and selects EXP01-D: preserve constituent-level key/value association before pooling.
+Current baseline: minimal corrected C, v19, at `317fbcd023b9d9b3c2b359ba8f99f3dadbf46783`. Revision 7 completes EXP01-D3 / EXP22 binding/access qualification and selects EXP01-E joint integration and production regressions.
 
-**Development decision: repair query binding, retention, and state transitions first; then establish composition and useful upper-level computation; then return to inference-time reasoning.** Use the minimal corrected-C core as the production control and retain full C as a historical comparator. The online factorized readout is implemented and tested; its aligned gain does not survive boundary shifts. The next build separates current-query cues from stable existing evidence across positions and boundaries. A matched-capacity working-slot alternative remains gated on demonstrated state limitations. Deeper recurrence remains a later intervention.
+**Development decision: repair query binding, retention, and state transitions first; then establish composition and useful upper-level computation; then return to inference-time reasoning.** Use the minimal corrected-C core as the production control and retain full C as a historical comparator. The paired constituent readout now passes binding, query counterfactual, boundary, padding-delay and cost gates in the frozen-core research adapter. The next build integrates joint learning and qualifies generic language/copy/reconstruction behavior. A matched-capacity working-slot alternative remains gated on demonstrated state limitations. Deeper recurrence remains a later intervention.
 
 **Baseline revision — minimal v19.** The new default keeps expert banks at 1/4
 bytes and ordered trainable summaries at 16/64 bytes, with existing memory and
@@ -20,9 +20,11 @@ The [minimal capability matrix](SHoEbox_Minimal_Capability_Matrix.md) is the cur
 implementation/evidence inventory. It replaces the older full-C status view;
 prior assessments remain preserved separately in the backlog and git history.
 
-This plan defines **24 experiment packages**, a **32-paper working bibliography**, and a mapping of **all 66 capabilities plus eight engineering enablers** to development work. The 66 include 62 core capabilities and four optional multimodal capabilities. Early packages specify focused mechanism tests; later packages contain separately scored qualification suites. The original research revision preceded execution; the updates below record calibration and the initial binding diagnosis. No native capability promotion follows from these results.
+This plan defines **24 experiment packages**, a **37-paper working bibliography**, and a mapping of **all 66 capabilities plus eight engineering enablers** to development work. The 66 include 62 core capabilities and four optional multimodal capabilities. Early packages specify focused mechanism tests; later packages contain separately scored qualification suites. The original research revision preceded execution; the updates below record calibration and the initial binding diagnosis. No native capability promotion follows from these results.
 
-**Current execution update — 16 November 2026 (America/Denver).** EXP01-C is complete. Pooled views decode the current query at 100% in both diagnostic positions, but native two-answer exactness is 44.56% versus 50.20% native. Selection falls from 96.22% at the first query to 50.52% at the second; value decoding also remains weak. Record-containing constituents are present in every inspected phase/delay case. No promotion. **Next: EXP01-D / EXP22, preserve key/value association within each constituent before pooling and handle intra-constituent phase.** [Results and registered protocol](../../reports/exp01c/SHoEbox_EXP01C_Query_Access.md). Actual fitting: 28M bytes including pilots and controls.
+**Current execution update — 16 November 2026 (America/Denver).** EXP01-D3 / EXP22 passes the registered binding/access development gates: 99.22% native two-answer exactness on every seed versus 50.29% native; 99.63% all-offset mean, 98.44% worst offset, 96.88% both-query-orders exactness, and 100% at +64/+128/+256-byte delays. Inference retains 88.74% of native throughput, with zero added sequence state and 9,900 budgeted head weights. Actual fitting: 63.75M bytes including failed stages, pilots and controls. [Results, registration and code](../../reports/exp01d/SHoEbox_EXP01D_Report.md). EXP01-E: integrate and qualify joint native-core learning and a learned residual-applicability gate, then language/copy/reconstruction and 1M/5M capacity regressions. Keep the D3 binding/delay fixture as a regression and minimal v19 as production until those gates pass.
+
+**Historical EXP01-C update.** Pooled views decoded the query but reached 44.56% native exactness. This motivated the now completed constituent-pairing repair; preserve [its evidence](../../reports/exp01c/SHoEbox_EXP01C_Query_Access.md).
 
 **EXP01 diagnostic update — 15 November 2026 (America/Denver).** The initial
 36-branch screen is complete on explicitly named minimal/full cores. Minimal

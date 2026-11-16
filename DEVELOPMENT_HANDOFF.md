@@ -2,9 +2,17 @@
 
 16 November 2026 (America/Denver). Runtime baseline: minimal corrected C, checkpoint v19, source `317fbcd023b9d9b3c2b359ba8f99f3dadbf46783`.
 
-**Next action: EXP01-D / EXP22 — preserve constituent-level key/value association before pooling.** EXP01-C is complete. Across all-offset training and a fresh held-out fold, pooled views reach 44.56% native two-answer exactness versus 50.20% native and 38.64% shared-L3 control. Diagnostic current-query decoding is 100% at both positions, but selection falls from 96.22% on the first query to 50.52% on the second. Record-containing stable constituents remain present in every inspected phase/delay case through +256 bytes, including native-generated prefixes. Inference throughput costs 28.6%. No promotion; minimal v19 remains the production default.
+**Next action: EXP01-E: integrate and qualify joint native-core learning and a learned residual-applicability gate, then language/copy/reconstruction and 1M/5M capacity regressions. Keep the D3 binding/delay fixture as a regression and minimal v19 as production until those gates pass.**
+
+EXP01-D3 / EXP22 passes the registered binding/access development gates: 99.22% native two-answer exactness on every seed versus 50.29% native; 99.63% all-offset mean, 98.44% worst offset, 96.88% both-query-orders exactness, and 100% at +64/+128/+256-byte delays. The paired readout fits 9,900 parameters inside the nominal 500K budget,
+adds zero persistent sequence state, and retains 88.74% of native inference
+throughput. Query and key/value-pairing ablations confirm the mechanism. All 118
+Python tests, 6,633 new native checks per optimized/sanitized build, and the
+existing native suite pass. Production remains minimal corrected C v19.
 
 ## Read first
+
+- **Start with [EXP01-D3 results](reports/exp01d/SHoEbox_EXP01D_Report.md), [registrations](reports/exp01d/PROTOCOL.md), [D2 amendment](reports/exp01d/AMENDMENT_D2.md), [D3 amendment](reports/exp01d/AMENDMENT_D3.md), and [reproduction](experiments/constituent_readout/README.md).** The entries below preserve the prior evidence.
 
 1. [Current minimal capability matrix](docs/capabilities/SHoEbox_Minimal_Capability_Matrix.md): all 66 capabilities and eight engineering enablers.
 2. [Minimal baseline specification and qualification](reports/minimal_core/SHoEbox_Minimal_Core_Baseline.md).
@@ -176,7 +184,7 @@ positive controls. Controls score 100%. All 105 Python tests and 36,497 new
 native checks pass; existing native checks also pass optimized/ASan/UBSan.
 No default promotion or joint/language/scaling qualification occurred.
 
-**Next design:** keep the separately readable current query, decode a key and its
+**Historical next design (completed by EXP01-D):** keep the separately readable current query, decode a key and its
 value together from each existing constituent before mixing records, then use
 shared query-conditioned weights for both. Test within-constituent phase and
 stable versus learned content channels. Do not add a parser, oracle source index,
@@ -185,6 +193,44 @@ Register new pilot/formal budgets and a fresh audit fold. Keep the 95% mean /
 90% minimum-seed native binding gate and the counterfactual, boundary, delay,
 regression and cost gates. The EXP01-C pooled head is a reproducible control,
 not a replacement for minimal v19.
+
+## Completed EXP01-D / EXP22: paired constituent readout
+
+EXP01-D3 / EXP22 passes the registered binding/access development gates: 99.22% native two-answer exactness on every seed versus 50.29% native; 99.63% all-offset mean, 98.44% worst offset, 96.88% both-query-orders exactness, and 100% at +64/+128/+256-byte delays.
+
+The final candidate learns phase-specific key/value decoding from each existing
+retained eight-byte pair before mixing values. A separate classifier identifies
+query-containing two-byte pairs; the latest recognized occurrence supplies the
+query. D3 varies 0–7 padding bytes after each record during training, removing
+sensitivity to neighboring framing. Longer full-block delays remain unseen.
+Inference has no hand-coded task parser, symbolic lookup, source oracle or new
+slots. Local syntax/byte reconstruction labels are explicit training supervision.
+
+| Final fresh audit arm | Mean native two-answer exactness |
+| --- | ---: |
+| Native minimal v19 | 50.29% |
+| Pooled control | 48.96% |
+| Paired, fixed framing | 99.90% |
+| Paired, varied framing (selected D3) | 99.22% |
+
+The fixed-framing arm drops to 78.125% at all three longer delays on the same
+fresh audit; D3 reaches 100%. Short-spacing coverage therefore solves a failure
+hidden by the fixed-framing arm's higher primary score. The three seeds share
+256 audit worlds; do not treat their presentations as independent worlds.
+
+D1's confidence/age query competition failed. D2 corrected recency but failed
+longer delays, triggering a fresh preregistered D3 fold that excludes the opened
+D2 audit worlds. No gate was relaxed. Total fitting: **63.75M charged bytes**,
+including all pilots, failed comparisons and learned positive controls. All
+three new-fold positive controls reach 100%. Read the report for native output,
+local-supervision, state inventory, sampled delays and cost scopes.
+
+**Production qualification remains:** joint native-core learning; learned
+applicability of the residual; generic byte-training objectives; language,
+selective copy and bounded reconstruction regressions; 1M/5M capacity checks.
+The frozen-core research result is not a default promotion or evidence of
+learned upper-summary specialization. Do not add slots to solve this already
+repaired query/access fixture.
 
 ## Historical EXP01 execution contract and remaining qualification
 
@@ -213,7 +259,7 @@ Register a new audit fold after these results have informed the next design.
 
 | Order | Packages | Implementation target |
 | --- | --- | --- |
-| 1 | EXP01-D / EXP22 | Preserve per-constituent key/value pairing and handle phase before pooling; then joint credit and native qualification |
+| 1 | EXP01-E | Joint readout/core integration, learned applicability, and language/copy/reconstruction/1M/5M qualification |
 | 2 | EXP02/03 | Independent state capacity; delay, interference, eviction and retrieval |
 | 3 | EXP04/05 | Initialization, set/copy/swap; selective erase/write and state correction |
 | 4 | EXP06/07/22 | Useful 16/64-byte summaries; suitable objectives; query-time/boundary access |
@@ -226,6 +272,9 @@ Register a new audit fold after these results have informed the next design.
 For EXP06, assess upper summary contributions first. Minimal has no upper experts to permute; upper expert restoration needs a separately named candidate and a measured benefit over summaries. For EXP20, minimal expert reuse concerns the 1/4-byte banks. New reasoning or route-cycle candidates must declare a compatible architecture.
 
 ## Verification and deliverables for the next implementation
+
+Retain the new constituent-readout tests and both query policies. See
+`experiments/constituent_readout/README.md` for reproduction and the fresh D3 fold.
 
 Use the existing relevant runtime/native, causality, checkpoint and MAD checks for changed paths. Validate new derivatives and persistence where math/state changes. Keep historical policies exact. Existing commands include:
 
