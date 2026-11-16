@@ -100,6 +100,8 @@ On calibrated compression, held-out accuracy declines from 70.77% without loops 
 
 Two-binding recall is the positive exception: four-pass training improves held-out token accuracy from 55.86% to 60.81%, a +4.95-point paired mean, with seed interval [+0.78, +8.20]. Evaluating those same four-pass-trained models with no extra passes still scores 60.42%. Thus almost all of the improvement persists without the repeated inference computation; this supports a training effect, not useful additional reasoning at inference.
 
+Whole-episode recall remains weak: the four-pass model answers both queries correctly on 30.99% of episodes, while a query-blind control that simply emits the supplied values in their original order gets 53.12%. The token-accuracy improvement therefore does not establish reliable binding of each value to its query.
+
 Selective copy stays essentially unchanged (87.76% control, 88.02% with two extra passes, 86.33% with four). Composition and pointer chasing show no consistent gain; two-pass variable tracking worsens. The loop policies typically cost a few percent of training throughput.
 
 Retention is a concrete failure: on independently generated 64-byte-delay cases, the no-loop selective-copy control falls from 87.76% to 14.84%, and two-binding recall falls from 55.86% to 18.88%. This measures generalization to longer delays, rather than the ceiling after dedicated delay training. Removing addressed and retained reads also collapses copying, so the model uses these memories but does not retain the task robustly under this distribution shift.
