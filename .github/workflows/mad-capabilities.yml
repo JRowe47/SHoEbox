@@ -1,0 +1,54 @@
+name: MAD capability research
+on:
+  push:
+    branches: ['research/mad-capabilities']
+    paths: ['.github/workflows/mad-capabilities.yml', 'experiments/mad_capabilities/**']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  calibration:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    strategy:
+      fail-fast: false
+      max-parallel: 3
+      matrix:
+        task: [recall, noisy_recall, fuzzy_recall, selective_copy, compression, memorization, variable_tracking, composition, pointer_chasing]
+    env:
+      OPENBLAS_NUM_THREADS: '1'
+      OMP_NUM_THREADS: '1'
+      MKL_NUM_THREADS: '1'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Dependencies
+        run: python -m pip install numpy matplotlib
+      - name: Verify task and bridge contracts
+        run: python -m unittest experiments.mad.test_protocol -v
+      - name: Calibrate corrected C
+        run: |
+          mkdir -p results
+          python -u -m experiments.mad.run --preset screen --execute --tasks ${{ matrix.task }} --settings base --sizes 500000 --steps 0 --seeds 1 7 19 --lr-scales 1 --auxiliary 0.1 --budget 250000 --eval-every 50000 --cases 128 --out results/${{ matrix.task }}.json
+      - name: Print compact measurements
+        if: always()
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          for p in Path("results").glob("*.json"):
+              d=json.loads(p.read_text())
+              for c in d.get("cells",[]):
+                  print("MAD_RESULT",json.dumps({"task":c["task"],"size":c["size"],"setting":c["setting"],"steps":c["steps"],"rows":[{"seed":r["seed"],"dev":r["curve"][-1]["dev"]["task_accuracy"],"nll":r["curve"][-1]["dev"]["task_nll"],"cpu_seconds":r["cpu_seconds"],"bytes":r["bytes"]} for r in c.get("selected_runs",[])]}))
+              print("MAD_CALIBRATION",json.dumps(d.get("summary",{}).get("calibration",[])))
+          PY
+      - name: Preserve compact evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: mad-calibration-${{ matrix.task }}
+          path: results/
+          retention-days: 30
+          if-no-files-found: warn
