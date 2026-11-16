@@ -1,23 +1,27 @@
-# MAD capability research campaign
+# MAD capability research — completed campaign
 
-Base runtime: `6384d8ca072075ec58010b4c3d5964e9e60fcd3e`.
+The completed report, summary and primary PNG are in
+[reports/mad_capabilities](../../reports/mad_capabilities).
 
-The first stage calibrates all nine existing MAD task families with corrected C,
-three model seeds (1, 7, 19), 128 development cases, 256 training episodes,
-250,000 observed bytes per fit, and the registered base setting.
-The native configuration is 500K requested fitted parameters, LR scale 1 and
-native auxiliary weight 0.1. Actual capacities and dataset digests are recorded.
-No new architecture or production defaults are introduced.
+The campaign completed 435 fits and 131.25M observed training bytes. It includes
+nine-task calibration, calibrated 0/2/4-pass comparisons on six task families
+with equal six-policy optimizer searches and three seeds, and 1M/5M reruns of
+intermediate state supervision. Corrected C remains the production runtime.
 
-Decisions use development scores only. Choose a learnable unsaturated difficulty
-before interpreting a paired mechanism result. Next stages revisit upper loops
-and final-only/head-only/intermediate-state supervision, then inspect readout and
-retention if those tests remain near chance. Held-out accuracy, seed variation,
-matched bytes, measured CPU-time checkpoints and frozen interventions are the
-decision evidence. Preserve all failures and uncalibrated cells.
+Key results: shared-expert loops harm compression, provide a small recall
+training benefit that mostly survives with inference loops disabled, and do
+not solve procedural tasks. Intermediate state credit improves all three seeds
+at both model sizes, but final task accuracy remains near 15%. Query-dependent
+binding, readout conditioning and retention are the next targets.
 
-This branch runs the existing verified harness remotely after the interactive
-execution host became unavailable. The interrupted local launch has no recovered
-results and is excluded from all reported measurements.
+The initial host-disconnected launch supplied no recovered measurements.
+All reported fits are completed remote jobs with exact checkpoint reloads.
 
-This is SHoEbox's byte adaptation of MAD, not an original MAD leaderboard score.
+Commands:
+    python -m experiments.mad_capabilities.screen --task compression --out results/compression
+    python -m experiments.mad_capabilities.state_campaign --size 1000000 --budget 1000000 --out results/state_1000000.json
+    python -m experiments.mad_followup.screen --task variable_tracking --out results/variable_tracking
+    python -m unittest experiments.mad_followup.test_baselines -v
+
+This is SHoEbox's byte adaptation and registered state extension of MAD, not an
+original MAD leaderboard score. Full task contracts remain in experiments/mad.

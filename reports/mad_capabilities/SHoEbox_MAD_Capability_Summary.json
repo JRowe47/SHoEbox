@@ -1,0 +1,3545 @@
+{
+  "calibration": [
+    {
+      "task": "composition",
+      "dev_accuracy": 0.12760416666666666,
+      "per_seed": [
+        0.171875,
+        0.109375,
+        0.1015625
+      ]
+    },
+    {
+      "task": "compression",
+      "dev_accuracy": 0.9446614583333334,
+      "per_seed": [
+        0.96484375,
+        0.94921875,
+        0.919921875
+      ]
+    },
+    {
+      "task": "fuzzy_recall",
+      "dev_accuracy": 0.11241830065359477,
+      "per_seed": [
+        0.1084967320261438,
+        0.10718954248366012,
+        0.12156862745098039
+      ]
+    },
+    {
+      "task": "memorization",
+      "dev_accuracy": 1.0,
+      "per_seed": [
+        1.0,
+        1.0,
+        1.0
+      ]
+    },
+    {
+      "task": "noisy_recall",
+      "dev_accuracy": 0.13671875,
+      "per_seed": [
+        0.134765625,
+        0.140625,
+        0.134765625
+      ]
+    },
+    {
+      "task": "pointer_chasing",
+      "dev_accuracy": 0.19270833333333334,
+      "per_seed": [
+        0.1796875,
+        0.21875,
+        0.1796875
+      ]
+    },
+    {
+      "task": "recall",
+      "dev_accuracy": 0.119140625,
+      "per_seed": [
+        0.119140625,
+        0.119140625,
+        0.119140625
+      ]
+    },
+    {
+      "task": "selective_copy",
+      "dev_accuracy": 0.23893229166666666,
+      "per_seed": [
+        0.22265625,
+        0.294921875,
+        0.19921875
+      ]
+    },
+    {
+      "task": "variable_tracking",
+      "dev_accuracy": 0.2421875,
+      "per_seed": [
+        0.234375,
+        0.2578125,
+        0.234375
+      ]
+    }
+  ],
+  "loop_comparisons": [
+    {
+      "task": "composition",
+      "setting": "one_op",
+      "calibration": {
+        "task": "composition",
+        "size": 500000,
+        "status": "calibrated",
+        "setting": "one_op",
+        "control_development_score": 0.1279761904761905
+      },
+      "shortcut_name": "initial_binding_ignore_updates",
+      "shortcut_accuracy": 0.7578125,
+      "all_shortcuts": {
+        "initial_binding_ignore_updates": {
+          "token_accuracy": 0.7578125,
+          "exact_accuracy": 0.7578125
+        },
+        "uniform_alphabet_distribution": {
+          "token_accuracy": 0.125,
+          "exact_accuracy": 0.125
+        }
+      },
+      "arms": [
+        {
+          "steps": 0,
+          "test_accuracy": 0.2890625,
+          "exact_accuracy": 0.2890625,
+          "test_nll": 2.032554093801578,
+          "dev_nll": 2.061511375403969,
+          "bytes_per_cpu_second": 50839.523970996815,
+          "parameters": 496959,
+          "hyperparameters": {
+            "lr_scale": 1.0,
+            "auxiliary": 0.0
+          },
+          "tuning_cpu_seconds": 87.9483311349994,
+          "memory_accuracy_drop": 0.1796875,
+          "l2_permutation_accuracy_drop": 0.0,
+          "l3_permutation_accuracy_drop": 0.0,
+          "delay_ood_accuracy": 0.14583333333333334,
+          "per_seed": [
+            {
+              "seed": 1,
+              "lr_scale": 1.0,
+              "auxiliary": 0.0,
+              "bytes": 250000,
+              "cpu_seconds": 4.892985830999493,
+              "bytes_per_cpu_second": 51093.546688021444,
+              "test_accuracy": 0.25,
+              "test_nll": 2.086121125274905,
+              "exact": 0.25,
+              "depth_audit": {
+                "0": 0.25,
+                "1": 0.2421875,
+                "2": 0.2421875,
+                "4": 0.234375
+              },
+              "interventions": {
+                "no_memory": {
+                  "accuracy": 0.109375,
+                  "nll": 2.111734775554397,
+                  "active_permuted": null
+                },
+                "permute_l2": {
+                  "accuracy": 0.25,
+                  "nll": 2.10372528850858,
+                  "active_permuted": 11
+                },
+                "permute_l3": {
+                  "accuracy": 0.25,
+                  "nll": 2.0861133582435043,
+                  "active_permuted": 9
+                }
+              }
+            },
+            {
+              "seed": 7,
+              "lr_scale": 1.0,
+              "auxiliary": 0.0,
+              "bytes": 250000,
+              "cpu_seconds": 4.882331364999899,
+              "bytes_per_cpu_second": 51205.045563310545,
+              "test_accuracy": 0.296875,
+              "test_nll": 1.99844334267318,
+              "exact": 0.296875,
+              "depth_audit": {
+                "0": 0.296875,
+                "1": 0.296875,
+                "2": 0.296875,
+                "4": 0.296875
+              },
+              "interventions": {
+                "no_memory": {
+                  "accuracy": 0.109375,
+                  "nll": 2.0983770541502484,
+                  "active_permuted": null
+                },
+                "permute_l2": {
+                  "accuracy": 0.296875,
+                  "nll": 1.984458350540954,
+                  "active_permuted": 11
+                },
+                "permute_l3": {
+                  "accuracy": 0.296875,
+                  "nll": 1.9957288505664612,
+                  "active_permuted": 9
+                }
+              }
+            },
+            {
+              "seed": 19,
+              "lr_scale": 1.0,
+              "auxiliary": 0.0,
+              "bytes": 250000,
+              "cpu_seconds": 4.978098392000504,
+              "bytes_per_cpu_second": 50219.97966165846,
+              "test_accuracy": 0.3203125,
+              "test_nll": 2.013097813456649,
+              "exact": 0.3203125,
+              "depth_audit": {
+                "0": 0.3203125,
+                "1": 0.3203125,
+                "2": 0.3125,
+                "4": 0.3046875
+              },
+              "interventions": {
+                "no_memory": {
+                  "accuracy": 0.109375,
+                  "nll": 2.103207887313971,
+                  "active_permuted": null
+                },
+                "permute_l2": {
+                  "accuracy": 0.3203125,
+                  "nll": 2.009384555173706,
+                  "active_permuted": 11
+                },
+                "permute_l3": {
+                  "accuracy": 0.3203125,
+                  "nll": 2.0134359392702823,
+                  "active_permuted": 9
+                }
+              }
+            }
+          ]
+        },
+        {
+          "steps": 2,
+          "test_accuracy": 0.2864583333333333,
+          "exact_accuracy": 0.2864583333333333,
+          "test_nll": 2.028653869930514,
+          "dev_nll": 2.061070663857103,
+          "bytes_per_cpu_second": 49536.90621688339,
+          "parameters": 496959,
+          "hyperparameters": {
+            "lr_scale": 1.0,
+            "auxiliary": 0.0
+          },
+          "tuning_cpu_seconds": 90.78648351301021,
+          "memory_accuracy_drop": 0.17708333333333334,
+          "l2_permutation_accuracy_drop": -0.0026041666666666665,
+          "l3_permutation_accuracy_drop": 0.0,
+          "delay_ood_accuracy": 0.15104166666666666,
+          "per_seed": [
+            {
+              "seed": 1,
+              "lr_scale": 1.0,
+              "auxiliary": 0.0,
+              "bytes": 250000,
+              "cpu_seconds": 5.046011809000333,
+              "bytes_per_cpu_second": 49544.07747403341,
+              "test_accuracy": 0.2578125,
+              "test_nll": 2.082082337643412,
+              "exact": 0.2578125,
+              "depth_audit": {
+                "0": 0.2578125,
+                "1": 0.2578125,
+                "2": 0.2578125,
+                "4": 0.25
+              },
+              "interventions": {
+                "no_memory": {
+                  "accuracy": 0.109375,
+                  "nll": 2.1116227086417427,
+                  "active_permuted": null
+                },
+                "permute_l2": {
+                  "accuracy": 0.2421875,
+                  "nll": 2.1097672866811195,
+                  "active_permuted": 11
+                },
+                "permute_l3": {
+                  "accuracy": 0.25,
+                  "nll": 2.0816939889733184,
+                  "active_permuted": 9
+                }
+              }
+            },
+            {
+              "seed": 7,
+              "lr_scale": 1.0,
+              "auxiliary": 0.0,
+              "bytes": 250000,
+              "cpu_seconds": 5.034645811000416,
+              "bytes_per_cpu_second": 49655.926034312906,
+              "test_accuracy": 0.28125,
+              "test_nll": 1.988206562788461,
+              "exact": 0.28125,
+              "depth_audit": {
+                "0": 0.2890625,
+                "1": 0.2890625,
+                "2": 0.28125,
+                "4": 0.28125
+              },
+              "interventions": {
+                "no_memory": {
+                  "accuracy": 0.109375,
+                  "nll": 2.0956885404792662,
+                  "active_permuted": null
+                },
+                "permute_l2": {
+                  "accuracy": 0.3046875,
+                  "nll": 1.9727660437965593,
+                  "active_permuted": 11
+                },
+                "permute_l3": {
+                  "accuracy": 0.2890625,
+                  "nll": 1.9879573031594862,
+                  "active_permuted": 9
+                }
+              }
+            },
+            {
+              "seed": 19,
+              "lr_scale": 1.0,
+              "auxiliary": 0.0,
+              "bytes": 250000,
+              "cpu_seconds": 5.0596312820001685,
+              "bytes_per_cpu_second": 49410.71514230386,
+              "test_accuracy": 0.3203125,
+              "test_nll": 2.015672709359669,
+              "exact": 0.3203125,
+              "depth_audit": {
+                "0": 0.3125,
+                "1": 0.3203125,
+                "2": 0.3203125,
+                "4": 0.3203125
+              },
+              "interventions": {
+                "no_memory": {
+                  "accuracy": 0.109375,
+                  "nll": 2.102505975962022,
+                  "active_permuted": null
+                },
+                "permute_l2": {
+                  "accuracy": 0.3203125,
+                  "nll": 2.0074745333722785,
+                  "active_permuted": 11
+                },
+                "permute_l3": {
+                  "accuracy": 0.3203125,
+                  "nll": 2.0156907556028028,
+                  "active_permuted": 9
+                }
+              }
+            }
+          ]
+        },
+        {
+          "steps": 4,
+          "test_accuracy": 0.28125,
+          "exact_accuracy": 0.28125,
+          "test_nll": 2.034225007584251,
+          "dev_nll": 2.0648069100381528,
+          "bytes_per_cpu_second": 48355.76883278127,
+          "parameters": 496959,
+          "hyperparameters": {
+            "lr_scale": 1.0,
+            "auxiliary": 0.0
+          },
+          "tuning_cpu_seconds": 93.27530059699785,
+          "memory_accuracy_drop": 0.171875,
+          "l2_permutation_accuracy_drop": -0.0026041666666666665,
+          "l3_permutation_accuracy_drop": 0.005208333333333333,
+          "delay_ood_accuracy": 0.15364583333333334,
+          "per_seed": [
+            {
+              "seed": 1,
+              "lr_scale": 1.0,
+              "auxiliary": 0.0,
+              "bytes": 250000,
+              "cpu_seconds": 5.178605355000116,
+              "bytes_per_cpu_second": 48275.54580088183,
+              "test_accuracy": 0.25,
+              "test_nll": 2.077896718823645,
+              "exact": 0.25,
+              "depth_audit": {
+                "0": 0.25,
+                "1": 0.25,
+                "2": 0.25,
+                "4": 0.25
+              },
+              "interventions": {
+                "no_memory": {
+                  "accuracy": 0.109375,
+                  "nll": 2.1112719370846413,
+                  "active_permuted": null
+                },
+                "permute_l2": {
+                  "accuracy": 0.234375,
+                  "nll": 2.1119927572911297,
+                  "active_permuted": 11
+                },
+                "permute_l3": {
+                  "accuracy": 0.25,
+                  "nll": 2.0776720867253364,
+                  "active_permuted": 9
+                }
+              }
+            },
+            {
+              "seed": 7,
+              "lr_scale": 1.0,
+              "auxiliary": 0.0,
+              "bytes": 250000,
+              "cpu_seconds": 5.17446929400046,
+              "bytes_per_cpu_second": 48314.13344936892,
+              "test_accuracy": 0.2734375,
+              "test_nll": 2.005800006718782,
+              "exact": 0.2734375,
+              "depth_audit": {
+                "0": 0.28125,
+                "1": 0.28125,
+                "2": 0.28125,
+                "4": 0.2734375
+              },
+              "interventions": {
+                "no_memory": {
+                  "accuracy": 0.109375,
+                  "nll": 2.0970432709135207,
+                  "active_permuted": null
+                },
+                "permute_l2": {
+                  "accuracy": 0.296875,
+                  "nll": 1.9724463564987407,
+                  "active_permuted": 11
+                },
+                "permute_l3": {
+                  "accuracy": 0.265625,
+                  "nll": 2.0008984342886698,
+                  "active_permuted": 9
+                }
+              }
+            },
+            {
+              "seed": 19,
+              "lr_scale": 1.0,
+              "auxiliary": 0.0,
+              "bytes": 250000,
+              "cpu_seconds": 5.157018075999872,
+              "bytes_per_cpu_second": 48477.62724809309,
+              "test_accuracy": 0.3203125,
+              "test_nll": 2.0189782972103276,
+              "exact": 0.3203125,
+              "depth_audit": {
+                "0": 0.3046875,
+                "1": 0.3046875,
+                "2": 0.3125,
+                "4": 0.3203125
+              },
+              "interventions": {
+                "no_memory": {
+                  "accuracy": 0.109375,
+                  "nll": 2.103576816144389,
+                  "active_permuted": null
+                },
+                "permute_l2": {
+                  "accuracy": 0.3203125,
+                  "nll": 2.0043485935672387,
+                  "active_permuted": 11
+                },
+                "permute_l3": {
+                  "accuracy": 0.3125,
+                  "nll": 2.0152685288504264,
+                  "active_permuted": 9
+                }
+              }
+            }
+          ]
+        }
+      ],
+      "comparisons": [
+        {
+          "task": "composition",
+          "size": 500000,
+          "setting": "one_op",
+          "steps": 2,
+          "test_accuracy_delta": {
+            "n_seeds": 3,
+            "mean": -0.0026041666666666665,
+            "ci95": [
+              -0.015625,
+              0.0078125
+            ]
+          },
+          "matched_time_development": [
+            {
+              "seed": 1,
+              "common_cpu_budget": 4.892985830999493,
+              "control_bytes": 250000,
+              "candidate_bytes": 200005,
+              "control_dev_nll": 2.1239547185035335,
+              "candidate_dev_nll": 2.099051694689753,
+              "throughput_ratio": 0.9696738763615464
+            },
+            {
+              "seed": 7,
+              "common_cpu_budget": 4.882331364999899,
+              "control_bytes": 250000,
+              "candidate_bytes": 200005,
+              "control_dev_nll": 2.0471042072330485,
+              "candidate_dev_nll": 1.9756061000093506,
+              "throughput_ratio": 0.9697467405417638
+            },
+            {
+              "seed": 19,
+              "common_cpu_budget": 4.978098392000504,
+              "control_bytes": 250000,
+              "candidate_bytes": 200005,
+              "control_dev_nll": 2.013475200475326,
+              "candidate_dev_nll": 1.9721429506641979,
+              "throughput_ratio": 0.9838856063899912
+            }
+          ]
+        },
+        {
+          "task": "composition",
+          "size": 500000,
+          "setting": "one_op",
+          "steps": 4,
+          "test_accuracy_delta": {
+            "n_seeds": 3,
+            "mean": -0.0078125,
+            "ci95": [
+              -0.0234375,
+              0.0
+            ]
+          },
+          "matched_time_development": [
+            {
+              "seed": 1,
+              "common_cpu_budget": 4.892985830999493,
+              "control_bytes": 250000,
+              "candidate_bytes": 200005,
+              "control_dev_nll": 2.1239547185035335,
+              "candidate_dev_nll": 2.101495392669982,
+              "throughput_ratio": 0.9448462463499275
+            },
+            {
+              "seed": 7,
+              "common_cpu_budget": 4.882331364999899,
+              "control_bytes": 250000,
+              "candidate_bytes": 200005,
+              "control_dev_nll": 2.0471042072330485,
+              "candidate_dev_nll": 1.9773648381566449,
+              "throughput_ratio": 0.9435424364505786
+            },
+            {
+              "seed": 19,
+              "common_cpu_budget": 4.978098392000504,
+              "control_bytes": 250000,
+              "candidate_bytes": 200005,
+              "control_dev_nll": 2.013475200475326,
+              "candidate_dev_nll": 1.9698876766923286,
+              "throughput_ratio": 0.9653055930069282
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "task": "compression",
+      "setting": "vocabulary",
+      "calibration": {
+        "task": "compression",
+        "size": 500000,
+        "status": "calibrated",
+        "setting": "vocabulary",
+        "control_development_score": 0.5743055555555556
+      },
+      "shortcut_name": "query_blind_majority",
+      "shortcut_accuracy": 0.34375,
+      "all_shortcuts": {
+        "query_blind_majority": {
+          "token_accuracy": 0.34375,
+          "exact_accuracy": 0.0
+        },
+        "last_supplied_value": {
+          "token_accuracy": 0.30859375,
+          "exact_accuracy": 0.0
+        },
+        "uniform_supplied_value_distribution": {
+          "token_accuracy": 0.2978515625,
+          "exact_accuracy": 0.0089111328125
+        },
+        "uniform_alphabet_distribution": {
+          "token_accuracy": 0.0625,
+          "exact_accuracy": 1.52587890625e-05
+        }
+      },
+      "arms": [
+        {
+          "steps": 0,
+          "test_accuracy": 0.7076822916666666,
+          "exact_accuracy": 0.22135416666666666,
+          "test_nll": 0.9447368585776227,
+          "dev_nll": 1.0886024455539882,
+          "bytes_per_cpu_second": 54148.192322136056,
+          "parameters": 496639,
+          "hyperparameters": {
+            "lr_scale": 0.5,
+            "auxiliary": 0.0
+          },
+          "tuning_cpu_seconds": 82.96482381899695,
+          "memory_accuracy_drop": 0.0,
+          "l2_permutation_accuracy_drop": 0.025390625,
+          "l3_permutation_accuracy_drop": 0.0,
+          "delay_ood_accuracy": 0.14192708333333334,
+          "per_seed": [
+            {
+              "seed": 1,
+              "lr_scale": 0.5,
+              "auxiliary": 0.0,
+              "bytes": 250000,
+              "cpu_seconds": 4.595220530000034,
+              "bytes_per_cpu_second": 54404.35303765457,
+              "test_accuracy": 0.677734375,
+              "test_nll": 0.9816873231902719,
+              "exact": 0.1875,
+              "depth_audit": {
+                "0": 0.677734375,
+                "1": 0.6640625,
+                "2": 0.654296875,
+                "4": 0.634765625
+              },
+              "interventions": {
+                "no_memory": {
+                  "accuracy": 0.677734375,
+                  "nll": 0.9816873231902719,
+                  "active_permuted": null
+                },
+                "permute_l2": {
+                  "accuracy": 0.666015625,
+                  "nll": 1.057209831516957,
+                  "active_permuted": 10
+                },
+                "permute_l3": {
+                  "accuracy": 0.689453125,
+                  "nll": 0.992995994631201,
+                  "active_permuted": 9
+                },
+                "zero_bottleneck": {
+                  "accuracy": 0.087890625,
+                  "nll": 2.8284177612513304,
+                  "active_permuted": null
+                }
+              }
+            },
+            {
+              "seed": 7,
+              "lr_scale": 0.5,
+              "auxiliary": 0.0,
+              "bytes": 250000,
+              "cpu_seconds": 4.645650797999679,
+              "bytes_per_cpu_second": 53813.77354226556,
+              "test_accuracy": 0.7109375,
+              "test_nll": 0.9280383627046831,
+              "exact": 0.2109375,
+              "depth_audit": {
+                "0": 0.7109375,
+                "1": 0.6953125,
+                "2": 0.681640625,
+                "4": 0.662109375
+              },
+              "interventions": {
+                "no_memory": {
+                  "accuracy": 0.7109375,
+                  "nll": 0.9280383627046831,
+                  "active_permuted": null
+                },
+                "permute_l2": {
+                  "accuracy": 0.666015625,
+                  "nll": 0.9712438539718278,
+                  "active_permuted": 10
+                },
+                "permute_l3": {
+                  "accuracy": 0.703125,
+                  "nll": 0.9237429440836422,
+                  "active_permuted": 9
+                },
+                "zero_bottleneck": {
+                  "accuracy": 0.08203125,
+                  "nll": 2.7988651040941477,
+                  "active_permuted": null
+                }
+              }
+            },
+            {
+              "seed": 19,
+              "lr_scale": 0.5,
+              "auxiliary": 0.0,
+              "bytes": 250000,
+              "cpu_seconds": 4.6102962339997475,
+              "bytes_per_cpu_second": 54226.450386488046,
+              "test_accuracy": 0.734375,
+              "test_nll": 0.9244848898379132,
+              "exact": 0.265625,
+              "depth_audit": {
+                "0": 0.734375,
+                "1": 0.71484375,
+                "2": 0.6953125,
+                "4": 0.677734375
+              },
+              "interventions": {
+                "no_memory": {
+                  "accuracy": 0.734375,
+                  "nll": 0.9244848898379132,
+                  "active_permuted": null
+                },
+                "permute_l2": {
+                  "accuracy": 0.71484375,
+                  "nll": 0.9531869576021563,
+                  "active_permuted": 10
+                },
+                "permute_l3": {
+                  "accuracy": 0.73046875,
+                  "nll": 0.927803424623562,
+                  "active_permuted": 9
+                },
+                "zero_bottleneck": {
+                  "accuracy": 0.052734375,
+                  "nll": 2.7980369720607996,
+                  "active_permuted": null
+                }
+              }
+            }
+          ]
+        },
+        {
+          "steps": 2,
+          "test_accuracy": 0.6705729166666666,
+          "exact_accuracy": 0.16666666666666666,
+          "test_nll": 1.1296793251531199,
+          "dev_nll": 1.32763802818954,
+          "bytes_per_cpu_second": 52914.90118212596,
+          "parameters": 496639,
+          "hyperparameters": {
+            "lr_scale": 0.5,
+            "auxiliary": 0.0
+          },
+          "tuning_cpu_seconds": 85.45040026101097,
+          "memory_accuracy_drop": 0.0,
+          "l2_permutation_accuracy_drop": 0.0390625,
+          "l3_permutation_accuracy_drop": 0.027994791666666668,
+          "delay_ood_accuracy": 0.14908854166666666,
+          "per_seed": [
+            {
+              "seed": 1,
+              "lr_scale": 0.5,
+              "auxiliary": 0.0,
+              "bytes": 250000,
+              "cpu_seconds": 4.718192895001124,
+              "bytes_per_cpu_second": 52986.38812857193,
+              "test_accuracy": 0.67578125,
+              "test_nll": 1.1027084423112683,
+              "exact": 0.171875,
+              "depth_audit": {
+                "0": 0.705078125,
+                "1": 0.693359375,
+                "2": 0.67578125,
+                "4": 0.658203125
+              },
+              "interventions": {
+                "no_memory": {
+                  "accuracy": 0.67578125,
+                  "nll": 1.1027084423112683,
+                  "active_permuted": null
+                },
+                "permute_l2": {
+                  "accuracy": 0.66796875,
+                  "nll": 1.109614941291511,
+                  "active_permuted": 10
+                },
+                "permute_l3": {
+                  "accuracy": 0.65625,
+                  "nll": 1.131123103259597,
+                  "active_permuted": 9
+                },
+                "zero_bottleneck": {
+                  "accuracy": 0.080078125,
+                  "nll": 2.825231522321701,
+                  "active_permuted": null
+                }
+              }
+            },
+            {
+              "seed": 7,
+              "lr_scale": 0.5,
+              "auxiliary": 0.0,
+              "bytes": 250000,
+              "cpu_seconds": 4.730305900001724,
+              "bytes_per_cpu_second": 52850.70464468458,
+              "test_accuracy": 0.654296875,
+              "test_nll": 1.161764937278349,
+              "exact": 0.140625,
+              "depth_audit": {
+                "0": 0.669921875,
+                "1": 0.6640625,
+                "2": 0.654296875,
+                "4": 0.6328125
+              },
+              "interventions": {
+                "no_memory": {
+                  "accuracy": 0.654296875,
+                  "nll": 1.161764937278349,
+                  "active_permuted": null
+                },
+                "permute_l2": {
+                  "accuracy": 0.591796875,
+                  "nll": 1.3159221230307594,
+                  "active_permuted": 10
+                },
+                "permute_l3": {
+                  "accuracy": 0.638671875,
+                  "nll": 1.1826659344369546,
+                  "active_permuted": 9
+                },
+                "zero_bottleneck": {
+                  "accuracy": 0.10546875,
+                  "nll": 2.7983390670269728,
+                  "active_permuted": null
+                }
+              }
+            },
+            {
+              "seed": 19,
+              "lr_scale": 0.5,
+              "auxiliary": 0.0,
+              "bytes": 250000,
+              "cpu_seconds": 4.725218098999989,
+              "bytes_per_cpu_second": 52907.6107731214,
+              "test_accuracy": 0.681640625,
+              "test_nll": 1.1245645958697423,
+              "exact": 0.1875,
+              "depth_audit": {
+                "0": 0.705078125,
+                "1": 0.701171875,
+                "2": 0.681640625,
+                "4": 0.658203125
+              },
+              "interventions": {
+                "no_memory": {
+                  "accuracy": 0.681640625,
+                  "nll": 1.1245645958697423,
+                  "active_permuted": null
+                },
+                "permute_l2": {
+                  "accuracy": 0.634765625,
+                  "nll": 1.2189102022675797,
+                  "active_permuted": 10
+                },
+                "permute_l3": {
+                  "accuracy": 0.6328125,
+                  "nll": 1.1739263127092272,
+                  "active_permuted": 9
+                },
+                "zero_bottleneck": {
+                  "accuracy": 0.05859375,
+                  "nll": 2.816233268007636,
+                  "active_permuted": null
+                }
+              }
+            }
+          ]
+        },
+        {
+          "steps": 4,
+          "test_accuracy": 0.5833333333333334,
+          "exact_accuracy": 0.08854166666666667,
+          "test_nll": 1.4526928355238244,
+          "dev_nll": 1.7103395436521776,
+          "bytes_per_cpu_second": 51313.02770379626,
+          "parameters": 496639,
+          "hyperparameters": {
+            "lr_scale": 0.5,
+            "auxiliary": 0.0
+          },
+          "tuning_cpu_seconds": 87.91569737300654,
+          "memory_accuracy_drop": 0.0,
+          "l2_permutation_accuracy_drop": 0.029947916666666668,
+          "l3_permutation_accuracy_drop": 0.005859375,
+          "delay_ood_accuracy": 0.123046875,
+          "per_seed": [
+            {
+              "seed": 1,
+              "lr_scale": 0.5,
+              "auxiliary": 0.0,
+              "bytes": 250000,
+              "cpu_seconds": 4.881950042001733,
+              "bytes_per_cpu_second": 51209.04512523302,
+              "test_accuracy": 0.552734375,
+              "test_nll": 1.5199963541526813,
+              "exact": 0.0859375,
+              "depth_audit": {
+                "0": 0.619140625,
+                "1": 0.595703125,
+                "2": 0.576171875,
+                "4": 0.552734375
+              },
+              "interventions": {
+                "no_memory": {
+                  "accuracy": 0.552734375,
+                  "nll": 1.5199963541526813,
+                  "active_permuted": null
+                },
+                "permute_l2": {
+                  "accuracy": 0.53125,
+                  "nll": 1.6093772598542273,
+                  "active_permuted": 10
+                },
+                "permute_l3": {
+                  "accuracy": 0.564453125,
+                  "nll": 1.4956476270454004,
+                  "active_permuted": 9
+                },
+                "zero_bottleneck": {
+                  "accuracy": 0.078125,
+                  "nll": 2.8417432233691216,
+                  "active_permuted": null
+                }
+              }
+            },
+            {
+              "seed": 7,
+              "lr_scale": 0.5,
+              "auxiliary": 0.0,
+              "bytes": 250000,
+              "cpu_seconds": 4.871624764000956,
+              "bytes_per_cpu_second": 51317.58132263878,
+              "test_accuracy": 0.611328125,
+              "test_nll": 1.3473221147432923,
+              "exact": 0.1015625,
+              "depth_audit": {
+                "0": 0.662109375,
+                "1": 0.65234375,
+                "2": 0.642578125,
+                "4": 0.611328125
+              },
+              "interventions": {
+                "no_memory": {
+                  "accuracy": 0.611328125,
+                  "nll": 1.3473221147432923,
+                  "active_permuted": null
+                },
+                "permute_l2": {
+                  "accuracy": 0.578125,
+                  "nll": 1.4753414785955101,
+                  "active_permuted": 10
+                },
+                "permute_l3": {
+                  "accuracy": 0.591796875,
+                  "nll": 1.3650994955096394,
+                  "active_permuted": 9
+                },
+                "zero_bottleneck": {
+                  "accuracy": 0.10546875,
+                  "nll": 2.781056184321642,
+                  "active_permuted": null
+                }
+              }
+            },
+            {
+              "seed": 19,
+              "lr_scale": 0.5,
+              "auxiliary": 0.0,
+              "bytes": 250000,
+              "cpu_seconds": 4.862634781998338,
+              "bytes_per_cpu_second": 51412.456663517005,
+              "test_accuracy": 0.5859375,
+              "test_nll": 1.4907600376755,
+              "exact": 0.078125,
+              "depth_audit": {
+                "0": 0.634765625,
+                "1": 0.625,
+                "2": 0.61328125,
+                "4": 0.5859375
+              },
+              "interventions": {
+                "no_memory": {
+                  "accuracy": 0.5859375,
+                  "nll": 1.4907600376755,
+                  "active_permuted": null
+                },
+                "permute_l2": {
+                  "accuracy": 0.55078125,
+                  "nll": 1.6226248338352889,
+                  "active_permuted": 10
+                },
+                "permute_l3": {
+                  "accuracy": 0.576171875,
+                  "nll": 1.501087780459784,
+                  "active_permuted": 9
+                },
+                "zero_bottleneck": {
+                  "accuracy": 0.076171875,
+                  "nll": 2.8236424885690212,
+                  "active_permuted": null
+                }
+              }
+            }
+          ]
+        }
+      ],
+      "comparisons": [
+        {
+          "task": "compression",
+          "size": 500000,
+          "setting": "vocabulary",
+          "steps": 2,
+          "test_accuracy_delta": {
+            "n_seeds": 3,
+            "mean": -0.037109375,
+            "ci95": [
+              -0.056640625,
+              -0.001953125
+            ]
+          },
+          "matched_time_development": [
+            {
+              "seed": 1,
+              "common_cpu_budget": 4.595220530000034,
+              "control_bytes": 250000,
+              "candidate_bytes": 200000,
+              "control_dev_nll": 1.0766350623161998,
+              "candidate_dev_nll": 1.580938100349158,
+              "throughput_ratio": 0.9739365541558553
+            },
+            {
+              "seed": 7,
+              "common_cpu_budget": 4.645650797999679,
+              "control_bytes": 250000,
+              "candidate_bytes": 200000,
+              "control_dev_nll": 1.0742414689157158,
+              "candidate_dev_nll": 1.489640011684969,
+              "throughput_ratio": 0.9821036728296969
+            },
+            {
+              "seed": 19,
+              "common_cpu_budget": 4.6102962339997475,
+              "control_bytes": 250000,
+              "candidate_bytes": 200000,
+              "control_dev_nll": 1.114930805430049,
+              "candidate_dev_nll": 1.4933675094507635,
+              "throughput_ratio": 0.9756790347889842
+            }
+          ]
+        },
+        {
+          "task": "compression",
+          "size": 500000,
+          "setting": "vocabulary",
+          "steps": 4,
+          "test_accuracy_delta": {
+            "n_seeds": 3,
+            "mean": -0.12434895833333333,
+            "ci95": [
+              -0.1484375,
+              -0.099609375
+            ]
+          },
+          "matched_time_development": [
+            {
+              "seed": 1,
+              "common_cpu_budget": 4.595220530000034,
+              "control_bytes": 250000,
+              "candidate_bytes": 200000,
+              "control_dev_nll": 1.0766350623161998,
+              "candidate_dev_nll": 1.7463603236246854,
+              "throughput_ratio": 0.9412674219246757
+            },
+            {
+              "seed": 7,
+              "common_cpu_budget": 4.645650797999679,
+              "control_bytes": 250000,
+              "candidate_bytes": 200000,
+              "control_dev_nll": 1.0742414689157158,
+              "candidate_dev_nll": 1.6543978152330965,
+              "throughput_ratio": 0.9536142504917211
+            },
+            {
+              "seed": 19,
+              "common_cpu_budget": 4.6102962339997475,
+              "control_bytes": 250000,
+              "candidate_bytes": 200000,
+              "control_dev_nll": 1.114930805430049,
+              "candidate_dev_nll": 1.9583296098280698,
+              "throughput_ratio": 0.9481066213459507
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "task": "pointer_chasing",
+      "setting": "one_hop",
+      "calibration": {
+        "task": "pointer_chasing",
+        "size": 500000,
+        "status": "calibrated",
+        "setting": "one_hop",
+        "control_development_score": 0.14583333333333334
+      },
+      "shortcut_name": "uniform_nonstart_node_distribution",
+      "shortcut_accuracy": 0.33333333333333354,
+      "all_shortcuts": {
+        "lowest_nonstart_node": {
+          "token_accuracy": 0.3984375,
+          "exact_accuracy": 0.3984375
+        },
+        "uniform_nonstart_node_distribution": {
+          "token_accuracy": 0.33333333333333354,
+          "exact_accuracy": 0.33333333333333354
+        },
+        "uniform_alphabet_distribution": {
+          "token_accuracy": 0.125,
+          "exact_accuracy": 0.125
+        }
+      },
+      "arms": [
+        {
+          "steps": 0,
+          "test_accuracy": 0.3385416666666667,
+          "exact_accuracy": 0.3385416666666667,
+          "test_nll": 1.8313032209105253,
+          "dev_nll": 1.9225095894920077,
+          "bytes_per_cpu_second": 58908.75766678844,
+          "parameters": 496959,
+          "hyperparameters": {
+            "lr_scale": 2.0,
+            "auxiliary": 0.1
+          },
+          "tuning_cpu_seconds": 76.50432589300166,
+          "memory_accuracy_drop": 0.21614583333333334,
+          "l2_permutation_accuracy_drop": 0.026041666666666668,
+          "l3_permutation_accuracy_drop": 0.0,
+          "delay_ood_accuracy": 0.1484375,
+          "per_seed": [
+            {
+              "seed": 1,
+              "lr_scale": 2.0,
+              "auxiliary": 0.1,
+              "bytes": 250000,
+              "cpu_seconds": 4.244860357999386,
+              "bytes_per_cpu_second": 58894.75245725767,
+              "test_accuracy": 0.3984375,
+              "test_nll": 1.7719075954564882,
+              "exact": 0.3984375,
+              "depth_audit": {
+                "0": 0.3984375,
+                "1": 0.40625,
+                "2": 0.3984375,
+                "4": 0.40625
+              },
+              "interventions": {
+                "no_memory": {
+                  "accuracy": 0.1015625,
+                  "nll": 2.665239118465567,
+                  "active_permuted": null
+                },
+                "permute_l2": {
+                  "accuracy": 0.3828125,
+                  "nll": 1.796424867639594,
+                  "active_permuted": 11
+                },
+                "permute_l3": {
+                  "accuracy": 0.3984375,
+                  "nll": 1.7731309175209897,
+                  "active_permuted": 9
+                }
+              }
+            },
+            {
+              "seed": 7,
+              "lr_scale": 2.0,
+              "auxiliary": 0.1,
+              "bytes": 250000,
+              "cpu_seconds": 4.245187514000008,
+              "bytes_per_cpu_second": 58890.213724490735,
+              "test_accuracy": 0.2734375,
+              "test_nll": 1.879159894495337,
+              "exact": 0.2734375,
+              "depth_audit": {
+                "0": 0.2734375,
+                "1": 0.2734375,
+                "2": 0.265625,
+                "4": 0.2734375
+              },
+              "interventions": {
+                "no_memory": {
+                  "accuracy": 0.140625,
+                  "nll": 2.264949295383688,
+                  "active_permuted": null
+                },
+                "permute_l2": {
+                  "accuracy": 0.28125,
+                  "nll": 1.8418130220073061,
+                  "active_permuted": 11
+                },
+                "permute_l3": {
+                  "accuracy": 0.28125,
+                  "nll": 1.8740364769992328,
+                  "active_permuted": 9
+                }
+              }
+            },
+            {
+              "seed": 19,
+              "lr_scale": 2.0,
+              "auxiliary": 0.1,
+              "bytes": 250000,
+              "cpu_seconds": 4.241507586001404,
+              "bytes_per_cpu_second": 58941.30681861693,
+              "test_accuracy": 0.34375,
+              "test_nll": 1.8428421727797504,
+              "exact": 0.34375,
+              "depth_audit": {
+                "0": 0.34375,
+                "1": 0.34375,
+                "2": 0.34375,
+                "4": 0.34375
+              },
+              "interventions": {
+                "no_memory": {
+                  "accuracy": 0.125,
+                  "nll": 2.2018851803414305,
+                  "active_permuted": null
+                },
+                "permute_l2": {
+                  "accuracy": 0.2734375,
+                  "nll": 1.8483671858544357,
+                  "active_permuted": 11
+                },
+                "permute_l3": {
+                  "accuracy": 0.3359375,
+                  "nll": 1.8440765696812802,
+                  "active_permuted": 9
+                }
+              }
+            }
+          ]
+        },
+        {
+          "steps": 2,
+          "test_accuracy": 0.3151041666666667,
+          "exact_accuracy": 0.3151041666666667,
+          "test_nll": 1.8842811649532691,
+          "dev_nll": 1.9362016291221702,
+          "bytes_per_cpu_second": 56966.45767335769,
+          "parameters": 496959,
+          "hyperparameters": {
+            "lr_scale": 2.0,
+            "auxiliary": 0.1
+          },
+          "tuning_cpu_seconds": 78.9047579959961,
+          "memory_accuracy_drop": 0.1640625,
+          "l2_permutation_accuracy_drop": -0.0234375,
+          "l3_permutation_accuracy_drop": 0.0026041666666666665,
+          "delay_ood_accuracy": 0.16666666666666666,
+          "per_seed": [
+            {
+              "seed": 1,
+              "lr_scale": 2.0,
+              "auxiliary": 0.1,
+              "bytes": 250000,
+              "cpu_seconds": 4.387893813000716,
+              "bytes_per_cpu_second": 56974.94302603335,
+              "test_accuracy": 0.328125,
+              "test_nll": 1.8515788413022298,
+              "exact": 0.328125,
+              "depth_audit": {
+                "0": 0.3671875,
+                "1": 0.3359375,
+                "2": 0.328125,
+                "4": 0.3359375
+              },
+              "interventions": {
+                "no_memory": {
+                  "accuracy": 0.1015625,
+                  "nll": 2.403678232371721,
+                  "active_permuted": null
+                },
+                "permute_l2": {
+                  "accuracy": 0.3359375,
+                  "nll": 1.840851378871314,
+                  "active_permuted": 11
+                },
+                "permute_l3": {
+                  "accuracy": 0.3359375,
+                  "nll": 1.844228825360844,
+                  "active_permuted": 9
+                }
+              }
+            },
+            {
+              "seed": 7,
+              "lr_scale": 2.0,
+              "auxiliary": 0.1,
+              "bytes": 250000,
+              "cpu_seconds": 4.391346330999113,
+              "bytes_per_cpu_second": 56930.14878722179,
+              "test_accuracy": 0.28125,
+              "test_nll": 1.9290938070080164,
+              "exact": 0.28125,
+              "depth_audit": {
+                "0": 0.296875,
+                "1": 0.2734375,
+                "2": 0.28125,
+                "4": 0.296875
+              },
+              "interventions": {
+                "no_memory": {
+                  "accuracy": 0.1796875,
+                  "nll": 2.135891505112679,
+                  "active_permuted": null
+                },
+                "permute_l2": {
+                  "accuracy": 0.3125,
+                  "nll": 1.9262375302477128,
+                  "active_permuted": 11
+                },
+                "permute_l3": {
+                  "accuracy": 0.28125,
+                  "nll": 1.8979418179282517,
+                  "active_permuted": 9
+                }
+              }
+            },
+            {
+              "seed": 19,
+              "lr_scale": 2.0,
+              "auxiliary": 0.1,
+              "bytes": 250000,
+              "cpu_seconds": 4.386404999000035,
+              "bytes_per_cpu_second": 56994.28120681795,
+              "test_accuracy": 0.3359375,
+              "test_nll": 1.872170846549561,
+              "exact": 0.3359375,
+              "depth_audit": {
+                "0": 0.3203125,
+                "1": 0.34375,
+                "2": 0.3359375,
+                "4": 0.328125
+              },
+              "interventions": {
+                "no_memory": {
+                  "accuracy": 0.171875,
+                  "nll": 2.080834182496152,
+                  "active_permuted": null
+                },
+                "permute_l2": {
+                  "accuracy": 0.3671875,
+                  "nll": 1.8518532230638278,
+                  "active_permuted": 11
+                },
+                "permute_l3": {
+                  "accuracy": 0.3203125,
+                  "nll": 1.880045136700878,
+                  "active_permuted": 9
+                }
+              }
+            }
+          ]
+        },
+        {
+          "steps": 4,
+          "test_accuracy": 0.3411458333333333,
+          "exact_accuracy": 0.3411458333333333,
+          "test_nll": 1.8836570719625543,
+          "dev_nll": 1.9386869724221711,
+          "bytes_per_cpu_second": 55618.57354507382,
+          "parameters": 496959,
+          "hyperparameters": {
+            "lr_scale": 1.0,
+            "auxiliary": 0.1
+          },
+          "tuning_cpu_seconds": 80.94402163701022,
+          "memory_accuracy_drop": 0.23177083333333334,
+          "l2_permutation_accuracy_drop": 0.015625,
+          "l3_permutation_accuracy_drop": 0.0,
+          "delay_ood_accuracy": 0.15104166666666666,
+          "per_seed": [
+            {
+              "seed": 1,
+              "lr_scale": 1.0,
+              "auxiliary": 0.1,
+              "bytes": 250000,
+              "cpu_seconds": 4.495890409000253,
+              "bytes_per_cpu_second": 55606.33762325008,
+              "test_accuracy": 0.375,
+              "test_nll": 1.8659274963695451,
+              "exact": 0.375,
+              "depth_audit": {
+                "0": 0.3515625,
+                "1": 0.375,
+                "2": 0.375,
+                "4": 0.375
+              },
+              "interventions": {
+                "no_memory": {
+                  "accuracy": 0.109375,
+                  "nll": 2.120326429919148,
+                  "active_permuted": null
+                },
+                "permute_l2": {
+                  "accuracy": 0.328125,
+                  "nll": 1.8827563481322729,
+                  "active_permuted": 11
+                },
+                "permute_l3": {
+                  "accuracy": 0.375,
+                  "nll": 1.8642320521267013,
+                  "active_permuted": 9
+                }
+              }
+            },
+            {
+              "seed": 7,
+              "lr_scale": 1.0,
+              "auxiliary": 0.1,
+              "bytes": 250000,
+              "cpu_seconds": 4.495216393000078,
+              "bytes_per_cpu_second": 55614.67527776825,
+              "test_accuracy": 0.3125,
+              "test_nll": 1.9165215642550248,
+              "exact": 0.3125,
+              "depth_audit": {
+                "0": 0.3125,
+                "1": 0.3125,
+                "2": 0.3125,
+                "4": 0.3125
+              },
+              "interventions": {
+                "no_memory": {
+                  "accuracy": 0.109375,
+                  "nll": 2.1014807820917705,
+                  "active_permuted": null
+                },
+                "permute_l2": {
+                  "accuracy": 0.3125,
+                  "nll": 1.9238927682253397,
+                  "active_permuted": 11
+                },
+                "permute_l3": {
+                  "accuracy": 0.3125,
+                  "nll": 1.9165584100005382,
+                  "active_permuted": 9
+                }
+              }
+            },
+            {
+              "seed": 19,
+              "lr_scale": 1.0,
+              "auxiliary": 0.1,
+              "bytes": 250000,
+              "cpu_seconds": 4.493597795002074,
+              "bytes_per_cpu_second": 55634.707734203126,
+              "test_accuracy": 0.3359375,
+              "test_nll": 1.8685221552630928,
+              "exact": 0.3359375,
+              "depth_audit": {
+                "0": 0.34375,
+                "1": 0.34375,
+                "2": 0.34375,
+                "4": 0.3359375
+              },
+              "interventions": {
+                "no_memory": {
+                  "accuracy": 0.109375,
+                  "nll": 2.0880485585778636,
+                  "active_permuted": null
+                },
+                "permute_l2": {
+                  "accuracy": 0.3359375,
+                  "nll": 1.8730878972203557,
+                  "active_permuted": 11
+                },
+                "permute_l3": {
+                  "accuracy": 0.3359375,
+                  "nll": 1.8683810037498125,
+                  "active_permuted": 9
+                }
+              }
+            }
+          ]
+        }
+      ],
+      "comparisons": [
+        {
+          "task": "pointer_chasing",
+          "size": 500000,
+          "setting": "one_hop",
+          "steps": 2,
+          "test_accuracy_delta": {
+            "n_seeds": 3,
+            "mean": -0.0234375,
+            "ci95": [
+              -0.0703125,
+              0.0078125
+            ]
+          },
+          "matched_time_development": [
+            {
+              "seed": 1,
+              "common_cpu_budget": 4.244860357999386,
+              "control_bytes": 250000,
+              "candidate_bytes": 200005,
+              "control_dev_nll": 1.9268085796318188,
+              "candidate_dev_nll": 1.9566910346625184,
+              "throughput_ratio": 0.9674027082019301
+            },
+            {
+              "seed": 7,
+              "common_cpu_budget": 4.245187514000008,
+              "control_bytes": 250000,
+              "candidate_bytes": 200005,
+              "control_dev_nll": 1.951789047032111,
+              "candidate_dev_nll": 1.9308046104204248,
+              "throughput_ratio": 0.9667166272067067
+            },
+            {
+              "seed": 19,
+              "common_cpu_budget": 4.241507586001404,
+              "control_bytes": 250000,
+              "candidate_bytes": 200005,
+              "control_dev_nll": 1.8889311418120929,
+              "candidate_dev_nll": 1.940926317390884,
+              "throughput_ratio": 0.9669667043896624
+            }
+          ]
+        },
+        {
+          "task": "pointer_chasing",
+          "size": 500000,
+          "setting": "one_hop",
+          "steps": 4,
+          "test_accuracy_delta": {
+            "n_seeds": 3,
+            "mean": 0.0026041666666666665,
+            "ci95": [
+              -0.0234375,
+              0.0390625
+            ]
+          },
+          "matched_time_development": [
+            {
+              "seed": 1,
+              "common_cpu_budget": 4.244860357999386,
+              "control_bytes": 250000,
+              "candidate_bytes": 200005,
+              "control_dev_nll": 1.9268085796318188,
+              "candidate_dev_nll": 1.975901807596378,
+              "throughput_ratio": 0.9441645529218562
+            },
+            {
+              "seed": 7,
+              "common_cpu_budget": 4.245187514000008,
+              "control_bytes": 250000,
+              "candidate_bytes": 200005,
+              "control_dev_nll": 1.951789047032111,
+              "candidate_dev_nll": 1.967012627186404,
+              "throughput_ratio": 0.9443789003373869
+            },
+            {
+              "seed": 19,
+              "common_cpu_budget": 4.241507586001404,
+              "control_bytes": 250000,
+              "candidate_bytes": 200005,
+              "control_dev_nll": 1.8889311418120929,
+              "candidate_dev_nll": 1.9838195034410353,
+              "throughput_ratio": 0.9439001395983742
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "task": "recall",
+      "setting": "easy",
+      "calibration": {
+        "task": "recall",
+        "size": 500000,
+        "status": "calibrated",
+        "setting": "easy",
+        "control_development_score": 0.4523809523809524
+      },
+      "shortcut_name": "query_blind_majority",
+      "shortcut_accuracy": 0.53515625,
+      "all_shortcuts": {
+        "query_blind_majority": {
+          "token_accuracy": 0.53515625,
+          "exact_accuracy": 0.0703125
+        },
+        "last_supplied_value": {
+          "token_accuracy": 0.53515625,
+          "exact_accuracy": 0.0703125
+        },
+        "query_blind_input_order": {
+          "token_accuracy": 0.53125,
+          "exact_accuracy": 0.53125
+        },
+        "uniform_supplied_value_distribution": {
+          "token_accuracy": 0.53515625,
+          "exact_accuracy": 0.302734375
+        },
+        "uniform_alphabet_distribution": {
+          "token_accuracy": 0.125,
+          "exact_accuracy": 0.015625
+        }
+      },
+      "arms": [
+        {
+          "steps": 0,
+          "test_accuracy": 0.55859375,
+          "exact_accuracy": 0.21354166666666666,
+          "test_nll": 1.1269726291784752,
+          "dev_nll": 1.0432786708714028,
+          "bytes_per_cpu_second": 52340.79560055149,
+          "parameters": 496959,
+          "hyperparameters": {
+            "lr_scale": 2.0,
+            "auxiliary": 0.0
+          },
+          "tuning_cpu_seconds": 85.26522304099882,
+          "memory_accuracy_drop": 0.4010416666666667,
+          "l2_permutation_accuracy_drop": -0.016927083333333332,
+          "l3_permutation_accuracy_drop": -0.010416666666666666,
+          "delay_ood_accuracy": 0.18880208333333334,
+          "per_seed": [
+            {
+              "seed": 1,
+              "lr_scale": 2.0,
+              "auxiliary": 0.0,
+              "bytes": 250000,
+              "cpu_seconds": 4.72386347499959,
+              "bytes_per_cpu_second": 52922.782659382785,
+              "test_accuracy": 0.56640625,
+              "test_nll": 1.1735708857819187,
+              "exact": 0.2109375,
+              "depth_audit": {
+                "0": 0.56640625,
+                "1": 0.55078125,
+                "2": 0.55078125,
+                "4": 0.5546875
+              },
+              "interventions": {
+                "no_memory": {
+                  "accuracy": 0.109375,
+                  "nll": 2.0677399145503137,
+                  "active_permuted": null
+                },
+                "permute_l2": {
+                  "accuracy": 0.5703125,
+                  "nll": 1.1732867283702348,
+                  "active_permuted": 11
+                },
+                "permute_l3": {
+                  "accuracy": 0.58203125,
+                  "nll": 1.1771913990428904,
+                  "active_permuted": 9
+                }
+              }
+            },
+            {
+              "seed": 7,
+              "lr_scale": 2.0,
+              "auxiliary": 0.0,
+              "bytes": 250000,
+              "cpu_seconds": 4.755312752000634,
+              "bytes_per_cpu_second": 52572.77765691039,
+              "test_accuracy": 0.5625,
+              "test_nll": 1.1611443532312773,
+              "exact": 0.1796875,
+              "depth_audit": {
+                "0": 0.5625,
+                "1": 0.58203125,
+                "2": 0.578125,
+                "4": 0.578125
+              },
+              "interventions": {
+                "no_memory": {
+                  "accuracy": 0.17578125,
+                  "nll": 2.0962878324367202,
+                  "active_permuted": null
+                },
+                "permute_l2": {
+                  "accuracy": 0.58203125,
+                  "nll": 1.1715396446855177,
+                  "active_permuted": 11
+                },
+                "permute_l3": {
+                  "accuracy": 0.5625,
+                  "nll": 1.1668133878113425,
+                  "active_permuted": 9
+                }
+              }
+            },
+            {
+              "seed": 19,
+              "lr_scale": 2.0,
+              "auxiliary": 0.0,
+              "bytes": 250000,
+              "cpu_seconds": 4.8518415949995415,
+              "bytes_per_cpu_second": 51526.8264853613,
+              "test_accuracy": 0.546875,
+              "test_nll": 1.0462026485222293,
+              "exact": 0.25,
+              "depth_audit": {
+                "0": 0.546875,
+                "1": 0.56640625,
+                "2": 0.5703125,
+                "4": 0.55859375
+              },
+              "interventions": {
+                "no_memory": {
+                  "accuracy": 0.1875,
+                  "nll": 2.076677199438706,
+                  "active_permuted": null
+                },
+                "permute_l2": {
+                  "accuracy": 0.57421875,
+                  "nll": 1.0542640040251572,
+                  "active_permuted": 11
+                },
+                "permute_l3": {
+                  "accuracy": 0.5625,
+                  "nll": 1.0594455670952199,
+                  "active_permuted": 9
+                }
+              }
+            }
+          ]
+        },
+        {
+          "steps": 2,
+          "test_accuracy": 0.5703125,
+          "exact_accuracy": 0.24479166666666666,
+          "test_nll": 1.132464769264227,
+          "dev_nll": 1.0372959550552519,
+          "bytes_per_cpu_second": 51940.45081699383,
+          "parameters": 496959,
+          "hyperparameters": {
+            "lr_scale": 2.0,
+            "auxiliary": 0.0
+          },
+          "tuning_cpu_seconds": 86.86287212099785,
+          "memory_accuracy_drop": 0.40234375,
+          "l2_permutation_accuracy_drop": 0.00390625,
+          "l3_permutation_accuracy_drop": -0.015625,
+          "delay_ood_accuracy": 0.19270833333333334,
+          "per_seed": [
+            {
+              "seed": 1,
+              "lr_scale": 2.0,
+              "auxiliary": 0.0,
+              "bytes": 250000,
+              "cpu_seconds": 4.829686478999918,
+              "bytes_per_cpu_second": 51763.194378565015,
+              "test_accuracy": 0.51953125,
+              "test_nll": 1.2146889500215636,
+              "exact": 0.1796875,
+              "depth_audit": {
+                "0": 0.54296875,
+                "1": 0.5234375,
+                "2": 0.51953125,
+                "4": 0.51953125
+              },
+              "interventions": {
+                "no_memory": {
+                  "accuracy": 0.171875,
+                  "nll": 2.08687793373181,
+                  "active_permuted": null
+                },
+                "permute_l2": {
+                  "accuracy": 0.5,
+                  "nll": 1.248800422595269,
+                  "active_permuted": 11
+                },
+                "permute_l3": {
+                  "accuracy": 0.54296875,
+                  "nll": 1.2038132978651983,
+                  "active_permuted": 9
+                }
+              }
+            },
+            {
+              "seed": 7,
+              "lr_scale": 2.0,
+              "auxiliary": 0.0,
+              "bytes": 250000,
+              "cpu_seconds": 4.811540954999998,
+              "bytes_per_cpu_second": 51958.406327230376,
+              "test_accuracy": 0.60546875,
+              "test_nll": 1.110167656516623,
+              "exact": 0.265625,
+              "depth_audit": {
+                "0": 0.61328125,
+                "1": 0.61328125,
+                "2": 0.60546875,
+                "4": 0.60546875
+              },
+              "interventions": {
+                "no_memory": {
+                  "accuracy": 0.14453125,
+                  "nll": 2.089128637627563,
+                  "active_permuted": null
+                },
+                "permute_l2": {
+                  "accuracy": 0.62109375,
+                  "nll": 1.090589413684747,
+                  "active_permuted": 11
+                },
+                "permute_l3": {
+                  "accuracy": 0.6328125,
+                  "nll": 1.079884759513686,
+                  "active_permuted": 9
+                }
+              }
+            },
+            {
+              "seed": 19,
+              "lr_scale": 2.0,
+              "auxiliary": 0.0,
+              "bytes": 250000,
+              "cpu_seconds": 4.798487355999725,
+              "bytes_per_cpu_second": 52099.75174518607,
+              "test_accuracy": 0.5859375,
+              "test_nll": 1.0725377012544939,
+              "exact": 0.2890625,
+              "depth_audit": {
+                "0": 0.5859375,
+                "1": 0.58984375,
+                "2": 0.5859375,
+                "4": 0.5703125
+              },
+              "interventions": {
+                "no_memory": {
+                  "accuracy": 0.1875,
+                  "nll": 2.046444997021623,
+                  "active_permuted": null
+                },
+                "permute_l2": {
+                  "accuracy": 0.578125,
+                  "nll": 1.105551308547,
+                  "active_permuted": 11
+                },
+                "permute_l3": {
+                  "accuracy": 0.58203125,
+                  "nll": 1.0840078003424827,
+                  "active_permuted": 9
+                }
+              }
+            }
+          ]
+        },
+        {
+          "steps": 4,
+          "test_accuracy": 0.6080729166666666,
+          "exact_accuracy": 0.3098958333333333,
+          "test_nll": 1.0829138237244222,
+          "dev_nll": 0.9952337526289315,
+          "bytes_per_cpu_second": 50535.61483502554,
+          "parameters": 496959,
+          "hyperparameters": {
+            "lr_scale": 2.0,
+            "auxiliary": 0.0
+          },
+          "tuning_cpu_seconds": 89.11805010999956,
+          "memory_accuracy_drop": 0.45703125,
+          "l2_permutation_accuracy_drop": 0.01171875,
+          "l3_permutation_accuracy_drop": 0.020833333333333332,
+          "delay_ood_accuracy": 0.19270833333333334,
+          "per_seed": [
+            {
+              "seed": 1,
+              "lr_scale": 2.0,
+              "auxiliary": 0.0,
+              "bytes": 250000,
+              "cpu_seconds": 4.958376341999724,
+              "bytes_per_cpu_second": 50419.73072563799,
+              "test_accuracy": 0.57421875,
+              "test_nll": 1.1795394249006665,
+              "exact": 0.2109375,
+              "depth_audit": {
+                "0": 0.5625,
+                "1": 0.5625,
+                "2": 0.5546875,
+                "4": 0.57421875
+              },
+              "interventions": {
+                "no_memory": {
+                  "accuracy": 0.1484375,
+                  "nll": 2.076375103590442,
+                  "active_permuted": null
+                },
+                "permute_l2": {
+                  "accuracy": 0.55078125,
+                  "nll": 1.2458777924249982,
+                  "active_permuted": 11
+                },
+                "permute_l3": {
+                  "accuracy": 0.5546875,
+                  "nll": 1.1974838181368461,
+                  "active_permuted": 9
+                }
+              }
+            },
+            {
+              "seed": 7,
+              "lr_scale": 2.0,
+              "auxiliary": 0.0,
+              "bytes": 250000,
+              "cpu_seconds": 4.946105303000024,
+              "bytes_per_cpu_second": 50544.8195468795,
+              "test_accuracy": 0.64453125,
+              "test_nll": 1.0118148203599389,
+              "exact": 0.390625,
+              "depth_audit": {
+                "0": 0.6484375,
+                "1": 0.64453125,
+                "2": 0.64453125,
+                "4": 0.64453125
+              },
+              "interventions": {
+                "no_memory": {
+                  "accuracy": 0.1484375,
+                  "nll": 2.0796924171688533,
+                  "active_permuted": null
+                },
+                "permute_l2": {
+                  "accuracy": 0.625,
+                  "nll": 1.070400519351091,
+                  "active_permuted": 11
+                },
+                "permute_l3": {
+                  "accuracy": 0.6328125,
+                  "nll": 1.0215532749096832,
+                  "active_permuted": 9
+                }
+              }
+            },
+            {
+              "seed": 19,
+              "lr_scale": 2.0,
+              "auxiliary": 0.0,
+              "bytes": 250000,
+              "cpu_seconds": 4.936585196001431,
+              "bytes_per_cpu_second": 50642.29423255912,
+              "test_accuracy": 0.60546875,
+              "test_nll": 1.057387225912661,
+              "exact": 0.328125,
+              "depth_audit": {
+                "0": 0.6015625,
+                "1": 0.60546875,
+                "2": 0.59765625,
+                "4": 0.60546875
+              },
+              "interventions": {
+                "no_memory": {
+                  "accuracy": 0.15625,
+                  "nll": 2.081137546985894,
+                  "active_permuted": null
+                },
+                "permute_l2": {
+                  "accuracy": 0.61328125,
+                  "nll": 1.0406513984696337,
+                  "active_permuted": 11
+                },
+                "permute_l3": {
+                  "accuracy": 0.57421875,
+                  "nll": 1.062026191603757,
+                  "active_permuted": 9
+                }
+              }
+            }
+          ]
+        }
+      ],
+      "comparisons": [
+        {
+          "task": "recall",
+          "size": 500000,
+          "setting": "easy",
+          "steps": 2,
+          "test_accuracy_delta": {
+            "n_seeds": 3,
+            "mean": 0.01171875,
+            "ci95": [
+              -0.046875,
+              0.04296875
+            ]
+          },
+          "matched_time_development": [
+            {
+              "seed": 1,
+              "common_cpu_budget": 4.72386347499959,
+              "control_bytes": 250000,
+              "candidate_bytes": 200079,
+              "control_dev_nll": 1.0908106777179805,
+              "candidate_dev_nll": 1.1495208077035215,
+              "throughput_ratio": 0.9780890530968295
+            },
+            {
+              "seed": 7,
+              "common_cpu_budget": 4.755312752000634,
+              "control_bytes": 250000,
+              "candidate_bytes": 200079,
+              "control_dev_nll": 1.044007023259396,
+              "candidate_dev_nll": 1.060049151698238,
+              "throughput_ratio": 0.9883138887260362
+            },
+            {
+              "seed": 19,
+              "common_cpu_budget": 4.798487355999725,
+              "control_bytes": 200079,
+              "candidate_bytes": 250000,
+              "control_dev_nll": 1.095252072417952,
+              "candidate_dev_nll": 1.0007240872492376,
+              "throughput_ratio": 1.011118970425775
+            }
+          ]
+        },
+        {
+          "task": "recall",
+          "size": 500000,
+          "setting": "easy",
+          "steps": 4,
+          "test_accuracy_delta": {
+            "n_seeds": 3,
+            "mean": 0.049479166666666664,
+            "ci95": [
+              0.0078125,
+              0.08203125
+            ]
+          },
+          "matched_time_development": [
+            {
+              "seed": 1,
+              "common_cpu_budget": 4.72386347499959,
+              "control_bytes": 250000,
+              "candidate_bytes": 200079,
+              "control_dev_nll": 1.0908106777179805,
+              "candidate_dev_nll": 1.15926194704312,
+              "throughput_ratio": 0.9527036975766235
+            },
+            {
+              "seed": 7,
+              "common_cpu_budget": 4.755312752000634,
+              "control_bytes": 250000,
+              "candidate_bytes": 200079,
+              "control_dev_nll": 1.044007023259396,
+              "candidate_dev_nll": 1.0859358479265502,
+              "throughput_ratio": 0.961425699755388
+            },
+            {
+              "seed": 19,
+              "common_cpu_budget": 4.8518415949995415,
+              "control_bytes": 250000,
+              "candidate_bytes": 200079,
+              "control_dev_nll": 0.9950183116368319,
+              "candidate_dev_nll": 1.1106358557086942,
+              "throughput_ratio": 0.9828335584949429
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "task": "selective_copy",
+      "setting": "easy",
+      "calibration": {
+        "task": "selective_copy",
+        "size": 500000,
+        "status": "calibrated",
+        "setting": "easy",
+        "control_development_score": 0.8005952380952381
+      },
+      "shortcut_name": "query_blind_majority",
+      "shortcut_accuracy": 0.54296875,
+      "all_shortcuts": {
+        "query_blind_majority": {
+          "token_accuracy": 0.54296875,
+          "exact_accuracy": 0.0859375
+        },
+        "last_supplied_value": {
+          "token_accuracy": 0.54296875,
+          "exact_accuracy": 0.0859375
+        },
+        "uniform_supplied_value_distribution": {
+          "token_accuracy": 0.54296875,
+          "exact_accuracy": 0.314453125
+        },
+        "uniform_alphabet_distribution": {
+          "token_accuracy": 0.125,
+          "exact_accuracy": 0.015625
+        }
+      },
+      "arms": [
+        {
+          "steps": 0,
+          "test_accuracy": 0.8776041666666666,
+          "exact_accuracy": 0.7552083333333334,
+          "test_nll": 0.5061688177437079,
+          "dev_nll": 0.598318948067428,
+          "bytes_per_cpu_second": 52227.69322434451,
+          "parameters": 496959,
+          "hyperparameters": {
+            "lr_scale": 2.0,
+            "auxiliary": 0.0
+          },
+          "tuning_cpu_seconds": 86.29300964700528,
+          "memory_accuracy_drop": 0.75390625,
+          "l2_permutation_accuracy_drop": 0.0013020833333333333,
+          "l3_permutation_accuracy_drop": 0.0013020833333333333,
+          "delay_ood_accuracy": 0.1484375,
+          "per_seed": [
+            {
+              "seed": 1,
+              "lr_scale": 2.0,
+              "auxiliary": 0.0,
+              "bytes": 250000,
+              "cpu_seconds": 4.789541348000881,
+              "bytes_per_cpu_second": 52197.06477831079,
+              "test_accuracy": 0.86328125,
+              "test_nll": 0.5088902889273058,
+              "exact": 0.7265625,
+              "depth_audit": {
+                "0": 0.86328125,
+                "1": 0.86328125,
+                "2": 0.859375,
+                "4": 0.859375
+              },
+              "interventions": {
+                "no_memory": {
+                  "accuracy": 0.1171875,
+                  "nll": 2.142217474777393,
+                  "active_permuted": null
+                },
+                "permute_l2": {
+                  "accuracy": 0.8671875,
+                  "nll": 0.5075972116813151,
+                  "active_permuted": 11
+                },
+                "permute_l3": {
+                  "accuracy": 0.859375,
+                  "nll": 0.5089294237961628,
+                  "active_permuted": 9
+                }
+              }
+            },
+            {
+              "seed": 7,
+              "lr_scale": 2.0,
+              "auxiliary": 0.0,
+              "bytes": 250000,
+              "cpu_seconds": 4.786011131000777,
+              "bytes_per_cpu_second": 52235.56593520163,
+              "test_accuracy": 0.88671875,
+              "test_nll": 0.5031459063212381,
+              "exact": 0.7734375,
+              "depth_audit": {
+                "0": 0.88671875,
+                "1": 0.8828125,
+                "2": 0.8828125,
+                "4": 0.8828125
+              },
+              "interventions": {
+                "no_memory": {
+                  "accuracy": 0.12109375,
+                  "nll": 2.2124925994462292,
+                  "active_permuted": null
+                },
+                "permute_l2": {
+                  "accuracy": 0.8828125,
+                  "nll": 0.5003602472594941,
+                  "active_permuted": 11
+                },
+                "permute_l3": {
+                  "accuracy": 0.88671875,
+                  "nll": 0.5064084846783378,
+                  "active_permuted": 9
+                }
+              }
+            },
+            {
+              "seed": 19,
+              "lr_scale": 2.0,
+              "auxiliary": 0.0,
+              "bytes": 250000,
+              "cpu_seconds": 4.784647883000531,
+              "bytes_per_cpu_second": 52250.44895952111,
+              "test_accuracy": 0.8828125,
+              "test_nll": 0.5064702579825797,
+              "exact": 0.765625,
+              "depth_audit": {
+                "0": 0.8828125,
+                "1": 0.875,
+                "2": 0.87109375,
+                "4": 0.8671875
+              },
+              "interventions": {
+                "no_memory": {
+                  "accuracy": 0.1328125,
+                  "nll": 2.33900422778764,
+                  "active_permuted": null
+                },
+                "permute_l2": {
+                  "accuracy": 0.87890625,
+                  "nll": 0.5105289921122199,
+                  "active_permuted": 11
+                },
+                "permute_l3": {
+                  "accuracy": 0.8828125,
+                  "nll": 0.5030098377430268,
+                  "active_permuted": 9
+                }
+              }
+            }
+          ]
+        },
+        {
+          "steps": 2,
+          "test_accuracy": 0.8802083333333334,
+          "exact_accuracy": 0.7630208333333334,
+          "test_nll": 0.5429683998259305,
+          "dev_nll": 0.6071253204304079,
+          "bytes_per_cpu_second": 50855.116098194005,
+          "parameters": 496959,
+          "hyperparameters": {
+            "lr_scale": 1.0,
+            "auxiliary": 0.0
+          },
+          "tuning_cpu_seconds": 88.62528221400123,
+          "memory_accuracy_drop": 0.7434895833333334,
+          "l2_permutation_accuracy_drop": 0.0026041666666666665,
+          "l3_permutation_accuracy_drop": 0.0,
+          "delay_ood_accuracy": 0.14453125,
+          "per_seed": [
+            {
+              "seed": 1,
+              "lr_scale": 1.0,
+              "auxiliary": 0.0,
+              "bytes": 250000,
+              "cpu_seconds": 4.907218358001018,
+              "bytes_per_cpu_second": 50945.35880849591,
+              "test_accuracy": 0.86328125,
+              "test_nll": 0.5569926355816373,
+              "exact": 0.7265625,
+              "depth_audit": {
+                "0": 0.86328125,
+                "1": 0.86328125,
+                "2": 0.86328125,
+                "4": 0.86328125
+              },
+              "interventions": {
+                "no_memory": {
+                  "accuracy": 0.13671875,
+                  "nll": 2.1097076791043974,
+                  "active_permuted": null
+                },
+                "permute_l2": {
+                  "accuracy": 0.85546875,
+                  "nll": 0.5560683830349485,
+                  "active_permuted": 11
+                },
+                "permute_l3": {
+                  "accuracy": 0.86328125,
+                  "nll": 0.5570280678037902,
+                  "active_permuted": 9
+                }
+              }
+            },
+            {
+              "seed": 7,
+              "lr_scale": 1.0,
+              "auxiliary": 0.0,
+              "bytes": 250000,
+              "cpu_seconds": 4.933164264000368,
+              "bytes_per_cpu_second": 50677.41243168573,
+              "test_accuracy": 0.890625,
+              "test_nll": 0.5618351009081096,
+              "exact": 0.78125,
+              "depth_audit": {
+                "0": 0.890625,
+                "1": 0.890625,
+                "2": 0.890625,
+                "4": 0.890625
+              },
+              "interventions": {
+                "no_memory": {
+                  "accuracy": 0.13671875,
+                  "nll": 2.118001433405449,
+                  "active_permuted": null
+                },
+                "permute_l2": {
+                  "accuracy": 0.890625,
+                  "nll": 0.5625557589210544,
+                  "active_permuted": 11
+                },
+                "permute_l3": {
+                  "accuracy": 0.890625,
+                  "nll": 0.5618619935111899,
+                  "active_permuted": 9
+                }
+              }
+            },
+            {
+              "seed": 19,
+              "lr_scale": 1.0,
+              "auxiliary": 0.0,
+              "bytes": 250000,
+              "cpu_seconds": 4.907486319999691,
+              "bytes_per_cpu_second": 50942.577054400375,
+              "test_accuracy": 0.88671875,
+              "test_nll": 0.5100774629880445,
+              "exact": 0.78125,
+              "depth_audit": {
+                "0": 0.88671875,
+                "1": 0.88671875,
+                "2": 0.88671875,
+                "4": 0.88671875
+              },
+              "interventions": {
+                "no_memory": {
+                  "accuracy": 0.13671875,
+                  "nll": 2.1408574829636646,
+                  "active_permuted": null
+                },
+                "permute_l2": {
+                  "accuracy": 0.88671875,
+                  "nll": 0.5094577990105144,
+                  "active_permuted": 11
+                },
+                "permute_l3": {
+                  "accuracy": 0.88671875,
+                  "nll": 0.510080389041182,
+                  "active_permuted": 9
+                }
+              }
+            }
+          ]
+        },
+        {
+          "steps": 4,
+          "test_accuracy": 0.86328125,
+          "exact_accuracy": 0.7265625,
+          "test_nll": 0.5102342534105678,
+          "dev_nll": 0.6011905543210646,
+          "bytes_per_cpu_second": 49399.006249026344,
+          "parameters": 496959,
+          "hyperparameters": {
+            "lr_scale": 2.0,
+            "auxiliary": 0.0
+          },
+          "tuning_cpu_seconds": 91.29049038798865,
+          "memory_accuracy_drop": 0.73046875,
+          "l2_permutation_accuracy_drop": -0.0013020833333333333,
+          "l3_permutation_accuracy_drop": -0.009114583333333334,
+          "delay_ood_accuracy": 0.14453125,
+          "per_seed": [
+            {
+              "seed": 1,
+              "lr_scale": 2.0,
+              "auxiliary": 0.0,
+              "bytes": 250000,
+              "cpu_seconds": 5.059979152997471,
+              "bytes_per_cpu_second": 49407.31818072867,
+              "test_accuracy": 0.87109375,
+              "test_nll": 0.5191299356377816,
+              "exact": 0.7421875,
+              "depth_audit": {
+                "0": 0.86328125,
+                "1": 0.86328125,
+                "2": 0.86328125,
+                "4": 0.87109375
+              },
+              "interventions": {
+                "no_memory": {
+                  "accuracy": 0.1328125,
+                  "nll": 2.1376140092444276,
+                  "active_permuted": null
+                },
+                "permute_l2": {
+                  "accuracy": 0.86328125,
+                  "nll": 0.5213482739196761,
+                  "active_permuted": 11
+                },
+                "permute_l3": {
+                  "accuracy": 0.87109375,
+                  "nll": 0.5199308589250744,
+                  "active_permuted": 9
+                }
+              }
+            },
+            {
+              "seed": 7,
+              "lr_scale": 2.0,
+              "auxiliary": 0.0,
+              "bytes": 250000,
+              "cpu_seconds": 5.06075096800015,
+              "bytes_per_cpu_second": 49399.78307187721,
+              "test_accuracy": 0.8671875,
+              "test_nll": 0.5115417306904667,
+              "exact": 0.734375,
+              "depth_audit": {
+                "0": 0.87890625,
+                "1": 0.87109375,
+                "2": 0.87109375,
+                "4": 0.8671875
+              },
+              "interventions": {
+                "no_memory": {
+                  "accuracy": 0.125,
+                  "nll": 2.2287885064316986,
+                  "active_permuted": null
+                },
+                "permute_l2": {
+                  "accuracy": 0.87109375,
+                  "nll": 0.5361282226365595,
+                  "active_permuted": 11
+                },
+                "permute_l3": {
+                  "accuracy": 0.875,
+                  "nll": 0.501086032926266,
+                  "active_permuted": 9
+                }
+              }
+            },
+            {
+              "seed": 19,
+              "lr_scale": 2.0,
+              "auxiliary": 0.0,
+              "bytes": 250000,
+              "cpu_seconds": 5.061761846999957,
+              "bytes_per_cpu_second": 49389.91749447317,
+              "test_accuracy": 0.8515625,
+              "test_nll": 0.5000310939034552,
+              "exact": 0.703125,
+              "depth_audit": {
+                "0": 0.859375,
+                "1": 0.86328125,
+                "2": 0.86328125,
+                "4": 0.8515625
+              },
+              "interventions": {
+                "no_memory": {
+                  "accuracy": 0.140625,
+                  "nll": 2.2645927750688255,
+                  "active_permuted": null
+                },
+                "permute_l2": {
+                  "accuracy": 0.859375,
+                  "nll": 0.4984818207248809,
+                  "active_permuted": 11
+                },
+                "permute_l3": {
+                  "accuracy": 0.87109375,
+                  "nll": 0.5024285834657871,
+                  "active_permuted": 9
+                }
+              }
+            }
+          ]
+        }
+      ],
+      "comparisons": [
+        {
+          "task": "selective_copy",
+          "size": 500000,
+          "setting": "easy",
+          "steps": 2,
+          "test_accuracy_delta": {
+            "n_seeds": 3,
+            "mean": 0.0026041666666666665,
+            "ci95": [
+              0.0,
+              0.00390625
+            ]
+          },
+          "matched_time_development": [
+            {
+              "seed": 1,
+              "common_cpu_budget": 4.789541348000881,
+              "control_bytes": 250000,
+              "candidate_bytes": 200046,
+              "control_dev_nll": 0.5558346237207724,
+              "candidate_dev_nll": 0.6304285729430819,
+              "throughput_ratio": 0.9760196100081283
+            },
+            {
+              "seed": 7,
+              "common_cpu_budget": 4.786011131000777,
+              "control_bytes": 250000,
+              "candidate_bytes": 200046,
+              "control_dev_nll": 0.6212865435669832,
+              "candidate_dev_nll": 0.665570974373217,
+              "throughput_ratio": 0.9701706399534601
+            },
+            {
+              "seed": 19,
+              "common_cpu_budget": 4.784647883000531,
+              "control_bytes": 250000,
+              "candidate_bytes": 200046,
+              "control_dev_nll": 0.6178356769145285,
+              "candidate_dev_nll": 0.6383160540421717,
+              "throughput_ratio": 0.9749691738317128
+            }
+          ]
+        },
+        {
+          "task": "selective_copy",
+          "size": 500000,
+          "setting": "easy",
+          "steps": 4,
+          "test_accuracy_delta": {
+            "n_seeds": 3,
+            "mean": -0.014322916666666666,
+            "ci95": [
+              -0.03125,
+              0.0078125
+            ]
+          },
+          "matched_time_development": [
+            {
+              "seed": 1,
+              "common_cpu_budget": 4.789541348000881,
+              "control_bytes": 250000,
+              "candidate_bytes": 200046,
+              "control_dev_nll": 0.5558346237207724,
+              "candidate_dev_nll": 0.6230384882740435,
+              "throughput_ratio": 0.9465535732817425
+            },
+            {
+              "seed": 7,
+              "common_cpu_budget": 4.786011131000777,
+              "control_bytes": 250000,
+              "candidate_bytes": 200046,
+              "control_dev_nll": 0.6212865435669832,
+              "candidate_dev_nll": 0.6502888859874728,
+              "throughput_ratio": 0.9457116466041122
+            },
+            {
+              "seed": 19,
+              "common_cpu_budget": 4.784647883000531,
+              "control_bytes": 250000,
+              "candidate_bytes": 200046,
+              "control_dev_nll": 0.6178356769145285,
+              "candidate_dev_nll": 0.6715553513537895,
+              "throughput_ratio": 0.9452534567260078
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "task": "variable_tracking",
+      "setting": "two_ops",
+      "calibration": {
+        "task": "variable_tracking",
+        "size": 500000,
+        "status": "calibrated",
+        "setting": "two_ops",
+        "control_development_score": 0.1636904761904762
+      },
+      "shortcut_name": "initial_binding_ignore_updates",
+      "shortcut_accuracy": 0.6484375,
+      "all_shortcuts": {
+        "initial_binding_ignore_updates": {
+          "token_accuracy": 0.6484375,
+          "exact_accuracy": 0.6484375
+        },
+        "uniform_alphabet_distribution": {
+          "token_accuracy": 0.125,
+          "exact_accuracy": 0.125
+        }
+      },
+      "arms": [
+        {
+          "steps": 0,
+          "test_accuracy": 0.2994791666666667,
+          "exact_accuracy": 0.2994791666666667,
+          "test_nll": 2.0522471487256118,
+          "dev_nll": 1.9107350969498575,
+          "bytes_per_cpu_second": 59927.405760042435,
+          "parameters": 496959,
+          "hyperparameters": {
+            "lr_scale": 2.0,
+            "auxiliary": 0.1
+          },
+          "tuning_cpu_seconds": 75.71689315799799,
+          "memory_accuracy_drop": 0.11197916666666667,
+          "l2_permutation_accuracy_drop": 0.033854166666666664,
+          "l3_permutation_accuracy_drop": 0.005208333333333333,
+          "delay_ood_accuracy": 0.11458333333333333,
+          "per_seed": [
+            {
+              "seed": 1,
+              "lr_scale": 2.0,
+              "auxiliary": 0.1,
+              "bytes": 250000,
+              "cpu_seconds": 4.164779793000747,
+              "bytes_per_cpu_second": 60027.183290733745,
+              "test_accuracy": 0.2890625,
+              "test_nll": 2.1209149763853907,
+              "exact": 0.2890625,
+              "depth_audit": {
+                "0": 0.2890625,
+                "1": 0.2734375,
+                "2": 0.265625,
+                "4": 0.28125
+              },
+              "interventions": {
+                "no_memory": {
+                  "accuracy": 0.1796875,
+                  "nll": 2.0491026081535724,
+                  "active_permuted": null
+                },
+                "permute_l2": {
+                  "accuracy": 0.28125,
+                  "nll": 2.1339412471642967,
+                  "active_permuted": 11
+                },
+                "permute_l3": {
+                  "accuracy": 0.3046875,
+                  "nll": 2.111097387657295,
+                  "active_permuted": 9
+                }
+              }
+            },
+            {
+              "seed": 7,
+              "lr_scale": 2.0,
+              "auxiliary": 0.1,
+              "bytes": 250000,
+              "cpu_seconds": 4.198820952999796,
+              "bytes_per_cpu_second": 59540.524065783415,
+              "test_accuracy": 0.3203125,
+              "test_nll": 2.0794762855651583,
+              "exact": 0.3203125,
+              "depth_audit": {
+                "0": 0.3203125,
+                "1": 0.3046875,
+                "2": 0.2890625,
+                "4": 0.296875
+              },
+              "interventions": {
+                "no_memory": {
+                  "accuracy": 0.1796875,
+                  "nll": 2.12378333605521,
+                  "active_permuted": null
+                },
+                "permute_l2": {
+                  "accuracy": 0.25,
+                  "nll": 2.055580494182412,
+                  "active_permuted": 11
+                },
+                "permute_l3": {
+                  "accuracy": 0.28125,
+                  "nll": 2.093031319237418,
+                  "active_permuted": 9
+                }
+              }
+            },
+            {
+              "seed": 19,
+              "lr_scale": 2.0,
+              "auxiliary": 0.1,
+              "bytes": 250000,
+              "cpu_seconds": 4.1518232119991865,
+              "bytes_per_cpu_second": 60214.50992361015,
+              "test_accuracy": 0.2890625,
+              "test_nll": 1.9563501842262863,
+              "exact": 0.2890625,
+              "depth_audit": {
+                "0": 0.2890625,
+                "1": 0.3046875,
+                "2": 0.3046875,
+                "4": 0.3203125
+              },
+              "interventions": {
+                "no_memory": {
+                  "accuracy": 0.203125,
+                  "nll": 2.017570329100308,
+                  "active_permuted": null
+                },
+                "permute_l2": {
+                  "accuracy": 0.265625,
+                  "nll": 2.020159442336635,
+                  "active_permuted": 11
+                },
+                "permute_l3": {
+                  "accuracy": 0.296875,
+                  "nll": 1.9569810071588962,
+                  "active_permuted": 9
+                }
+              }
+            }
+          ]
+        },
+        {
+          "steps": 2,
+          "test_accuracy": 0.2760416666666667,
+          "exact_accuracy": 0.2760416666666667,
+          "test_nll": 1.9812880410280629,
+          "dev_nll": 1.937706572394272,
+          "bytes_per_cpu_second": 57645.36156001294,
+          "parameters": 496959,
+          "hyperparameters": {
+            "lr_scale": 1.0,
+            "auxiliary": 0.0
+          },
+          "tuning_cpu_seconds": 78.45938340199831,
+          "memory_accuracy_drop": 0.109375,
+          "l2_permutation_accuracy_drop": 0.013020833333333334,
+          "l3_permutation_accuracy_drop": -0.005208333333333333,
+          "delay_ood_accuracy": 0.09635416666666667,
+          "per_seed": [
+            {
+              "seed": 1,
+              "lr_scale": 1.0,
+              "auxiliary": 0.0,
+              "bytes": 250000,
+              "cpu_seconds": 4.316432397999563,
+              "bytes_per_cpu_second": 57918.20117832998,
+              "test_accuracy": 0.2578125,
+              "test_nll": 1.999566300359957,
+              "exact": 0.2578125,
+              "depth_audit": {
+                "0": 0.2421875,
+                "1": 0.25,
+                "2": 0.2578125,
+                "4": 0.28125
+              },
+              "interventions": {
+                "no_memory": {
+                  "accuracy": 0.171875,
+                  "nll": 2.0977878263260177,
+                  "active_permuted": null
+                },
+                "permute_l2": {
+                  "accuracy": 0.25,
+                  "nll": 1.9605802415920996,
+                  "active_permuted": 11
+                },
+                "permute_l3": {
+                  "accuracy": 0.28125,
+                  "nll": 1.9807004734841915,
+                  "active_permuted": 9
+                }
+              }
+            },
+            {
+              "seed": 7,
+              "lr_scale": 1.0,
+              "auxiliary": 0.0,
+              "bytes": 250000,
+              "cpu_seconds": 4.366471209998764,
+              "bytes_per_cpu_second": 57254.47116828025,
+              "test_accuracy": 0.2890625,
+              "test_nll": 1.9527161722285853,
+              "exact": 0.2890625,
+              "depth_audit": {
+                "0": 0.265625,
+                "1": 0.28125,
+                "2": 0.2890625,
+                "4": 0.2734375
+              },
+              "interventions": {
+                "no_memory": {
+                  "accuracy": 0.1640625,
+                  "nll": 2.096849677433082,
+                  "active_permuted": null
+                },
+                "permute_l2": {
+                  "accuracy": 0.2734375,
+                  "nll": 1.929720490548247,
+                  "active_permuted": 11
+                },
+                "permute_l3": {
+                  "accuracy": 0.2734375,
+                  "nll": 1.9477661370244956,
+                  "active_permuted": 9
+                }
+              }
+            },
+            {
+              "seed": 19,
+              "lr_scale": 1.0,
+              "auxiliary": 0.0,
+              "bytes": 250000,
+              "cpu_seconds": 4.327999158999148,
+              "bytes_per_cpu_second": 57763.4123334286,
+              "test_accuracy": 0.28125,
+              "test_nll": 1.9915816504956463,
+              "exact": 0.28125,
+              "depth_audit": {
+                "0": 0.28125,
+                "1": 0.28125,
+                "2": 0.28125,
+                "4": 0.28125
+              },
+              "interventions": {
+                "no_memory": {
+                  "accuracy": 0.1640625,
+                  "nll": 2.098835446784821,
+                  "active_permuted": null
+                },
+                "permute_l2": {
+                  "accuracy": 0.265625,
+                  "nll": 2.021175747388671,
+                  "active_permuted": 11
+                },
+                "permute_l3": {
+                  "accuracy": 0.2890625,
+                  "nll": 1.9917247260478677,
+                  "active_permuted": 9
+                }
+              }
+            }
+          ]
+        },
+        {
+          "steps": 4,
+          "test_accuracy": 0.2864583333333333,
+          "exact_accuracy": 0.2864583333333333,
+          "test_nll": 1.9816361843071923,
+          "dev_nll": 1.9467650478163894,
+          "bytes_per_cpu_second": 56170.9925495917,
+          "parameters": 496959,
+          "hyperparameters": {
+            "lr_scale": 1.0,
+            "auxiliary": 0.0
+          },
+          "tuning_cpu_seconds": 79.6406501710008,
+          "memory_accuracy_drop": 0.1328125,
+          "l2_permutation_accuracy_drop": 0.0078125,
+          "l3_permutation_accuracy_drop": 0.015625,
+          "delay_ood_accuracy": 0.11197916666666667,
+          "per_seed": [
+            {
+              "seed": 1,
+              "lr_scale": 1.0,
+              "auxiliary": 0.0,
+              "bytes": 250000,
+              "cpu_seconds": 4.535882127002253,
+              "bytes_per_cpu_second": 55116.07070028163,
+              "test_accuracy": 0.3046875,
+              "test_nll": 2.004523986080558,
+              "exact": 0.3046875,
+              "depth_audit": {
+                "0": 0.2578125,
+                "1": 0.2734375,
+                "2": 0.28125,
+                "4": 0.3046875
+              },
+              "interventions": {
+                "no_memory": {
+                  "accuracy": 0.1328125,
+                  "nll": 2.0976559511702058,
+                  "active_permuted": null
+                },
+                "permute_l2": {
+                  "accuracy": 0.28125,
+                  "nll": 1.9737068349403466,
+                  "active_permuted": 11
+                },
+                "permute_l3": {
+                  "accuracy": 0.2578125,
+                  "nll": 1.9960389012612358,
+                  "active_permuted": 9
+                }
+              }
+            },
+            {
+              "seed": 7,
+              "lr_scale": 1.0,
+              "auxiliary": 0.0,
+              "bytes": 250000,
+              "cpu_seconds": 4.378818781001598,
+              "bytes_per_cpu_second": 57093.022685632975,
+              "test_accuracy": 0.265625,
+              "test_nll": 1.9495393892586228,
+              "exact": 0.265625,
+              "depth_audit": {
+                "0": 0.2734375,
+                "1": 0.28125,
+                "2": 0.28125,
+                "4": 0.265625
+              },
+              "interventions": {
+                "no_memory": {
+                  "accuracy": 0.1640625,
+                  "nll": 2.095170701226823,
+                  "active_permuted": null
+                },
+                "permute_l2": {
+                  "accuracy": 0.28125,
+                  "nll": 1.9330808027000113,
+                  "active_permuted": 11
+                },
+                "permute_l3": {
+                  "accuracy": 0.265625,
+                  "nll": 1.9472640664483993,
+                  "active_permuted": 9
+                }
+              }
+            },
+            {
+              "seed": 19,
+              "lr_scale": 1.0,
+              "auxiliary": 0.0,
+              "bytes": 250000,
+              "cpu_seconds": 4.440190996998524,
+              "bytes_per_cpu_second": 56303.88426286048,
+              "test_accuracy": 0.2890625,
+              "test_nll": 1.9908451775823965,
+              "exact": 0.2890625,
+              "depth_audit": {
+                "0": 0.28125,
+                "1": 0.28125,
+                "2": 0.28125,
+                "4": 0.2890625
+              },
+              "interventions": {
+                "no_memory": {
+                  "accuracy": 0.1640625,
+                  "nll": 2.0992365979848056,
+                  "active_permuted": null
+                },
+                "permute_l2": {
+                  "accuracy": 0.2734375,
+                  "nll": 2.0332968370980553,
+                  "active_permuted": 11
+                },
+                "permute_l3": {
+                  "accuracy": 0.2890625,
+                  "nll": 1.9912655123713399,
+                  "active_permuted": 9
+                }
+              }
+            }
+          ]
+        }
+      ],
+      "comparisons": [
+        {
+          "task": "variable_tracking",
+          "size": 500000,
+          "setting": "two_ops",
+          "steps": 2,
+          "test_accuracy_delta": {
+            "n_seeds": 3,
+            "mean": -0.0234375,
+            "ci95": [
+              -0.03125,
+              -0.0078125
+            ]
+          },
+          "matched_time_development": [
+            {
+              "seed": 1,
+              "common_cpu_budget": 4.164779793000747,
+              "control_bytes": 250000,
+              "candidate_bytes": 200005,
+              "control_dev_nll": 1.8413922797657125,
+              "candidate_dev_nll": 1.9503835844648445,
+              "throughput_ratio": 0.9648662156578431
+            },
+            {
+              "seed": 7,
+              "common_cpu_budget": 4.198820952999796,
+              "control_bytes": 250000,
+              "candidate_bytes": 200005,
+              "control_dev_nll": 1.990328578908162,
+              "candidate_dev_nll": 1.928372181028616,
+              "throughput_ratio": 0.9616050927771913
+            },
+            {
+              "seed": 19,
+              "common_cpu_budget": 4.1518232119991865,
+              "control_bytes": 250000,
+              "candidate_bytes": 200005,
+              "control_dev_nll": 1.9004844321756977,
+              "candidate_dev_nll": 1.9821894737669785,
+              "throughput_ratio": 0.9592939045208358
+            }
+          ]
+        },
+        {
+          "task": "variable_tracking",
+          "size": 500000,
+          "setting": "two_ops",
+          "steps": 4,
+          "test_accuracy_delta": {
+            "n_seeds": 3,
+            "mean": -0.013020833333333334,
+            "ci95": [
+              -0.0546875,
+              0.015625
+            ]
+          },
+          "matched_time_development": [
+            {
+              "seed": 1,
+              "common_cpu_budget": 4.164779793000747,
+              "control_bytes": 250000,
+              "candidate_bytes": 200005,
+              "control_dev_nll": 1.8413922797657125,
+              "candidate_dev_nll": 1.9495182305680014,
+              "throughput_ratio": 0.9181851900885338
+            },
+            {
+              "seed": 7,
+              "common_cpu_budget": 4.198820952999796,
+              "control_bytes": 250000,
+              "candidate_bytes": 200005,
+              "control_dev_nll": 1.990328578908162,
+              "candidate_dev_nll": 1.93129854896473,
+              "throughput_ratio": 0.9588935196901137
+            },
+            {
+              "seed": 19,
+              "common_cpu_budget": 4.1518232119991865,
+              "control_bytes": 250000,
+              "candidate_bytes": 200005,
+              "control_dev_nll": 1.9004844321756977,
+              "candidate_dev_nll": 1.97987633500492,
+              "throughput_ratio": 0.9350550944330395
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "state_comparisons": [
+    {
+      "size": 1000000,
+      "calibration": {
+        "status": "uncalibrated",
+        "setting": null,
+        "reason": "No control development score is in the difficulty band.",
+        "scores": [
+          {
+            "setting": "1",
+            "chance_normalized_accuracy": 0.023809523809523808
+          },
+          {
+            "setting": "2",
+            "chance_normalized_accuracy": -0.03571428571428571
+          },
+          {
+            "setting": "4",
+            "chance_normalized_accuracy": 0.023809523809523808
+          }
+        ],
+        "diagnostic_length": 1
+      },
+      "comparisons": [
+        {
+          "control": "final_only",
+          "candidate": "head_only",
+          "test_accuracy_delta": {
+            "n_seeds": 3,
+            "mean": -0.016927083333333332,
+            "ci95": [
+              -0.04296875,
+              0.00390625
+            ]
+          },
+          "matched_time": [
+            {
+              "seed": 1,
+              "cpu_budget": 24.958643002998087,
+              "control_bytes": 800178,
+              "candidate_bytes": 1000000,
+              "control_dev_nll": 2.2645372194963937,
+              "candidate_dev_nll": 2.3018851639658533,
+              "throughput_ratio": 1.0027678544860628
+            },
+            {
+              "seed": 7,
+              "cpu_budget": 24.96523680799994,
+              "control_bytes": 1000000,
+              "candidate_bytes": 800178,
+              "control_dev_nll": 2.3351443263426552,
+              "candidate_dev_nll": 2.263635438253428,
+              "throughput_ratio": 0.9967021164506251
+            },
+            {
+              "seed": 19,
+              "cpu_budget": 24.917775859000415,
+              "control_bytes": 1000000,
+              "candidate_bytes": 800178,
+              "control_dev_nll": 2.4073927384394866,
+              "candidate_dev_nll": 2.300097996380635,
+              "throughput_ratio": 0.9968217204867772
+            }
+          ]
+        },
+        {
+          "control": "head_only",
+          "candidate": "state_aux",
+          "test_accuracy_delta": {
+            "n_seeds": 3,
+            "mean": 0.04296875,
+            "ci95": [
+              0.00390625,
+              0.078125
+            ]
+          },
+          "matched_time": [
+            {
+              "seed": 1,
+              "cpu_budget": 24.958643002998087,
+              "control_bytes": 1000000,
+              "candidate_bytes": 800178,
+              "control_dev_nll": 2.3018851639658533,
+              "candidate_dev_nll": 2.2947745027515554,
+              "throughput_ratio": 0.9987821147133286
+            },
+            {
+              "seed": 7,
+              "cpu_budget": 24.965796723999574,
+              "control_bytes": 800178,
+              "candidate_bytes": 1000000,
+              "control_dev_nll": 2.263635438253428,
+              "candidate_dev_nll": 2.2268649108595673,
+              "throughput_ratio": 1.0032862940409282
+            },
+            {
+              "seed": 19,
+              "cpu_budget": 24.933668702002137,
+              "control_bytes": 800178,
+              "candidate_bytes": 1000000,
+              "control_dev_nll": 2.300097996380635,
+              "candidate_dev_nll": 2.4786319319974677,
+              "throughput_ratio": 1.0025489759553958
+            }
+          ]
+        },
+        {
+          "control": "final_only",
+          "candidate": "state_aux",
+          "test_accuracy_delta": {
+            "n_seeds": 3,
+            "mean": 0.026041666666666668,
+            "ci95": [
+              0.0078125,
+              0.03515625
+            ]
+          },
+          "matched_time": [
+            {
+              "seed": 1,
+              "cpu_budget": 24.989076831999284,
+              "control_bytes": 800178,
+              "candidate_bytes": 1000000,
+              "control_dev_nll": 2.2645372194963937,
+              "candidate_dev_nll": 2.319164261523056,
+              "throughput_ratio": 1.001546598270137
+            },
+            {
+              "seed": 7,
+              "cpu_budget": 24.96523680799994,
+              "control_bytes": 1000000,
+              "candidate_bytes": 800178,
+              "control_dev_nll": 2.3351443263426552,
+              "candidate_dev_nll": 2.239873831443157,
+              "throughput_ratio": 0.9999775726764973
+            },
+            {
+              "seed": 19,
+              "cpu_budget": 24.917775859000415,
+              "control_bytes": 1000000,
+              "candidate_bytes": 800178,
+              "control_dev_nll": 2.4073927384394866,
+              "candidate_dev_nll": 2.450203847121855,
+              "throughput_ratio": 0.9993625950841142
+            }
+          ]
+        }
+      ],
+      "initial_binding_baseline": 0.71484375,
+      "arms": [
+        {
+          "arm": "final_only",
+          "parameters": 999519,
+          "test_accuracy": 0.12109375,
+          "long_accuracy": 0.13411458333333334,
+          "standardized_probe": 0.28125,
+          "before_query_probe": 0.38671875,
+          "bytes_per_cpu_second": 40047.79353705338,
+          "mean_replacement_nll_delta": -0.16336350040954883,
+          "per_seed": [
+            {
+              "seed": 1,
+              "test_accuracy": 0.1015625,
+              "test_nll": 2.305000164928293,
+              "long_accuracy": 0.14453125,
+              "probe_accuracy": 0.3203125
+            },
+            {
+              "seed": 7,
+              "test_accuracy": 0.125,
+              "test_nll": 2.3216257654553605,
+              "long_accuracy": 0.14453125,
+              "probe_accuracy": 0.25390625
+            },
+            {
+              "seed": 19,
+              "test_accuracy": 0.13671875,
+              "test_nll": 2.3248797366721585,
+              "long_accuracy": 0.11328125,
+              "probe_accuracy": 0.26953125
+            }
+          ]
+        },
+        {
+          "arm": "head_only",
+          "parameters": 999519,
+          "test_accuracy": 0.10416666666666667,
+          "long_accuracy": 0.13932291666666666,
+          "standardized_probe": 0.2955729166666667,
+          "before_query_probe": 0.3958333333333333,
+          "bytes_per_cpu_second": 39998.107475119126,
+          "mean_replacement_nll_delta": -0.13621956040976033,
+          "per_seed": [
+            {
+              "seed": 1,
+              "test_accuracy": 0.10546875,
+              "test_nll": 2.2754165996669977,
+              "long_accuracy": 0.140625,
+              "probe_accuracy": 0.30078125
+            },
+            {
+              "seed": 7,
+              "test_accuracy": 0.11328125,
+              "test_nll": 2.2788629101432147,
+              "long_accuracy": 0.14453125,
+              "probe_accuracy": 0.2734375
+            },
+            {
+              "seed": 19,
+              "test_accuracy": 0.09375,
+              "test_nll": 2.2800537796506144,
+              "long_accuracy": 0.1328125,
+              "probe_accuracy": 0.3125
+            }
+          ]
+        },
+        {
+          "arm": "state_aux",
+          "parameters": 999519,
+          "test_accuracy": 0.14713541666666666,
+          "long_accuracy": 0.13411458333333334,
+          "standardized_probe": 0.3072916666666667,
+          "before_query_probe": 0.3645833333333333,
+          "bytes_per_cpu_second": 40059.56577985228,
+          "mean_replacement_nll_delta": -0.13958850460948588,
+          "per_seed": [
+            {
+              "seed": 1,
+              "test_accuracy": 0.109375,
+              "test_nll": 2.3063135914279806,
+              "long_accuracy": 0.14453125,
+              "probe_accuracy": 0.3671875
+            },
+            {
+              "seed": 7,
+              "test_accuracy": 0.16015625,
+              "test_nll": 2.2629947759987044,
+              "long_accuracy": 0.1484375,
+              "probe_accuracy": 0.2421875
+            },
+            {
+              "seed": 19,
+              "test_accuracy": 0.171875,
+              "test_nll": 2.299923530712041,
+              "long_accuracy": 0.109375,
+              "probe_accuracy": 0.3125
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "size": 5000000,
+      "calibration": {
+        "status": "uncalibrated",
+        "setting": null,
+        "reason": "No control development score is in the difficulty band.",
+        "scores": [
+          {
+            "setting": "1",
+            "chance_normalized_accuracy": 0.017857142857142856
+          },
+          {
+            "setting": "2",
+            "chance_normalized_accuracy": -0.041666666666666664
+          },
+          {
+            "setting": "4",
+            "chance_normalized_accuracy": 0.05654761904761905
+          }
+        ],
+        "diagnostic_length": 1
+      },
+      "comparisons": [
+        {
+          "control": "final_only",
+          "candidate": "head_only",
+          "test_accuracy_delta": {
+            "n_seeds": 3,
+            "mean": 0.013020833333333334,
+            "ci95": [
+              0.01171875,
+              0.015625
+            ]
+          },
+          "matched_time": [
+            {
+              "seed": 1,
+              "cpu_budget": 21.336712834000338,
+              "control_bytes": 800178,
+              "candidate_bytes": 1000000,
+              "control_dev_nll": 2.1777903368757094,
+              "candidate_dev_nll": 2.1979752895481797,
+              "throughput_ratio": 1.0015165007023974
+            },
+            {
+              "seed": 7,
+              "cpu_budget": 21.257537021000125,
+              "control_bytes": 1000000,
+              "candidate_bytes": 800178,
+              "control_dev_nll": 2.293108763871378,
+              "candidate_dev_nll": 2.1649450118460147,
+              "throughput_ratio": 0.9976423356121729
+            },
+            {
+              "seed": 19,
+              "cpu_budget": 21.273737004000502,
+              "control_bytes": 1000000,
+              "candidate_bytes": 800178,
+              "control_dev_nll": 2.308291459415668,
+              "candidate_dev_nll": 2.1917894930142725,
+              "throughput_ratio": 0.9841679571983885
+            }
+          ]
+        },
+        {
+          "control": "head_only",
+          "candidate": "state_aux",
+          "test_accuracy_delta": {
+            "n_seeds": 3,
+            "mean": 0.022135416666666668,
+            "ci95": [
+              0.00390625,
+              0.04296875
+            ]
+          },
+          "matched_time": [
+            {
+              "seed": 1,
+              "cpu_budget": 21.336712834000338,
+              "control_bytes": 1000000,
+              "candidate_bytes": 800178,
+              "control_dev_nll": 2.1979752895481797,
+              "candidate_dev_nll": 2.1929812286699466,
+              "throughput_ratio": 0.9869504700710147
+            },
+            {
+              "seed": 7,
+              "cpu_budget": 21.30777360000073,
+              "control_bytes": 1000000,
+              "candidate_bytes": 800178,
+              "control_dev_nll": 2.1996450261915337,
+              "candidate_dev_nll": 2.230317069845645,
+              "throughput_ratio": 0.9856811826124877
+            },
+            {
+              "seed": 19,
+              "cpu_budget": 21.613272722996896,
+              "control_bytes": 800178,
+              "candidate_bytes": 1000000,
+              "control_dev_nll": 2.1917894930142725,
+              "candidate_dev_nll": 2.27591043691693,
+              "throughput_ratio": 1.0001244195656755
+            }
+          ]
+        },
+        {
+          "control": "final_only",
+          "candidate": "state_aux",
+          "test_accuracy_delta": {
+            "n_seeds": 3,
+            "mean": 0.03515625,
+            "ci95": [
+              0.015625,
+              0.0546875
+            ]
+          },
+          "matched_time": [
+            {
+              "seed": 1,
+              "cpu_budget": 21.369069973999952,
+              "control_bytes": 1000000,
+              "candidate_bytes": 800178,
+              "control_dev_nll": 2.227937135072805,
+              "candidate_dev_nll": 2.1929812286699466,
+              "throughput_ratio": 0.9884471811521087
+            },
+            {
+              "seed": 7,
+              "cpu_budget": 21.257537021000125,
+              "control_bytes": 1000000,
+              "candidate_bytes": 800178,
+              "control_dev_nll": 2.293108763871378,
+              "candidate_dev_nll": 2.230317069845645,
+              "throughput_ratio": 0.9833572771904908
+            },
+            {
+              "seed": 19,
+              "cpu_budget": 21.273737004000502,
+              "control_bytes": 1000000,
+              "candidate_bytes": 800178,
+              "control_dev_nll": 2.308291459415668,
+              "candidate_dev_nll": 2.222436532114431,
+              "throughput_ratio": 0.9842904069481749
+            }
+          ]
+        }
+      ],
+      "initial_binding_baseline": 0.71484375,
+      "arms": [
+        {
+          "arm": "final_only",
+          "parameters": 4999647,
+          "test_accuracy": 0.11848958333333333,
+          "long_accuracy": 0.11197916666666667,
+          "standardized_probe": 0.3268229166666667,
+          "before_query_probe": 0.3802083333333333,
+          "bytes_per_cpu_second": 46948.35423309128,
+          "mean_replacement_nll_delta": -0.09980264229256115,
+          "per_seed": [
+            {
+              "seed": 1,
+              "test_accuracy": 0.1015625,
+              "test_nll": 2.220946993862554,
+              "long_accuracy": 0.11328125,
+              "probe_accuracy": 0.37109375
+            },
+            {
+              "seed": 7,
+              "test_accuracy": 0.109375,
+              "test_nll": 2.259122386225802,
+              "long_accuracy": 0.1015625,
+              "probe_accuracy": 0.3359375
+            },
+            {
+              "seed": 19,
+              "test_accuracy": 0.14453125,
+              "test_nll": 2.304222148670832,
+              "long_accuracy": 0.12109375,
+              "probe_accuracy": 0.2734375
+            }
+          ]
+        },
+        {
+          "arm": "head_only",
+          "parameters": 4999647,
+          "test_accuracy": 0.13151041666666666,
+          "long_accuracy": 0.11979166666666667,
+          "standardized_probe": 0.30859375,
+          "before_query_probe": 0.3671875,
+          "bytes_per_cpu_second": 46686.971403477684,
+          "mean_replacement_nll_delta": -0.055278529787007535,
+          "per_seed": [
+            {
+              "seed": 1,
+              "test_accuracy": 0.1171875,
+              "test_nll": 2.169045688671992,
+              "long_accuracy": 0.125,
+              "probe_accuracy": 0.36328125
+            },
+            {
+              "seed": 7,
+              "test_accuracy": 0.12109375,
+              "test_nll": 2.1953927511488605,
+              "long_accuracy": 0.1171875,
+              "probe_accuracy": 0.30859375
+            },
+            {
+              "seed": 19,
+              "test_accuracy": 0.15625,
+              "test_nll": 2.2544956435257504,
+              "long_accuracy": 0.1171875,
+              "probe_accuracy": 0.25390625
+            }
+          ]
+        },
+        {
+          "arm": "state_aux",
+          "parameters": 4999647,
+          "test_accuracy": 0.15364583333333334,
+          "long_accuracy": 0.125,
+          "standardized_probe": 0.328125,
+          "before_query_probe": 0.390625,
+          "bytes_per_cpu_second": 46261.023532125924,
+          "mean_replacement_nll_delta": -0.059274641849082745,
+          "per_seed": [
+            {
+              "seed": 1,
+              "test_accuracy": 0.13671875,
+              "test_nll": 2.1959476601694328,
+              "long_accuracy": 0.09375,
+              "probe_accuracy": 0.41015625
+            },
+            {
+              "seed": 7,
+              "test_accuracy": 0.1640625,
+              "test_nll": 2.202215955505519,
+              "long_accuracy": 0.16015625,
+              "probe_accuracy": 0.2890625
+            },
+            {
+              "seed": 19,
+              "test_accuracy": 0.16015625,
+              "test_nll": 2.3071953280241857,
+              "long_accuracy": 0.12109375,
+              "probe_accuracy": 0.28515625
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "fits": 435,
+  "training_bytes": 131250000,
+  "runtime_base": "6384d8ca072075ec58010b4c3d5964e9e60fcd3e",
+  "production_defaults_changed": false,
+  "language_guardrail_run": false
+}
