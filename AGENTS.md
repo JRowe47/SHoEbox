@@ -1,17 +1,22 @@
 # SHoEbox development
 
 - Before new capability work, read `DEVELOPMENT_HANDOFF.md`,
-  `docs/capabilities/SHoEbox_Minimal_Capability_Matrix.md` and `reports/exp01d/`.
-  EXP01-D3 / EXP22 passes the binding/access development gates: 99.22% native
-  two-answer exactness across three seeds, every boundary offset above 98%,
-  and 100% through +256 padding bytes. Use the `paired_latest` research policy
-  with short-spacing training variation; preserve D1/D2 policies and evidence.
-  The next item is EXP01-E: joint native-core/readout integration and production
-  regression qualification, including a learned residual-applicability gate.
-  No default promotion yet. Minimal v19 remains the production control.
-  New slots and optimizer sweeps remain gated on a measured state failure.
-  Record the selected core explicitly; do not merge historical/full-C evidence
-  with minimal-v19 or research-adapter qualifications.
+  `docs/capabilities/SHoEbox_Minimal_Capability_Matrix.md`, `reports/exp01e/`,
+  `reports/exp01d/`, and the paired/joint readout READMEs.
+  EXP01-E1 completed three-seed binding, generic and 1M/5M qualification:
+  98.83% primary exactness, but 94.11% all-offset mean fails the 95% gate,
+  and language continuation erases binding. E7's locally supervised request
+  gate preserves 99.41% in its development retention pilot, but fresh generic
+  development fails (language +0.519175 nats/byte; copy -1.042 points).
+  Production remains minimal v19. The next focused item is EXP01-E8,
+  `reports/exp01e/AMENDMENT_E8.md`: cold-start applicability prior followed
+  by complete qualification. E2-family binding and E7 generic audits remain
+  unopened. Do not tune against E1's opened audit or inherit pilot results.
+  Preserve every D/E policy, checkpoint meaning, failed fit and original gate.
+  No new slots or optimizer sweeps without measured state failure. Distinguish
+  explicit fixture-local supervision from generic byte objectives.
+  Verified research may be committed and pushed directly to main under the
+  user's standing authorization, including failed promotion; never force-push.
 
 - The selected CPU runtime is the minimal corrected-C core, exposed by `shoe_multiscale.py` and
   implemented in `multiscale/`. Preserve `shoebox_reference.py` as the historical

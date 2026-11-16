@@ -2,7 +2,28 @@
 
 16 November 2026 (America/Denver). Runtime baseline: minimal corrected C, checkpoint v19, source `317fbcd023b9d9b3c2b359ba8f99f3dadbf46783`.
 
-**Next action: EXP01-E: integrate and qualify joint native-core learning and a learned residual-applicability gate, then language/copy/reconstruction and 1M/5M capacity regressions. Keep the D3 binding/delay fixture as a regression and minimal v19 as production until those gates pass.**
+**Next action: EXP01-E8, the registered cold-start applicability revision in [AMENDMENT_E8.md](reports/exp01e/AMENDMENT_E8.md). No default promotion.**
+
+EXP01-E tested seven revisions with 130.25M charged bytes. E1's complete
+three-seed audit reaches 98.83% native binding, 86.76% native inference speed,
+and passes independent generic regressions. It fails the 95% offset mean
+(94.11%) and loses binding during language continuation. The 1M/5M checks
+retain high primary binding but still miss the offset mean.
+
+E7's observed-request local classifier preserves 99.41% development binding
+through 1M generic targets (98.05% offset mean, 95.31% worst, 99.22% both orders,
+100% delays). Its independent fresh generic fits fail: +0.519175 nats/byte and
+-1.042 percentage points copy versus native. Its cold gate is 0.5 despite no
+local training. E8 registers a fixed 1/256 prior and complete retesting; it has
+not been fitted. E2-family binding and E7 generic audits are still unopened.
+
+Read [EXP01-E results](reports/exp01e/SHoEbox_EXP01E_Report.md), its write-once
+registrations and [E7 reproduction](experiments/joint_request_gate/README.md).
+Explicit fixture supervision remains essential. Production and historical
+checkpoint semantics are unchanged. Direct verified main publication remains
+explicitly authorized, including unsuccessful research; never force-push.
+
+The following D3 evidence is historical and preserved:
 
 EXP01-D3 / EXP22 passes the registered binding/access development gates: 99.22% native two-answer exactness on every seed versus 50.29% native; 99.63% all-offset mean, 98.44% worst offset, 96.88% both-query-orders exactness, and 100% at +64/+128/+256-byte delays. The paired readout fits 9,900 parameters inside the nominal 500K budget,
 adds zero persistent sequence state, and retains 88.74% of native inference

@@ -76,8 +76,8 @@
       "design": "Begin with a single binding, then two distinct key/value pairs, no irrelevant records, both query orders and randomized names. Explicitly compare minimal v19 and full C with coverage-only warmup. Add a query-conditioned low-rank readout with the core frozen and then trained end to end, plus a matched-capacity generic head. Deduct head parameters from bank capacity. Fit raw/centered/standardized probes identically. Keep query-index oracle access outside scored native inference.",
       "evaluation": "Require autoregressive whole-episode correctness and correct answer changes under query swaps; score full-256-byte output separately from restricted output. Probe addressed reads, retained reads and final L3 separately and jointly; distinguish immediate write availability, pre-query retention, query-conditioned selection and native decoding. Use one-binding initialization/query tests first, then the locked balanced two-key fixture.",
       "decision": "A readout-only win selects the cheaper repair. If a matched probe can decode a value but native generation cannot, repair query/readout integration. If neither can recover it, pass the failure to EXP02/EXP03. Stop broad optimizer searches once this distinction is clear.",
-      "status": "binding_access_development_gate_passed_production_qualification_pending",
-      "execution_entry": "EXP01-E: integrate and qualify joint native-core learning and a learned residual-applicability gate, then language/copy/reconstruction and 1M/5M capacity regressions. Keep the D3 binding/delay fixture as a regression and minimal v19 as production until those gates pass.",
+      "status": "joint_research_qualification_failed_request_gate_retention_development_passed",
+      "execution_entry": "EXP01-E8: fixed 1/256 cold-start local applicability prior; repeat complete development and production gates. E2-family binding and E7 generic audits remain unopened. Production stays minimal v19.",
       "results": {
         "report": "reports/exp01/SHoEbox_EXP01_Query_Readout.md",
         "comparison_branches": 36,
@@ -171,6 +171,27 @@
         "actual_training_bytes": 63750000,
         "binding_development_gate_passed": true,
         "production_promoted": false
+      },
+      "joint_applicability_results": {
+        "report": "reports/exp01e/SHoEbox_EXP01E_Report.md",
+        "seeds": [
+          1,
+          7,
+          19
+        ],
+        "E1_native_exact": 0.98828125,
+        "E1_offset_mean": 0.9410807291666667,
+        "E1_inference_relative": 0.8675826973736286,
+        "E1_retention_exact": 0,
+        "E7_development_seed": 7,
+        "E7_retention_exact": 0.994140625,
+        "E7_offset_mean": 0.98046875,
+        "E7_generic_language_delta": 0.5191751460310341,
+        "E7_copy_delta": -0.01041666666666674,
+        "actual_training_bytes": 130250000,
+        "extra_sequence_state_bytes": 0,
+        "production_promoted": false,
+        "next_registration": "reports/exp01e/AMENDMENT_E8.md"
       }
     },
     {
@@ -726,8 +747,8 @@
       "evaluation": "Measure binding/transition accuracy by offset, language NLL/time, event counts, completion latency, checkpoint continuation and behavior on long unbroken spans. No target-driven boundary labels may enter inference, and no partial group may expose future bytes. Test worst-case work/state bounds as well as averages.",
       "decision": "Adopt dynamic boundaries only if they solve a measured timing/composition problem at an acceptable cost. A cheap query-time access repair should win over a full hierarchy change when both achieve the same result.",
       "minimal_baseline_note": "Test query-time access to minimal partial/completed summaries first; introduce segmentation only after a boundary-dependent failure.",
-      "execution_entry": "EXP01-E: integrate and qualify joint native-core learning and a learned residual-applicability gate, then language/copy/reconstruction and 1M/5M capacity regressions. Keep the D3 binding/delay fixture as a regression and minimal v19 as production until those gates pass.",
-      "status": "binding_access_development_gate_passed_production_qualification_pending",
+      "execution_entry": "EXP01-E8: fixed 1/256 cold-start local applicability prior; repeat complete development and production gates. E2-family binding and E7 generic audits remain unopened. Production stays minimal v19.",
+      "status": "joint_research_qualification_failed_request_gate_retention_development_passed",
       "report": "reports/exp01d/SHoEbox_EXP01D_Report.md",
       "constituent_pairing_results": {
         "report": "reports/exp01d/SHoEbox_EXP01D_Report.md",
@@ -754,6 +775,27 @@
         "actual_training_bytes": 63750000,
         "binding_development_gate_passed": true,
         "production_promoted": false
+      },
+      "joint_applicability_results": {
+        "report": "reports/exp01e/SHoEbox_EXP01E_Report.md",
+        "seeds": [
+          1,
+          7,
+          19
+        ],
+        "E1_native_exact": 0.98828125,
+        "E1_offset_mean": 0.9410807291666667,
+        "E1_inference_relative": 0.8675826973736286,
+        "E1_retention_exact": 0,
+        "E7_development_seed": 7,
+        "E7_retention_exact": 0.994140625,
+        "E7_offset_mean": 0.98046875,
+        "E7_generic_language_delta": 0.5191751460310341,
+        "E7_copy_delta": -0.01041666666666674,
+        "actual_training_bytes": 130250000,
+        "extra_sequence_state_bytes": 0,
+        "production_promoted": false,
+        "next_registration": "reports/exp01e/AMENDMENT_E8.md"
       }
     },
     {
@@ -1394,7 +1436,8 @@
         "implementation": "Yes",
         "evidence": "Unworking",
         "scope": "Pre-minimal inventory; full corrected C unless its qualifier names an API, adapter or historical routing A. Not a minimal-v19 result."
-      }
+      },
+      "EXP01E_note": "See reports/exp01e/SHoEbox_EXP01E_Report.md: joint primary binding succeeds; E7 development retention succeeds; complete production qualification fails. Next E8."
     },
     {
       "id": "M08",
@@ -1780,7 +1823,8 @@
         "implementation": "Yes — research adapter",
         "evidence": "In principle",
         "scope": "Pre-minimal inventory; full corrected C unless its qualifier names an API, adapter or historical routing A. Not a minimal-v19 result."
-      }
+      },
+      "EXP01E_note": "See reports/exp01e/SHoEbox_EXP01E_Report.md: joint primary binding succeeds; E7 development retention succeeds; complete production qualification fails. Next E8."
     },
     {
       "id": "C03",
@@ -1900,7 +1944,8 @@
         "implementation": "Partial",
         "evidence": "Untested",
         "scope": "Pre-minimal inventory; full corrected C unless its qualifier names an API, adapter or historical routing A. Not a minimal-v19 result."
-      }
+      },
+      "EXP01E_note": "See reports/exp01e/SHoEbox_EXP01E_Report.md: joint primary binding succeeds; E7 development retention succeeds; complete production qualification fails. Next E8."
     },
     {
       "id": "C11",
@@ -2354,5 +2399,6 @@
   },
   "documentation_updated_local_date": "2026-11-16",
   "new_training_in_documentation_update": true,
-  "current_evidence_report": "reports/exp01d/SHoEbox_EXP01D_Report.md"
+  "current_evidence_report": "reports/exp01e/SHoEbox_EXP01E_Report.md",
+  "evidence_commit_note": "Prior evidence_commit pins historical D3; current EXP01-E evidence is in this document revision."
 }
