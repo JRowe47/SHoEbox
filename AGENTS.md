@@ -1,17 +1,19 @@
 # SHoEbox development
 
 - Before new capability work, read `DEVELOPMENT_HANDOFF.md`,
-  `docs/capabilities/SHoEbox_Minimal_Capability_Matrix.md`, `reports/exp01e/`,
-  `reports/exp01d/`, and the paired/joint readout READMEs.
-  EXP01-E1 completed three-seed binding, generic and 1M/5M qualification:
-  98.83% primary exactness, but 94.11% all-offset mean fails the 95% gate,
-  and language continuation erases binding. E7's locally supervised request
-  gate preserves 99.41% in its development retention pilot, but fresh generic
-  development fails (language +0.519175 nats/byte; copy -1.042 points).
-  Production remains minimal v19. The next focused item is EXP01-E8,
-  `reports/exp01e/AMENDMENT_E8.md`: cold-start applicability prior followed
-  by complete qualification. E2-family binding and E7 generic audits remain
-  unopened. Do not tune against E1's opened audit or inherit pilot results.
+  `docs/capabilities/SHoEbox_Minimal_Capability_Matrix.md`, `reports/exp01e8/`,
+  the preserved E1-E8 registrations in `reports/exp01e/`, and the
+  paired/joint/request/cold-gate READMEs.
+  EXP01-E8 passes every registered research qualification gate: 98.27%
+  held-out binding retained through 1M language targets, 97.27% offset mean,
+  93.75% worst offset, 96.88% both orders and 100% padding delays.
+  Generic language is +0.006233 nats/byte; copy/reconstruction remain within
+  the original margins. Three-seed 1M/5M and >=80% speed gates pass.
+  Production remains minimal v19 pending versioned public integration:
+  `reports/exp01e8/PUBLIC_INTEGRATION_PLAN.md`. Preserve E8 numerics and prove
+  public API/checkpoint parity before changing defaults. The E2-family binding
+  and E7 generic audits are now OPENED; never tune against them. Any numerical
+  revision needs fresh preregistered folds excluding all opened audit groups.
   Preserve every D/E policy, checkpoint meaning, failed fit and original gate.
   No new slots or optimizer sweeps without measured state failure. Distinguish
   explicit fixture-local supervision from generic byte objectives.

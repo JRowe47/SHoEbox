@@ -2,7 +2,32 @@
 
 16 November 2026 (America/Denver). Runtime baseline: minimal corrected C, checkpoint v19, source `317fbcd023b9d9b3c2b359ba8f99f3dadbf46783`.
 
-**Next action: EXP01-E8, the registered cold-start applicability revision in [AMENDMENT_E8.md](reports/exp01e/AMENDMENT_E8.md). No default promotion.**
+**Next action: [versioned public integration of qualified E8](reports/exp01e8/PUBLIC_INTEGRATION_PLAN.md). E8 has passed all registered research gates; public v19 is unchanged.**
+
+E8 changes only the local applicability prior to `logit(1/256)` and has its
+own checkpoint identity. Across seeds 1/7/19, held-out full-alphabet native
+binding is 98.2747%, unchanged after 1M language targets; all-offset mean is
+97.2656%, worst-offset seed mean 93.75%, both query orders 96.875%, and independent
+padding delays 100%. Fresh generic language is 2.257813 versus native 2.251579
+nats/byte (+0.006233); copy/reconstruction change -0.1302/-0.3255 percentage
+points. Three-seed 1M/5M capacity checks pass. Relative native inference is
+81.95%/85.20%/80.77% at 500K/1M/5M and 80.37% after language continuation.
+
+Read [E8 report](reports/exp01e8/SHoEbox_EXP01E8_Report.md),
+[reproduction and exact resume](reports/exp01e8/SHoEbox_EXP01E8_Resume.md), and
+[implementation](experiments/joint_cold_gate/README.md). There are 106M new
+charged bytes including all pilots, controls and padding; 77 exact resumable
+checkpoint/cursor pairs. Python/native, causality and ASan/UBSan checks pass.
+E7 and every historical checkpoint retain their original meanings.
+
+**The E2-family binding and E7 generic audit folds are now OPENED.** Do not tune
+against their scores. Public integration must preserve E8's qualified numeric
+behavior and distinguish fixture-local labels from generic byte objectives.
+New numerical research requires fresh preregistered groups excluding opened
+audits. Direct verified main publication remains explicitly authorized,
+including unsuccessful results; preserve remote history and never force-push.
+
+The following E1-E7 evidence is historical and preserved:
 
 EXP01-E tested seven revisions with 130.25M charged bytes. E1's complete
 three-seed audit reaches 98.83% native binding, 86.76% native inference speed,
@@ -14,8 +39,8 @@ E7's observed-request local classifier preserves 99.41% development binding
 through 1M generic targets (98.05% offset mean, 95.31% worst, 99.22% both orders,
 100% delays). Its independent fresh generic fits fail: +0.519175 nats/byte and
 -1.042 percentage points copy versus native. Its cold gate is 0.5 despite no
-local training. E8 registers a fixed 1/256 prior and complete retesting; it has
-not been fitted. E2-family binding and E7 generic audits are still unopened.
+local training. E8 registered a fixed 1/256 prior and complete retesting. Its
+execution and audit status are updated above; the folds were unopened at E7 publication.
 
 Read [EXP01-E results](reports/exp01e/SHoEbox_EXP01E_Report.md), its write-once
 registrations and [E7 reproduction](experiments/joint_request_gate/README.md).

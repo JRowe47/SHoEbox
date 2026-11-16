@@ -6,9 +6,11 @@ Start with [DEVELOPMENT_HANDOFF.md](DEVELOPMENT_HANDOFF.md) for the minimal v19
 contract, measured capability results and the next execution step. The
 [current capability matrix](docs/capabilities/SHoEbox_Minimal_Capability_Matrix.md)
 tracks all 66 capabilities and eight engineering enablers against minimal.
-EXP01-C is complete: query decoding reaches **100%** in both diagnostic positions,
-but native binding reaches only **44.56%**, versus 50.20% native. **EXP01-D /
-EXP22 constituent-level key/value association is next**; v19 remains the default.
+[EXP01-E8](reports/exp01e8/SHoEbox_EXP01E8_Report.md) passes its complete registered
+research qualification: **98.27% binding retained through 1M language targets**,
+passing generic regressions, 1M/5M capacity and throughput gates.
+**[Versioned public integration](reports/exp01e8/PUBLIC_INTEGRATION_PLAN.md) is next**;
+v19 remains the public default. E2-family/E7 audits are now opened; no tuning against them.
 New studies must select minimal/full explicitly and keep their evidence separate.
 
 ## Capability development protocols
@@ -22,12 +24,12 @@ to run the smoke qualification.
 
 ## Selected runtime: minimal corrected-C core
 
-**Latest capability development:** [EXP01-C query-time access](reports/exp01c/SHoEbox_EXP01C_Query_Access.md)
-compares equal-capacity readouts over completed and partial state. Query cues are
-readable, but second-query key selection and value decoding remain inadequate.
-Record-containing constituents survive every inspected phase/delay case; the
-next readout should preserve their key/value pairing. No promotion. Source,
-citations and commands: [`experiments/query_access`](experiments/query_access/README.md).
+**Latest capability development:** [EXP01-E8 cold-start applicability](reports/exp01e8/SHoEbox_EXP01E8_Report.md)
+initializes the local gate to 1/256 while preserving E7 and historical checkpoints.
+Its fixture-supervised research adapter passes held-out binding, language retention,
+language/copy/reconstruction and 1M/5M qualification. Generic byte objectives do not
+train its local extraction/applicability heads. See [source and commands](experiments/joint_cold_gate/README.md)
+and [exact continuation](reports/exp01e8/SHoEbox_EXP01E8_Resume.md).
 
 The default `shoe_multiscale` model is the **minimal corrected-C core (v19)**.
 Sparse experts run at the 1/4-byte scales; ordered, trainable summaries run at

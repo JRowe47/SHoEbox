@@ -8,12 +8,15 @@ Current inventory: **62 core capabilities, four optional multimodal capabilities
 
 No broad generalist capability is generally demonstrated. Minimal evidence supports next-byte learning, short selective copying, bounded-state reconstruction, and causal use of memory on the copy task. The separate EXP01-D3 research readout now qualifies narrow two-binding native recall across boundary phases and padding delays; it is not yet the production default.
 
-EXP01-E adds joint research evidence, without promotion: E1 reaches 98.83%
-native binding, but fails its fresh all-offset mean and language retention.
-E7 retains 99.41% in a development pilot using observed-request supervision;
-its fresh generic language/copy regressions fail. See [EXP01-E results](../../reports/exp01e/SHoEbox_EXP01E_Report.md).
-Next: E8 cold-start applicability, then full production qualification. The
-E2-family binding and E7 generic audit folds remain unopened.
+EXP01-E8 passes complete registered research qualification: 98.2747% held-out
+binding retained through 1M language targets, 97.2656% offset mean, 93.75%
+worst offset, 96.875% both query orders and 100% padding delays. Fresh generic
+language increases 0.006233 nats/byte; copy/reconstruction remain within their
+registered margins. Three-seed 1M/5M and >=80% throughput gates pass.
+See [E8 results](../../reports/exp01e8/SHoEbox_EXP01E8_Report.md).
+Next: [versioned public integration](../../reports/exp01e8/PUBLIC_INTEGRATION_PLAN.md)
+with numerical and checkpoint parity before default promotion. E2-family
+binding and E7 generic audits are now opened; never tune against them.
 
 ## Retained architecture
 
@@ -65,8 +68,8 @@ Memory-read removal reduces minimal copy from 73.83% to 11.85%; zeroing final L3
 | M04 | Compress observed content into a usable bounded state | Yes — research decoder | Narrow | Minimal final-L3 reconstruction: 80.14% token accuracy, 40.36% exact; separately trained MLP decoder included in the budget. Next: EXP00, EXP02. |
 | M05 | Use remembered information in prediction | Yes | In principle | Disabling addressed and retained reads lowers minimal copy token accuracy from 73.83% to 11.85%; establishes causal use on this task. Next: EXP01, EXP03, EXP08. |
 | M06 | Store and recover exact externally supplied bindings | Yes — explicit API | Untested | bind/lookup/payload entry points remain available; automatic association dispatch is excluded from minimal. Earlier exact-API evidence is historical; no new minimal-specific binding qualification is claimed. Next: EXP14. |
-| M07 | Bind a newly observed value to the right query | Yes — memory path; research paired readout | Research narrowly qualified; default unworking | EXP01-D3: 99.22% native whole-episode exactness on every seed versus 50.29% native; 96.88% both query orders; source/query/pairing ablations pass. Local window supervision; 9,900 budgeted weights; no extra sequence state. E1 joint primary 98.83%, fresh offset mean 94.11% fails; E7 retention 99.41% development only, generic qualification fails. Next: EXP01-E8. |
-| M08 | Retain information through longer delays and interference | Yes — memory path; research readout | Narrow for padding delays; interference untested | EXP01-D3 reaches 100% through +64/+128/+256 unseen padding bytes across all offsets on the registered delay sample. Arbitrary distractors, additional bindings and eviction remain EXP03/05 work. |
+| M07 | Bind a newly observed value to the right query | Yes — memory path; research paired readout | Research narrowly qualified; default unworking | E8 three-seed audit: 98.2747% native whole-episode exactness, retained through 1M language targets; 96.875% both orders; query/state/pairing ablations pass. Explicit fixture-local labels, 7,670 budgeted weights, no extra sequence state. Generic and 1M/5M gates pass. Next: versioned public integration. |
+| M08 | Retain information through longer delays and interference | Yes — memory path; research readout | Narrow for padding delays; interference untested | E8 audit reaches 100% through +64/+128/+256 unseen padding bytes across all offsets on the registered delay sample; after language retention too. Arbitrary distractors, additional bindings and eviction remain EXP03/05 work. |
 | M09 | Recall despite noisy or approximate cues | Yes — memory path | Untested | Prior noisy/fuzzy full-C probes failed; minimal noisy-cue behavior is unqualified. Next: EXP03. |
 | M10 | Update working variables without overwriting unrelated state | Partial | Untested | Research tasks exist; full-C initialization/set/copy/swap failed EXP00. No successful minimal state-update workflow. Next: EXP04, EXP05. |
 | M11 | Maintain useful episodic memory across sessions | Partial | Untested | Checkpoint persistence exists; autonomous episodic admission, retrieval and answer use across sessions are unqualified. Next: EXP14. |
@@ -99,7 +102,7 @@ Memory-read removal reduces minimal copy from 73.83% to 11.85%; zeroing final L3
 | ID | Capability | Minimal implementation | Minimal evidence | Scope and next work |
 | --- | --- | --- | --- | --- |
 | C01 | Learn useful conditional specialization in upper experts | No — excluded | Untested | Minimal has no 16/64-byte expert banks. Study summary contribution first; any restored upper experts are a separately named candidate. Next: EXP06, EXP07, EXP20, EXP22. |
-| C02 | Teach internal state through intermediate supervision | Partial — research local readout | Readout qualified; joint core credit unqualified | EXP01-D3 learns local presence and observed key/value decoding from fixed stable constituents, clearing binding/access gates. This does not establish learned upper-summary specialization. E1 joint primary binding succeeds but retention fails; E7 supervised request gate retains the fixture in development but generic regressions fail. Next: E8. |
+| C02 | Teach internal state through intermediate supervision | Partial — research local readout | Readout qualified; upper-summary specialization unqualified | E8 jointly trains native core with a fixture-supervised extraction/applicability readout; binding, retention and generic regression gates pass. This does not establish generic byte-loss training of the local heads or learned upper-summary specialization. Next: public integration, then separately registered broader objectives. |
 | C03 | Improve answers by performing extra latent refinement | No — full research only | Untested | Existing refinement loops are excluded from minimal; prior full-C tests did not establish useful inference-time refinement. Next: EXP10. |
 | C04 | Stop refinement when its state has converged | No — full research only | Untested | Convergence stopping exists only with the full-research loops, not in minimal one-pass prediction. Next: EXP11. |
 | C05 | Allocate more computation to genuinely difficult inputs | No | Untested | No dedicated integrated workflow in the minimal baseline. Next: EXP11. |
@@ -107,7 +110,7 @@ Memory-read removal reduces minimal copy from 73.83% to 11.85%; zeroing final L3
 | C07 | Detect and correct its own mistakes | No | Untested | No dedicated integrated workflow in the minimal baseline. Next: EXP12. |
 | C08 | Express calibrated uncertainty and abstain appropriately | No | Untested | No dedicated integrated workflow in the minimal baseline. Next: EXP19. |
 | C09 | Learn from corrections, feedback and preferences | No | Untested | No dedicated integrated workflow in the minimal baseline. Next: EXP14. |
-| C10 | Adapt continually while retaining prior capabilities | Partial | Untested | E7 retains 99.41% fixture binding through 1M language targets in one development seed; its fresh generic qualification fails. Broad continual adaptation remains unqualified. Next: EXP01-E8, EXP14. |
+| C10 | Adapt continually while retaining prior capabilities | Partial | Narrow research fixture | E8 retains 98.2747% held-out binding through 1M generic language targets across three seeds; independent generic regressions pass. Broad continual adaptation remains unqualified. Next: public integration, EXP14. |
 | C11 | Reuse experts and transfer learned skills between tasks | Partial | Untested | Shared lower expert banks exist; semantic skill transfer is untested. Next: EXP20. |
 | C12 | Choose among recalling, reasoning, asking and using a tool | No | Untested | No dedicated integrated workflow in the minimal baseline. Next: EXP18. |
 

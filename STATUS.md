@@ -1,5 +1,25 @@
 # SHoEbox handoff
 
+## 2026-11-16 — EXP01-E8 complete research qualification passed
+
+The fixed 1/256 local applicability prior preserves 98.2747% held-out native
+binding through 1M language targets. Offset mean/worst: 97.2656%/93.75%; both
+query orders: 96.875%; padding delays: 100%. Fresh generic language increases
+0.006233 nats/byte; copy/reconstruction change -0.1302/-0.3255 percentage points,
+within every registered margin. Three-seed 1M/5M and >=80% inference gates pass.
+
+106M new fitting bytes include all pilots/controls/padding. All 77 new checkpoint
+and exact-cursor pairs, 171 Python tests, 691 new optimized/sanitized native
+checks per build and the existing native suite pass. E7 and old policies are
+unchanged. E2-family binding and E7 generic audits are now OPENED.
+
+Next: [versioned public API integration and parity checks](reports/exp01e8/PUBLIC_INTEGRATION_PLAN.md).
+The public default is still v19. Fixture-local labels remain distinct from
+generic objectives. Direct verified main publication is authorized; never force-push.
+[Report](reports/exp01e8/SHoEbox_EXP01E8_Report.md) ·
+[Resume](reports/exp01e8/SHoEbox_EXP01E8_Resume.md) ·
+[Next prompt](reports/exp01e8/NEXT_CHAT_PROMPT.md).
+
 ## 2026-11-16 — EXP01-D3 binding/access development gate passed
 
 EXP01-D3 / EXP22 passes the registered binding/access development gates: 99.22% native two-answer exactness on every seed versus 50.29% native; 99.63% all-offset mean, 98.44% worst offset, 96.88% both-query-orders exactness, and 100% at +64/+128/+256-byte delays. Inference retains 88.74% of native throughput. The selected

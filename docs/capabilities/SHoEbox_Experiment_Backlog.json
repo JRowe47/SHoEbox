@@ -1,10 +1,9 @@
 {
   "title": "SHoEbox capability development backlog",
-  "revision": 7,
+  "revision": 8,
   "date": "2026-11-16",
-  "status": "EXP01-D3 binding/access development gate passed; EXP01-E production qualification next",
+  "status": "EXP01-E8 complete research qualification passed; versioned public integration next",
   "runtime_commit": "317fbcd023b9d9b3c2b359ba8f99f3dadbf46783",
-  "evidence_commit": "d899a1a49b1af2f4a2cf0c89b000da69ea5f3597",
   "experiments": [
     {
       "id": "EXP00",
@@ -76,8 +75,8 @@
       "design": "Begin with a single binding, then two distinct key/value pairs, no irrelevant records, both query orders and randomized names. Explicitly compare minimal v19 and full C with coverage-only warmup. Add a query-conditioned low-rank readout with the core frozen and then trained end to end, plus a matched-capacity generic head. Deduct head parameters from bank capacity. Fit raw/centered/standardized probes identically. Keep query-index oracle access outside scored native inference.",
       "evaluation": "Require autoregressive whole-episode correctness and correct answer changes under query swaps; score full-256-byte output separately from restricted output. Probe addressed reads, retained reads and final L3 separately and jointly; distinguish immediate write availability, pre-query retention, query-conditioned selection and native decoding. Use one-binding initialization/query tests first, then the locked balanced two-key fixture.",
       "decision": "A readout-only win selects the cheaper repair. If a matched probe can decode a value but native generation cannot, repair query/readout integration. If neither can recover it, pass the failure to EXP02/EXP03. Stop broad optimizer searches once this distinction is clear.",
-      "status": "joint_research_qualification_failed_request_gate_retention_development_passed",
-      "execution_entry": "EXP01-E8: fixed 1/256 cold-start local applicability prior; repeat complete development and production gates. E2-family binding and E7 generic audits remain unopened. Production stays minimal v19.",
+      "status": "e8_complete_research_qualification_passed_public_integration_next",
+      "execution_entry": "Integrate the qualified E8 policy into the public API with explicit versioning and exact numeric/checkpoint parity before default promotion. Preserve v19 and historical policies. E2-family binding and E7 generic audits are OPENED; never tune against them.",
       "results": {
         "report": "reports/exp01/SHoEbox_EXP01_Query_Readout.md",
         "comparison_branches": 36,
@@ -192,6 +191,45 @@
         "extra_sequence_state_bytes": 0,
         "production_promoted": false,
         "next_registration": "reports/exp01e/AMENDMENT_E8.md"
+      },
+      "cold_start_applicability_results": {
+        "report": "reports/exp01e8/SHoEbox_EXP01E8_Report.md",
+        "seeds": [
+          1,
+          7,
+          19
+        ],
+        "native_exact": 0.9827473958333334,
+        "retention_exact": 0.9827473958333334,
+        "offset_mean": 0.97265625,
+        "worst_offset_seed_mean": 0.9375,
+        "both_query_orders_exact": 0.96875,
+        "delays": [
+          1.0,
+          1.0,
+          1.0,
+          1.0
+        ],
+        "generic_language_delta": 0.006233467490019962,
+        "copy_token_delta": -0.0013020833333332593,
+        "reconstruction_token_delta": -0.0032552083333333703,
+        "relative_inference_500k_1m_5m": [
+          0.8195420373849994,
+          0.8519622077368835,
+          0.8077435623448038
+        ],
+        "retained_relative_inference": 0.8036893089869915,
+        "actual_training_bytes": 106000000,
+        "padding_bytes": 69666442,
+        "extra_fitted_parameters": 7670,
+        "extra_sequence_state_bytes": 0,
+        "all_registered_research_gates_passed": true,
+        "production_promoted": false,
+        "audits_opened": [
+          "E2-family binding",
+          "E7 fresh generic"
+        ],
+        "next_implementation": "reports/exp01e8/PUBLIC_INTEGRATION_PLAN.md"
       }
     },
     {
@@ -240,7 +278,7 @@
         "P23"
       ],
       "question": "What specifically destroys usable information between observation and query?",
-      "design": "Start with crossed delay {0,16,64,256} bytes and binding count {1,2,4}; introduce repeated neutral filler, diverse irrelevant filler, and competing keyed writes separately. Train a delay mixture, then test both its range and 2×/4× longer delays. Contrast no-op clock advancement with normal writes, freeze-writes during distractors, and addressed/retained-read lesions separately. Reproduce the historical routing-A cue fixture beside C, then require multi-value evidence.",
+      "design": "Start with crossed delay {0,16,64,256} bytes and binding count {1,2,4}; introduce repeated neutral filler, diverse irrelevant filler, and competing keyed writes separately. Train a delay mixture, then test both its range and 2\u00d7/4\u00d7 longer delays. Contrast no-op clock advancement with normal writes, freeze-writes during distractors, and addressed/retained-read lesions separately. Reproduce the historical routing-A cue fixture beside C, then require multi-value evidence.",
       "evaluation": "Measure exact binding, per-record occupancy/eviction, value decodability immediately after writing and before querying, query-dependent read quality, and precision under distractors. For noisy cues, vary substitution/edit noise independently of delay and key count; include ambiguous-key cases with a declared answer policy. The current fuzzy_recall task varies byte-string widths; add explicit corrupted-cue tasks rather than equating width with noise robustness.",
       "decision": "If values remain decodable but queries fail, return to EXP01. If disabling distractor writes restores performance, prioritize EXP05. If failures follow record eviction, test the bounded-cache arm of EXP14. Report trained-range retention separately from delay extrapolation."
     },
@@ -292,7 +330,7 @@
         "P09"
       ],
       "question": "Are retention failures caused by coupled erase/write decisions, insufficient transition expressivity, or accumulated drift?",
-      "design": "Run separate arms: existing update; independent erase/write gates inspired by Gated DeltaNet-2/FG²-GDN; two or four DeltaProduct-style transition substeps; and a bounded nonlinear state-dependent correction. Add a small context-replay memory objective only if online overwriting remains the diagnosed issue. Keep the readout and target memory interface fixed; count all state/projection costs. A dense reference update must be validated before deriving a compressed MinKron equivalent.",
+      "design": "Run separate arms: existing update; independent erase/write gates inspired by Gated DeltaNet-2/FG\u00b2-GDN; two or four DeltaProduct-style transition substeps; and a bounded nonlinear state-dependent correction. Add a small context-replay memory objective only if online overwriting remains the diagnosed issue. Keep the readout and target memory interface fixed; count all state/projection costs. A dense reference update must be validated before deriving a compressed MinKron equivalent.",
       "evaluation": "Use overwrite-one-of-many, alternating updates, copy/swap cycles, and identity cycles that should return to the same symbolic state. Measure error after perturbing state, within-state spread versus between-state separation, exact rollout horizon, and unrelated-binding loss. Include a small state-gated RNN as an error-control reference.",
       "decision": "Choose the smallest intervention that fixes the diagnosed failure. A higher-rank affine transition and a state-dependent error corrector answer different questions. SHoEbox already includes nonlinear computation, so the affine-model theorem is a diagnostic motivation, not a proof that the whole architecture must fail. Do not stack all update changes before isolating a winner."
     },
@@ -747,9 +785,9 @@
       "evaluation": "Measure binding/transition accuracy by offset, language NLL/time, event counts, completion latency, checkpoint continuation and behavior on long unbroken spans. No target-driven boundary labels may enter inference, and no partial group may expose future bytes. Test worst-case work/state bounds as well as averages.",
       "decision": "Adopt dynamic boundaries only if they solve a measured timing/composition problem at an acceptable cost. A cheap query-time access repair should win over a full hierarchy change when both achieve the same result.",
       "minimal_baseline_note": "Test query-time access to minimal partial/completed summaries first; introduce segmentation only after a boundary-dependent failure.",
-      "execution_entry": "EXP01-E8: fixed 1/256 cold-start local applicability prior; repeat complete development and production gates. E2-family binding and E7 generic audits remain unopened. Production stays minimal v19.",
-      "status": "joint_research_qualification_failed_request_gate_retention_development_passed",
-      "report": "reports/exp01d/SHoEbox_EXP01D_Report.md",
+      "execution_entry": "Integrate the qualified E8 policy into the public API with explicit versioning and exact numeric/checkpoint parity before default promotion. Preserve v19 and historical policies. E2-family binding and E7 generic audits are OPENED; never tune against them.",
+      "status": "e8_complete_research_qualification_passed_public_integration_next",
+      "report": "reports/exp01e8/SHoEbox_EXP01E8_Report.md",
       "constituent_pairing_results": {
         "report": "reports/exp01d/SHoEbox_EXP01D_Report.md",
         "core": "minimal-v19 frozen research adapter",
@@ -796,6 +834,45 @@
         "extra_sequence_state_bytes": 0,
         "production_promoted": false,
         "next_registration": "reports/exp01e/AMENDMENT_E8.md"
+      },
+      "cold_start_applicability_results": {
+        "report": "reports/exp01e8/SHoEbox_EXP01E8_Report.md",
+        "seeds": [
+          1,
+          7,
+          19
+        ],
+        "native_exact": 0.9827473958333334,
+        "retention_exact": 0.9827473958333334,
+        "offset_mean": 0.97265625,
+        "worst_offset_seed_mean": 0.9375,
+        "both_query_orders_exact": 0.96875,
+        "delays": [
+          1.0,
+          1.0,
+          1.0,
+          1.0
+        ],
+        "generic_language_delta": 0.006233467490019962,
+        "copy_token_delta": -0.0013020833333332593,
+        "reconstruction_token_delta": -0.0032552083333333703,
+        "relative_inference_500k_1m_5m": [
+          0.8195420373849994,
+          0.8519622077368835,
+          0.8077435623448038
+        ],
+        "retained_relative_inference": 0.8036893089869915,
+        "actual_training_bytes": 106000000,
+        "padding_bytes": 69666442,
+        "extra_fitted_parameters": 7670,
+        "extra_sequence_state_bytes": 0,
+        "all_registered_research_gates_passed": true,
+        "production_promoted": false,
+        "audits_opened": [
+          "E2-family binding",
+          "E7 fresh generic"
+        ],
+        "next_implementation": "reports/exp01e8/PUBLIC_INTEGRATION_PLAN.md"
       }
     },
     {
@@ -838,7 +915,7 @@
       "url": "https://arxiv.org/abs/2312.04927",
       "status": "Arora et al.; 2023 record",
       "when": "Read now",
-      "use": "Multi-query associative recall and query-dependent access. EXP00–03/08."
+      "use": "Multi-query associative recall and query-dependent access. EXP00\u201303/08."
     },
     {
       "id": "P03",
@@ -854,11 +931,11 @@
       "url": "https://arxiv.org/abs/2605.22791v2",
       "status": "Hatamizadeh et al.; 6 Nov 2026 revision; record states NeurIPS 2026 acceptance",
       "when": "Read now",
-      "use": "Independent erase/write gates; inspect §3.1 and gate ablations. Adapt one selected memory block, not the whole backbone. EXP05."
+      "use": "Independent erase/write gates; inspect \u00a73.1 and gate ablations. Adapt one selected memory block, not the whole backbone. EXP05."
     },
     {
       "id": "P05",
-      "title": "FG²-GDN: Enhancing Long-Context Gated Delta Networks with Doubly Fine-Grained Control",
+      "title": "FG\u00b2-GDN: Enhancing Long-Context Gated Delta Networks with Doubly Fine-Grained Control",
       "url": "https://arxiv.org/abs/2604.19021v3",
       "status": "Sun et al.; 31 Aug 2026 preprint revision",
       "when": "Read with P04",
@@ -878,7 +955,7 @@
       "url": "https://arxiv.org/abs/2605.07755v3",
       "status": "Chung et al.; 11 Nov 2026 revision; record states NeurIPS 2026",
       "when": "Read now",
-      "use": "Perturbation recovery, state separation and finite-horizon drift; compare state-dependent correction. EXP04–06."
+      "use": "Perturbation recovery, state separation and finite-horizon drift; compare state-dependent correction. EXP04\u201306."
     },
     {
       "id": "P08",
@@ -900,7 +977,7 @@
       "id": "P10",
       "title": "Universal Transformers Need Memory: Depth-State Trade-offs in Adaptive Recursive Reasoning",
       "url": "https://arxiv.org/abs/2604.21999",
-      "status": "Sapunov; April–May 2026 preprint",
+      "status": "Sapunov; April\u2013May 2026 preprint",
       "when": "Read for state design",
       "use": "Scratchpad/depth separation and initialization diagnostics; choose SHoEbox slot counts empirically. EXP02/10."
     },
@@ -1054,7 +1131,7 @@
       "url": "https://arxiv.org/abs/2211.09110",
       "status": "Liang et al.; HELM, 2022/2023",
       "when": "For qualification design",
-      "use": "Separate accuracy, calibration, robustness and efficiency across scenarios; avoids one aggregate capability label. EXP15–19/21/23."
+      "use": "Separate accuracy, calibration, robustness and efficiency across scenarios; avoids one aggregate capability label. EXP15\u201319/21/23."
     },
     {
       "id": "P30",
@@ -1327,7 +1404,7 @@
     },
     {
       "id": "M01",
-      "capability": "Memorize stable key–value facts in weights",
+      "capability": "Memorize stable key\u2013value facts in weights",
       "implementation": "Yes",
       "evidence": "Untested",
       "notes": "Weight learning is retained. Fixed-table memorization was demonstrated in the earlier full-C development screen; minimal retest pending.",
@@ -1375,7 +1452,7 @@
     {
       "id": "M04",
       "capability": "Compress observed content into a usable bounded state",
-      "implementation": "Yes — research decoder",
+      "implementation": "Yes \u2014 research decoder",
       "evidence": "Narrow",
       "notes": "Minimal final-L3 reconstruction: 80.14% token accuracy, 40.36% exact; separately trained MLP decoder included in the budget.",
       "experiments": [
@@ -1383,7 +1460,7 @@
         "EXP02"
       ],
       "historical_assessment": {
-        "implementation": "Yes — research adapter",
+        "implementation": "Yes \u2014 research adapter",
         "evidence": "Narrow",
         "scope": "Pre-minimal inventory; full corrected C unless its qualifier names an API, adapter or historical routing A. Not a minimal-v19 result."
       }
@@ -1408,14 +1485,14 @@
     {
       "id": "M06",
       "capability": "Store and recover exact externally supplied bindings",
-      "implementation": "Yes — explicit API",
+      "implementation": "Yes \u2014 explicit API",
       "evidence": "Untested",
       "notes": "bind/lookup/payload entry points remain available; automatic association dispatch is excluded from minimal. Earlier exact-API evidence is historical; no new minimal-specific binding qualification is claimed.",
       "experiments": [
         "EXP14"
       ],
       "historical_assessment": {
-        "implementation": "Yes — optional API",
+        "implementation": "Yes \u2014 optional API",
         "evidence": "Narrow",
         "scope": "Pre-minimal inventory; full corrected C unless its qualifier names an API, adapter or historical routing A. Not a minimal-v19 result."
       }
@@ -1423,9 +1500,9 @@
     {
       "id": "M07",
       "capability": "Bind a newly observed value to the right query",
-      "implementation": "Yes — memory path; research paired readout",
-      "evidence": "Research narrowly qualified; production default unworking",
-      "notes": "EXP01-D3 / EXP22 passes the registered binding/access development gates: 99.22% native two-answer exactness on every seed versus 50.29% native; 99.63% all-offset mean, 98.44% worst offset, 96.88% both-query-orders exactness, and 100% at +64/+128/+256-byte delays. Local window supervision; joint and production qualification pending.",
+      "implementation": "Yes \u2014 memory path; research paired readout",
+      "evidence": "Research narrowly qualified; default unworking",
+      "notes": "E8 three-seed audit: 98.2747% native whole-episode exactness, retained through 1M language targets; 96.875% both orders; query/state/pairing ablations pass. Explicit fixture-local labels, 7,670 budgeted weights, no extra sequence state. Generic and 1M/5M gates pass. Next: versioned public integration.",
       "experiments": [
         "EXP01",
         "EXP02",
@@ -1437,14 +1514,15 @@
         "evidence": "Unworking",
         "scope": "Pre-minimal inventory; full corrected C unless its qualifier names an API, adapter or historical routing A. Not a minimal-v19 result."
       },
-      "EXP01E_note": "See reports/exp01e/SHoEbox_EXP01E_Report.md: joint primary binding succeeds; E7 development retention succeeds; complete production qualification fails. Next E8."
+      "historical_EXP01E_note": "See reports/exp01e/SHoEbox_EXP01E_Report.md: joint primary binding succeeds; E7 development retention succeeds; complete production qualification fails. Next E8.",
+      "EXP01E8_report": "reports/exp01e8/SHoEbox_EXP01E8_Report.md"
     },
     {
       "id": "M08",
       "capability": "Retain information through longer delays and interference",
-      "implementation": "Yes — memory path",
+      "implementation": "Yes \u2014 memory path; research readout",
       "evidence": "Narrow for padding delays; interference untested",
-      "notes": "EXP01-D3 research readout: 100% on registered unseen +64/+128/+256 padding delays; arbitrary distractors, writes and eviction remain unqualified.",
+      "notes": "E8 audit reaches 100% through +64/+128/+256 unseen padding bytes across all offsets on the registered delay sample; after language retention too. Arbitrary distractors, additional bindings and eviction remain EXP03/05 work.",
       "experiments": [
         "EXP03",
         "EXP05"
@@ -1453,12 +1531,13 @@
         "implementation": "Yes",
         "evidence": "Unworking",
         "scope": "Pre-minimal inventory; full corrected C unless its qualifier names an API, adapter or historical routing A. Not a minimal-v19 result."
-      }
+      },
+      "EXP01E8_report": "reports/exp01e8/SHoEbox_EXP01E8_Report.md"
     },
     {
       "id": "M09",
       "capability": "Recall despite noisy or approximate cues",
-      "implementation": "Yes — memory path",
+      "implementation": "Yes \u2014 memory path",
       "evidence": "Untested",
       "notes": "Prior noisy/fuzzy full-C probes failed; minimal noisy-cue behavior is unqualified.",
       "experiments": [
@@ -1481,7 +1560,7 @@
         "EXP05"
       ],
       "historical_assessment": {
-        "implementation": "Yes — research tasks",
+        "implementation": "Yes \u2014 research tasks",
         "evidence": "Unworking",
         "scope": "Pre-minimal inventory; full corrected C unless its qualifier names an API, adapter or historical routing A. Not a minimal-v19 result."
       }
@@ -1575,7 +1654,7 @@
         "EXP03"
       ],
       "historical_assessment": {
-        "implementation": "Yes — historical A",
+        "implementation": "Yes \u2014 historical A",
         "evidence": "Narrow",
         "scope": "Pre-minimal inventory; full corrected C unless its qualifier names an API, adapter or historical routing A. Not a minimal-v19 result."
       }
@@ -1591,7 +1670,7 @@
         "EXP10"
       ],
       "historical_assessment": {
-        "implementation": "Yes — research task",
+        "implementation": "Yes \u2014 research task",
         "evidence": "Unworking",
         "scope": "Pre-minimal inventory; full corrected C unless its qualifier names an API, adapter or historical routing A. Not a minimal-v19 result."
       }
@@ -1608,7 +1687,7 @@
         "EXP10"
       ],
       "historical_assessment": {
-        "implementation": "Yes — research task",
+        "implementation": "Yes \u2014 research task",
         "evidence": "Unworking",
         "scope": "Pre-minimal inventory; full corrected C unless its qualifier names an API, adapter or historical routing A. Not a minimal-v19 result."
       }
@@ -1738,7 +1817,7 @@
         "EXP21"
       ],
       "historical_assessment": {
-        "implementation": "Yes — research probes",
+        "implementation": "Yes \u2014 research probes",
         "evidence": "Unworking",
         "scope": "Pre-minimal inventory; full corrected C unless its qualifier names an API, adapter or historical routing A. Not a minimal-v19 result."
       }
@@ -1793,7 +1872,7 @@
     {
       "id": "C01",
       "capability": "Learn useful conditional specialization in upper experts",
-      "implementation": "No — excluded",
+      "implementation": "No \u2014 excluded",
       "evidence": "Untested",
       "notes": "Minimal has no 16/64-byte expert banks. Study summary contribution first; any restored upper experts are a separately named candidate.",
       "experiments": [
@@ -1811,32 +1890,33 @@
     {
       "id": "C02",
       "capability": "Teach internal state through intermediate supervision",
-      "implementation": "Partial — minimal research adapter",
-      "evidence": "Local readout qualified; joint core credit unqualified",
-      "notes": "Local observed-window supervision clears EXP01-D3 binding gates on fixed stable constituents. No learned upper-summary specialization or joint production promotion is inferred.",
+      "implementation": "Partial \u2014 research local readout",
+      "evidence": "Readout qualified; upper-summary specialization unqualified",
+      "notes": "E8 jointly trains native core with a fixture-supervised extraction/applicability readout; binding, retention and generic regression gates pass. This does not establish generic byte-loss training of the local heads or learned upper-summary specialization. Next: public integration, then separately registered broader objectives.",
       "experiments": [
         "EXP01",
         "EXP04",
         "EXP07"
       ],
       "historical_assessment": {
-        "implementation": "Yes — research adapter",
+        "implementation": "Yes \u2014 research adapter",
         "evidence": "In principle",
         "scope": "Pre-minimal inventory; full corrected C unless its qualifier names an API, adapter or historical routing A. Not a minimal-v19 result."
       },
-      "EXP01E_note": "See reports/exp01e/SHoEbox_EXP01E_Report.md: joint primary binding succeeds; E7 development retention succeeds; complete production qualification fails. Next E8."
+      "historical_EXP01E_note": "See reports/exp01e/SHoEbox_EXP01E_Report.md: joint primary binding succeeds; E7 development retention succeeds; complete production qualification fails. Next E8.",
+      "EXP01E8_report": "reports/exp01e8/SHoEbox_EXP01E8_Report.md"
     },
     {
       "id": "C03",
       "capability": "Improve answers by performing extra latent refinement",
-      "implementation": "No — full research only",
+      "implementation": "No \u2014 full research only",
       "evidence": "Untested",
       "notes": "Existing refinement loops are excluded from minimal; prior full-C tests did not establish useful inference-time refinement.",
       "experiments": [
         "EXP10"
       ],
       "historical_assessment": {
-        "implementation": "Yes — optional loops",
+        "implementation": "Yes \u2014 optional loops",
         "evidence": "Unworking",
         "scope": "Pre-minimal inventory; full corrected C unless its qualifier names an API, adapter or historical routing A. Not a minimal-v19 result."
       }
@@ -1844,14 +1924,14 @@
     {
       "id": "C04",
       "capability": "Stop refinement when its state has converged",
-      "implementation": "No — full research only",
+      "implementation": "No \u2014 full research only",
       "evidence": "Untested",
       "notes": "Convergence stopping exists only with the full-research loops, not in minimal one-pass prediction.",
       "experiments": [
         "EXP11"
       ],
       "historical_assessment": {
-        "implementation": "Yes — optional loops",
+        "implementation": "Yes \u2014 optional loops",
         "evidence": "In principle",
         "scope": "Pre-minimal inventory; full corrected C unless its qualifier names an API, adapter or historical routing A. Not a minimal-v19 result."
       }
@@ -1935,8 +2015,8 @@
       "id": "C10",
       "capability": "Adapt continually while retaining prior capabilities",
       "implementation": "Partial",
-      "evidence": "Untested",
-      "notes": "Resumable online learning works; controlled retention of old capabilities during new learning is unqualified.",
+      "evidence": "Narrow research fixture",
+      "notes": "E8 retains 98.2747% held-out binding through 1M generic language targets across three seeds; independent generic regressions pass. Broad continual adaptation remains unqualified. Next: public integration, EXP14.",
       "experiments": [
         "EXP14"
       ],
@@ -1945,7 +2025,8 @@
         "evidence": "Untested",
         "scope": "Pre-minimal inventory; full corrected C unless its qualifier names an API, adapter or historical routing A. Not a minimal-v19 result."
       },
-      "EXP01E_note": "See reports/exp01e/SHoEbox_EXP01E_Report.md: joint primary binding succeeds; E7 development retention succeeds; complete production qualification fails. Next E8."
+      "historical_EXP01E_note": "See reports/exp01e/SHoEbox_EXP01E_Report.md: joint primary binding succeeds; E7 development retention succeeds; complete production qualification fails. Next E8.",
+      "EXP01E8_report": "reports/exp01e8/SHoEbox_EXP01E8_Report.md"
     },
     {
       "id": "C11",
@@ -2255,14 +2336,14 @@
     {
       "id": "E07",
       "capability": "Route-local learning-rate control",
-      "implementation": "No — full research only",
+      "implementation": "No \u2014 full research only",
       "evidence": "Untested",
       "notes": "Route-local learning-rate cycles are excluded from minimal. Independent base fast/slow/query rates remain.",
       "experiments": [
         "EXP21"
       ],
       "historical_assessment": {
-        "implementation": "Yes — optional",
+        "implementation": "Yes \u2014 optional",
         "evidence": "In principle",
         "scope": "Pre-minimal inventory; full corrected C unless its qualifier names an API, adapter or historical routing A. Not a minimal-v19 result."
       }
@@ -2277,7 +2358,7 @@
         "EXP22"
       ],
       "historical_assessment": {
-        "implementation": "No — current runtime",
+        "implementation": "No \u2014 current runtime",
         "evidence": "Untested",
         "scope": "Pre-minimal inventory; full corrected C unless its qualifier names an API, adapter or historical routing A. Not a minimal-v19 result."
       }
@@ -2399,6 +2480,8 @@
   },
   "documentation_updated_local_date": "2026-11-16",
   "new_training_in_documentation_update": true,
-  "current_evidence_report": "reports/exp01e/SHoEbox_EXP01E_Report.md",
-  "evidence_commit_note": "Prior evidence_commit pins historical D3; current EXP01-E evidence is in this document revision."
+  "current_evidence_report": "reports/exp01e8/SHoEbox_EXP01E8_Report.md",
+  "evidence_commit_note": "E8 is published by the commit containing this file; runtime v19 source remains unchanged.",
+  "historical_evidence_commit": "d899a1a49b1af2f4a2cf0c89b000da69ea5f3597",
+  "evidence_commit": null
 }
