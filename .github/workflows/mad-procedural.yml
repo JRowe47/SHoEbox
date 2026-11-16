@@ -1,0 +1,42 @@
+name: MAD procedural follow-up
+on:
+  push:
+    branches: ['research/mad-capabilities']
+    paths: ['.github/workflows/mad-procedural.yml', 'experiments/mad_followup/**']
+  workflow_dispatch:
+permissions:
+  contents: read
+env:
+  OPENBLAS_NUM_THREADS: '1'
+  OMP_NUM_THREADS: '1'
+  MKL_NUM_THREADS: '1'
+jobs:
+  procedural:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      max-parallel: 3
+      matrix:
+        task: [variable_tracking, composition, pointer_chasing]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m pip install numpy matplotlib
+      - name: Verify native protocol
+        run: python -m unittest experiments.mad.test_protocol -v
+      - name: Calibrate and compare computation depths
+        run: python -u -m experiments.mad_followup.screen --task ${{ matrix.task }} --out results/${{ matrix.task }}
+      - name: Measure simple input-only baselines
+        run: python -m experiments.mad_followup.baselines --directory results
+      - name: Render task evidence
+        run: python -m experiments.mad_capabilities.report --directory results
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: mad-procedural-${{ matrix.task }}
+          path: results/
+          retention-days: 90
+          if-no-files-found: warn
