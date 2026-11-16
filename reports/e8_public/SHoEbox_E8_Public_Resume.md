@@ -1,6 +1,9 @@
 # E8 public integration: reproduce and resume
 
-Extract `SHoEbox_E8_Public_Code_and_Evidence.zip` into a new directory.
+Extract `SHoEbox_E8_Public_Code_and_Evidence.tar.xz` into a new directory
+with `tar -xJf SHoEbox_E8_Public_Code_and_Evidence.tar.xz`. The solid archive
+compresses repeated research/public checkpoint payloads together; every original
+file, public conversion, cursor and dataset retains its independent path.
 `PUBLISHED_COMMIT.txt` identifies the verified main commit. `SHA256SUMS.json`
 checks every other archive member. `SHoEbox/` is the current source. Original
 research runs/corpora retain their paths. `public-imports/checkpoints/` contains
