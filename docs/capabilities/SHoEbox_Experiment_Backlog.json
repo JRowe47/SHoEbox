@@ -1,0 +1,1647 @@
+{
+  "title": "SHoEbox capability development backlog",
+  "revision": 2,
+  "date": "2026-11-15",
+  "status": "planned_not_executed",
+  "runtime_commit": "6384d8ca072075ec58010b4c3d5964e9e60fcd3e",
+  "evidence_commit": "d899a1a49b1af2f4a2cf0c89b000da69ea5f3597",
+  "experiments": [
+    {
+      "id": "EXP00",
+      "title": "Repair calibration and establish learned positive controls",
+      "phase": "A",
+      "priority": "P0",
+      "capabilities": [
+        "E06",
+        "L01",
+        "M03",
+        "M04",
+        "E05"
+      ],
+      "depends_on": [],
+      "papers": [
+        "P01",
+        "P02"
+      ],
+      "question": "Can the fixture distinguish the intended operation from a cheap shortcut, at a difficulty a small trained model can actually learn?",
+      "design": "Retain the nine published tasks as historical fixtures. Add balanced two-key binding, initialization/query-only, single set/copy/swap, and a one-hop graph with independently randomized queries. Verify labels with a separate interpreter. Add a small attention-based lookup model and a state-gated recurrent model as task-appropriate learned positive controls, with their own recorded training and state budgets. Their role is learnability, not an automatic efficiency ranking.",
+      "evaluation": "Score exact episodes, changed-target accuracy, unchanged-register preservation, native-byte rollout, all registered shortcuts, and counterfactual query/operation swaps. Group equivalent latent problems in one split. Add padding-offset sweeps and confirm ignored labels cannot change encoder state.",
+      "decision": "Advance comparative studies only on a calibrated setting. If the symbolic oracle passes but both learned controls fail, investigate training, encoding, or labels before redesigning SHoEbox. Preserve uncalibrated repair results as diagnostics rather than promotion evidence."
+    },
+    {
+      "id": "EXP01",
+      "title": "Localize query binding versus readout failure",
+      "phase": "B",
+      "priority": "P0",
+      "capabilities": [
+        "M05",
+        "M07",
+        "C02"
+      ],
+      "depends_on": [
+        "EXP00"
+      ],
+      "papers": [
+        "P02",
+        "P03"
+      ],
+      "question": "Is the value missing, or is the model failing to select and decode an available value for the current key?",
+      "design": "Begin with two distinct key/value pairs, no irrelevant records, both query orders, and randomized names. Compare corrected C; a query-conditioned low-rank readout with the core frozen; and the same readout trained end to end. Deduct added readout parameters from bank capacity. Use raw/centered/standardized frozen probes with the same fitting procedure, and a matched-capacity generic head. Keep explicit query-index access as a diagnostic oracle only.",
+      "evaluation": "Require whole-episode correctness and the right answer change when only the query is swapped. Separately inspect addressed reads, retained reads, final L3, and their combinations through identical probes. Freeze observation state while swapping queries to expose input-order copying. Run one-key initialization/query tests if two-key binding remains unsolved.",
+      "decision": "A readout-only win selects the cheaper repair. If a matched probe can decode a value but native generation cannot, repair query/readout integration. If neither can recover it, pass the failure to EXP02/EXP03. Stop broad optimizer searches once this distinction is clear."
+    },
+    {
+      "id": "EXP02",
+      "title": "Separate working-state capacity from expert-bank capacity",
+      "phase": "B",
+      "priority": "P0",
+      "capabilities": [
+        "M04",
+        "M07",
+        "M15"
+      ],
+      "depends_on": [
+        "EXP00",
+        "EXP01"
+      ],
+      "papers": [
+        "P02",
+        "P10"
+      ],
+      "question": "Does addressable, independently editable state solve binding more effectively than a larger undifferentiated state or more experts?",
+      "design": "Add a research adapter for 0/2/4/8 working slots, initially width 64. Keep keys, values, write gates, and candidate output separate. Use the EXP01 readout across state arms. Compare added slots with equal usable bytes in a flat state; separately hold total state fixed while changing slot count/width. Run a bank-size control at unchanged state. Account for key storage, projections and metadata; reserve no hidden symbolic binding path.",
+      "evaluation": "Sweep distinct bindings 1/2/4/8 and reconstruction length/entropy. Report exact binding and exact reconstruction beside token scores. Ablate slots, shuffle slot keys, and zero only candidate-output state. Test whether adding slots helps at fixed weights and whether adding weights helps at fixed state.",
+      "decision": "Promote the smallest state arrangement that crosses the binding gate and outperforms the equal-state flat control, or retain a pure capacity win with that label. If only the head helps, do not add slots. If more slots merely postpone failure, characterize the capacity boundary before adding depth."
+    },
+    {
+      "id": "EXP03",
+      "title": "Disentangle delay, interference, eviction, and retrieval",
+      "phase": "B",
+      "priority": "P0",
+      "capabilities": [
+        "M03",
+        "M05",
+        "M08",
+        "M09",
+        "M13",
+        "M16"
+      ],
+      "depends_on": [
+        "EXP01"
+      ],
+      "papers": [
+        "P02",
+        "P08",
+        "P23"
+      ],
+      "question": "What specifically destroys usable information between observation and query?",
+      "design": "Start with crossed delay {0,16,64,256} bytes and binding count {1,2,4}; introduce repeated neutral filler, diverse irrelevant filler, and competing keyed writes separately. Train a delay mixture, then test both its range and 2×/4× longer delays. Contrast no-op clock advancement with normal writes, freeze-writes during distractors, and addressed/retained-read lesions separately. Reproduce the historical routing-A cue fixture beside C, then require multi-value evidence.",
+      "evaluation": "Measure exact binding, per-record occupancy/eviction, value decodability immediately after writing and before querying, query-dependent read quality, and precision under distractors. For noisy cues, vary substitution/edit noise independently of delay and key count; include ambiguous-key cases with a declared answer policy. The current fuzzy_recall task varies byte-string widths; add explicit corrupted-cue tasks rather than equating width with noise robustness.",
+      "decision": "If values remain decodable but queries fail, return to EXP01. If disabling distractor writes restores performance, prioritize EXP05. If failures follow record eviction, test the bounded-cache arm of EXP14. Report trained-range retention separately from delay extrapolation."
+    },
+    {
+      "id": "EXP04",
+      "title": "Teach and verify atomic working-state transitions",
+      "phase": "C",
+      "priority": "P0",
+      "capabilities": [
+        "M10",
+        "C02",
+        "R02"
+      ],
+      "depends_on": [
+        "EXP01",
+        "EXP02"
+      ],
+      "papers": [
+        "P06",
+        "P07"
+      ],
+      "question": "Can one operator update the intended register while preserving all others?",
+      "design": "Stage initialization/query, set, copy, swap, then increment/modular-add/xor. Start with two registers and two values; increase to four registers and eight values only after the simpler operation passes. Balance changed and unchanged queried registers and exclude accidental no-ops from the changed-target endpoint. Compare final-only, extra-head-label, and direct-state-credit arms with the same head and parameter budget.",
+      "evaluation": "Use separate cloned prefix probes to query every register after each operation, so diagnostic queries do not alter the training stream. Score all-register exact state, changed-register correctness, untouched-register corruption, and native-byte answers. Compare raw versus conditioned readouts without changing their optimizer.",
+      "decision": "Require the atomic-state gate before chaining operations. If initialization fails, return to binding; if updates damage unrelated registers, move to selective writes; if correct states are unreadable, fix the readout. Intermediate-supervision gains alone do not close M10."
+    },
+    {
+      "id": "EXP05",
+      "title": "Test selective writes and state-error correction",
+      "phase": "C",
+      "priority": "P0",
+      "capabilities": [
+        "M08",
+        "M10",
+        "M13",
+        "R10"
+      ],
+      "depends_on": [
+        "EXP03",
+        "EXP04"
+      ],
+      "papers": [
+        "P03",
+        "P04",
+        "P05",
+        "P06",
+        "P07",
+        "P09"
+      ],
+      "question": "Are retention failures caused by coupled erase/write decisions, insufficient transition expressivity, or accumulated drift?",
+      "design": "Run separate arms: existing update; independent erase/write gates inspired by Gated DeltaNet-2/FG²-GDN; two or four DeltaProduct-style transition substeps; and a bounded nonlinear state-dependent correction. Add a small context-replay memory objective only if online overwriting remains the diagnosed issue. Keep the readout and target memory interface fixed; count all state/projection costs. A dense reference update must be validated before deriving a compressed MinKron equivalent.",
+      "evaluation": "Use overwrite-one-of-many, alternating updates, copy/swap cycles, and identity cycles that should return to the same symbolic state. Measure error after perturbing state, within-state spread versus between-state separation, exact rollout horizon, and unrelated-binding loss. Include a small state-gated RNN as an error-control reference.",
+      "decision": "Choose the smallest intervention that fixes the diagnosed failure. A higher-rank affine transition and a state-dependent error corrector answer different questions. SHoEbox already includes nonlinear computation, so the affine-model theorem is a diagnostic motivation, not a proof that the whole architecture must fail. Do not stack all update changes before isolating a winner."
+    },
+    {
+      "id": "EXP06",
+      "title": "Give upper scales a necessary conditional computation",
+      "phase": "C",
+      "priority": "P0",
+      "capabilities": [
+        "C01",
+        "R08",
+        "E03",
+        "E04"
+      ],
+      "depends_on": [
+        "EXP04"
+      ],
+      "papers": [
+        "P01",
+        "P07",
+        "P16"
+      ],
+      "question": "Can L2/L3 preserve and transform information that the local byte path cannot solve from its immediate context?",
+      "design": "Use balanced tasks whose local suffixes are identical while the correct answer changes with an earlier binding or operator. First expose/query a completed upper state through the research adapter; then restore the native byte readout. Probe every prefix offset modulo 64 so answer placement cannot depend on the fixture always completing L3. Compare mean upper outputs, exchanged active expert transforms, and frozen upper contributions with intact lower processing.",
+      "evaluation": "Require held-out task improvement plus useful upper-state and expert-permutation effects, recording how many active experts are actually exchanged. Test cross-task expert swaps and role-preserving renaming. Measure whether the needed fact is absent, encoded but inaccessible, or correct only at constituent boundaries.",
+      "decision": "If boundary timing is the failure, activate EXP22 or a separately measured query-time read of already available evidence. If representations are sound but expert swaps remain irrelevant, test expert-specific credit/input conditioning; do not force utilization and call it specialization. Promote C01 only when conditional specialization, not merely broad routing, is demonstrated."
+    },
+    {
+      "id": "EXP07",
+      "title": "Compare future-structure and state-progress objectives",
+      "phase": "C",
+      "priority": "P1",
+      "capabilities": [
+        "C01",
+        "C02",
+        "R08",
+        "R10"
+      ],
+      "depends_on": [
+        "EXP04",
+        "EXP06"
+      ],
+      "papers": [
+        "P11",
+        "P12"
+      ],
+      "question": "Which training target makes upper state useful beyond the next byte without conflicting with language learning?",
+      "design": "Compare existing objectives; supervised next task-state/progress targets; occurrence-aware future constituent ordering; and detached soft future-byte distributions. Tag prediction horizons and sample negatives from similar local prefixes. Keep total auxiliary weight normalized across targets and depths; preserve final-only and extra-head-label controls.",
+      "evaluation": "Score state-transition correctness, held-out task accuracy, causal upper-level contribution, and language learning per byte and per second. Teacher future states enter only delayed training targets, never earlier input features or memory. For Soft-MTP, begin with an explicit leaf-probability objective and finite-difference checks: its shared-linear-softmax shortcut does not directly apply to SHoEbox's binary-tree byte head.",
+      "decision": "Keep only an objective whose upper information contributes to answers and whose language/time trade-off earns its cost. If the extra labels help only the head, keep that cheaper result and leave the upper-computation claim open."
+    },
+    {
+      "id": "EXP08",
+      "title": "Learn multi-hop retrieval with changing queries",
+      "phase": "D",
+      "priority": "P1",
+      "capabilities": [
+        "R01",
+        "M05",
+        "M07",
+        "R10"
+      ],
+      "depends_on": [
+        "EXP01",
+        "EXP03",
+        "EXP04"
+      ],
+      "papers": [
+        "P02",
+        "P08",
+        "P23"
+      ],
+      "question": "Can one recovered value become the address for the next read?",
+      "design": "Solve one-hop randomized graphs first, then train 1/2/4-hop mixtures with graph size, competing paths, record order, and delay controlled separately. Compare fixed-query repeated reads with queries updated from the current working state. Keep total read count and memory budget equal. A symbolic next-address oracle is a diagnostic ceiling, never part of the scored neural path.",
+      "evaluation": "Score exact terminal value and each selected supporting edge. Train on fresh graph identities and hold out graph structures and identifier remappings. Separate seen-hop accuracy from 8-hop extrapolation. Ablate query updates, shuffle retrieved values while preserving keys, and compare one wider read with serial narrow reads at measured equal cost.",
+      "decision": "Advance only when the changing query causes correct chain traversal. If one-hop lookup is below the supplied-node shortcut, return to binding; do not add more hops or recursion."
+    },
+    {
+      "id": "EXP09",
+      "title": "Establish systematic composition and in-context rule use",
+      "phase": "D",
+      "priority": "P1",
+      "capabilities": [
+        "R02",
+        "R08",
+        "R09",
+        "R10",
+        "R11"
+      ],
+      "depends_on": [
+        "EXP04"
+      ],
+      "papers": [
+        "P13",
+        "P14"
+      ],
+      "question": "Do learned primitives combine correctly in unseen programs and role assignments?",
+      "design": "Train successful atomic operators separately, then on a subset of two/four-operation combinations. Hold out operator pairs, program trees, role assignments, lengths, and names in distinct tests. Add small SCAN/COGS-inspired command-to-action and semantic-role tasks. In a separate in-context arm, remap labels or choose a new finite rule each episode and freeze fitted weights.",
+      "evaluation": "Score exact execution and intermediate states; compare memorized-template, initial-state, lexical-overlap and nearest-example shortcuts. For in-context learning, compare demonstrations present, shuffled, contradicted, and removed while holding query text fixed. Test grammar-known combinations and longer computation independently.",
+      "decision": "Promote narrow composition only after unseen combinations pass with correct primitives. In-context rule learning requires useful episode demonstrations; fixed-table memorization or a task ID is insufficient. If primitives fail inside compositions, inspect state interfaces before increasing parameter count."
+    },
+    {
+      "id": "EXP10",
+      "title": "Revisit latent reasoning with a separate mutable workspace",
+      "phase": "E",
+      "priority": "P1",
+      "capabilities": [
+        "C03",
+        "R01",
+        "R02",
+        "R07"
+      ],
+      "depends_on": [
+        "EXP06",
+        "EXP08",
+        "EXP09"
+      ],
+      "papers": [
+        "P10",
+        "P15",
+        "P16",
+        "P17"
+      ],
+      "question": "Does additional inference computation improve the same model after binding and transitions work?",
+      "design": "Preserve the current shared-expert refinement as a control. Add a separate candidate-answer state and a working workspace, anchored to immutable observed evidence. Compare a tied upper operator plus thought adapter with an equal-parameter small reasoning bank. Allow each thought to update its query; record reads and routes. Start with u={0,1,2,4}, fixed budgets and mixed-depth training; keep the observation clock, admissions, and target update count unchanged.",
+      "evaluation": "Evaluate every selected checkpoint at every frozen inference depth. Compare one-pass models at equal parameters and equal measured time. Score exact answers, correct-to-wrong revisions, query/slot interventions, and whether harder examples benefit more. Use short full-episode gradients first; normalize auxiliary losses and keep output supervision separate from meaningful subgoal supervision.",
+      "decision": "Require a positive same-checkpoint inference-depth effect across at least two calibrated task families before calling C03 useful latent refinement. If gains survive with u=0, retain a training-only option or distill it; if more passes hurt, keep the one-pass mode and revisit the update operator."
+    },
+    {
+      "id": "EXP11",
+      "title": "Allocate computation and distill useful trajectories",
+      "phase": "E",
+      "priority": "P2",
+      "capabilities": [
+        "C04",
+        "C05"
+      ],
+      "depends_on": [
+        "EXP10"
+      ],
+      "papers": [
+        "P17",
+        "P18",
+        "P19"
+      ],
+      "question": "Can the model buy the same useful reasoning with fewer passes and lower tail latency?",
+      "design": "Compare fixed depth, existing state-delta stopping, random allocation at matched mean compute, and a learned online continuation head. Train on measured marginal extra-pass value with a cost penalty; force occasional continuation during training to collect counterfactual labels. Use held-out mixed-difficulty inputs. After useful long trajectories exist, distill shorter trajectories against detached longer results.",
+      "evaluation": "Report quality versus mean and p95 latency, average/p95 passes, missed-benefit cases, premature stops, correct-to-wrong revisions, and an explicitly labeled oracle stop ceiling. Count controller overhead and compare both matched-mean and matched-tail budgets. Test length extrapolation independently of difficulty correlation.",
+      "decision": "Keep learned allocation only if it improves the quality/time frontier over fixed and random allocation. State convergence alone retains its implementation label; accuracy-aware success is a different capability. Shortcut distillation starts only from a passing longer trajectory."
+    },
+    {
+      "id": "EXP12",
+      "title": "Separate correction learning from verifier-assisted search",
+      "phase": "E",
+      "priority": "P2",
+      "capabilities": [
+        "C06",
+        "C07",
+        "R04",
+        "R13"
+      ],
+      "depends_on": [
+        "EXP09"
+      ],
+      "papers": [
+        "P21",
+        "P22"
+      ],
+      "question": "Can correction or verified candidate selection improve success more cheaply than one longer trajectory?",
+      "design": "On executable small programs, arithmetic and explicit constraint systems, compare one candidate; several independent candidates; learned correction without a verifier; and correction/search with an exact verifier. Train on planted errors with training-only critiques, then remove critiques at evaluation. A CRAM-style energy solver is a separate specialist branch for tasks with explicit constraints.",
+      "evaluation": "Charge candidate generation, verifier calls, failed executions and repair passes. Compare two short trajectories with one longer trajectory at measured equal time. Report pass@1, oracle pass@k, actual selected success, fixes minus new errors, and verifier false acceptance. Use hidden execution cases, not only the examples available during repair.",
+      "decision": "Attribute verifier/tool wins to the combined system. Claim intrinsic correction only for the no-external-verifier arm. If the solver does all the work, keep it as a useful tool and do not describe it as improved neural reasoning."
+    },
+    {
+      "id": "EXP13",
+      "title": "Allocate fitted capacity between lookup and computation",
+      "phase": "Support",
+      "priority": "P2",
+      "capabilities": [
+        "M01",
+        "M02",
+        "L01"
+      ],
+      "depends_on": [
+        "EXP00",
+        "EXP15"
+      ],
+      "papers": [
+        "P20"
+      ],
+      "question": "Can cheap learned lookup improve lexical/factual capacity without weakening compositional learning?",
+      "design": "Compare 0/5/10/20% of a fixed parameter budget allocated to gated hashed byte/constituent lookup, removing equivalent expert-bank capacity. Count context-gating parameters and host-memory traffic. Separate a fixed-fact table test from newly introduced episodic bindings. Vary key length and collision rate; use fingerprints or multiple hashes for diagnostics.",
+      "evaluation": "Measure language NLL per byte/time, factual exact answers in new query contexts, collision-induced errors, composition regression, and total resident storage. In fixed-table memorization, facts intentionally recur but contexts and audits remain disjoint. Test whether context gates disambiguate identical local keys.",
+      "decision": "Promote only an allocation that improves the measured frontier and preserves required reasoning fixtures. A successful lexical lookup arm does not close novel binding or episodic-memory rows."
+    },
+    {
+      "id": "EXP14",
+      "title": "Develop episodic retention, consolidation, and continual adaptation",
+      "phase": "Support",
+      "priority": "P2",
+      "capabilities": [
+        "M06",
+        "M11",
+        "M12",
+        "M13",
+        "M14",
+        "C09",
+        "C10",
+        "E05"
+      ],
+      "depends_on": [
+        "EXP03",
+        "EXP04",
+        "EXP16"
+      ],
+      "papers": [
+        "P08",
+        "P09",
+        "P28"
+      ],
+      "question": "Can useful facts survive sessions, be corrected or removed, and improve later learning without erasing earlier skills?",
+      "design": "Split into three substudies: bounded retained evidence (16/32/128 records with explicit byte budgets); model-selected admission/query using the existing binding API; and sequential-task learning with no replay, reservoir replay, and selected replay. Include provenance, timestamps, correction and deletion semantics. Consolidation tests require a subsequent weights-only answer after runtime episodic memory is removed.",
+      "evaluation": "Test cold-start reload, unseen-session facts, competing sources, stale-fact suppression, read/write costs, and final neural answer correctness. Record a task-by-time accuracy matrix, old-task forgetting, new-task learning, and forward/backward transfer. Supervised correction learning and preference-ranking updates are separately scored.",
+      "decision": "An API payload pass remains an API result until model-selected writes, retrieval and answers work end to end. Memory caching cannot compensate for an unlearned query. Consolidation requires retained knowledge without access to the replay store at test time."
+    },
+    {
+      "id": "EXP15",
+      "title": "Bridge synthetic competence to native language and instructions",
+      "phase": "F",
+      "priority": "P2",
+      "capabilities": [
+        "L01",
+        "L02",
+        "L04",
+        "L05",
+        "L08",
+        "L09",
+        "L10",
+        "L11",
+        "L13",
+        "E01"
+      ],
+      "depends_on": [
+        "EXP01",
+        "EXP04"
+      ],
+      "papers": [
+        "P24",
+        "P29"
+      ],
+      "question": "Do successful internal operations survive ordinary byte prompts, generated structure, and varied language?",
+      "design": "Move the same problems through compact symbols, controlled natural language, then paraphrased instructions and dialogue. Mix a registered amount of verified task data with diverse prose/code language training. Compare language-only, task-only, sequential fine-tuning and mixed training with equal total exposure. Add strict instruction and JSON/schema checks; compare unconstrained generation with grammar-constrained decoding.",
+      "evaluation": "Require native byte generation of answers, delimiters and termination, not fixture-supplied structure. Score task success, syntax/schema validity and semantic field correctness separately. Include multi-turn corrections, untouched-content preservation in edits, long-output entity consistency, multilingual name/script stress, and blind fluency/style assessment.",
+      "decision": "A specialized head success remains narrow until this bridge passes. Constrained decoding receives system-level credit for validity; it must not conceal incorrect values. Use diverse task/linguistic audits before considering general demonstration. Larger generalist training follows measured learning curves, not an assumption that 1M parameters should already pass broad benchmarks."
+    },
+    {
+      "id": "EXP16",
+      "title": "Qualify semantics, grounded answers, and provenance",
+      "phase": "F",
+      "priority": "P2",
+      "capabilities": [
+        "L03",
+        "L05",
+        "L06",
+        "L07",
+        "L08",
+        "L12",
+        "M02",
+        "M12",
+        "T01",
+        "T04",
+        "T07"
+      ],
+      "depends_on": [
+        "EXP01",
+        "EXP03",
+        "EXP15"
+      ],
+      "papers": [
+        "P14",
+        "P23",
+        "P25",
+        "P29"
+      ],
+      "question": "Can the model preserve meaning, select evidence, and attach a claim to the correct source?",
+      "design": "Use generated document worlds with known facts before diverse real documents. Include paraphrase/negation pairs, entity and relation extraction, summaries, conflicting speakers/times, and unanswerable questions. Contrast supplied relevant passages, retrieved passages, shuffled evidence, and no evidence. Hold out document templates, entities, and relation combinations.",
+      "evaluation": "Measure semantic exactness, fact coverage, unsupported claims, answerability, citation precision/completeness, and claim-to-passage attribution. For RAG, report retrieval recall, answer accuracy given correct evidence, and end-to-end accuracy separately. Require changes when evidence changes while instruction wording is fixed.",
+      "decision": "Promote each capability row from its own result. Good source retrieval does not imply evidence use, and compression is not a summary metric. Use knowledge tests with documented data overlap separately from episode-created facts."
+    },
+    {
+      "id": "EXP17",
+      "title": "Qualify logic, arithmetic, causal/spatial reasoning, and planning",
+      "phase": "F",
+      "priority": "P2",
+      "capabilities": [
+        "R03",
+        "R04",
+        "R05",
+        "R06",
+        "R07",
+        "R12"
+      ],
+      "depends_on": [
+        "EXP09",
+        "EXP15"
+      ],
+      "papers": [
+        "P13",
+        "P14",
+        "P29"
+      ],
+      "question": "Can the working primitives support varied, checkable reasoning procedures?",
+      "design": "Run independent suites: Boolean/quantified reasoning; counting, carry arithmetic and units; generated causal worlds with observation versus intervention/counterfactual queries; temporal/spatial relation worlds; and small state-transition planning with goal changes. Add hidden-rule tasks where an observation distinguishes hypotheses. Specify causal structural equations and shared exogenous variables for valid counterfactual labels.",
+      "evaluation": "Use exact verifiers, balanced negation/label controls, unseen names, held-out structures and separate depth/length sweeps. For planning, score validity, goal attainment, plan cost and replanning after an obstacle. For hypothesis tests, measure whether informative evidence improves decisions more than irrelevant evidence.",
+      "decision": "Keep independent capability scores rather than averaging arithmetic success into causal or planning competence. Compare intrinsic one-pass/looped reasoning with explicitly labeled calculator/planner-assisted variants."
+    },
+    {
+      "id": "EXP18",
+      "title": "Build tool calling, executable code repair, and task control",
+      "phase": "F",
+      "priority": "P2",
+      "capabilities": [
+        "L11",
+        "R13",
+        "T01",
+        "T02",
+        "T03",
+        "T05",
+        "C12"
+      ],
+      "depends_on": [
+        "EXP15",
+        "EXP16",
+        "EXP17"
+      ],
+      "papers": [
+        "P26",
+        "P27"
+      ],
+      "question": "Can the model select an action, supply correct arguments, use the result, and track completion?",
+      "design": "Begin with an offline finite tool environment: key lookup, calculator, document search, and a sandboxed small-program executor. Add tool-error recovery, changed requirements and interrupted tasks. Compare direct answers, fixed scripted tool policies and learned calls. Train explicit goal/progress state before longer multi-step tasks; include tasks best solved by recall, reasoning, asking for a missing value, or calling a tool.",
+      "evaluation": "Score call schema, argument semantics, tool choice, answer use, hidden-test code correctness, retry cost and verified final goal completion. Keep persistent task state separate from the transient language stream and test save/reload. Count all external work and expose the no-tool baseline.",
+      "decision": "Promote the functioning system with its resource costs. Toolformer/ReAct motivate training and execution structure; neither implies the current raw byte predictor already knows tool use. Task completion requires verified environment state, not a fluent completion message."
+    },
+    {
+      "id": "EXP19",
+      "title": "Qualify uncertainty, contradiction handling, and instruction boundaries",
+      "phase": "F",
+      "priority": "P2",
+      "capabilities": [
+        "C08",
+        "T06",
+        "T07",
+        "T08"
+      ],
+      "depends_on": [
+        "EXP15",
+        "EXP16"
+      ],
+      "papers": [
+        "P24",
+        "P29"
+      ],
+      "question": "Does the system know when the evidence is insufficient, maintain consistent facts, and distinguish instructions from data?",
+      "design": "Add answerable/unanswerable/conflicting questions, repeated paraphrased queries, explicit factual corrections, role-priority conflicts and instruction-like strings inside quoted/retrieved material. Calibrate a task-confidence or abstention head on development data. Train intended behavior on an explicit task/behavior specification, with ordinary benign edge cases as well as conflicting inputs.",
+      "evaluation": "Report Brier score or task NLL, reliability plots, selective risk versus answer coverage, contradiction rates, accepted corrections, task success and boundary compliance separately. Calibration uses actual native answers, not merely restricted-alphabet probabilities. Measure unnecessary abstention alongside unsupported assertions.",
+      "decision": "Advance only the behaviors demonstrated across held-out formats. A calibrated synthetic confidence head does not qualify broad conversational uncertainty; add real language audits before that label."
+    },
+    {
+      "id": "EXP20",
+      "title": "Test expert reuse and transfer across related tasks",
+      "phase": "D",
+      "priority": "P1",
+      "capabilities": [
+        "C11",
+        "C01",
+        "R08",
+        "R09",
+        "R11",
+        "E02"
+      ],
+      "depends_on": [
+        "EXP06",
+        "EXP09"
+      ],
+      "papers": [
+        "P01",
+        "P13",
+        "P14"
+      ],
+      "question": "Do experts learn reusable operations rather than task-specific encoding shortcuts?",
+      "design": "Train related tasks sharing primitives and unrelated controls with equal total bytes. Compare fresh training, frozen pretrained banks with new readouts, joint training, and controlled expert/route swaps. Randomize task labels and surface forms. Test whether a reusable operator transfers to new roles, values and task combinations.",
+      "evaluation": "Measure bytes/time to task threshold, final old/new accuracy, negative transfer, conditional expert-permutation effects, and reuse under renaming. Inspect route statistics only as supporting evidence; use held-out behavior and causal interventions to qualify semantic reuse.",
+      "decision": "Promote reusable modules only if they improve learning or performance on held-out related tasks while preserving earlier skills. If task-ID shortcuts explain the result, retain task specialization but leave transfer unqualified."
+    },
+    {
+      "id": "EXP21",
+      "title": "Measure joint scaling of weights, state, data, and compute",
+      "phase": "Support",
+      "priority": "P1",
+      "capabilities": [
+        "L01",
+        "M15",
+        "R10",
+        "E06",
+        "E07"
+      ],
+      "depends_on": [
+        "EXP00",
+        "EXP02",
+        "EXP04"
+      ],
+      "papers": [
+        "P01",
+        "P29"
+      ],
+      "question": "Which resource actually moves the quality and capability frontier?",
+      "design": "Carry at most two successful mechanisms forward. Vary expert-bank parameters at fixed state, working/retained state at fixed weights, inference passes at fixed checkpoint, and training exposure at fixed architecture. Start at feasible 500K/1M/5M sizes; add 20M/100M only after smaller curves identify a useful trend. Compare the fixed corrected-C rate policy with route-local control in a separate arm.",
+      "evaluation": "Produce PNG curves for loss versus bytes/time, throughput, exact capability versus state and depth, and bytes/time to threshold. Record tuning cost and hardware. Extend runs only when development curves remain informative; use fresh data and observed loss to distinguish memorization, optimization plateaus and capacity limits.",
+      "decision": "Scale the resource with demonstrated marginal value. Reject a universal bytes-per-parameter rule from these short synthetic horizons. A larger bank that leaves the same memory failure unchanged triggers a state/update study, not another blind size increase."
+    },
+    {
+      "id": "EXP22",
+      "title": "Test causal segmentation and query-time access",
+      "phase": "Conditional",
+      "priority": "P1",
+      "capabilities": [
+        "E08",
+        "E03",
+        "C01",
+        "L01",
+        "L10"
+      ],
+      "depends_on": [
+        "EXP06"
+      ],
+      "papers": [
+        "P16",
+        "P30"
+      ],
+      "question": "Do fixed boundaries prevent relevant state from becoming available when it is needed?",
+      "design": "First compare fixed grouping under every answer offset and a query-time read of already observed partial/completed state. If that diagnoses boundary dependence, compare fixed groups with causal delimiter-based, entropy-based or learned segmentation in a separate backend. Match average event counts and report boundary-policy costs. Keep byte evidence and emitted targets causal.",
+      "evaluation": "Measure binding/transition accuracy by offset, language NLL/time, event counts, completion latency, checkpoint continuation and behavior on long unbroken spans. No target-driven boundary labels may enter inference, and no partial group may expose future bytes. Test worst-case work/state bounds as well as averages.",
+      "decision": "Adopt dynamic boundaries only if they solve a measured timing/composition problem at an acceptable cost. A cheap query-time access repair should win over a full hierarchy change when both achieve the same result."
+    },
+    {
+      "id": "EXP23",
+      "title": "Add optional modality and environment adapters",
+      "phase": "Optional",
+      "priority": "P3",
+      "capabilities": [
+        "X01",
+        "X02",
+        "X03",
+        "X04"
+      ],
+      "depends_on": [
+        "EXP15",
+        "EXP16",
+        "EXP18"
+      ],
+      "papers": [
+        "P29"
+      ],
+      "question": "Can the qualified text core use non-text observations and actions without losing its established skills?",
+      "design": "Keep four separate tracks: images/OCR/charts, speech/audio, video events, and interactive simulated environments. Define the observation/action interface and adapter budget for each. Start with exact extraction or state tasks before open-ended descriptions. Use frozen-core and joint-training controls; source modality-specific papers when the chosen track is opened.",
+      "evaluation": "Score source-grounded accuracy, cross-modal reference, temporal ordering, action consequences, and text-capability retention. Preserve original observations for audits and count encoder/decoder compute, storage and latency. Each modality gets its own train/dev/test provenance and operating-range report.",
+      "decision": "These four rows remain optional and untested until specifically developed. Do not let byte representability or a generic adapter stand in for demonstrated modality understanding."
+    }
+  ],
+  "papers": [
+    {
+      "id": "P01",
+      "title": "Mechanistic Design and Scaling of Hybrid Architectures",
+      "url": "https://proceedings.mlr.press/v235/poli24a.html",
+      "status": "Poli et al.; ICML 2024",
+      "when": "Read now",
+      "use": "MAD task calibration, controlled resource comparisons, and state/compute scaling. EXP00/06/20/21."
+    },
+    {
+      "id": "P02",
+      "title": "Zoology: Measuring and Improving Recall in Efficient Language Models",
+      "url": "https://arxiv.org/abs/2312.04927",
+      "status": "Arora et al.; 2023 record",
+      "when": "Read now",
+      "use": "Multi-query associative recall and query-dependent access. EXP00–03/08."
+    },
+    {
+      "id": "P03",
+      "title": "Gated Delta Networks: Improving Mamba2 with Delta Rule",
+      "url": "https://arxiv.org/abs/2412.06464",
+      "status": "Yang et al.; ICLR 2025 record",
+      "when": "Read now",
+      "use": "Separate adaptive forgetting from targeted association edits; small recurrent reference. EXP01/05."
+    },
+    {
+      "id": "P04",
+      "title": "Gated DeltaNet-2: Decoupling Erase and Write in Linear Attention",
+      "url": "https://arxiv.org/abs/2605.22791v2",
+      "status": "Hatamizadeh et al.; 6 Nov 2026 revision; record states NeurIPS 2026 acceptance",
+      "when": "Read now",
+      "use": "Independent erase/write gates; inspect §3.1 and gate ablations. Adapt one selected memory block, not the whole backbone. EXP05."
+    },
+    {
+      "id": "P05",
+      "title": "FG²-GDN: Enhancing Long-Context Gated Delta Networks with Doubly Fine-Grained Control",
+      "url": "https://arxiv.org/abs/2604.19021v3",
+      "status": "Sun et al.; 31 Aug 2026 preprint revision",
+      "when": "Read with P04",
+      "use": "Per-coordinate update controls and independent erasure/write scaling; informs the same ablation family. EXP05."
+    },
+    {
+      "id": "P06",
+      "title": "DeltaProduct: Improving State-Tracking in Linear RNNs via Householder Products",
+      "url": "https://arxiv.org/abs/2502.10297v7",
+      "status": "Siems et al.; NeurIPS 2025 acceptance in record",
+      "when": "Read now",
+      "use": "Two/four transition substeps, state-tracking tests and transition-rank analysis. This is not automatically an inference reasoner. EXP04/05."
+    },
+    {
+      "id": "P07",
+      "title": "Rethinking State Tracking in Recurrent Models Through Error Control Dynamics",
+      "url": "https://arxiv.org/abs/2605.07755v3",
+      "status": "Chung et al.; 11 Nov 2026 revision; record states NeurIPS 2026",
+      "when": "Read now",
+      "use": "Perturbation recovery, state separation and finite-horizon drift; compare state-dependent correction. EXP04–06."
+    },
+    {
+      "id": "P08",
+      "title": "Memory Caching: RNNs with Growing Memory",
+      "url": "https://proceedings.mlr.press/v306/behrouz26a.html",
+      "status": "Behrouz et al.; ICML 2026",
+      "when": "After retention diagnosis",
+      "use": "Selected memory snapshots and explicit capacity/read-cost trade-offs. EXP03/08/14."
+    },
+    {
+      "id": "P09",
+      "title": "ATLAS: Learning to Optimally Memorize the Context at Test Time",
+      "url": "https://proceedings.mlr.press/v306/behrouz26b.html",
+      "status": "Behrouz et al.; ICML 2026",
+      "when": "If writes destroy older facts",
+      "use": "Current-plus-past-context memory objectives; bounded replay as an isolated arm. EXP05/14."
+    },
+    {
+      "id": "P10",
+      "title": "Universal Transformers Need Memory: Depth-State Trade-offs in Adaptive Recursive Reasoning",
+      "url": "https://arxiv.org/abs/2604.21999",
+      "status": "Sapunov; April–May 2026 preprint",
+      "when": "Read for state design",
+      "use": "Scratchpad/depth separation and initialization diagnostics; choose SHoEbox slot counts empirically. EXP02/10."
+    },
+    {
+      "id": "P11",
+      "title": "Predicting the Order of Upcoming Tokens Improves Language Modeling",
+      "url": "https://proceedings.mlr.press/v306/zuhri26a.html",
+      "status": "Zuhri et al.; ICML 2026",
+      "when": "After atomic-state success",
+      "use": "Ordering future constituents and graph-path targets rather than exact distant-byte guessing. EXP07."
+    },
+    {
+      "id": "P12",
+      "title": "Multi-Token Prediction Done Right",
+      "url": "https://arxiv.org/abs/2610.38331",
+      "status": "Teoh; 28 Oct 2026 preprint",
+      "when": "After atomic-state success",
+      "use": "Detached soft future distributions; derive the binary-tree-head objective explicitly. EXP07."
+    },
+    {
+      "id": "P13",
+      "title": "Generalization without systematicity: On the compositional skills of sequence-to-sequence recurrent networks",
+      "url": "https://arxiv.org/abs/1711.00350",
+      "status": "Lake & Baroni; SCAN, ICML 2018",
+      "when": "Before composition tests",
+      "use": "Hold out compositions rather than just random examples; separate primitive, length and combination tests. EXP09/17/20."
+    },
+    {
+      "id": "P14",
+      "title": "COGS: A Compositional Generalization Challenge Based on Semantic Interpretation",
+      "url": "https://aclanthology.org/2020.emnlp-main.731/",
+      "status": "Kim & Linzen; EMNLP 2020",
+      "when": "Before semantic transfer",
+      "use": "Role/structure generalization and semantic parsing controls. EXP09/16/17/20."
+    },
+    {
+      "id": "P15",
+      "title": "Less is More: Recursive Reasoning with Tiny Networks",
+      "url": "https://arxiv.org/abs/2510.04871",
+      "status": "Jolicoeur-Martineau; 2025 arXiv paper",
+      "when": "After primitives and composition",
+      "use": "Separate answer and reasoning state; short recurrent episodes and intermediate learning. EXP10."
+    },
+    {
+      "id": "P16",
+      "title": "SpiralFormer: Looped Transformers Can Learn Hierarchical Dependencies via Multi-Resolution Recursion",
+      "url": "https://aclanthology.org/2026.emnlp-main.1602/",
+      "status": "Yu et al.; EMNLP 2026",
+      "when": "After upper-state diagnosis",
+      "use": "Causal multi-resolution computation; compare scheduling choices rather than repeat the existing failed cell. EXP06/10/22."
+    },
+    {
+      "id": "P17",
+      "title": "LoopFormer: Elastic-Depth Looped Transformers for Latent Reasoning via Shortcut Modulation",
+      "url": "https://arxiv.org/abs/2602.11451",
+      "status": "Jeddi et al.; ICLR 2026 in record",
+      "when": "After fixed-depth gains",
+      "use": "Budget/phase conditioning, variable-depth training, and compression of useful longer trajectories. EXP10/11."
+    },
+    {
+      "id": "P18",
+      "title": "Think-at-Hard: Dynamic Looped Transformers for Improved Reasoning",
+      "url": "https://proceedings.mlr.press/v306/fu26t.html",
+      "status": "Fu et al.; ICML 2026",
+      "when": "After fixed-depth gains",
+      "use": "Hard-case selection and depth-specific refinement role. EXP11."
+    },
+    {
+      "id": "P19",
+      "title": "Understanding Dynamic Compute Allocation in Recurrent Transformers",
+      "url": "https://proceedings.mlr.press/v306/moosa26a.html",
+      "status": "Moosa et al.; ICML 2026",
+      "when": "Before halting qualification",
+      "use": "Known task complexity, online versus early decisions, and independent size extrapolation tests. EXP11."
+    },
+    {
+      "id": "P20",
+      "title": "Conditional Memory via Scalable Lookup: A New Axis of Sparsity for Large Language Models",
+      "url": "https://arxiv.org/abs/2601.07372",
+      "status": "Cheng et al.; Engram, 2026 preprint",
+      "when": "After language baseline",
+      "use": "Matched-budget sparse lookup versus experts; inspect collisions and context gating. EXP13."
+    },
+    {
+      "id": "P21",
+      "title": "Critique-Guided Distillation for Robust Reasoning via Refinement",
+      "url": "https://proceedings.mlr.press/v306/kapusuzoglu26a.html",
+      "status": "Kapusuzoglu et al.; ICML 2026",
+      "when": "After checkable procedures",
+      "use": "Training-only critiques and correction, evaluated without critiques. EXP12."
+    },
+    {
+      "id": "P22",
+      "title": "Classical Energies Learn to Reason 1,000x Faster than Looped Models",
+      "url": "https://arxiv.org/abs/2611.17309",
+      "status": "Hoover et al.; CRAM, 12 Nov 2026 preprint",
+      "when": "Specialist solver track",
+      "use": "Constraint-energy solving and solver controls for structured tasks; keep its role distinct from general language modeling. EXP12."
+    },
+    {
+      "id": "P23",
+      "title": "RULER: What's the Real Context Size of Your Long-Context Language Models?",
+      "url": "https://arxiv.org/abs/2404.06654",
+      "status": "Hsieh et al.; COLM 2024 record",
+      "when": "During retention/grounding",
+      "use": "Vary sequence length, retrieval multiplicity, multi-hop tracing and aggregation. EXP03/08/16."
+    },
+    {
+      "id": "P24",
+      "title": "Instruction-Following Evaluation for Large Language Models",
+      "url": "https://arxiv.org/abs/2311.07911",
+      "status": "Zhou et al.; IFEval, 2023",
+      "when": "During native-language bridge",
+      "use": "Mechanically verifiable instruction constraints with held-out combinations. EXP15/19."
+    },
+    {
+      "id": "P25",
+      "title": "Enabling Large Language Models to Generate Text with Citations",
+      "url": "https://arxiv.org/abs/2305.14627",
+      "status": "Gao et al.; ALCE, EMNLP 2023 record",
+      "when": "During grounded answering",
+      "use": "Separate answer correctness, evidence retrieval, and citation support/completeness. EXP16."
+    },
+    {
+      "id": "P26",
+      "title": "ReAct: Synergizing Reasoning and Acting in Language Models",
+      "url": "https://arxiv.org/abs/2210.03629",
+      "status": "Yao et al.; ICLR 2023 camera-ready record",
+      "when": "During tool execution",
+      "use": "Observe/action/result loops, tracked goals and recovery from errors. EXP18."
+    },
+    {
+      "id": "P27",
+      "title": "Toolformer: Language Models Can Teach Themselves to Use Tools",
+      "url": "https://arxiv.org/abs/2302.04761",
+      "status": "Schick et al.; 2023 paper",
+      "when": "During tool-call training",
+      "use": "Choosing APIs, arguments and when a tool result helps prediction. EXP18."
+    },
+    {
+      "id": "P28",
+      "title": "Gradient Episodic Memory for Continual Learning",
+      "url": "https://arxiv.org/abs/1706.08840",
+      "status": "Lopez-Paz & Ranzato; NeurIPS 2017",
+      "when": "Before continual-learning claims",
+      "use": "Old/new-task performance matrices and transfer/forgetting accounting; replay is the first control, not a mandate to implement GEM. EXP14."
+    },
+    {
+      "id": "P29",
+      "title": "Holistic Evaluation of Language Models",
+      "url": "https://arxiv.org/abs/2211.09110",
+      "status": "Liang et al.; HELM, 2022/2023",
+      "when": "For qualification design",
+      "use": "Separate accuracy, calibration, robustness and efficiency across scenarios; avoids one aggregate capability label. EXP15–19/21/23."
+    },
+    {
+      "id": "P30",
+      "title": "Byte Latent Transformer: Patches Scale Better Than Tokens",
+      "url": "https://arxiv.org/abs/2412.09871",
+      "status": "Pagnoni et al.; 2024 paper",
+      "when": "Only if boundaries are a blocker",
+      "use": "Causal entropy-driven byte patches and matched-compute segmentation tests. EXP22."
+    }
+  ],
+  "capability_coverage": [
+    {
+      "id": "L01",
+      "capability": "Learn next-byte distributions",
+      "implementation": "Yes",
+      "evidence": "Narrow",
+      "experiments": [
+        "EXP00",
+        "EXP13",
+        "EXP15",
+        "EXP21",
+        "EXP22"
+      ]
+    },
+    {
+      "id": "L02",
+      "capability": "Fluent, grammatical text generation",
+      "implementation": "Partial",
+      "evidence": "Untested",
+      "experiments": [
+        "EXP15"
+      ]
+    },
+    {
+      "id": "L03",
+      "capability": "Semantic understanding, paraphrase and entailment",
+      "implementation": "Partial",
+      "evidence": "Untested",
+      "experiments": [
+        "EXP16"
+      ]
+    },
+    {
+      "id": "L04",
+      "capability": "Follow instructions and satisfy multiple constraints",
+      "implementation": "Partial",
+      "evidence": "Untested",
+      "experiments": [
+        "EXP15"
+      ]
+    },
+    {
+      "id": "L05",
+      "capability": "Dialogue, coreference and conversational intent",
+      "implementation": "Partial",
+      "evidence": "Untested",
+      "experiments": [
+        "EXP15",
+        "EXP16"
+      ]
+    },
+    {
+      "id": "L06",
+      "capability": "Summarize and synthesize without losing essential facts",
+      "implementation": "Partial",
+      "evidence": "Untested",
+      "experiments": [
+        "EXP16"
+      ]
+    },
+    {
+      "id": "L07",
+      "capability": "Extract, classify and organize information",
+      "implementation": "Partial",
+      "evidence": "Untested",
+      "experiments": [
+        "EXP16"
+      ]
+    },
+    {
+      "id": "L08",
+      "capability": "Rewrite, edit and transform text while preserving meaning",
+      "implementation": "Partial",
+      "evidence": "Untested",
+      "experiments": [
+        "EXP15",
+        "EXP16"
+      ]
+    },
+    {
+      "id": "L09",
+      "capability": "Multilingual understanding and translation",
+      "implementation": "Partial",
+      "evidence": "Untested",
+      "experiments": [
+        "EXP15"
+      ]
+    },
+    {
+      "id": "L10",
+      "capability": "Maintain coherence and constraints over long outputs",
+      "implementation": "Partial",
+      "evidence": "Untested",
+      "experiments": [
+        "EXP15",
+        "EXP22"
+      ]
+    },
+    {
+      "id": "L11",
+      "capability": "Produce reliable structured output",
+      "implementation": "No",
+      "evidence": "Untested",
+      "experiments": [
+        "EXP15",
+        "EXP18"
+      ]
+    },
+    {
+      "id": "L12",
+      "capability": "Answer questions grounded in supplied documents",
+      "implementation": "Partial",
+      "evidence": "Untested",
+      "experiments": [
+        "EXP16"
+      ]
+    },
+    {
+      "id": "L13",
+      "capability": "Creative writing and controllable style",
+      "implementation": "Partial",
+      "evidence": "Untested",
+      "experiments": [
+        "EXP15"
+      ]
+    },
+    {
+      "id": "M01",
+      "capability": "Memorize stable key–value facts in weights",
+      "implementation": "Yes",
+      "evidence": "In principle",
+      "experiments": [
+        "EXP13"
+      ]
+    },
+    {
+      "id": "M02",
+      "capability": "Acquire and retrieve broad factual and commonsense knowledge",
+      "implementation": "Partial",
+      "evidence": "Untested",
+      "experiments": [
+        "EXP13",
+        "EXP16"
+      ]
+    },
+    {
+      "id": "M03",
+      "capability": "Select and copy relevant short-context content",
+      "implementation": "Yes",
+      "evidence": "Narrow",
+      "experiments": [
+        "EXP00",
+        "EXP03"
+      ]
+    },
+    {
+      "id": "M04",
+      "capability": "Compress observed content into a usable bounded state",
+      "implementation": "Yes — research adapter",
+      "evidence": "Narrow",
+      "experiments": [
+        "EXP00",
+        "EXP02"
+      ]
+    },
+    {
+      "id": "M05",
+      "capability": "Use remembered information in prediction",
+      "implementation": "Yes",
+      "evidence": "In principle",
+      "experiments": [
+        "EXP01",
+        "EXP03",
+        "EXP08"
+      ]
+    },
+    {
+      "id": "M06",
+      "capability": "Store and recover exact externally supplied bindings",
+      "implementation": "Yes — optional API",
+      "evidence": "Narrow",
+      "experiments": [
+        "EXP14"
+      ]
+    },
+    {
+      "id": "M07",
+      "capability": "Bind a newly observed value to the right query",
+      "implementation": "Yes",
+      "evidence": "Unworking",
+      "experiments": [
+        "EXP01",
+        "EXP02",
+        "EXP08"
+      ]
+    },
+    {
+      "id": "M08",
+      "capability": "Retain information through longer delays and interference",
+      "implementation": "Yes",
+      "evidence": "Unworking",
+      "experiments": [
+        "EXP03",
+        "EXP05"
+      ]
+    },
+    {
+      "id": "M09",
+      "capability": "Recall despite noisy or approximate cues",
+      "implementation": "Yes",
+      "evidence": "Unworking",
+      "experiments": [
+        "EXP03"
+      ]
+    },
+    {
+      "id": "M10",
+      "capability": "Update working variables without overwriting unrelated state",
+      "implementation": "Yes — research tasks",
+      "evidence": "Unworking",
+      "experiments": [
+        "EXP04",
+        "EXP05"
+      ]
+    },
+    {
+      "id": "M11",
+      "capability": "Maintain useful episodic memory across sessions",
+      "implementation": "Partial",
+      "evidence": "Untested",
+      "experiments": [
+        "EXP14"
+      ]
+    },
+    {
+      "id": "M12",
+      "capability": "Track who said what, when, and with which source",
+      "implementation": "Partial",
+      "evidence": "Untested",
+      "experiments": [
+        "EXP14",
+        "EXP16"
+      ]
+    },
+    {
+      "id": "M13",
+      "capability": "Select memory writes, updates and forgetting appropriately",
+      "implementation": "Partial",
+      "evidence": "Untested",
+      "experiments": [
+        "EXP03",
+        "EXP05",
+        "EXP14"
+      ]
+    },
+    {
+      "id": "M14",
+      "capability": "Consolidate episodic experience into reusable knowledge",
+      "implementation": "No",
+      "evidence": "Untested",
+      "experiments": [
+        "EXP14"
+      ]
+    },
+    {
+      "id": "M15",
+      "capability": "Scale memory capacity independently of expert parameters",
+      "implementation": "Partial",
+      "evidence": "Untested",
+      "experiments": [
+        "EXP02",
+        "EXP21"
+      ]
+    },
+    {
+      "id": "M16",
+      "capability": "Retain a simple binary cue through repeated distractors",
+      "implementation": "Yes — historical A",
+      "evidence": "Narrow",
+      "experiments": [
+        "EXP03"
+      ]
+    },
+    {
+      "id": "R01",
+      "capability": "Follow relations and retrieve through multiple hops",
+      "implementation": "Yes — research task",
+      "evidence": "Unworking",
+      "experiments": [
+        "EXP08",
+        "EXP10"
+      ]
+    },
+    {
+      "id": "R02",
+      "capability": "Compose operations and execute small programs",
+      "implementation": "Yes — research task",
+      "evidence": "Unworking",
+      "experiments": [
+        "EXP04",
+        "EXP09",
+        "EXP10"
+      ]
+    },
+    {
+      "id": "R03",
+      "capability": "Deduction, Boolean logic, negation and quantifiers",
+      "implementation": "Partial",
+      "evidence": "Untested",
+      "experiments": [
+        "EXP17"
+      ]
+    },
+    {
+      "id": "R04",
+      "capability": "Arithmetic, quantitative reasoning and units",
+      "implementation": "Partial",
+      "evidence": "Untested",
+      "experiments": [
+        "EXP12",
+        "EXP17"
+      ]
+    },
+    {
+      "id": "R05",
+      "capability": "Causal and counterfactual reasoning",
+      "implementation": "Partial",
+      "evidence": "Untested",
+      "experiments": [
+        "EXP17"
+      ]
+    },
+    {
+      "id": "R06",
+      "capability": "Temporal and spatial reasoning",
+      "implementation": "Partial",
+      "evidence": "Untested",
+      "experiments": [
+        "EXP17"
+      ]
+    },
+    {
+      "id": "R07",
+      "capability": "Plan, decompose goals and satisfy interacting constraints",
+      "implementation": "No",
+      "evidence": "Untested",
+      "experiments": [
+        "EXP10",
+        "EXP17"
+      ]
+    },
+    {
+      "id": "R08",
+      "capability": "Form abstractions, analogies and invariant concepts",
+      "implementation": "Partial",
+      "evidence": "Untested",
+      "experiments": [
+        "EXP06",
+        "EXP07",
+        "EXP09",
+        "EXP20"
+      ]
+    },
+    {
+      "id": "R09",
+      "capability": "Systematically recombine familiar parts in new combinations",
+      "implementation": "Partial",
+      "evidence": "Untested",
+      "experiments": [
+        "EXP09",
+        "EXP20"
+      ]
+    },
+    {
+      "id": "R10",
+      "capability": "Generalize to longer sequences and deeper computations",
+      "implementation": "Yes — research probes",
+      "evidence": "Unworking",
+      "experiments": [
+        "EXP05",
+        "EXP07",
+        "EXP08",
+        "EXP09",
+        "EXP21"
+      ]
+    },
+    {
+      "id": "R11",
+      "capability": "Learn a new task or rule from examples in the prompt",
+      "implementation": "Partial",
+      "evidence": "Untested",
+      "experiments": [
+        "EXP09",
+        "EXP20"
+      ]
+    },
+    {
+      "id": "R12",
+      "capability": "Generate and compare hypotheses using evidence",
+      "implementation": "Partial",
+      "evidence": "Untested",
+      "experiments": [
+        "EXP17"
+      ]
+    },
+    {
+      "id": "R13",
+      "capability": "Understand, generate and repair code",
+      "implementation": "Partial",
+      "evidence": "Untested",
+      "experiments": [
+        "EXP12",
+        "EXP18"
+      ]
+    },
+    {
+      "id": "C01",
+      "capability": "Learn useful conditional specialization in upper experts",
+      "implementation": "Yes",
+      "evidence": "Unworking",
+      "experiments": [
+        "EXP06",
+        "EXP07",
+        "EXP20",
+        "EXP22"
+      ]
+    },
+    {
+      "id": "C02",
+      "capability": "Teach internal state through intermediate supervision",
+      "implementation": "Yes — research adapter",
+      "evidence": "In principle",
+      "experiments": [
+        "EXP01",
+        "EXP04",
+        "EXP07"
+      ]
+    },
+    {
+      "id": "C03",
+      "capability": "Improve answers by performing extra latent refinement",
+      "implementation": "Yes — optional loops",
+      "evidence": "Unworking",
+      "experiments": [
+        "EXP10"
+      ]
+    },
+    {
+      "id": "C04",
+      "capability": "Stop refinement when its state has converged",
+      "implementation": "Yes — optional loops",
+      "evidence": "In principle",
+      "experiments": [
+        "EXP11"
+      ]
+    },
+    {
+      "id": "C05",
+      "capability": "Allocate more computation to genuinely difficult inputs",
+      "implementation": "No",
+      "evidence": "Untested",
+      "experiments": [
+        "EXP11"
+      ]
+    },
+    {
+      "id": "C06",
+      "capability": "Search alternative solutions and select with a verifier",
+      "implementation": "No",
+      "evidence": "Untested",
+      "experiments": [
+        "EXP12"
+      ]
+    },
+    {
+      "id": "C07",
+      "capability": "Detect and correct its own mistakes",
+      "implementation": "No",
+      "evidence": "Untested",
+      "experiments": [
+        "EXP12"
+      ]
+    },
+    {
+      "id": "C08",
+      "capability": "Express calibrated uncertainty and abstain appropriately",
+      "implementation": "No",
+      "evidence": "Untested",
+      "experiments": [
+        "EXP19"
+      ]
+    },
+    {
+      "id": "C09",
+      "capability": "Learn from corrections, feedback and preferences",
+      "implementation": "No",
+      "evidence": "Untested",
+      "experiments": [
+        "EXP14"
+      ]
+    },
+    {
+      "id": "C10",
+      "capability": "Adapt continually while retaining prior capabilities",
+      "implementation": "Partial",
+      "evidence": "Untested",
+      "experiments": [
+        "EXP14"
+      ]
+    },
+    {
+      "id": "C11",
+      "capability": "Reuse experts and transfer learned skills between tasks",
+      "implementation": "Partial",
+      "evidence": "Untested",
+      "experiments": [
+        "EXP20"
+      ]
+    },
+    {
+      "id": "C12",
+      "capability": "Choose among recalling, reasoning, asking and using a tool",
+      "implementation": "No",
+      "evidence": "Untested",
+      "experiments": [
+        "EXP18"
+      ]
+    },
+    {
+      "id": "T01",
+      "capability": "Retrieve external documents and search for missing knowledge",
+      "implementation": "No",
+      "evidence": "Untested",
+      "experiments": [
+        "EXP16",
+        "EXP18"
+      ]
+    },
+    {
+      "id": "T02",
+      "capability": "Call functions/tools with correct arguments",
+      "implementation": "No",
+      "evidence": "Untested",
+      "experiments": [
+        "EXP18"
+      ]
+    },
+    {
+      "id": "T03",
+      "capability": "Use code execution and tests in a feedback loop",
+      "implementation": "No",
+      "evidence": "Untested",
+      "experiments": [
+        "EXP18"
+      ]
+    },
+    {
+      "id": "T04",
+      "capability": "Cite sources and attribute claims to the right evidence",
+      "implementation": "No",
+      "evidence": "Untested",
+      "experiments": [
+        "EXP16"
+      ]
+    },
+    {
+      "id": "T05",
+      "capability": "Carry out multi-step tasks while tracking goals and progress",
+      "implementation": "No",
+      "evidence": "Untested",
+      "experiments": [
+        "EXP18"
+      ]
+    },
+    {
+      "id": "T06",
+      "capability": "Separate authoritative instructions from quoted or untrusted data",
+      "implementation": "No",
+      "evidence": "Untested",
+      "experiments": [
+        "EXP19"
+      ]
+    },
+    {
+      "id": "T07",
+      "capability": "Maintain factual consistency and recognize contradictions",
+      "implementation": "Partial",
+      "evidence": "Untested",
+      "experiments": [
+        "EXP16",
+        "EXP19"
+      ]
+    },
+    {
+      "id": "T08",
+      "capability": "Follow intended behavioral boundaries consistently and robustly",
+      "implementation": "No",
+      "evidence": "Untested",
+      "experiments": [
+        "EXP19"
+      ]
+    },
+    {
+      "id": "X01",
+      "capability": "Understand images, OCR, charts and diagrams",
+      "implementation": "No",
+      "evidence": "Untested",
+      "experiments": [
+        "EXP23"
+      ]
+    },
+    {
+      "id": "X02",
+      "capability": "Understand and generate speech/audio",
+      "implementation": "No",
+      "evidence": "Untested",
+      "experiments": [
+        "EXP23"
+      ]
+    },
+    {
+      "id": "X03",
+      "capability": "Understand video and events over time",
+      "implementation": "No",
+      "evidence": "Untested",
+      "experiments": [
+        "EXP23"
+      ]
+    },
+    {
+      "id": "X04",
+      "capability": "Ground language in interactive environments",
+      "implementation": "No",
+      "evidence": "Untested",
+      "experiments": [
+        "EXP23"
+      ]
+    },
+    {
+      "id": "E01",
+      "capability": "Byte input/output and streaming execution",
+      "implementation": "Yes",
+      "evidence": "Generally",
+      "experiments": [
+        "EXP15"
+      ]
+    },
+    {
+      "id": "E02",
+      "capability": "Sparse expert execution and exact routing",
+      "implementation": "Yes",
+      "evidence": "Generally",
+      "experiments": [
+        "EXP20"
+      ]
+    },
+    {
+      "id": "E03",
+      "capability": "Fixed 1/4/16/64-byte hierarchy and ordered composition",
+      "implementation": "Yes",
+      "evidence": "In principle",
+      "experiments": [
+        "EXP06",
+        "EXP22"
+      ]
+    },
+    {
+      "id": "E04",
+      "capability": "Causal local learning and credit through live constituents",
+      "implementation": "Yes",
+      "evidence": "In principle",
+      "experiments": [
+        "EXP06"
+      ]
+    },
+    {
+      "id": "E05",
+      "capability": "Exact checkpoint continuation and frozen evaluation",
+      "implementation": "Yes",
+      "evidence": "Generally",
+      "experiments": [
+        "EXP00",
+        "EXP14"
+      ]
+    },
+    {
+      "id": "E06",
+      "capability": "Bounded compute/state accounting and comparable evaluations",
+      "implementation": "Yes",
+      "evidence": "Generally",
+      "experiments": [
+        "EXP00",
+        "EXP21"
+      ]
+    },
+    {
+      "id": "E07",
+      "capability": "Route-local learning-rate control",
+      "implementation": "Yes — optional",
+      "evidence": "In principle",
+      "experiments": [
+        "EXP21"
+      ]
+    },
+    {
+      "id": "E08",
+      "capability": "Learned segmentation instead of fixed byte groups",
+      "implementation": "No — current runtime",
+      "evidence": "Untested",
+      "experiments": [
+        "EXP22"
+      ]
+    }
+  ],
+  "protocol": {
+    "status": "proposed_extension_of_existing_MAD_protocol",
+    "selection_seeds": [
+      1,
+      7,
+      19
+    ],
+    "confirmation_seeds": [
+      1,
+      7,
+      19,
+      31,
+      43
+    ],
+    "lr_multipliers": [
+      0.5,
+      1,
+      2
+    ],
+    "native_aux_weights": [
+      0,
+      0.1
+    ],
+    "minimum_dev_episodes": 512,
+    "minimum_test_episodes": 1024,
+    "initial_parameter_budget": 500000,
+    "depth_definition": "u is extra passes; K = 1 + u",
+    "source_runtime": "https://github.com/JRowe47/SHoEbox/commit/6384d8ca072075ec58010b4c3d5964e9e60fcd3e",
+    "source_protocol": "https://github.com/JRowe47/SHoEbox/blob/6384d8ca072075ec58010b4c3d5964e9e60fcd3e/experiments/mad/README.md"
+  },
+  "first_tranche": {
+    "task": "balanced two-key binding with distinct values and independent record/query order",
+    "arms": [
+      "corrected_C",
+      "query_readout",
+      "query_readout_plus_flat_state",
+      "query_readout_plus_4_slots"
+    ],
+    "calibration": {
+      "fits": 9,
+      "bytes_per_fit": 250000
+    },
+    "learned_positive_control": {
+      "fits": 3,
+      "bytes_per_fit": 250000
+    },
+    "screen": {
+      "fits": 72,
+      "bytes_per_fit": 250000
+    },
+    "confirmation": {
+      "fits": 10,
+      "bytes_per_fit": 1000000
+    },
+    "total_fits_if_all_gates_advance": 94,
+    "total_observed_training_bytes_if_all_gates_advance": 31000000,
+    "excludes": [
+      "frozen evaluation time",
+      "language regression fits",
+      "new positive-control searches",
+      "larger state and parameter sweeps"
+    ]
+  },
+  "planned_outputs": [
+    "registered protocol",
+    "compact results JSON",
+    "source and split hashes",
+    "selected checkpoint provenance",
+    "PNG learning/resource curves",
+    "capability evidence updates"
+  ]
+}
