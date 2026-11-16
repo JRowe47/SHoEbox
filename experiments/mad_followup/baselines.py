@@ -71,6 +71,7 @@ def audit(directory):
     for path in Path(directory).rglob("*.json"):
         try:d=json.loads(path.read_text())
         except (ValueError,OSError):continue
+        if not isinstance(d,dict):continue
         for cell in d.get("cells",[]):
             spec=TaskSpec(**cell["spec"])
             config=d["config"]
