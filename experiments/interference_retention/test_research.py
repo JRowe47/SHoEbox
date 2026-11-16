@@ -54,13 +54,19 @@ class HarnessTests(unittest.TestCase):
         from .stream import advance,new_cursor
         for policy in ('e8','a1'):
             with Model(policy,seed=7) as a:
-                s,_=advance(a,new_cursor(),1001);raw=a.dumps()
+                cursor=new_cursor();cursor['finish_interval']=997;cursor['next_finish']=997
+                # Shortened correctness-only cadence crosses finish events on both paths.
+                s,_=advance(a,cursor,1001);raw=a.dumps()
                 with Model.loads(raw,policy) as b:
                     t,_=advance(a,s,1000)
                     u,_=advance(b,s,371)
                     with Model.loads(b.dumps(),policy) as c:
                         v,_=advance(c,u,629)
                         self.assertEqual(t,v);self.assertEqual(a.dumps(),c.dumps())
+    def test_binary_overwrite_shortcut_is_disclosed(self):
+        from .update_metrics import shortcuts
+        self.assertEqual(shortcuts(cases('dev',128,condition='overwrite16'))['latest_value'],1.0)
+        self.assertEqual(shortcuts(cases('dev',128,condition='compete16'))['latest_value'],0.0)
     def test_readonly_lifecycle(self):
         with Model() as a:
             with self.assertRaises(RuntimeError):a.freeze_span(b'abc')

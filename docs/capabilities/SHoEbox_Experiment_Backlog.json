@@ -287,7 +287,22 @@
       "question": "What specifically destroys usable information between observation and query?",
       "design": "Start with crossed delay {0,16,64,256} bytes and binding count {1,2,4}; introduce repeated neutral filler, diverse irrelevant filler, and competing keyed writes separately. Train a delay mixture, then test both its range and 2\u00d7/4\u00d7 longer delays. Contrast no-op clock advancement with normal writes, freeze-writes during distractors, and addressed/retained-read lesions separately. Reproduce the historical routing-A cue fixture beside C, then require multi-value evidence.",
       "evaluation": "Measure exact binding, per-record occupancy/eviction, value decodability immediately after writing and before querying, query-dependent read quality, and precision under distractors. For noisy cues, vary substitution/edit noise independently of delay and key count; include ambiguous-key cases with a declared answer policy. The current fuzzy_recall task varies byte-string widths; add explicit corrupted-cue tasks rather than equating width with noise robustness.",
-      "decision": "If values remain decodable but queries fail, return to EXP01. If disabling distractor writes restores performance, prioritize EXP05. If failures follow record eviction, test the bounded-cache arm of EXP14. Report trained-range retention separately from delay extrapolation."
+      "decision": "If values remain decodable but queries fail, return to EXP01. If disabling distractor writes restores performance, prioritize EXP05. If failures follow record eviction, test the bounded-cache arm of EXP14. Report trained-range retention separately from delay extrapolation.",
+      "latest_focused_result": {
+        "revision": "A1",
+        "status": "development gate failed; E8 unchanged; audit closed",
+        "report": "reports/exp0305/SHoEbox_EXP0305_Report.md",
+        "new_training_bytes": 20250000,
+        "slots_added": 0,
+        "weights_added_vs_e8": 0,
+        "diverse64_exact_e8": 0.13541666666666666,
+        "diverse64_exact_a1": 0.85546875,
+        "diverse256_exact_e8": 0.09765625,
+        "diverse256_exact_a1": 0.765625,
+        "competing_bindings_exact": 0.39453125,
+        "native_throughput_ratio": 0.8032727376777712,
+        "overwrite_fixture": "binary overwrite has perfect latest-value shortcut; next revision must use registered three-value amendment"
+      }
     },
     {
       "id": "EXP04",
@@ -339,7 +354,22 @@
       "question": "Are retention failures caused by coupled erase/write decisions, insufficient transition expressivity, or accumulated drift?",
       "design": "Run separate arms: existing update; independent erase/write gates inspired by Gated DeltaNet-2/FG\u00b2-GDN; two or four DeltaProduct-style transition substeps; and a bounded nonlinear state-dependent correction. Add a small context-replay memory objective only if online overwriting remains the diagnosed issue. Keep the readout and target memory interface fixed; count all state/projection costs. A dense reference update must be validated before deriving a compressed MinKron equivalent.",
       "evaluation": "Use overwrite-one-of-many, alternating updates, copy/swap cycles, and identity cycles that should return to the same symbolic state. Measure error after perturbing state, within-state spread versus between-state separation, exact rollout horizon, and unrelated-binding loss. Include a small state-gated RNN as an error-control reference.",
-      "decision": "Choose the smallest intervention that fixes the diagnosed failure. A higher-rank affine transition and a state-dependent error corrector answer different questions. SHoEbox already includes nonlinear computation, so the affine-model theorem is a diagnostic motivation, not a proof that the whole architecture must fail. Do not stack all update changes before isolating a winner."
+      "decision": "Choose the smallest intervention that fixes the diagnosed failure. A higher-rank affine transition and a state-dependent error corrector answer different questions. SHoEbox already includes nonlinear computation, so the affine-model theorem is a diagnostic motivation, not a proof that the whole architecture must fail. Do not stack all update changes before isolating a winner.",
+      "latest_focused_result": {
+        "revision": "A1",
+        "status": "development gate failed; E8 unchanged; audit closed",
+        "report": "reports/exp0305/SHoEbox_EXP0305_Report.md",
+        "new_training_bytes": 20250000,
+        "slots_added": 0,
+        "weights_added_vs_e8": 0,
+        "diverse64_exact_e8": 0.13541666666666666,
+        "diverse64_exact_a1": 0.85546875,
+        "diverse256_exact_e8": 0.09765625,
+        "diverse256_exact_a1": 0.765625,
+        "competing_bindings_exact": 0.39453125,
+        "native_throughput_ratio": 0.8032727376777712,
+        "overwrite_fixture": "binary overwrite has perfect latest-value shortcut; next revision must use registered three-value amendment"
+      }
     },
     {
       "id": "EXP06",
@@ -2529,5 +2559,12 @@
     "documentation": "reports/minimal_core/SHoEbox_Minimal_Core_Baseline.md",
     "capability_matrix": "docs/capabilities/SHoEbox_Minimal_Capability_Matrix.md",
     "handoff": "DEVELOPMENT_HANDOFF.md"
+  },
+  "current_research_report": "reports/exp0305/SHoEbox_EXP0305_Report.md",
+  "next_registered_revision": {
+    "id": "EXP03/EXP05-A2",
+    "status": "preregistered, not fitted",
+    "registration": "reports/exp0305/A2_REGISTRATION.md",
+    "required_fixture_amendment": "reports/exp0305/A2_FIXTURE_AMENDMENT.md"
   }
 }

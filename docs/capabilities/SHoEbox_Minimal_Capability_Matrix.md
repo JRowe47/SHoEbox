@@ -69,12 +69,12 @@ Memory-read removal reduces minimal copy from 73.83% to 11.85%; zeroing final L3
 | M05 | Use remembered information in prediction | Yes | In principle | Disabling addressed and retained reads lowers minimal copy token accuracy from 73.83% to 11.85%; establishes causal use on this task. Next: EXP01, EXP03, EXP08. |
 | M06 | Store and recover exact externally supplied bindings | Yes — explicit API | Untested | bind/lookup/payload entry points remain available; automatic association dispatch is excluded from minimal. Earlier exact-API evidence is historical; no new minimal-specific binding qualification is claimed. Next: EXP14. |
 | M07 | Bind a newly observed value to the right query | Yes — public E8 paired readout | Public narrowly qualified | E8 three-seed audit: 98.2747% native whole-episode exactness, retained through 1M language targets; 96.875% both orders; query/state/pairing ablations pass. Explicit fixture-local labels, 7,670 budgeted weights, no extra sequence state. Generic and 1M/5M gates pass. Public integration and exact checkpoint/cursor parity pass. Next: EXP03/05 interference. |
-| M08 | Retain information through longer delays and interference | Yes — public E8 readout | Narrow for padding delays; interference untested | E8 audit reaches 100% through +64/+128/+256 unseen padding bytes across all offsets on the registered delay sample; after language retention too. Arbitrary distractors, additional bindings and eviction remain EXP03/05 work. |
+| M08 | Retain information through longer delays and interference | Yes — public E8 readout | Narrow for padding; interference development gate fails | E8 audit reaches 100% through +64/+128/+256 unseen padding bytes across all offsets on the registered delay sample; after language retention too. EXP03/05 diagnoses eviction under diverse filler and shortlist competition. A1 (research only) improves matched 64/256-byte diverse retention from 13.54/9.77% to 85.55/76.56%, but fails gates. E8 stays unchanged; A2 query-first selection is registered. |
 | M09 | Recall despite noisy or approximate cues | Yes — memory path | Untested | Prior noisy/fuzzy full-C probes failed; minimal noisy-cue behavior is unqualified. Next: EXP03. |
-| M10 | Update working variables without overwriting unrelated state | Partial | Untested | Research tasks exist; full-C initialization/set/copy/swap failed EXP00. No successful minimal state-update workflow. Next: EXP04, EXP05. |
+| M10 | Update working variables without overwriting unrelated state | Partial | Untested | Research tasks exist; full-C initialization/set/copy/swap failed EXP00. No qualified state-update workflow. A1 binary overwrite has a perfect latest-value shortcut; its failed 39.06% is diagnostic only. A2 requires the registered three-value correction. Next: EXP04, EXP05. |
 | M11 | Maintain useful episodic memory across sessions | Partial | Untested | Checkpoint persistence exists; autonomous episodic admission, retrieval and answer use across sessions are unqualified. Next: EXP14. |
 | M12 | Track who said what, when, and with which source | Partial | Untested | Temporal/address features exist; semantic speaker, time and source attribution are unqualified. Next: EXP14, EXP16. |
-| M13 | Select memory writes, updates and forgetting appropriately | Partial | Untested | Bounded write/replacement/reset policies exist; semantic write selection and correction handling are unfinished. Next: EXP03, EXP05, EXP14. |
+| M13 | Select memory writes, updates and forgetting appropriately | Partial | Untested | A1 learned replacement protects existing L1 slots and improves diverse-filler retention, but fails the complete gate and remains research only. Semantic correction handling is unfinished. Next: EXP03, EXP05, EXP14. |
 | M14 | Consolidate episodic experience into reusable knowledge | No | Untested | No dedicated integrated workflow in the minimal baseline. Next: EXP14. |
 | M15 | Scale memory capacity independently of expert parameters | Partial | Untested | State and retained memory exist; independently editable working-slot comparisons remain proposed. Next: EXP02, EXP21. |
 | M16 | Retain a simple binary cue through repeated distractors | Partial | Untested | The passing binary-cue regression was historical routing A. Reproduce it explicitly on minimal; do not inherit its result. Next: EXP03. |
@@ -153,8 +153,10 @@ Memory-read removal reduces minimal copy from 73.83% to 11.85%; zeroing final L3
 
 E8 public integration is complete, with 29 exact imports/cursors, 14 historical
 constructor trajectories and all four >=80% native speed checks passing.
-Keep the E8 numerical recipe fixed. Next: EXP03/EXP05 interference and retention
-beyond padding, beginning with measured failure localization in existing state.
+Keep the E8 numerical recipe fixed. EXP03/EXP05-A1 completed: existing-slot retention
+improves but gates fail; no audit opened. Next is registered A2 query-first
+selection with its mandatory three-value overwrite-fixture correction. Read
+[the new report](../../reports/exp0305/SHoEbox_EXP0305_Report.md).
 Preregister fresh world/document groups excluding all opened audits and account
 for each pilot, padding byte, auxiliary update and CPU cost. Local fixture
 supervision remains distinct from generic byte objectives.

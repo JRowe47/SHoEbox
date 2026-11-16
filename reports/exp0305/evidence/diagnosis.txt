@@ -1,0 +1,20 @@
+pad0 1.0 {'present': 1.0, 'decodable': 0.79296875, 'shortlisted': 1.0, 'query': 1.0, 'selected_value': 1.0, 'native': 1.0, 'occupancy': 8.625, 'clock': 10.09375}
+pad16 1.0 {'present': 1.0, 'decodable': 0.88671875, 'shortlisted': 1.0, 'query': 1.0, 'selected_value': 1.0, 'native': 1.0, 'occupancy': 10.375, 'clock': 12.84375}
+pad64 1.0 {'present': 1.0, 'decodable': 0.88671875, 'shortlisted': 1.0, 'query': 1.0, 'selected_value': 1.0, 'native': 1.0, 'occupancy': 10.375, 'clock': 12.84375}
+pad256 1.0 {'present': 1.0, 'decodable': 0.88671875, 'shortlisted': 1.0, 'query': 1.0, 'selected_value': 1.0, 'native': 1.0, 'occupancy': 10.375, 'clock': 12.84375}
+Traceback (most recent call last):
+  File "<frozen runpy>", line 198, in _run_module_as_main
+  File "<frozen runpy>", line 88, in _run_code
+  File "/workspace/scratch/2f959010f0a1/SHoEbox/experiments/interference_retention/diagnose.py", line 71, in <module>
+    if __name__=='__main__':main()
+                            ^^^^^^
+  File "/workspace/scratch/2f959010f0a1/SHoEbox/experiments/interference_retention/diagnose.py", line 67, in main
+    if cond.startswith(('repeat','diverse')):result[cond+'_freeze']=evaluate(m,cs,trace_state=True,freeze=True)
+                                                                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/scratch/2f959010f0a1/SHoEbox/experiments/interference_retention/diagnose.py", line 52, in evaluate
+    rows,used=trace(f,c,freeze);traces.extend(rows);n+=used;pad+=c.ep.data[:-1].count(9)
+              ^^^^^^^^^^^^^^^^^
+  File "/workspace/scratch/2f959010f0a1/SHoEbox/experiments/interference_retention/diagnose.py", line 23, in trace
+    value,sig,phase=known[q]
+                    ~~~~~^^^
+KeyError: 132

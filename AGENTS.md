@@ -1,5 +1,12 @@
 # SHoEbox development
 
+- Latest focused work: read `reports/exp0305/SHoEbox_EXP0305_Report.md`,
+  `A2_REGISTRATION.md` and `A2_FIXTURE_AMENDMENT.md` in that directory. A1
+  improves retention using existing slots but fails the capability gate. E8
+  remains the qualified default. A2 is preregistered, not fitted; its three-value
+  overwrite correction is mandatory because the binary fixture has a perfect
+  latest-value shortcut. Keep its failed scores/costs and the A1 audit closed.
+
 - Before new capability work, read `DEVELOPMENT_HANDOFF.md`,
   `docs/capabilities/SHoEbox_Minimal_Capability_Matrix.md`, `reports/exp01e8/`,
   the preserved E1-E8 registrations in `reports/exp01e/`, and the

@@ -1,5 +1,30 @@
 # SHoEbox development handoff
 
+16 November 2026. **EXP03/EXP05-A1 is complete; public E8 is unchanged.**
+Read [the interference/retention report](reports/exp0305/SHoEbox_EXP0305_Report.md),
+[A1 registration](reports/exp0305/A1_REGISTRATION.md),
+[A2 registration](reports/exp0305/A2_REGISTRATION.md) and its mandatory
+[three-value fixture amendment](reports/exp0305/A2_FIXTURE_AMENDMENT.md).
+
+Frozen fresh-world diagnosis isolates L1 eviction under diverse filler and
+presence-only shortlist competition when records survive. A1 prioritizes learned
+record windows within the same 16 slots, adding zero weights/state. Three-seed
+matched development: 64 diverse bytes improve 13.54% →85.55%, 256 bytes
+9.77% →76.56%; competing bindings remain 39.45%. A1 passes isolated speed at
+80.33% native but fails capability gates; no promotion, no audit opened.
+The binary overwrite fixture has a perfect latest-value shortcut and cannot
+qualify selective updates. Its failed results/costs are preserved. A2 must use
+the preregistered three-value correction and retain fresh two-value regression.
+
+All 20.25M new fitting bytes are charged, with exact padding/local-event/CPU
+ledgers. Eighteen actual model/cursor pairs resume exactly; Python/native,
+causality, lifecycle, 14 historical trajectories and ASan/UBSan pass.
+Next: implement and fit registered A2 query-dependent selection before
+truncation, on fresh folds and matched budgets. No new slots or prior sweep.
+A2 has not been fitted. Preserve every E8 numerical/public/historical contract,
+all original thresholds and all opened-audit exclusions. Direct verified main
+publication remains authorized, including failures; never force-push.
+
 16 November 2026 (America/Denver). **E8 public integration is complete.**
 `shoe_multiscale.Model()` / `fresh_model()` now select E8 when only parameters
 and seed are supplied. Explicit `policy="e8"` is stable; `policy="v19"`,
