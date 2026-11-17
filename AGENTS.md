@@ -1,5 +1,26 @@
 # SHoEbox development
 
+Current result: A9-F1 is complete and A9 FAILS development. Read
+`reports/exp0305a9f1/SHoEbox_EXP0305_A9_F1_Report.md`, `DIAGNOSIS.md`,
+`RESUME.md` and `A10_REGISTRATION.md` in full. All 896 primary worlds and
+original streams are preserved; F1 selects the exact 128/336 binary sample.
+The independent E8/A8/A9 campaign used exactly 20.25M fitting bytes. A9 scores
+88.281250% competing, 88.281250% corrected overwrite, 94.531250% clean,
+86.328125% diverse256 and 68.202933% isolated native speed. Keep E8 public,
+every old result/cost and all A1–A9 audits closed. Teacher-fed subset identity
+improves 90.625%→93.75%; signatures survive, but full autoregression fails.
+The sole next registration is A10 exact row-parallel affine execution, with
+ZERO research fitting bytes. A10 is not implemented or measured. It must pass
+bitwise reference equivalence and >=80% native speed; even a speed pass leaves
+A9's accuracy failure intact. No new accuracy experiment or generic/capacity
+qualification is authorized by A10. Preserve all-256 outputs, generic/local
+separation, exact cursors and disabled FMA. Verified direct main publication,
+including failure, remains authorized without confirmation; never force-push.
+Deliver ordinary downloadable Markdown, PNGs, archive and next prompt, no
+Pages/Spaces. This current entry supersedes all historical next steps below.
+
+Historical pre-fit status (preserved):
+
 A9-F1 allocation repair and all pre-fit controls PASS. All 896 primary worlds
 and six original stream/credit manifests are unchanged; 128 binary development
 worlds are selected from 336 eligible candidates with every historical exclusion.

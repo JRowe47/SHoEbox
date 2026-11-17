@@ -1,5 +1,38 @@
 # SHoEbox development handoff
 
+16 November 2026 (America/Denver). **A9-F1 is complete; A9 fails development.**
+Read [report](reports/exp0305a9f1/SHoEbox_EXP0305_A9_F1_Report.md),
+[diagnosis](reports/exp0305a9f1/DIAGNOSIS.md), [resume](reports/exp0305a9f1/RESUME.md)
+and [A10 registration](reports/exp0305a9f1/A10_REGISTRATION.md) in full.
+F1 selected the exact 128/336 binary sample while retaining all 896 primary
+worlds and every original stream/credit hash. All pre-fit controls passed and
+were committed locally as `00d5cb3` before fitting; the identical tree was
+published as `7dc8b5c`. The fixed E8/A8/A9 campaign used exactly 20.25M bytes,
+seeds 1/7/19, independent 250K warmups plus 2M continuations per arm/seed.
+
+A9: competing 88.281250%, corrected overwrite 88.281250%, clean 94.531250%,
+diverse256 86.328125%, isolated throughput 68.202933% native. Every original
+gate remains; E8 stays public and A1–A9 audits stay closed. A9 executes 14,524
+and omits 14,307 record-key updates per continuation. Matched subset nearest
+identity improves 90.625%→93.75%, old-value predictions 9.375%→1.5625%,
+and record error 4.973879→4.076629. Signatures survive; presence false
+recognition is identical at 1.405622%. Keep these teacher-fed subset measures
+separate from whole-population autoregression. All full outcomes were locked
+before diagnosis; no additional fit, sweep or qualification ran.
+
+The sole next preregistration is **A10 exact row-parallel affine execution**,
+with **zero research fitting bytes**. It is not implemented or measured.
+Resolve the independently failing speed gate using exact per-row arithmetic,
+unchanged A9 state/policy and disabled FMA. Bitwise reference equivalence and
+>=80% native speed are mandatory. A pass does not repair A9 accuracy or promote
+it; later accuracy work requires another registration. Preserve all historical
+reports, blocked-A9 failures/costs, unrelated changes and remote history.
+Verified direct-main publication remains authorized without confirmation,
+including failure; never force-push. Deliver ordinary downloadable Markdown,
+PNGs, resumable archive and prompt, no Pages/Spaces. Historical entries follow.
+
+Historical pre-fit status (preserved):
+
 A9-F1 allocation repair and all pre-fit controls PASS. All 896 primary worlds
 and six original stream/credit manifests are unchanged; 128 binary development
 worlds are selected from 336 eligible candidates with every historical exclusion.

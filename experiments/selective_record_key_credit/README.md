@@ -1,12 +1,20 @@
 # EXP03/05-A9 with F1 allocation repair
 
+Completed: A9 fails development after exactly 20.25M fitting bytes. Competing
+and corrected overwrite are 88.281250%, clean 94.531250%, diverse256 86.328125%,
+and isolated throughput 68.202933% native (80% required). E8 remains public;
+all A1–A9 audits stay closed. Full report, diagnosis, receipts and RESUME are
+in `reports/exp0305a9f1/`. Its A10 registration proposes only an exact
+row-parallel affine execution experiment, with zero research fitting bytes;
+A10 is not implemented or measured. The completed A9 budget must not be rerun.
+
 A9-F1 is implemented. It selects the registered 128 binary development worlds
 from 336 eligible candidates, excludes all 896 unchanged primary groups and
 all historical exclusions, and prohibits binary training/audit allocation.
 The independent proof reproduces the original 96-world shortage and verifies
 all six original stream/credit manifests byte for byte. The original blocked
 report, receipts and CPU remain in `reports/exp0305a9/`; completed execution
-results will be recorded separately in `reports/exp0305a9f1/`.
+results are recorded separately in `reports/exp0305a9f1/`.
 
 Read `reports/exp0305a8/A9_REGISTRATION.md` and
 `reports/exp0305a9/A9_F1_REGISTRATION.md` together. Every numerical policy,
