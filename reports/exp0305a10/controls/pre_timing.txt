@@ -1,0 +1,16 @@
+lscpu: failed to determine number of CPUs: /sys/devices/system/cpu/possible: No such file or directory
+Traceback (most recent call last):
+  File "<frozen runpy>", line 198, in _run_module_as_main
+  File "<frozen runpy>", line 88, in _run_code
+  File "/workspace/scratch/21e4ea799e39/SHoEbox/experiments/row_parallel_affine/pre_timing.py", line 72, in <module>
+    if __name__=='__main__':main()
+                            ^^^^^^
+  File "/workspace/scratch/21e4ea799e39/SHoEbox/experiments/row_parallel_affine/pre_timing.py", line 44, in main
+    flags=backend.FLAGS,libc=platform.libc_ver(),cpu=subprocess.check_output(['lscpu','-J'],text=True),
+                                                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/subprocess.py", line 466, in check_output
+    return run(*popenargs, stdout=PIPE, timeout=timeout, check=True,
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/subprocess.py", line 571, in run
+    raise CalledProcessError(retcode, process.args,
+subprocess.CalledProcessError: Command '['lscpu', '-J']' returned non-zero exit status 1.
