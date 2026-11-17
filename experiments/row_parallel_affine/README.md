@@ -1,5 +1,11 @@
 # EXP03/05-A10: exact row-parallel affine execution
 
+Completed result: exactness passes; execution qualification fails at
+76.020287% native throughput, with an 11.182846% gain over paired scalar A9.
+The twelve original measurements must not be rerun or replaced. See
+`reports/exp0305a10/SHoEbox_EXP0305_A10_Report.md`, `ACCOUNTING.json` and
+`RESUME.md`. The sole next A11 registration is unimplemented/unmeasured.
+
 This is an explicitly selected execution backend for A9, with the same policy,
 checkpoint magic and exact cursor. It is not a public default or an accuracy
 experiment. Research fitting budget is zero. Original A9 and all older backends

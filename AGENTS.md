@@ -1,5 +1,34 @@
 # SHoEbox development
 
+Current result: **A10 is complete and fails execution qualification.** Read
+`reports/exp0305a10/SHoEbox_EXP0305_A10_Report.md`, `ACCOUNTING.json`, `RESUME.md`
+and `A11_REGISTRATION.md` in full, together with original A9/A9-F1/A10
+registrations. The exact four-row backend passes scalar/reference, full saved
+byte and actual-cursor controls. Fresh pinned timing is 76.020287% native and
+11.182846% faster than paired scalar A9; the unchanged 80% gate fails.
+Passing controls were committed/published as `3bc9d54f84626c3c117f88419f8cdcec0564e325`
+before the twelve original timing intervals. Preserve every raw duration and
+checksum; never rerun or replace A10 timing. Its 16 timing identities are now
+opened and must be excluded from future allocations. No accuracy was rescored,
+no audit was accessed and research fitting was zero. A9-F1's 20.25M-byte budget
+is exhausted. All original A9 results and closed A1–A9 audits remain; E8 stays
+public. Legacy microtest event counts are incomplete as explicitly recorded in
+the ledger; their CPU/source/assertion receipts are retained, not treated as zero.
+The sole next registration is **A11 fixed eight-row exact affine execution**,
+zero research fitting. It is not implemented, allocated or measured. Preserve
+exact per-row arithmetic, scalar tanh, disabled FMA, full-256 outputs, generic/
+local separation, credit policy, saved bytes, cursors and historical backends.
+A11 must close inherited-event instrumentation before controls/timing and pass
+exactness, >=80% native speed and no slowdown against scalar A9 or A10.
+No speed pass repairs A9 accuracy or authorizes promotion. Verified direct
+main publication, including failure, remains authorized without confirmation;
+preserve unrelated changes/history and never force-push. Keep data/checkpoints/
+binaries outside git. Deliver downloadable Markdown, PNGs, resumable archive
+and copy/paste prompt; no Pages/Spaces. This entry supersedes historical next
+steps below without changing any original result.
+
+Historical A9-F1 completed status (preserved):
+
 Current result: A9-F1 is complete and A9 FAILS development. Read
 `reports/exp0305a9f1/SHoEbox_EXP0305_A9_F1_Report.md`, `DIAGNOSIS.md`,
 `RESUME.md` and `A10_REGISTRATION.md` in full. All 896 primary worlds and

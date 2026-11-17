@@ -18,7 +18,21 @@ See [E8 results](../../reports/exp01e8/SHoEbox_EXP01E8_Report.md).
 passes numerical/checkpoint parity and all speed gates; E8 is the default. E2-family
 binding and E7 generic audits are now opened; never tune against them.
 
-Latest status: **A9-F1 is complete; A9 fails development.** The exact 128/336
+Latest status: **A10 passes exactness and fails execution qualification.**
+Its fixed four-row backend reaches 76.020287% native throughput and improves
+paired scalar A9 throughput by 11.182846%; the unchanged 80% gate fails.
+[A10 report](../../reports/exp0305a10/SHoEbox_EXP0305_A10_Report.md) and
+[accounting](../../reports/exp0305a10/ACCOUNTING.json) retain all twelve timings,
+18 actual-pair bitwise continuations and costs, including explicitly incomplete
+legacy microtest event counters. Research fitting and accuracy rescoring are
+zero; E8 remains public, A9 accuracy still fails, and A1–A9 audits stay closed.
+The sole next step is the unimplemented/unmeasured
+[A11 fixed eight-row kernel](../../reports/exp0305a10/A11_REGISTRATION.md),
+with zero research fitting. All A10 timing identities become exclusions.
+No execution improvement adds a demonstrated semantic capability or authorizes
+promotion; all development and qualification gates remain unchanged.
+
+Historical A9-F1 status: **A9-F1 is complete; A9 fails development.** The exact 128/336
 binary allocation repair preserves all 896 primary worlds and original streams.
 The matched 20.25M-byte E8/A8/A9 campaign gives A9 88.281250% competing,
 88.281250% corrected overwrite, 94.531250% clean, 86.328125% diverse256 and

@@ -1,5 +1,37 @@
 # SHoEbox development handoff
 
+16 November 2026 (America/Denver). **A10 is complete and fails its speed gate.**
+Read [report](reports/exp0305a10/SHoEbox_EXP0305_A10_Report.md),
+[event/CPU ledger](reports/exp0305a10/ACCOUNTING.json),
+[resume](reports/exp0305a10/RESUME.md) and the sole
+[A11 registration](reports/exp0305a10/A11_REGISTRATION.md) in full.
+
+The explicit four-row affine backend preserves original scalar outputs,
+updates, saved bytes and cursors. All pre-timing controls, including 18 actual
+warmup/final pairs, passed and were committed/published as
+`3bc9d54f84626c3c117f88419f8cdcec0564e325` before measurement. The four fixed arms
+ran exactly three rotating repeats on CPU 0. Candidate/scalar checksums match.
+Median A10 3.789155297 CPU seconds versus scalar A9 4.212890693 and native
+2.880526734: **76.020287% native, 11.182846% faster than scalar**, below 80%.
+All twelve raw times and the failed metadata probe/cost remain. A10 fitting,
+accuracy rescoring and audit episodes are zero. The ledger identifies incomplete
+individual-event counters in inherited microtests while retaining their full
+process CPU and assertion receipts. These counts must not be represented as zero.
+
+Do not repeat A10 timing, reopen audits or extend the exhausted A9-F1 20.25M
+fitting budget. Preserve its 896 primary and 128 binary worlds/streams and all
+accuracy failures; public E8 remains. Exclude all 16 A10 timing identities from
+future allocations. The sole next experiment is A11's fixed eight-row AVX2
+execution kernel with ZERO research fitting. It is only registered; no A11
+code, allocation, control or measurement exists. Its registration requires
+complete inherited-event counters before testing and the unchanged exactness/
+80% native/no-slowdown gates. Speed cannot qualify A9 accuracy or promotion.
+Verified direct-main publication, including failure, remains authorized without
+confirmation; preserve unrelated history and never force-push. Deliver ordinary
+downloadable Markdown, PNGs, archive and prompt, with no Pages/Spaces.
+
+Historical A9-F1 completed status (preserved):
+
 16 November 2026 (America/Denver). **A9-F1 is complete; A9 fails development.**
 Read [report](reports/exp0305a9f1/SHoEbox_EXP0305_A9_F1_Report.md),
 [diagnosis](reports/exp0305a9f1/DIAGNOSIS.md), [resume](reports/exp0305a9f1/RESUME.md)
