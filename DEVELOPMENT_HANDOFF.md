@@ -1,5 +1,43 @@
 # SHoEbox development handoff
 
+16 November 2026 (America/Denver). **EXP03/EXP05-A5 is complete; qualified
+public E8 remains unchanged.** Read [the A5 report](reports/exp0305a5/SHoEbox_EXP0305_A5_Report.md),
+[separate diagnosis](reports/exp0305a5/DIAGNOSIS.md),
+[exact resume](reports/exp0305a5/RESUME.md) and
+[A6 registration](reports/exp0305a5/A6_REGISTRATION.md) in full.
+
+The registered all-256-code hybrid objective was implemented exactly, with
+float64 softmax/gradients and pre-update coupling. Passing independent references,
+finite differences, exhaustive selection, source and fresh folds were locked
+before any fit. Matched E8/A4/A5, seeds 1/7/19, consumed exactly 20.25M fitting
+bytes. A5: 90.23% competing bindings, 95.70% corrected three-value overwrite,
+97.59% clean binding, 63.80% diverse256 and 67.57% isolated native throughput.
+Development fails; all A1–A5 audits stay closed. Every threshold/sample remains.
+
+The matched frozen trace has 97.65625% nearest-key identity for both A4 and A5.
+A5 reduces unrelated mixture mass but still selects old values. Long-diverse
+signature survival is separately 95.3125%; all 36 target removals occur under
+false-recognition cache pressure. Surviving targets can also lose to recognized
+filler: about 95% of selected mass on their wrong answers is unannotated filler.
+A6 registers only a fixed negative record-presence cost of four, equal to the
+existing positive cost. It is not implemented or fitted. Keep the A5 key loss,
+A4 inference/admission, existing state and every original capability/speed gate.
+Use fresh folds excluding all prior groups plus A5 dev/binary/reserved audit.
+
+225 distinct Python tests, 15 protected-policy checks, native/ASan/UBSan,
+14 historical trajectories and all 18 actual model/cursor pairs pass.
+Source/fold/snapshot/result locks verify; E8/v19/E7/historical sources remain
+unchanged. Full byte, padding, local loss/gradient/code-comparison and CPU ledgers
+retain the initial missing-PyTorch test failure and successful repeated control.
+No extra fit, pilot, sweep or generic/capacity qualification occurred.
+
+Verified completed work, including failure, is explicitly authorized for commit
+and push directly to main; preserve unrelated changes/history and never force-push.
+Deliver ordinary downloadable Markdown, primary PNGs, resumable code/evidence
+archive and a copy/paste prompt preserving that authorization. No Pages/Spaces.
+Historical handoffs below preserve earlier results/costs; this A5 status
+supersedes their older next-step statements.
+
 16 November 2026 (America/Denver). **EXP03/EXP05-A4 is complete; qualified
 public E8 remains unchanged.** Read [the A4 report](reports/exp0305a4/SHoEbox_EXP0305_A4_Report.md),
 [execution lock](reports/exp0305a4/EXECUTION_LOCK.md) and

@@ -1,5 +1,21 @@
 # SHoEbox development
 
+- Current focused work: EXP03/05-A5 is complete and fails development. Read
+  `reports/exp0305a5/SHoEbox_EXP0305_A5_Report.md`, `DIAGNOSIS.md` and
+  `A6_REGISTRATION.md` in full. Matched E8/A4/A5 used exactly 20.25M bytes,
+  seeds 1/7/19. A5 reaches 90.23% competing bindings, 95.70% corrected overwrite,
+  97.59% clean binding, 63.80% diverse256 and 67.57% native throughput.
+  Keep qualified public E8 and all A1–A5 audits closed. Matched A4/A5 nearest-key
+  identity is identical (97.66%); false record recognition separately causes
+  cache pressure and filler selection. A6 registers one fixed record-presence
+  negative cost change from 1 to 4, preserving positive updates and everything
+  else in A5. It is not implemented or fitted. Exclude every prior opened group,
+  reserved A1–A5 audit and all A2–A5 dev/binary worlds. Preserve all original
+  scores/costs, local/generic separation, full-byte inference and all gates,
+  including >=80% isolated native speed. Direct verified main publication,
+  including failed research, remains authorized; never force-push. Entries
+  below preserve historical status and do not supersede this handoff.
+
 - Current focused work: EXP03/05-A4 is complete and fails development. Read
   `reports/exp0305a4/SHoEbox_EXP0305_A4_Report.md` and `A5_REGISTRATION.md`
   in full. Competing bindings 86.72%, corrected overwrite 94.79%, diverse256

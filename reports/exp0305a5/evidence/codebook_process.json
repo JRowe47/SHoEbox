@@ -1,0 +1,14 @@
+{
+  "command": [
+    "python",
+    "-c",
+    "import json,hashlib,numpy as np; from experiments.discriminative_keys.test_objective import code; c=np.array([[code(b,r) for r in range(16)] for b in range(256)],dtype=np.float32); collisions=[(b,a) for a in range(256) for b in range(a) if np.array_equal(c[a],c[b])]; result=dict(labels=256,coordinates=16,collision_pairs=collisions,sha256=hashlib.sha256(c.tobytes()).hexdigest(),fixed_readonly_codebook_bytes=c.nbytes,minimum_hamming=min(int(np.count_nonzero(c[a]!=c[b])) for a in range(256) for b in range(a)),training_bytes=0,pairwise_comparisons=32640,policy='Unchanged all-256 existing byte_code; no labels removed or codes altered'); open('../a5_work/codebook.json','w').write(json.dumps(result,indent=2)+'\\n'); print(json.dumps(result,indent=2))"
+  ],
+  "exit_code": 0,
+  "wall_seconds": 0.3119897870001296,
+  "user_cpu_seconds": 0.54166,
+  "system_cpu_seconds": 0.015243999999999999,
+  "cpu_seconds": 0.5569040000000001,
+  "peak_rss_kib": 26440,
+  "scope": "Whole child process tree, including fit, evaluation, compilation and I/O."
+}
