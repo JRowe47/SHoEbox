@@ -50,7 +50,7 @@ def main():
  write(ev/'development.json',compact_evidence(compact));write(ev/'conflicts_summary.json',[dict(seed=r['seed'],arm=r['arm'],summary=r['summary']) for r in conflicts['rows']])
  for source,dest in [('prefit.json','prefit.json'),('codebook.json','codebook.json'),('identity_attribution.json','identity_attribution.json'),('survivors.lock.json','survivors_lock.json'),('prefit_correctness_bytes.json','local_objective_accounting.json'),('a8/plan.json','plan.json'),('a8/selection.json','selection.json'),('extended/results.json','extended.json'),('benchmark.json','benchmark.json'),('update_metrics.json','update_metrics.json'),('cursors.json','cursors.json'),('history.json','history.json'),('environment.json','environment.json'),('matching_geometry.json','matching_geometry.json'),('conflicts.lock.json','conflicts_lock.json')]:shutil.copy2(w/source,ev/dest)
  write(ev/'extended.json',compact_evidence(ext))
- for name in ('coverage.json','frozen_fit.lock.json','evaluation.lock.json','python_counts.json'):
+ for name in ('coverage.json','frozen_fit.lock.json','evaluation.lock.json','frozen_diagnosis.lock.json','delivery_verification.json','python_counts.json'):
   shutil.copy2(w/name,ev/name)
  write(ev/'survivors_summary.json',[dict(seed=r['seed'],arm=r['arm'],summary=r['summary']) for r in read('survivors.json')['rows']])
  write(ev/'retention_summary.json',[dict(seed=r['seed'],arm=r['arm'],summary=r['summary']) for r in retention['rows']])

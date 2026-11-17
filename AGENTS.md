@@ -1,5 +1,26 @@
 # SHoEbox development
 
+- Current focused work: EXP03/05-A8 is complete and fails development. Read
+  `reports/exp0305a8/SHoEbox_EXP0305_A8_Report.md`, `DIAGNOSIS.md`, `RESUME.md`
+  and `A9_REGISTRATION.md` in full. Matched E8/A6/A8, seeds 1/7/19, used exactly
+  20.25M independent fitting bytes. A8: 80.859375% competing, 78.515625% corrected
+  overwrite, 87.890625% clean, 83.593750% diverse256, 68.587044% native speed.
+  Keep E8 and all A1–A8 audits closed. Matched A6/A8 subset traces retain 100%
+  signatures; false recognition falls 3.212851% to 1.857430%, but nearest-key
+  identity falls 92.968750% to 88.802083%. Keep teacher-fed subset diagnosis
+  separate from full autoregression. The balanced curriculum was exact; A6
+  arithmetic/state and every historical policy remain unchanged. A9 registers
+  one selective record-key credit mask: retain A8's input curriculum and update
+  record-key heads only in PAD blocks. Presence/query/value/applicability/native
+  rules stay unchanged. A9 is not implemented or fitted. Read its exact flag,
+  event/counter and fresh E8/A8/A9 stream requirements. All original gates remain,
+  including >=80% isolated native speed. Exclude all prior opened groups,
+  reserved A1–A8 audits and all A2–A8 dev/binary worlds. No extra fit or replay.
+  Completed verified work, including failure, is authorized for direct main
+  commit/push without confirmation; preserve unrelated changes/history, never
+  force-push. Deliver ordinary downloadable Markdown, PNGs, resumable archive
+  and next prompt; no Pages/Spaces. This entry supersedes older next steps.
+
 - Current focused work: EXP03/05-A7 is complete and fails development. Read
   `reports/exp0305a7/SHoEbox_EXP0305_A7_Report.md`, `DIAGNOSIS.md`, `RESUME.md`
   and `A8_REGISTRATION.md` in full. Matched E8/A6/A7, seeds 1/7/19, used exactly

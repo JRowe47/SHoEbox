@@ -1,5 +1,49 @@
 # SHoEbox development handoff
 
+16 November 2026 (America/Denver). **EXP03/EXP05-A8 is complete and fails;
+qualified public E8 remains unchanged.** Read [A8 report](reports/exp0305a8/SHoEbox_EXP0305_A8_Report.md),
+[diagnosis](reports/exp0305a8/DIAGNOSIS.md), [resume](reports/exp0305a8/RESUME.md)
+and [A9 registration](reports/exp0305a8/A9_REGISTRATION.md) in full.
+
+A8 alternates exactly 64-episode PAD/diverse continuation blocks, beginning PAD,
+using the exact A7 v7 generator. Both existing length draws, labels/masks/phases,
+RNG order, budgets and all A6 arithmetic/state are preserved. Passing receipts,
+1,111 source hashes, explicit fresh worlds and all six arm/phase stream locks
+were committed as `d622eb08e4ab5ee72315c739f5439255665b373f` before fitting.
+Matched E8/A6/A8, seeds 1/7/19, consumed exactly 20.25M bytes with independent
+250K warmups +2M continuations. No pilot, inherited warmup or extra fit ran.
+
+A8 scores: 80.859375% competing, 78.515625% corrected overwrite, 87.890625%
+clean, 83.593750% diverse256 and 68.587044% isolated native throughput. Every
+original gate remains, including 80% speed; all A1–A8 audits remain closed.
+On matched first-32-world teacher-fed traces, A6/A8 both retain 100% signatures;
+false recognition falls 3.212851% to 1.857430%, but competing nearest-key identity
+falls 92.968750% to 88.802083%. Old-value predictions rise 3.125000% to 7.812500%.
+These subset measures do not replace full autoregressive endpoints. A8 gives
+14,482 positive record-key events in PAD blocks and 14,328 in diverse blocks;
+all 64 phases occur in both. The intended balance occurred.
+
+A9 registers one training-only record-key credit mask: retain A8 inputs, but
+update record-key projections only in PAD blocks. Presence keeps both contexts;
+query-key, value, applicability and native rules stay unchanged. No new model
+state or inference flag. A9 is not implemented or fitted. Use fresh matched
+E8/A8/A9 and every exact salt/seed/count/exclusion in the registration, including
+A8 dev/binary/reserved-audit exclusions. Keep reduced key-update costs explicit.
+
+269 distinct Python tests, 21 protected-policy checks, native/ASan/UBSan,
+14 historical trajectories and all 18 actual checkpoint/cursor pairs pass.
+Complete source/data/fit/evaluation/diagnostic locks and delivery verification
+pass. The initial cursor-test coverage assertion and repeated correctness cost
+are preserved. No research fit repeated; no public/historical numerical source
+or older report changed. No generic/capacity qualification ran.
+
+Completed verified work, including failure, is explicitly authorized for direct
+main commit/push without another confirmation. Preserve unrelated changes and
+remote history; never force-push. Deliver ordinary downloadable Markdown,
+primary PNGs, resumable archive and a copy/paste prompt preserving this authority.
+No Pages/Spaces. This A8 status supersedes older next steps; historical evidence
+and handoffs below remain intact.
+
 16 November 2026 (America/Denver). **EXP03/EXP05-A7 is complete and fails;
 qualified public E8 remains unchanged.** Read [the A7 report](reports/exp0305a7/SHoEbox_EXP0305_A7_Report.md),
 [diagnosis](reports/exp0305a7/DIAGNOSIS.md), [resume](reports/exp0305a7/RESUME.md)

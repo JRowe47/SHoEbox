@@ -1,0 +1,16 @@
+{
+  "command": [
+    "python",
+    "-c",
+    "from pathlib import Path; import json; from experiments.balanced_record_context.run import sha,sources; w=Path(\"../a8_work\"); p=w/\"frozen_fit.lock.json\"; assert not p.exists(); plan=json.loads((w/\"a8/plan.json\").read_text()); assert sources()==plan[\"source_hashes\"]; assert json.loads((w/\"fit_process.json\").read_text())[\"exit_code\"]==0; lock={str(x.relative_to(w)):sha(x) for x in sorted((w/\"a8\").rglob(\"*\")) if x.is_file()}; p.write_text(json.dumps(lock,indent=2)+\"\\n\"); print(len(lock),\"fit files locked\")"
+  ],
+  "started_utc": "2026-11-17T04:06:09.046307+00:00",
+  "completed_utc": "2026-11-17T04:06:09.362492+00:00",
+  "exit_code": 0,
+  "wall_seconds": 0.31619365100050345,
+  "user_cpu_seconds": 1.023354,
+  "system_cpu_seconds": 0.09353,
+  "cpu_seconds": 1.1168840000000002,
+  "peak_rss_kib": 31152,
+  "scope": "Whole child process tree including compilation, fitting, evaluation, failed checks and I/O."
+}

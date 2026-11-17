@@ -18,6 +18,13 @@ See [E8 results](../../reports/exp01e8/SHoEbox_EXP01E8_Report.md).
 passes numerical/checkpoint parity and all speed gates; E8 is the default. E2-family
 binding and E7 generic audits are now opened; never tune against them.
 
+Latest focused result: **A8 fails development; E8 remains public and A1–A8 audits
+stay closed.** [A8 report](../../reports/exp0305a8/SHoEbox_EXP0305_A8_Report.md)
+and [diagnosis](../../reports/exp0305a8/DIAGNOSIS.md) preserve the exact 20.25M-byte
+campaign. [A9 selective record-key credit](../../reports/exp0305a8/A9_REGISTRATION.md)
+is registered only, not implemented or fitted. This supersedes historical
+next-step statements below without replacing their measurements.
+
 ## Retained architecture
 
 - Byte input/output; width 64; exact corrected-C sparse experts at 1 and 4 bytes.
@@ -69,9 +76,9 @@ Memory-read removal reduces minimal copy from 73.83% to 11.85%; zeroing final L3
 | M05 | Use remembered information in prediction | Yes | In principle | Disabling addressed and retained reads lowers minimal copy token accuracy from 73.83% to 11.85%; establishes causal use on this task. Next: EXP01, EXP03, EXP08. |
 | M06 | Store and recover exact externally supplied bindings | Yes — explicit API | Untested | bind/lookup/payload entry points remain available; automatic association dispatch is excluded from minimal. Earlier exact-API evidence is historical; no new minimal-specific binding qualification is claimed. Next: EXP14. |
 | M07 | Bind a newly observed value to the right query | Yes — public E8 paired readout | Public narrowly qualified | E8 three-seed audit: 98.2747% native whole-episode exactness, retained through 1M language targets; 96.875% both orders; query/state/pairing ablations pass. Explicit fixture-local labels, 7,670 budgeted weights, no extra sequence state. Generic and 1M/5M gates pass. Public integration and exact checkpoint/cursor parity pass. Next: EXP03/05 interference. |
-| M08 | Retain information through longer delays and interference | Yes — public E8 readout | Narrow for padding; interference development gate fails | E8 audit reaches 100% through +64/+128/+256 unseen padding bytes across all offsets on the registered delay sample; after language retention too. EXP03/05 diagnoses eviction under diverse filler and shortlist competition. A1 (research only) improves matched 64/256-byte diverse retention from 13.54/9.77% to 85.55/76.56%, but fails gates. E8 stays unchanged. Fresh three-value A2 query-first selection raises competing exactness 37.89% →92.97%, but fails development; On fresh matched folds A3 raises corrected overwrite 76.82% →95.96%, but competing binding falls 95.31% →85.81%; the full development gate and speed (71.75% native) fail. A4 query-relative matching also fails development: 86.72% competing bindings, 94.79% corrected overwrite, 64.45% diverse256 and 68.35% native speed. A5 local discriminative key reconstruction also fails: 90.23% competing, 95.70% corrected overwrite, 63.80% diverse256 and 67.57% native speed. A6 fixed record-presence cost also fails: 87.89% competing, 94.14% corrected overwrite, 84.38% diverse256 and 67.58% native speed; long-diverse signature survival reaches 100% on the registered subset. A7 diverse record-context curriculum is registered, not fitted. |
+| M08 | Retain information through longer delays and interference | Yes — public E8 readout | Narrow for padding; interference development gate fails | E8 audit reaches 100% through +64/+128/+256 unseen padding bytes across all offsets on the registered delay sample; after language retention too. EXP03/05 diagnoses eviction under diverse filler and shortlist competition. A1 (research only) improves matched 64/256-byte diverse retention from 13.54/9.77% to 85.55/76.56%, but fails gates. E8 stays unchanged. Fresh three-value A2 query-first selection raises competing exactness 37.89% →92.97%, but fails development; On fresh matched folds A3 raises corrected overwrite 76.82% →95.96%, but competing binding falls 95.31% →85.81%; the full development gate and speed (71.75% native) fail. A4 query-relative matching also fails development: 86.72% competing bindings, 94.79% corrected overwrite, 64.45% diverse256 and 68.35% native speed. A5 local discriminative key reconstruction also fails: 90.23% competing, 95.70% corrected overwrite, 63.80% diverse256 and 67.57% native speed. A6 fixed record-presence cost also fails: 87.89% competing, 94.14% corrected overwrite, 84.38% diverse256 and 67.58% native speed; long-diverse signature survival reaches 100% on the registered subset. A7 also fails: 66.80% competing, 75.26% overwrite, 84.77% diverse256 and 69.71% native speed. A8 balanced PAD/diverse curriculum fails: 80.86% competing, 78.52% overwrite, 83.59% diverse256 and 68.59% native speed. A9 selective record-key credit is registered only; E8 remains public and A1–A8 audits stay closed. |
 | M09 | Recall despite noisy or approximate cues | Yes — memory path | Untested | Prior noisy/fuzzy full-C probes failed; minimal noisy-cue behavior is unqualified. Next: EXP03. |
-| M10 | Update working variables without overwriting unrelated state | Partial | Untested | Research tasks exist; full-C initialization/set/copy/swap failed EXP00. No qualified state-update workflow. A1 binary overwrite has a perfect latest-value shortcut; its failed 39.06% is diagnostic only. Corrected three-value A2 improves overwrite 26.17% →66.02%, still failing; both versions survive and distance-only selection can prefer the old value. On fresh matched folds A3 raises corrected overwrite 76.82% →95.96%, but competing binding falls 95.31% →85.81%; the full development gate and speed (71.75% native) fail. A4 query-relative matching also fails development: 86.72% competing bindings, 94.79% corrected overwrite, 64.45% diverse256 and 68.35% native speed. A5 local discriminative key reconstruction also fails: 90.23% competing, 95.70% corrected overwrite, 63.80% diverse256 and 67.57% native speed. A6 fixed record-presence cost also fails: 87.89% competing, 94.14% corrected overwrite, 84.38% diverse256 and 67.58% native speed; long-diverse signature survival reaches 100% on the registered subset. A7 diverse record-context curriculum is registered, not fitted. Next: EXP04, EXP05. |
+| M10 | Update working variables without overwriting unrelated state | Partial | Untested | Research tasks exist; full-C initialization/set/copy/swap failed EXP00. No qualified state-update workflow. A1 binary overwrite has a perfect latest-value shortcut; its failed 39.06% is diagnostic only. Corrected three-value A2 improves overwrite 26.17% →66.02%, still failing; both versions survive and distance-only selection can prefer the old value. On fresh matched folds A3 raises corrected overwrite 76.82% →95.96%, but competing binding falls 95.31% →85.81%; the full development gate and speed (71.75% native) fail. A4 query-relative matching also fails development: 86.72% competing bindings, 94.79% corrected overwrite, 64.45% diverse256 and 68.35% native speed. A5 local discriminative key reconstruction also fails: 90.23% competing, 95.70% corrected overwrite, 63.80% diverse256 and 67.57% native speed. A6 fixed record-presence cost also fails: 87.89% competing, 94.14% corrected overwrite, 84.38% diverse256 and 67.58% native speed; long-diverse signature survival reaches 100% on the registered subset. A7 also fails: 66.80% competing, 75.26% overwrite, 84.77% diverse256 and 69.71% native speed. A8 balanced PAD/diverse curriculum fails: 80.86% competing, 78.52% overwrite, 83.59% diverse256 and 68.59% native speed. A9 selective record-key credit is registered only; E8 remains public and A1–A8 audits stay closed. Next: EXP04, EXP05. |
 | M11 | Maintain useful episodic memory across sessions | Partial | Untested | Checkpoint persistence exists; autonomous episodic admission, retrieval and answer use across sessions are unqualified. Next: EXP14. |
 | M12 | Track who said what, when, and with which source | Partial | Untested | Temporal/address features exist; semantic speaker, time and source attribution are unqualified. Next: EXP14, EXP16. |
 | M13 | Select memory writes, updates and forgetting appropriately | Partial | Untested | A1 learned replacement protects existing L1 slots and improves diverse-filler retention, but fails the complete gate and remains research only. Semantic correction handling is unfinished. Next: EXP03, EXP05, EXP14. |
@@ -213,3 +220,32 @@ qualification occurred. All original scores, timings, costs and gates remain.
 Read [A7 report](../../reports/exp0305a7/SHoEbox_EXP0305_A7_Report.md),
 [diagnosis](../../reports/exp0305a7/DIAGNOSIS.md) and
 [A8 registration](../../reports/exp0305a7/A8_REGISTRATION.md).
+
+
+## EXP03/05-A8: balanced PAD/diverse curriculum (16 November 2026)
+
+A8 is implemented and its registered development campaign is complete. It fails;
+qualified public E8 and all earlier capability qualifications remain unchanged.
+Matched E8/A6/A8, seeds 1/7/19, used exactly 20.25M independent fitting bytes.
+All A1–A8 audits remain closed. The only fitted intervention is the exact
+alternating 64-episode spacer curriculum; A6 model arithmetic/state is unchanged.
+
+| A8 endpoint | Result |
+|---|---:|
+| Clean binding | 87.890625% |
+| Competing bindings | 80.859375% |
+| Corrected three-value overwrite | 78.515625% |
+| Diverse256 | 83.593750% |
+| Isolated native throughput | 68.587044% (80% required) |
+
+Matched A6/A8 first-32-world teacher-fed traces retain 100% of target signatures.
+False recognition falls 3.212851% to 1.857430%, but competing nearest-key identity
+falls 92.968750% to 88.802083%. These subset measurements do not replace the full
+autoregressive outcomes. All phases occur in both spacer blocks; the intended
+balance is verified. A9 registers one training-only record-key update mask:
+keep A8 inputs and update record-key heads only in PAD blocks. It is not
+implemented or fitted. Presence/query/value/applicability/native rules and all
+original gates remain. No new public feature, generic qualification or audit
+opening is claimed. See [A8 report](../../reports/exp0305a8/SHoEbox_EXP0305_A8_Report.md),
+[diagnosis](../../reports/exp0305a8/DIAGNOSIS.md) and
+[A9 registration](../../reports/exp0305a8/A9_REGISTRATION.md).

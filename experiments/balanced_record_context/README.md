@@ -1,5 +1,13 @@
 # EXP03/05-A8: phase-balanced PAD/diverse curriculum
 
+Completed: A8 fails development; E8 stays public and all A1–A8 audits stay
+closed. Read the [measured report](../../reports/exp0305a8/SHoEbox_EXP0305_A8_Report.md),
+[diagnosis](../../reports/exp0305a8/DIAGNOSIS.md),
+[exact resume](../../reports/exp0305a8/RESUME.md) and
+[next A9 registration](../../reports/exp0305a8/A9_REGISTRATION.md).
+A9 is registered only, not implemented or fitted. All commands below describe
+the completed A8 campaign; a repetition consumes a new separately charged budget.
+
 Read the full `reports/exp0305a7/A8_REGISTRATION.md` and this campaign's
 `reports/exp0305a8/EXECUTION_LOCK.md` and `DIAGNOSIS_PLAN.md`.
 In alternating 64-episode blocks beginning with PAD, the two original spacers
@@ -29,6 +37,9 @@ python -m experiments.balanced_record_context.update_metrics --runs /path/work/a
 # Lock final outcomes before the registered frozen diagnostics.
 # Isolated throughput must run only after every other CPU job finishes.
 python -m experiments.balanced_record_context.benchmark --runs /path/work/a8 --out /path/work/benchmark.json
+# With all required process receipts and the prior final-fit lock present:
+python reports/exp0305a8/freeze_evaluation.py /path/work
+# Only then execute the registered frozen diagnostics, with no refit.
 ```
 
 Exact cursor schema `exp0305-a8-cursor-1` records model policy, curriculum,

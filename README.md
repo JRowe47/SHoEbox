@@ -13,7 +13,16 @@ passing generic regressions, 1M/5M capacity and throughput gates.
 E8 is the new default, and explicit v19/historical policies are preserved. E2-family/E7 audits are now opened; no tuning against them.
 New studies must select minimal/full explicitly and keep their evidence separate.
 
-**Current focused research:** [EXP03/05-A6](reports/exp0305a6/SHoEbox_EXP0305_A6_Report.md)
+**Current focused research:** [EXP03/05-A8](reports/exp0305a8/SHoEbox_EXP0305_A8_Report.md)
+is complete and fails development: 80.86% competing, 78.52% corrected overwrite,
+87.89% clean, 83.59% diverse256 and 68.59% native throughput (80% required).
+The exact balanced PAD/diverse curriculum reduces false recognition but worsens
+key identity on the frozen subset, with 100% signature survival. E8 stays public;
+all A1–A8 audits stay closed. [A9 selective record-key credit](reports/exp0305a8/A9_REGISTRATION.md)
+is registered only: keep A8 inputs while updating record-key heads only in PAD
+blocks. All earlier scores and costs remain preserved.
+
+**Historical A6 result:** [EXP03/05-A6](reports/exp0305a6/SHoEbox_EXP0305_A6_Report.md)
 is complete and fails development: 87.89% competing bindings, 94.14% corrected
 overwrite, 84.38% diverse256 and 67.58% native speed. It eliminates observed
 target removals on the registered long-diverse trace; identity/readout and
