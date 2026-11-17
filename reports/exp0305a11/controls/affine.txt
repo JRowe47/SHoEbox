@@ -1,0 +1,51 @@
+In file included from /workspace/scratch/ba94de13a662/a11_work/affine/builds/build_9/44d3cedd24de_affine.cpp:1:
+/workspace/scratch/ba94de13a662/a11_work/affine/builds/build_9/598129d27511_readout.hpp: In function ‘void shoe::a11_affine(const Affine*, const Vec&, float*)’:
+/workspace/scratch/ba94de13a662/a11_work/affine/builds/build_9/598129d27511_readout.hpp:36:61: error: non-constant condition for static assertion
+   36 |     static_assert(((::a11_event::counts[1435]+=1),(Rows==8))||((::a11_event::counts[1436]+=1),(Rows==16)),"only existing projections");
+      |                   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/workspace/scratch/ba94de13a662/a11_work/affine/builds/build_9/598129d27511_readout.hpp:36:34: error: the value of ‘a11_event::counts’ is not usable in a constant expression
+   36 |     static_assert(((::a11_event::counts[1435]+=1),(Rows==8))||((::a11_event::counts[1436]+=1),(Rows==16)),"only existing projections");
+      |                     ~~~~~~~~~~~~~^~~~~~
+In file included from <command-line>:
+/workspace/scratch/ba94de13a662/a11_work/affine/builds/build_9/events.hpp:7:55: note: ‘a11_event::counts’ was not declared ‘constexpr’
+    7 | inline __attribute__((visibility("hidden"))) uint64_t counts[2608]{};
+      |                                                       ^~~~~~
+/workspace/scratch/ba94de13a662/a11_work/affine/builds/build_9/598129d27511_readout.hpp:37:50: error: non-constant condition for static assertion
+   37 |     static_assert(((::a11_event::counts[1437]+=1),(D==64)),"locked coordinate count");
+      |                   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^~~~~~~~~
+/workspace/scratch/ba94de13a662/a11_work/affine/builds/build_9/598129d27511_readout.hpp:37:34: error: the value of ‘a11_event::counts’ is not usable in a constant expression
+   37 |     static_assert(((::a11_event::counts[1437]+=1),(D==64)),"locked coordinate count");
+      |                     ~~~~~~~~~~~~~^~~~~~
+/workspace/scratch/ba94de13a662/a11_work/affine/builds/build_9/events.hpp:7:55: note: ‘a11_event::counts’ was not declared ‘constexpr’
+    7 | inline __attribute__((visibility("hidden"))) uint64_t counts[2608]{};
+      |                                                       ^~~~~~
+/workspace/scratch/ba94de13a662/a11_work/affine/builds/build_9/598129d27511_readout.hpp: In function ‘void shoe::a10_affine(const Affine*, const Vec&, float*)’:
+/workspace/scratch/ba94de13a662/a11_work/affine/builds/build_9/598129d27511_readout.hpp:81:61: error: non-constant condition for static assertion
+   81 |     static_assert(((::a11_event::counts[1471]+=1),(Rows==8))||((::a11_event::counts[1472]+=1),(Rows==16)),"A10 only replaces existing 8/16-row projections");
+      |                   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/workspace/scratch/ba94de13a662/a11_work/affine/builds/build_9/598129d27511_readout.hpp:81:34: error: the value of ‘a11_event::counts’ is not usable in a constant expression
+   81 |     static_assert(((::a11_event::counts[1471]+=1),(Rows==8))||((::a11_event::counts[1472]+=1),(Rows==16)),"A10 only replaces existing 8/16-row projections");
+      |                     ~~~~~~~~~~~~~^~~~~~
+/workspace/scratch/ba94de13a662/a11_work/affine/builds/build_9/events.hpp:7:55: note: ‘a11_event::counts’ was not declared ‘constexpr’
+    7 | inline __attribute__((visibility("hidden"))) uint64_t counts[2608]{};
+      |                                                       ^~~~~~
+/workspace/scratch/ba94de13a662/a11_work/affine/builds/build_9/598129d27511_readout.hpp:82:50: error: non-constant condition for static assertion
+   82 |     static_assert(((::a11_event::counts[1473]+=1),(D==64)),"locked scalar coordinate count");
+      |                   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^~~~~~~~~
+/workspace/scratch/ba94de13a662/a11_work/affine/builds/build_9/598129d27511_readout.hpp:82:34: error: the value of ‘a11_event::counts’ is not usable in a constant expression
+   82 |     static_assert(((::a11_event::counts[1473]+=1),(D==64)),"locked scalar coordinate count");
+      |                     ~~~~~~~~~~~~~^~~~~~
+/workspace/scratch/ba94de13a662/a11_work/affine/builds/build_9/events.hpp:7:55: note: ‘a11_event::counts’ was not declared ‘constexpr’
+    7 | inline __attribute__((visibility("hidden"))) uint64_t counts[2608]{};
+      |                                                       ^~~~~~
+Traceback (most recent call last):
+  File "<frozen runpy>", line 198, in _run_module_as_main
+  File "<frozen runpy>", line 88, in _run_code
+  File "/workspace/scratch/ba94de13a662/SHoEbox/experiments/eight_row_affine/check_affine.py", line 23, in <module>
+    if __name__=='__main__':main()
+                            ^^^^^^
+  File "/workspace/scratch/ba94de13a662/SHoEbox/experiments/eight_row_affine/check_affine.py", line 21, in main
+    subprocess.run(['g++','-std=c++17','-ffp-contract=off',*flags,'-I'+str(work),'-I'+str(backend.ROOT/'multiscale'),str(cpp),'-o',str(exe)],check=True)
+  File "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/subprocess.py", line 571, in run
+    raise CalledProcessError(retcode, process.args,
+subprocess.CalledProcessError: Command '['g++', '-std=c++17', '-ffp-contract=off', '-O3', '-march=native', '-I/workspace/scratch/ba94de13a662/a11_work/affine/affine', '-I/workspace/scratch/ba94de13a662/SHoEbox/multiscale', '/workspace/scratch/ba94de13a662/a11_work/affine/affine/affine.cpp', '-o', '/workspace/scratch/ba94de13a662/a11_work/affine/affine/optimized']' returned non-zero exit status 1.
