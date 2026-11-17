@@ -186,3 +186,30 @@ A6 arithmetic/state and all gates, including >=80% isolated native speed.
 Read [the A6 report](../../reports/exp0305a6/SHoEbox_EXP0305_A6_Report.md) and
 [diagnosis](../../reports/exp0305a6/DIAGNOSIS.md). A7 is not implemented or fitted.
 This status supersedes the older next-step statements above.
+
+
+## EXP03/05-A7: diverse record-context curriculum (16 November 2026)
+
+A7 is implemented and its registered development campaign is complete. It fails;
+qualified public E8 and every historical capability status remain unchanged.
+Matched E8/A6/A7, seeds 1/7/19, used exactly 20.25M independent fitting bytes.
+All A1–A7 audits remain closed.
+
+| A7 endpoint | Result |
+|---|---:|
+| Clean binding | 87.174479% |
+| Competing bindings | 66.796875% |
+| Corrected three-value overwrite | 75.260417% |
+| Diverse256 | 84.765625% |
+| Isolated native throughput | 69.713538% (80% required) |
+
+On matched first-32-world teacher-fed traces, A6/A7 signature survival is 100%
+in both arms and removals are zero. False recognition improves 2.359438% to
+0.853414%, but competing nearest-key identity falls 95.833333% to 89.0625%.
+These subset measurements do not replace full autoregressive outcomes.
+A8 registers alternating 64-episode PAD/diverse blocks; it is not implemented
+or fitted. No new slots/state, public-policy change, audit opening or generic
+qualification occurred. All original scores, timings, costs and gates remain.
+Read [A7 report](../../reports/exp0305a7/SHoEbox_EXP0305_A7_Report.md),
+[diagnosis](../../reports/exp0305a7/DIAGNOSIS.md) and
+[A8 registration](../../reports/exp0305a7/A8_REGISTRATION.md).

@@ -1,0 +1,178 @@
+test_a1_e7_public_checkpoint_separation (experiments.diverse_record_context.test_research.A7Tests.test_a1_e7_public_checkpoint_separation) ... FAIL
+test_controls_exact_and_policy_separation (experiments.diverse_record_context.test_research.A7Tests.test_controls_exact_and_policy_separation) ... FAIL
+test_cursor_finish_and_lifecycle (experiments.diverse_record_context.test_research.A7Tests.test_cursor_finish_and_lifecycle) ... FAIL
+test_fresh_grouping_and_reserved_exclusion (experiments.diverse_record_context.test_research.A7Tests.test_fresh_grouping_and_reserved_exclusion) ... ok
+test_generic_objectives_freeze_local_heads (experiments.diverse_record_context.test_research.A7Tests.test_generic_objectives_freeze_local_heads) ... FAIL
+test_interpreter_and_no_shortcuts (experiments.diverse_record_context.test_research.A7Tests.test_interpreter_and_no_shortcuts) ... ok
+test_labels_causal_third_value (experiments.diverse_record_context.test_research.A7Tests.test_labels_causal_third_value) ... ok
+test_python_native_parity_and_readonly (experiments.diverse_record_context.test_research.A7Tests.test_python_native_parity_and_readonly) ... FAIL
+test_independent_references_on_a7 (experiments.diverse_record_context.test_objective.IndependentObjectives.test_independent_references_on_a7) ... FAIL
+test_identical_all_local_and_native_updates (experiments.diverse_record_context.test_objective.ObjectiveTests.test_identical_all_local_and_native_updates) ... FAIL
+test_only_magic_differs (experiments.diverse_record_context.test_objective.ObjectiveTests.test_only_magic_differs) ... FAIL
+test_only_spacers_labels_masks_phase_interpreter (experiments.diverse_record_context.test_spacers.SpacerTests.test_only_spacers_labels_masks_phase_interpreter) ... ok
+test_partial_spacer_resume_and_policy_guard (experiments.diverse_record_context.test_spacers.SpacerTests.test_partial_spacer_resume_and_policy_guard) ... FAIL
+test_reference_all_lengths_orders_occurrences (experiments.diverse_record_context.test_spacers.SpacerTests.test_reference_all_lengths_orders_occurrences) ... ok
+test_rejection_threshold_block_and_zero (experiments.diverse_record_context.test_spacers.SpacerTests.test_rejection_threshold_block_and_zero) ... ok
+
+======================================================================
+FAIL: test_a1_e7_public_checkpoint_separation (experiments.diverse_record_context.test_research.A7Tests.test_a1_e7_public_checkpoint_separation)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/scratch/5f16dd302347/SHoEbox/experiments/diverse_record_context/test_research.py", line 82, in test_a1_e7_public_checkpoint_separation
+    with Model('a7') as a:
+         ^^^^^^^^^^^
+  File "/workspace/scratch/5f16dd302347/SHoEbox/experiments/diverse_record_context/backend.py", line 52, in __init__
+    self.policy=policy;self.lib=library(policy);self.ptr=_ptr or self.lib.qr_new(parameters,seed,1,e8.KINDS[kind],1)
+                                ^^^^^^^^^^^^^^^
+  File "/workspace/scratch/5f16dd302347/SHoEbox/experiments/diverse_record_context/backend.py", line 26, in library
+    text=source(policy);head=header(policy);flags=['-std=c++17','-O3','-march=native','-ffp-contract=off','-shared','-fPIC']
+                             ^^^^^^^^^^^^^^
+  File "/workspace/scratch/5f16dd302347/SHoEbox/experiments/diverse_record_context/backend.py", line 16, in header
+    assert text.count('0x3641353050584553ULL')==1
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError
+
+======================================================================
+FAIL: test_controls_exact_and_policy_separation (experiments.diverse_record_context.test_research.A7Tests.test_controls_exact_and_policy_separation)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/scratch/5f16dd302347/SHoEbox/experiments/diverse_record_context/test_research.py", line 132, in test_controls_exact_and_policy_separation
+    with self.assertRaises(RuntimeError):Model.loads(a.dumps(),other)
+                                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/scratch/5f16dd302347/SHoEbox/experiments/diverse_record_context/backend.py", line 62, in loads
+    lib=library(policy);ptr=lib.qr_load(raw[32:],len(raw)-32)
+        ^^^^^^^^^^^^^^^
+  File "/workspace/scratch/5f16dd302347/SHoEbox/experiments/diverse_record_context/backend.py", line 26, in library
+    text=source(policy);head=header(policy);flags=['-std=c++17','-O3','-march=native','-ffp-contract=off','-shared','-fPIC']
+                             ^^^^^^^^^^^^^^
+  File "/workspace/scratch/5f16dd302347/SHoEbox/experiments/diverse_record_context/backend.py", line 16, in header
+    assert text.count('0x3641353050584553ULL')==1
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError
+
+======================================================================
+FAIL: test_cursor_finish_and_lifecycle (experiments.diverse_record_context.test_research.A7Tests.test_cursor_finish_and_lifecycle)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/scratch/5f16dd302347/SHoEbox/experiments/diverse_record_context/test_research.py", line 148, in test_cursor_finish_and_lifecycle
+    with Model(policy,seed=7) as a:
+         ^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/scratch/5f16dd302347/SHoEbox/experiments/diverse_record_context/backend.py", line 52, in __init__
+    self.policy=policy;self.lib=library(policy);self.ptr=_ptr or self.lib.qr_new(parameters,seed,1,e8.KINDS[kind],1)
+                                ^^^^^^^^^^^^^^^
+  File "/workspace/scratch/5f16dd302347/SHoEbox/experiments/diverse_record_context/backend.py", line 26, in library
+    text=source(policy);head=header(policy);flags=['-std=c++17','-O3','-march=native','-ffp-contract=off','-shared','-fPIC']
+                             ^^^^^^^^^^^^^^
+  File "/workspace/scratch/5f16dd302347/SHoEbox/experiments/diverse_record_context/backend.py", line 16, in header
+    assert text.count('0x3641353050584553ULL')==1
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError
+
+======================================================================
+FAIL: test_generic_objectives_freeze_local_heads (experiments.diverse_record_context.test_research.A7Tests.test_generic_objectives_freeze_local_heads)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/scratch/5f16dd302347/SHoEbox/experiments/diverse_record_context/test_research.py", line 72, in test_generic_objectives_freeze_local_heads
+    with Model('a7',seed=7) as a:
+         ^^^^^^^^^^^^^^^^^^
+  File "/workspace/scratch/5f16dd302347/SHoEbox/experiments/diverse_record_context/backend.py", line 52, in __init__
+    self.policy=policy;self.lib=library(policy);self.ptr=_ptr or self.lib.qr_new(parameters,seed,1,e8.KINDS[kind],1)
+                                ^^^^^^^^^^^^^^^
+  File "/workspace/scratch/5f16dd302347/SHoEbox/experiments/diverse_record_context/backend.py", line 26, in library
+    text=source(policy);head=header(policy);flags=['-std=c++17','-O3','-march=native','-ffp-contract=off','-shared','-fPIC']
+                             ^^^^^^^^^^^^^^
+  File "/workspace/scratch/5f16dd302347/SHoEbox/experiments/diverse_record_context/backend.py", line 16, in header
+    assert text.count('0x3641353050584553ULL')==1
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError
+
+======================================================================
+FAIL: test_python_native_parity_and_readonly (experiments.diverse_record_context.test_research.A7Tests.test_python_native_parity_and_readonly)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/scratch/5f16dd302347/SHoEbox/experiments/diverse_record_context/test_research.py", line 134, in test_python_native_parity_and_readonly
+    with Model('a7',seed=7) as a:
+         ^^^^^^^^^^^^^^^^^^
+  File "/workspace/scratch/5f16dd302347/SHoEbox/experiments/diverse_record_context/backend.py", line 52, in __init__
+    self.policy=policy;self.lib=library(policy);self.ptr=_ptr or self.lib.qr_new(parameters,seed,1,e8.KINDS[kind],1)
+                                ^^^^^^^^^^^^^^^
+  File "/workspace/scratch/5f16dd302347/SHoEbox/experiments/diverse_record_context/backend.py", line 26, in library
+    text=source(policy);head=header(policy);flags=['-std=c++17','-O3','-march=native','-ffp-contract=off','-shared','-fPIC']
+                             ^^^^^^^^^^^^^^
+  File "/workspace/scratch/5f16dd302347/SHoEbox/experiments/diverse_record_context/backend.py", line 16, in header
+    assert text.count('0x3641353050584553ULL')==1
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError
+
+======================================================================
+FAIL: test_independent_references_on_a7 (experiments.diverse_record_context.test_objective.IndependentObjectives.test_independent_references_on_a7)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/scratch/5f16dd302347/SHoEbox/experiments/diverse_record_context/test_objective.py", line 44, in test_independent_references_on_a7
+    ref.ObjectiveTests().test_independent_logistic_gradient_and_finite_differences()
+  File "/workspace/scratch/5f16dd302347/SHoEbox/experiments/record_presence_cost/test_objective.py", line 18, in test_independent_logistic_gradient_and_finite_differences
+    lib=library('a6')
+        ^^^^^^^^^^^^^
+  File "/workspace/scratch/5f16dd302347/SHoEbox/experiments/diverse_record_context/test_objective.py", line 43, in <lambda>
+    ref.library=lambda policy:library('a7')
+                              ^^^^^^^^^^^^^
+  File "/workspace/scratch/5f16dd302347/SHoEbox/experiments/diverse_record_context/backend.py", line 26, in library
+    text=source(policy);head=header(policy);flags=['-std=c++17','-O3','-march=native','-ffp-contract=off','-shared','-fPIC']
+                             ^^^^^^^^^^^^^^
+  File "/workspace/scratch/5f16dd302347/SHoEbox/experiments/diverse_record_context/backend.py", line 16, in header
+    assert text.count('0x3641353050584553ULL')==1
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError
+
+======================================================================
+FAIL: test_identical_all_local_and_native_updates (experiments.diverse_record_context.test_objective.ObjectiveTests.test_identical_all_local_and_native_updates)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/scratch/5f16dd302347/SHoEbox/experiments/diverse_record_context/test_objective.py", line 19, in test_identical_all_local_and_native_updates
+    with Model('a7',seed=7) as candidate, a6.Model('a6',seed=7) as control:
+         ^^^^^^^^^^^^^^^^^^
+  File "/workspace/scratch/5f16dd302347/SHoEbox/experiments/diverse_record_context/backend.py", line 52, in __init__
+    self.policy=policy;self.lib=library(policy);self.ptr=_ptr or self.lib.qr_new(parameters,seed,1,e8.KINDS[kind],1)
+                                ^^^^^^^^^^^^^^^
+  File "/workspace/scratch/5f16dd302347/SHoEbox/experiments/diverse_record_context/backend.py", line 26, in library
+    text=source(policy);head=header(policy);flags=['-std=c++17','-O3','-march=native','-ffp-contract=off','-shared','-fPIC']
+                             ^^^^^^^^^^^^^^
+  File "/workspace/scratch/5f16dd302347/SHoEbox/experiments/diverse_record_context/backend.py", line 16, in header
+    assert text.count('0x3641353050584553ULL')==1
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError
+
+======================================================================
+FAIL: test_only_magic_differs (experiments.diverse_record_context.test_objective.ObjectiveTests.test_only_magic_differs)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/scratch/5f16dd302347/SHoEbox/experiments/diverse_record_context/test_objective.py", line 15, in test_only_magic_differs
+    self.assertEqual(header('a7').replace('0x3741353050584553ULL','0x3641353050584553ULL'),a6.header('a6'))
+                     ^^^^^^^^^^^^
+  File "/workspace/scratch/5f16dd302347/SHoEbox/experiments/diverse_record_context/backend.py", line 16, in header
+    assert text.count('0x3641353050584553ULL')==1
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError
+
+======================================================================
+FAIL: test_partial_spacer_resume_and_policy_guard (experiments.diverse_record_context.test_spacers.SpacerTests.test_partial_spacer_resume_and_policy_guard)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/scratch/5f16dd302347/SHoEbox/experiments/diverse_record_context/test_spacers.py", line 62, in test_partial_spacer_resume_and_policy_guard
+    with Model('a7',seed=7) as m:
+         ^^^^^^^^^^^^^^^^^^
+  File "/workspace/scratch/5f16dd302347/SHoEbox/experiments/diverse_record_context/backend.py", line 52, in __init__
+    self.policy=policy;self.lib=library(policy);self.ptr=_ptr or self.lib.qr_new(parameters,seed,1,e8.KINDS[kind],1)
+                                ^^^^^^^^^^^^^^^
+  File "/workspace/scratch/5f16dd302347/SHoEbox/experiments/diverse_record_context/backend.py", line 26, in library
+    text=source(policy);head=header(policy);flags=['-std=c++17','-O3','-march=native','-ffp-contract=off','-shared','-fPIC']
+                             ^^^^^^^^^^^^^^
+  File "/workspace/scratch/5f16dd302347/SHoEbox/experiments/diverse_record_context/backend.py", line 16, in header
+    assert text.count('0x3641353050584553ULL')==1
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError
+
+----------------------------------------------------------------------
+Ran 15 tests in 21.055s
+
+FAILED (failures=9)

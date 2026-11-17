@@ -1,5 +1,47 @@
 # SHoEbox development handoff
 
+16 November 2026 (America/Denver). **EXP03/EXP05-A7 is complete and fails;
+qualified public E8 remains unchanged.** Read [the A7 report](reports/exp0305a7/SHoEbox_EXP0305_A7_Report.md),
+[diagnosis](reports/exp0305a7/DIAGNOSIS.md), [resume](reports/exp0305a7/RESUME.md)
+and [A8 registration](reports/exp0305a7/A8_REGISTRATION.md) in full.
+
+Only the two original records' existing continuation spacers changed to the
+registered deterministic diverse bytes. A6 model arithmetic is exact, apart
+from A7's explicit checkpoint envelope. Source/world/per-arm stream locks and
+passing pre-fit receipts were committed as `80f1e35` before fitting. Matched
+E8/A6/A7, seeds 1/7/19, consumed exactly 20.25M bytes, with independent warmups.
+A7: 66.796875% competing, 75.260417% corrected three-value overwrite,
+87.174479% clean, 84.765625% diverse256, 69.713538% isolated native throughput.
+Every original gate remains, including 80% speed; A1–A7 audits remain closed.
+
+Matched A6/A7 first-32-world traces retain 100% of target signatures and have
+zero removals. Diverse false recognition improves 2.359438%→0.853414% and
+recognized filler phases/answer 1.609375→0.531250. Competing nearest-key identity
+falls 95.833333%→89.0625%; changed-key old-value predictions rise
+4.6875%→13.541667%. Keep these teacher-fed subset measures separate from
+full-world autoregressive outcomes. Positive key windows containing PAD drop
+91.109647%→39.720420%; distinct key/phase/windows rise 5,900→22,791.
+
+A8 registers one phase-balanced PAD/diverse curriculum, alternating 64-episode
+blocks and beginning with PAD, using the exact A7 hash generator in diverse
+blocks. Preserve A6's full model/objectives and all gates. A8 is not implemented
+or fitted. Use fresh matched E8/A6/A8, all prior exclusions plus A7 dev/binary/
+reserved-audit worlds, and the complete fixed registration. No sweep or extra fit.
+
+252 Python tests, 19 protected-policy checks, native/ASan/UBSan, 14 historical
+trajectories and all 18 actual model/cursor pairs pass. Source/evidence locks
+verify. The initial pre-fit magic-count assertion failure and final read-only
+lock-schema checker failure remain recorded with their costs. No research fit
+was repeated; every saved result is preserved. No public/historical numerical
+source changed, and no generic/capacity qualification ran.
+
+Completed verified work, including failure, is explicitly authorized for commit
+and push directly to main without another confirmation. Preserve unrelated
+changes and remote history; never force-push. Deliver ordinary downloadable
+Markdown, primary PNGs, resumable archive and a copy/paste prompt preserving this
+authority. No Pages/Spaces. This A7 status supersedes older next-step statements;
+all historical measurements and handoffs below remain intact.
+
 16 November 2026 (America/Denver). **EXP03/EXP05-A6 is complete; qualified
 public E8 remains unchanged.** Read [the A6 report](reports/exp0305a6/SHoEbox_EXP0305_A6_Report.md),
 [separate diagnosis](reports/exp0305a6/DIAGNOSIS.md),

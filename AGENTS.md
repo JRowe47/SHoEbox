@@ -1,5 +1,25 @@
 # SHoEbox development
 
+- Current focused work: EXP03/05-A7 is complete and fails development. Read
+  `reports/exp0305a7/SHoEbox_EXP0305_A7_Report.md`, `DIAGNOSIS.md`, `RESUME.md`
+  and `A8_REGISTRATION.md` in full. Matched E8/A6/A7, seeds 1/7/19, used exactly
+  20.25M fitting bytes. A7: 66.796875% competing, 75.260417% corrected overwrite,
+  87.174479% clean, 84.765625% diverse256, 69.713538% isolated native throughput.
+  Keep E8 public and all A1–A7 audits closed. On matched first-32-world traces,
+  A6/A7 both retain 100% of signatures; false recognition improves 2.359438%
+  to 0.853414%, but competing nearest-key identity falls 95.833333% to 89.0625%.
+  Preserve subset teacher-fed versus full autoregressive distinctions.
+  A8 registers one fixed phase-balanced PAD/diverse spacer curriculum using
+  alternating 64-episode blocks; no A8 implementation or fit has run. Keep A6
+  model arithmetic, state and all gates, including >=80% isolated native speed.
+  Exclude all opened groups, reserved A1–A7 audits and all A2–A7 dev/binary worlds.
+  Preserve every old score/timing/cost, full-byte inference and generic/local
+  separation. Completed verified work, including failure, is authorized for
+  direct main publication without confirmation; preserve unrelated changes and
+  remote history, never force-push. Deliver ordinary downloadable Markdown,
+  PNGs, resumable evidence archive and next prompt; no Pages/Spaces.
+  This entry supersedes the historical next-step statements preserved below.
+
 - Current focused work: EXP03/05-A6 is complete and fails development. Read
   `reports/exp0305a6/SHoEbox_EXP0305_A6_Report.md`, `DIAGNOSIS.md`, `RESUME.md`
   and `A7_REGISTRATION.md` in full. Fresh matched E8/A5/A6 used exactly 20.25M
