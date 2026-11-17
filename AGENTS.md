@@ -1,5 +1,24 @@
 # SHoEbox development
 
+- Current focused work: EXP03/05-A6 is complete and fails development. Read
+  `reports/exp0305a6/SHoEbox_EXP0305_A6_Report.md`, `DIAGNOSIS.md`, `RESUME.md`
+  and `A7_REGISTRATION.md` in full. Fresh matched E8/A5/A6 used exactly 20.25M
+  bytes, seeds 1/7/19. A6 reaches 87.89% competing bindings, 94.14% corrected
+  overwrite, 95.31% clean, 84.38% diverse256 and 67.58% isolated native speed.
+  E8 stays public; A1–A6 audits stay closed. On the registered subset, A6
+  improves signature survival 93.75%→100% and false recognition 15.91%→3.11%,
+  but competing nearest-key identity stays 96.875%. About 91% of positive
+  record-key windows contain padding; record reconstruction remains noisy.
+  A7 registers one diverse record-context curriculum: replace only existing
+  short continuation spacers, using its exact rule; preserve A6 arithmetic,
+  state and every gate, including >=80% isolated native throughput. A7 is not
+  implemented or fitted. Exclude every prior opened group, reserved A1–A6
+  audit and all A2–A6 dev/binary worlds. Preserve every historical result,
+  timing and cost, local/generic separation and full-byte inference. Direct
+  verified main publication, including failure, remains explicitly authorized;
+  never force-push. Deliver ordinary downloadable files, no Pages/Spaces.
+  All entries below preserve historical status; this entry supersedes them.
+
 - Current focused work: EXP03/05-A5 is complete and fails development. Read
   `reports/exp0305a5/SHoEbox_EXP0305_A5_Report.md`, `DIAGNOSIS.md` and
   `A6_REGISTRATION.md` in full. Matched E8/A4/A5 used exactly 20.25M bytes,

@@ -13,10 +13,12 @@ passing generic regressions, 1M/5M capacity and throughput gates.
 E8 is the new default, and explicit v19/historical policies are preserved. E2-family/E7 audits are now opened; no tuning against them.
 New studies must select minimal/full explicitly and keep their evidence separate.
 
-**Current focused research:** [EXP03/05-A5](reports/exp0305a5/SHoEbox_EXP0305_A5_Report.md)
-is complete and fails development: 90.23% competing bindings, 95.70% corrected
-overwrite, 63.80% diverse256 and 67.57% native speed. E8 stays public; A1–A5
-audits stay closed. [A6 fixed record-presence cost](reports/exp0305a5/A6_REGISTRATION.md)
+**Current focused research:** [EXP03/05-A6](reports/exp0305a6/SHoEbox_EXP0305_A6_Report.md)
+is complete and fails development: 87.89% competing bindings, 94.14% corrected
+overwrite, 84.38% diverse256 and 67.58% native speed. It eliminates observed
+target removals on the registered long-diverse trace; identity/readout and
+throughput gates still fail. E8 stays public; A1–A6 audits stay closed.
+[A7 diverse record-context curriculum](reports/exp0305a6/A7_REGISTRATION.md)
 is registered, not implemented or fitted. Earlier scores and costs are preserved.
 
 ## Capability development protocols

@@ -1,5 +1,48 @@
 # SHoEbox development handoff
 
+16 November 2026 (America/Denver). **EXP03/EXP05-A6 is complete; qualified
+public E8 remains unchanged.** Read [the A6 report](reports/exp0305a6/SHoEbox_EXP0305_A6_Report.md),
+[separate diagnosis](reports/exp0305a6/DIAGNOSIS.md),
+[exact resume](reports/exp0305a6/RESUME.md) and
+[A7 registration](reports/exp0305a6/A7_REGISTRATION.md) in full.
+
+Only four record-presence negative multipliers changed 1→4; positives stay 4.
+Independent objective/gradient references, exact-update parity, exhaustive
+selection, historical policies and fresh folds were locked in pre-fit commit
+`1ddb724`. Matched E8/A5/A6, seeds 1/7/19, use exactly 20.25M fitting bytes.
+A6: 87.890625% competing bindings, 94.140625% corrected three-value overwrite,
+95.3125% clean binding, 84.375% diverse256 and 67.583762% native throughput.
+Development fails; A1–A6 audits stay closed. All gates and samples remain.
+
+Matched A5/A6 first-32-world traces show 93.75%→100% long-diverse signature
+survival, 48→0 removals and 15.913655%→3.112450% incoming false recognition.
+All A5 removals occur under false-recognition cache pressure. A6 surviving-target
+teacher-fed accuracy is 96.875%, with residual filler competition. Competing
+nearest-key identity remains 96.875%. This subset is easier than all 128 worlds;
+keep teacher-fed per-answer and autoregressive whole-episode endpoints distinct.
+
+About 91% of positive record-key windows contain padding; record reconstruction
+squared error is 3.288515 versus 0.158972 for queries. A7 registers one diverse
+record-context curriculum in the existing short spacers, preserving all A6
+model arithmetic/state and thresholds. It is not implemented or fitted. Use
+fresh E8/A6/A7 folds excluding all prior opened/reserved groups plus A6
+development/binary/audit worlds. No sweep, extra state or audit opening.
+
+237 distinct Python tests, 17 protected-policy checks, native/ASan/UBSan,
+14 historical trajectories and all 18 actual model/cursor pairs pass. Sources,
+folds, snapshots and results verify. No public or historical runtime changed.
+All local positive/negative update events, code comparisons, padding and CPU
+costs are retained. No pilot, extra fit or generic/capacity qualification ran.
+The public-E8 import timing also falls below 80% on this measurement and is
+preserved as measured; original E8 qualification remains unchanged.
+
+Verified completed work, including failure, is explicitly authorized for commit
+and push directly to main without asking again. Preserve unrelated changes and
+remote history; never force-push. Deliver ordinary downloadable Markdown, PNGs,
+resumable archive and copy/paste prompt preserving this authority. No Pages/Spaces.
+Historical handoffs below preserve every earlier result/cost; this A6 status
+supersedes their older next-step statements.
+
 16 November 2026 (America/Denver). **EXP03/EXP05-A5 is complete; qualified
 public E8 remains unchanged.** Read [the A5 report](reports/exp0305a5/SHoEbox_EXP0305_A5_Report.md),
 [separate diagnosis](reports/exp0305a5/DIAGNOSIS.md),
