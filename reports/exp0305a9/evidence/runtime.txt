@@ -1,0 +1,115 @@
+g++ -std=c++17 -O2 -ffp-contract=off /workspace/scratch/4e6498d8dbf2/SHoEbox/multiscale/native.cpp /workspace/scratch/4e6498d8dbf2/SHoEbox/multiscale/tests/minimal_tests.cpp -o /tmp/shoe-multiscale-test-rs_8t80v/checks
+/tmp/shoe-multiscale-test-rs_8t80v/checks
+PASS 713 minimal native checks
+g++ -std=c++17 -O1 -g -fno-omit-frame-pointer -fsanitize=address,undefined -ffp-contract=off /workspace/scratch/4e6498d8dbf2/SHoEbox/multiscale/native.cpp /workspace/scratch/4e6498d8dbf2/SHoEbox/multiscale/tests/minimal_tests.cpp -o /tmp/shoe-multiscale-test-rs_8t80v/checks
+/tmp/shoe-multiscale-test-rs_8t80v/checks
+PASS 713 minimal native checks
+g++ -std=c++17 -O2 -ffp-contract=off /workspace/scratch/4e6498d8dbf2/SHoEbox/multiscale/native.cpp /workspace/scratch/4e6498d8dbf2/SHoEbox/multiscale/tests/loop_tests.cpp -o /tmp/shoe-multiscale-test-rs_8t80v/checks
+/tmp/shoe-multiscale-test-rs_8t80v/checks
+1439 loop checks passed
+g++ -std=c++17 -O1 -g -fno-omit-frame-pointer -fsanitize=address,undefined -ffp-contract=off /workspace/scratch/4e6498d8dbf2/SHoEbox/multiscale/native.cpp /workspace/scratch/4e6498d8dbf2/SHoEbox/multiscale/tests/loop_tests.cpp -o /tmp/shoe-multiscale-test-rs_8t80v/checks
+/tmp/shoe-multiscale-test-rs_8t80v/checks
+1439 loop checks passed
+g++ -std=c++17 -O2 -ffp-contract=off /workspace/scratch/4e6498d8dbf2/SHoEbox/multiscale/native.cpp /workspace/scratch/4e6498d8dbf2/SHoEbox/multiscale/tests/native_tests.cpp -o /tmp/shoe-multiscale-test-rs_8t80v/checks
+/tmp/shoe-multiscale-test-rs_8t80v/checks
+PASS 2093 native checks
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python -m unittest discover -s multiscale/tests -v
+test_default_and_historical_checkpoint_policies (test_balance_policy.BalancePolicyTests.test_default_and_historical_checkpoint_policies) ... ok
+test_explicit_migration_preserves_pending_state_and_weights (test_balance_policy.BalancePolicyTests.test_explicit_migration_preserves_pending_state_and_weights) ... ok
+test_invalid_or_inapplicable_policy_is_rejected (test_balance_policy.BalancePolicyTests.test_invalid_or_inapplicable_policy_is_rejected) ... ok
+test_causal_full_distribution (test_e8_public.PublicE8Tests.test_causal_full_distribution) ... ok
+test_cli_explicit_e8_and_exact_resume (test_e8_public.PublicE8Tests.test_cli_explicit_e8_and_exact_resume) ... ok
+test_explicit_historical_meanings (test_e8_public.PublicE8Tests.test_explicit_historical_meanings) ... ok
+test_frozen_lifecycle_generation_and_memory (test_e8_public.PublicE8Tests.test_frozen_lifecycle_generation_and_memory) ... ok
+test_frozen_qualified_source (test_e8_public.PublicE8Tests.test_frozen_qualified_source) ... ok
+test_generic_heads_frozen (test_e8_public.PublicE8Tests.test_generic_heads_frozen) ... ok
+test_import_rejects_other_formats_and_controls (test_e8_public.PublicE8Tests.test_import_rejects_other_formats_and_controls) ... ok
+test_initialization_and_budget (test_e8_public.PublicE8Tests.test_initialization_and_budget) ... ok
+test_invalid_inputs_atomic (test_e8_public.PublicE8Tests.test_invalid_inputs_atomic) ... ok
+test_nominal_budget_cap_precedes_readout_deduction (test_e8_public.PublicE8Tests.test_nominal_budget_cap_precedes_readout_deduction) ... ok
+test_promoted_default_matches_explicit_e8 (test_e8_public.PublicE8Tests.test_promoted_default_matches_explicit_e8) ... ok
+test_public_training_exact_and_partial_boundaries (test_e8_public.PublicE8Tests.test_public_training_exact_and_partial_boundaries) ... ok
+test_gains_roundtrip_pending_and_frozen_state (test_language_credit.LanguageCreditTests.test_gains_roundtrip_pending_and_frozen_state) ... ok
+test_recall_pending_eviction_and_boundary_continuation (test_language_credit.LanguageCreditTests.test_recall_pending_eviction_and_boundary_continuation) ... ok
+test_validation_and_unit_gain_legacy_serialization (test_language_credit.LanguageCreditTests.test_validation_and_unit_gain_legacy_serialization) ... ok
+test_100m_budget_and_checkpoint_continuation (test_large_model.LargeModelTests.test_100m_budget_and_checkpoint_continuation) ... ok
+test_out_of_range_budget_is_rejected (test_large_model.LargeModelTests.test_out_of_range_budget_is_rejected) ... ok
+test_cli_resume_and_inference_override (test_loops.LoopTests.test_cli_resume_and_inference_override) ... ok
+test_continuation_all_phases_and_credit_modes (test_loops.LoopTests.test_continuation_all_phases_and_credit_modes) ... ok
+test_malformed_extensions (test_loops.LoopTests.test_malformed_extensions) ... ok
+test_real_time_not_loop_time (test_loops.LoopTests.test_real_time_not_loop_time) ... ok
+test_target_causality_and_frozen_source (test_loops.LoopTests.test_target_causality_and_frozen_source) ... ok
+test_validation_is_atomic (test_loops.LoopTests.test_validation_is_atomic) ... ok
+test_zero_depth_exact_control (test_loops.LoopTests.test_zero_depth_exact_control) ... ok
+test_budget_and_exact_external_store (test_minimal.MinimalCoreTests.test_budget_and_exact_external_store) ... ok
+test_extensions_require_full_and_failed_changes_are_atomic (test_minimal.MinimalCoreTests.test_extensions_require_full_and_failed_changes_are_atomic) ... ok
+test_streaming_every_boundary_and_frozen_state (test_minimal.MinimalCoreTests.test_streaming_every_boundary_and_frozen_state) ... ok
+test_v19_structure_and_all_four_clocks (test_minimal.MinimalCoreTests.test_v19_structure_and_all_four_clocks) ... ok
+test_addressed_memory_and_native_clocks (test_model.RuntimeTests.test_addressed_memory_and_native_clocks) ... ok
+test_cold_inference_preserves_bindings_and_can_clear_explicitly (test_model.RuntimeTests.test_cold_inference_preserves_bindings_and_can_clear_explicitly) ... ok
+test_errors_and_lifecycle (test_model.RuntimeTests.test_errors_and_lifecycle) ... ok
+test_evaluation_preserves_source (test_model.RuntimeTests.test_evaluation_preserves_source) ... ok
+test_frozen_interventions (test_model.RuntimeTests.test_frozen_interventions) ... ok
+test_future_targets_cannot_change_current_prediction (test_model.RuntimeTests.test_future_targets_cannot_change_current_prediction) ... ok
+test_historical_fast_only_profile_keeps_previous_arithmetic (test_model.RuntimeTests.test_historical_fast_only_profile_keeps_previous_arithmetic) ... ok
+test_learned_delayed_answer_uses_retained_query (test_model.RuntimeTests.test_learned_delayed_answer_uses_retained_query) ... ok
+test_learning_and_generation (test_model.RuntimeTests.test_learning_and_generation) ... ok
+test_legacy_checkpoint_automatic_dispatch_and_continuation (test_model.RuntimeTests.test_legacy_checkpoint_automatic_dispatch_and_continuation) ... ok
+test_reconstruction_reaches_local_experts (test_model.RuntimeTests.test_reconstruction_reaches_local_experts) ... ok
+test_reset_invalidates_old_payload_handles (test_model.RuntimeTests.test_reset_invalidates_old_payload_handles) ... ok
+test_retained_recall_lifecycle_and_interventions (test_model.RuntimeTests.test_retained_recall_lifecycle_and_interventions) ... ok
+test_separate_rates_persist_without_implicit_reset (test_model.RuntimeTests.test_separate_rates_persist_without_implicit_reset) ... ok
+test_store_payload_and_checkpoint (test_model.RuntimeTests.test_store_payload_and_checkpoint) ... ok
+test_streaming_and_checkpoint_at_every_phase (test_model.RuntimeTests.test_streaming_and_checkpoint_at_every_phase) ... ok
+test_version_four_keeps_exact_policy (test_model.RuntimeTests.test_version_four_keeps_exact_policy) ... ok
+test_version_three_checkpoint_keeps_original_native_policy (test_model.RuntimeTests.test_version_three_checkpoint_keeps_original_native_policy) ... ok
+test_version_two_checkpoint_keeps_original_native_policy (test_model.RuntimeTests.test_version_two_checkpoint_keeps_original_native_policy) ... ok
+test_cli_anchor_resume (test_route_learning.RouteLearningTests.test_cli_anchor_resume) ... ok
+test_clocks_reset_pause_and_anchor_retarget (test_route_learning.RouteLearningTests.test_clocks_reset_pause_and_anchor_retarget) ... ok
+test_full_width_clock_inspection (test_route_learning.RouteLearningTests.test_full_width_clock_inspection) ... ok
+test_partial_checkpoint_chunking_and_credit_extensions (test_route_learning.RouteLearningTests.test_partial_checkpoint_chunking_and_credit_extensions) ... ok
+test_semantically_invalid_checkpoint_controller (test_route_learning.RouteLearningTests.test_semantically_invalid_checkpoint_controller) ... ok
+test_validation_and_failure_atomicity (test_route_learning.RouteLearningTests.test_validation_and_failure_atomicity) ... ok
+test_cli_default_resume_and_inspection (test_routing_d.RoutingDTests.test_cli_default_resume_and_inspection) ... ok
+test_explicit_historical_arms_keep_saved_behavior (test_routing_d.RoutingDTests.test_explicit_historical_arms_keep_saved_behavior) ... ok
+test_invalid_policy_combinations_are_rejected (test_routing_d.RoutingDTests.test_invalid_policy_combinations_are_rejected) ... ok
+test_v19_matches_explicit_minimal_at_every_stream_phase (test_routing_d.RoutingDTests.test_v19_matches_explicit_minimal_at_every_stream_phase) ... ok
+
+----------------------------------------------------------------------
+Ran 60 tests in 45.622s
+
+OK
+g++ -std=c++17 -O2 -ffp-contract=off /workspace/scratch/4e6498d8dbf2/SHoEbox/multiscale/native.cpp /workspace/scratch/4e6498d8dbf2/SHoEbox/multiscale/tests/lace_tests.cpp -o /tmp/shoe-multiscale-test-rs_8t80v/checks
+/tmp/shoe-multiscale-test-rs_8t80v/checks
+PASS 19 semantic-lace checks
+g++ -std=c++17 -O1 -g -fno-omit-frame-pointer -fsanitize=address,undefined -ffp-contract=off /workspace/scratch/4e6498d8dbf2/SHoEbox/multiscale/native.cpp /workspace/scratch/4e6498d8dbf2/SHoEbox/multiscale/tests/native_tests.cpp -o /tmp/shoe-multiscale-test-rs_8t80v/checks
+LeakSanitizer disabled explicitly; ASan and UBSan remain enabled.
+/tmp/shoe-multiscale-test-rs_8t80v/checks
+PASS 2093 native checks
+g++ -std=c++17 -O2 -ffp-contract=off /workspace/scratch/4e6498d8dbf2/SHoEbox/multiscale/native.cpp /workspace/scratch/4e6498d8dbf2/SHoEbox/multiscale/tests/credit_tests.cpp -o /tmp/shoe-multiscale-test-rs_8t80v/checks
+/tmp/shoe-multiscale-test-rs_8t80v/checks
+2506 language credit checks passed
+g++ -std=c++17 -O1 -g -fno-omit-frame-pointer -fsanitize=address,undefined -ffp-contract=off /workspace/scratch/4e6498d8dbf2/SHoEbox/multiscale/native.cpp /workspace/scratch/4e6498d8dbf2/SHoEbox/multiscale/tests/credit_tests.cpp -o /tmp/shoe-multiscale-test-rs_8t80v/checks
+/tmp/shoe-multiscale-test-rs_8t80v/checks
+2506 language credit checks passed
+g++ -std=c++17 -O2 -ffp-contract=off /workspace/scratch/4e6498d8dbf2/SHoEbox/multiscale/native.cpp /workspace/scratch/4e6498d8dbf2/SHoEbox/multiscale/tests/recall_credit_tests.cpp -o /tmp/shoe-multiscale-test-rs_8t80v/checks
+/tmp/shoe-multiscale-test-rs_8t80v/checks
+190 retained value credit checks passed
+g++ -std=c++17 -O1 -g -fno-omit-frame-pointer -fsanitize=address,undefined -ffp-contract=off /workspace/scratch/4e6498d8dbf2/SHoEbox/multiscale/native.cpp /workspace/scratch/4e6498d8dbf2/SHoEbox/multiscale/tests/recall_credit_tests.cpp -o /tmp/shoe-multiscale-test-rs_8t80v/checks
+/tmp/shoe-multiscale-test-rs_8t80v/checks
+190 retained value credit checks passed
+g++ -std=c++17 -O1 -g -fno-omit-frame-pointer -fsanitize=address,undefined -ffp-contract=off /workspace/scratch/4e6498d8dbf2/SHoEbox/multiscale/native.cpp /workspace/scratch/4e6498d8dbf2/SHoEbox/multiscale/tests/lace_tests.cpp -o /tmp/shoe-multiscale-test-rs_8t80v/checks
+/tmp/shoe-multiscale-test-rs_8t80v/checks
+PASS 19 semantic-lace checks
+g++ -std=c++17 -O2 -ffp-contract=off /workspace/scratch/4e6498d8dbf2/SHoEbox/multiscale/native.cpp /workspace/scratch/4e6498d8dbf2/SHoEbox/multiscale/tests/routing_tests.cpp -o /tmp/shoe-multiscale-test-rs_8t80v/checks
+/tmp/shoe-multiscale-test-rs_8t80v/checks
+56 routing checks passed
+g++ -std=c++17 -O1 -g -fno-omit-frame-pointer -fsanitize=address,undefined -ffp-contract=off /workspace/scratch/4e6498d8dbf2/SHoEbox/multiscale/native.cpp /workspace/scratch/4e6498d8dbf2/SHoEbox/multiscale/tests/routing_tests.cpp -o /tmp/shoe-multiscale-test-rs_8t80v/checks
+/tmp/shoe-multiscale-test-rs_8t80v/checks
+56 routing checks passed
+g++ -std=c++17 -O2 -ffp-contract=off /workspace/scratch/4e6498d8dbf2/SHoEbox/multiscale/native.cpp /workspace/scratch/4e6498d8dbf2/SHoEbox/multiscale/tests/route_learning_tests.cpp -o /tmp/shoe-multiscale-test-rs_8t80v/checks
+/tmp/shoe-multiscale-test-rs_8t80v/checks
+817095 route learning checks passed
+g++ -std=c++17 -O1 -g -fno-omit-frame-pointer -fsanitize=address,undefined -ffp-contract=off /workspace/scratch/4e6498d8dbf2/SHoEbox/multiscale/native.cpp /workspace/scratch/4e6498d8dbf2/SHoEbox/multiscale/tests/route_learning_tests.cpp -o /tmp/shoe-multiscale-test-rs_8t80v/checks
+/tmp/shoe-multiscale-test-rs_8t80v/checks
+817095 route learning checks passed

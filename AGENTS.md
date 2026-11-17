@@ -1,5 +1,23 @@
 # SHoEbox development
 
+- Current focused work: A9 selective record-key credit is implemented but BLOCKED
+  before research fitting. Read `reports/exp0305a9/SHoEbox_EXP0305_A9_Report.md`,
+  `RESUME.md`, the original `reports/exp0305a8/A9_REGISTRATION.md`, and
+  `reports/exp0305a9/A9_F1_REGISTRATION.md` in full. Exact v9 salt/exclusions
+  leave only 96 binary dev worlds, below the required 128. Independent exhaustive
+  enumeration confirms it. Zero research fitting bytes, no A9 outcome/speed or
+  audit score, no passing pre-fit receipt. 19/20 A9 Python checks pass; the
+  required grouping check fails on the shortage. Numerical/reference/native/
+  ASan/UBSan controls pass. Do not relax the sample count or launch a partial fit.
+  F1 registers only a binary development allocation repair, excluding all 896
+  selected primary worlds plus every historical exclusion; 336 candidates remain.
+  F1 is not implemented or fitted. Primary folds, streams, credit rule and all
+  gates remain. Keep E8 and all original A1–A8 evidence/audits unchanged.
+  Completed verified work, including blocked/unsuccessful research, remains
+  authorized for direct main commit/push without confirmation; never force-push.
+  Deliver ordinary downloadable Markdown, PNGs, archive and next prompt;
+  no Pages/Spaces. This status supersedes historical next-step entries below.
+
 - Current focused work: EXP03/05-A8 is complete and fails development. Read
   `reports/exp0305a8/SHoEbox_EXP0305_A8_Report.md`, `DIAGNOSIS.md`, `RESUME.md`
   and `A9_REGISTRATION.md` in full. Matched E8/A6/A8, seeds 1/7/19, used exactly

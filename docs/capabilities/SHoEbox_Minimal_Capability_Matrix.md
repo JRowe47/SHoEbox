@@ -18,6 +18,14 @@ See [E8 results](../../reports/exp01e8/SHoEbox_EXP01E8_Report.md).
 passes numerical/checkpoint parity and all speed gates; E8 is the default. E2-family
 binding and E7 generic audits are now opened; never tune against them.
 
+Latest status: **A9 is implemented but blocked before research fitting.**
+The original fixed split leaves 96 binary development worlds versus 128 required.
+No A9 capability/throughput measurement or audit exists. E8 and all historical
+qualifications remain unchanged. [Blocked report](../../reports/exp0305a9/SHoEbox_EXP0305_A9_Report.md)
+and [prospective binary-only amendment](../../reports/exp0305a9/A9_F1_REGISTRATION.md)
+record the sole next step; it is not implemented or fitted. The historical
+A8 result below remains intact.
+
 Latest focused result: **A8 fails development; E8 remains public and A1–A8 audits
 stay closed.** [A8 report](../../reports/exp0305a8/SHoEbox_EXP0305_A8_Report.md)
 and [diagnosis](../../reports/exp0305a8/DIAGNOSIS.md) preserve the exact 20.25M-byte
@@ -249,3 +257,14 @@ original gates remain. No new public feature, generic qualification or audit
 opening is claimed. See [A8 report](../../reports/exp0305a8/SHoEbox_EXP0305_A8_Report.md),
 [diagnosis](../../reports/exp0305a8/DIAGNOSIS.md) and
 [A9 registration](../../reports/exp0305a8/A9_REGISTRATION.md).
+
+## EXP03/05-A9: pre-fit allocation blocked (16 November 2026)
+
+Selective record-key credit is implemented and its numerical/cursor/isolation
+controls pass. The mandatory 128-world binary regression sample cannot be
+formed under the exact registered salt and exclusions: only 96 are available.
+No fitting, development inference, isolated throughput, diagnosis or audit
+was executed. There is no new capability qualification or model failure result.
+All gates and samples remain unchanged. A9-F1 registers only the binary-pool
+allocation repair; it is not implemented. Read the linked A9 report and F1
+registration before continuing. All earlier results/timings/costs are retained.

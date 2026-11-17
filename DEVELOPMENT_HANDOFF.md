@@ -1,5 +1,30 @@
 # SHoEbox development handoff
 
+16 November 2026 (America/Denver). **A9 is implemented, but pre-fit allocation
+is blocked; zero research bytes were fitted.** The required 128 fresh binary
+development worlds cannot be selected: the exact v9 salt and all exclusions
+leave 96. Independent complete enumeration confirms the shortage. Keep the
+128-world requirement, every original gate, public E8 and all A1–A8 evidence.
+No A9 capability, throughput, frozen diagnosis or audit result exists.
+
+Read [A9 report](reports/exp0305a9/SHoEbox_EXP0305_A9_Report.md),
+[resume](reports/exp0305a9/RESUME.md), [original registration](reports/exp0305a8/A9_REGISTRATION.md)
+and [one prospective F1 amendment](reports/exp0305a9/A9_F1_REGISTRATION.md).
+The A9 mask passes scalar/reference isolation, enabled A8 bit parity, exact
+partial-block cursors, all-256/generic-local controls and optimized/ASan/UBSan.
+The complete 20-test suite records 19 passes and the unresolved fold error.
+60 runtime/public, 209 historical research, 23 protected-loader and 14 historical
+trajectory checks pass. All six stream/credit manifests are exact. No passing
+pre-fit receipt is fabricated and the research driver remains blocked.
+
+F1 changes only binary development allocation to a fixed 128-world sample from
+336 eligible worlds outside the unchanged 896 primary groups, preserving every
+historical exclusion. It is registered, not implemented. A future execution
+must pass and commit all prerequisites before the untouched 20.25M-byte budget.
+Standing authority permits publishing completed verified work directly to main,
+including this blocked result; preserve history and never force-push. Deliver
+ordinary files and a next prompt, with no Pages/Spaces. Older findings follow.
+
 16 November 2026 (America/Denver). **EXP03/EXP05-A8 is complete and fails;
 qualified public E8 remains unchanged.** Read [A8 report](reports/exp0305a8/SHoEbox_EXP0305_A8_Report.md),
 [diagnosis](reports/exp0305a8/DIAGNOSIS.md), [resume](reports/exp0305a8/RESUME.md)
