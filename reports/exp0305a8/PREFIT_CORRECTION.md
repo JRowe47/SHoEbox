@@ -1,0 +1,3 @@
+# Pre-fit cursor-test correction
+
+The initial 17-test Python invocation failed one coverage assertion: its 9,000-byte continuation ended at episode 115, before the requested 127/128 block transition. Exact uninterrupted-versus-resumed model and cursor equality had passed. The test was extended to 14,000 discarded bytes, with the same 3,171-byte interruption. No model, generator, schedule, research source arithmetic, budget or gate changed. The original test source, failed process/log and directly instrumented update counts are retained outside git and in the evidence archive. No research fit had started.
