@@ -13,7 +13,7 @@ def write(p,x):p.write_text(json.dumps(x,indent=2)+'\n')
 def sha(p):return hashlib.sha256(p.read_bytes()).hexdigest()
 def sources():
     # Lock all runtime/research dependencies, not just direct imports. No data/binaries.
-    paths=[ROOT/'shoe_multiscale.py', *ROOT.glob('multiscale/**/*.py'), *ROOT.glob('multiscale/**/*.hpp'), *ROOT.glob('multiscale/**/*.cpp'), *ROOT.glob('multiscale/**/*.inc'), *ROOT.glob('experiments/**/*.py'), *ROOT.glob('experiments/**/*.hpp'), *ROOT.glob('experiments/**/*.cpp'), *ROOT.glob('experiments/**/*.inc'), ROOT/'reports/exp0305a8/A9_REGISTRATION.md', ROOT/'reports/exp0305a9/EXECUTION_LOCK.md', ROOT/'reports/exp0305a9/DIAGNOSIS_PLAN.md']
+    paths=[ROOT/'shoe_multiscale.py', *ROOT.glob('multiscale/**/*.py'), *ROOT.glob('multiscale/**/*.hpp'), *ROOT.glob('multiscale/**/*.cpp'), *ROOT.glob('multiscale/**/*.inc'), *ROOT.glob('experiments/**/*.py'), *ROOT.glob('experiments/**/*.hpp'), *ROOT.glob('experiments/**/*.cpp'), *ROOT.glob('experiments/**/*.inc'), ROOT/'reports/exp0305a8/A9_REGISTRATION.md', ROOT/'reports/exp0305a9/A9_F1_REGISTRATION.md', ROOT/'reports/exp0305a9/EXECUTION_LOCK.md', ROOT/'reports/exp0305a9/DIAGNOSIS_PLAN.md']
     return {str(p.relative_to(ROOT)):sha(p) for p in sorted(set(paths)) if p.is_file() and not (p.parent.name=='selective_record_key_credit' and p.name in ('report.py','write_report.py','verify_evidence.py','analyze_matching.py','trace_geometry.py','trace_retention.py','conflicts.py','account_correctness.py'))}
 
 def fit(m,cursor,budget,folder,stem):
@@ -52,10 +52,13 @@ def main():
     assert committed==a.prefit.read_bytes(),'Passing pre-fit receipt must be committed before fitting'
     prefit_commit=subprocess.check_output(['git','rev-parse','HEAD'],cwd=ROOT,text=True).strip()
     assert pre['world_file_sha256']==sha(a.prefit.parent/'pre_fit_worlds.json')
+    assert pre['amendment']=='A9-F1'
+    assert pre['f1_allocation_sha256']==sha(a.prefit.parent/'f1_allocation.json')
     a.out.mkdir(parents=True,exist_ok=False)
     plan=dict(utc=datetime.now(timezone.utc).isoformat(),seeds=[1,7,19],arms=ARMS,parameters=500000,warmup=250000,continuation=2000000,
         fitting_bytes=20250000,fixture='three distinct values; balanced changed key by world+epoch',order_seeds=[10801,10802],folds=manifest(),source_hashes=sources(),cpus=sorted(os.sched_getaffinity(0))[:3],audit_opened=False)
     plan['prefit_sha256']=sha(a.prefit)
+    plan['amendment']='A9-F1';plan['f1_allocation_sha256']=pre['f1_allocation_sha256']
     plan['prefit_commit']=prefit_commit
     assert pre['stream_sha256']==sha(a.prefit.parent/'streams.json')
     plan['per_arm_stream_digests']=pre['per_arm_stream_digests'];plan['stream_sha256']=pre['stream_sha256']

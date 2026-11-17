@@ -93,8 +93,17 @@ class A9Tests(unittest.TestCase):
             self.assertFalse(any(excluded(k) for k in a));self.assertFalse(a&(reserved_a1()|reserved_a2()|reserved_a3()|reserved_a4()|reserved_a5()|reserved_a6()|reserved_a7()|reserved_a8()))
             for b in sets[i+1:]:self.assertFalse(a&b)
         binary={w.group_key for w in worlds('dev',128,vocab=2)}
-        self.assertFalse(binary&(sets[0]|sets[2]|reserved_a1()|reserved_a2()|reserved_a3()|reserved_a4()|reserved_a5()|reserved_a6()|reserved_a7()|reserved_a8()))
-        self.assertTrue(all(fold(k)=='dev' for k in binary))
+        self.assertEqual(len(binary),128)
+        self.assertFalse(binary&set.union(*sets))
+        self.assertFalse(any(excluded(k) for k in binary))
+        # F1 assigns binary development across primary hash buckets, without
+        # changing any primary fold or permitting binary train/audit use.
+        for split in ('train','audit'):
+            with self.assertRaises(ValueError):worlds(split,128,vocab=2)
+        with self.assertRaises(ValueError):worlds('dev',129,vocab=2)
+        from .tasks import salted_worlds
+        with self.assertRaisesRegex(ValueError,'only 96 dev worlds'):
+            salted_worlds('dev',128,vocab=2)
     def test_interpreter_and_no_shortcuts(self):
         for cond in ('pad0','repeat16','diverse16','compete16','overwrite16'):
             cs=cases('dev',128,condition=cond)

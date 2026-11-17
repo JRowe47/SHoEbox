@@ -1,5 +1,14 @@
 # SHoEbox development
 
+A9-F1 allocation repair and all pre-fit controls PASS. All 896 primary worlds
+and six original stream/credit manifests are unchanged; 128 binary development
+worlds are selected from 336 eligible candidates with every historical exclusion.
+The original 96-world failure and all costs remain in the blocked report/evidence.
+Passing receipts and source/world/stream/credit locks are in reports/exp0305a9/prefit/.
+The exact original matched E8/A8/A9 20.25M-byte campaign is next; no fit has started
+at this lock. Keep the complete A9 and F1 registrations, every gate and closed audits.
+Direct verified main publication remains authorized; never force-push.
+
 - Current focused work: A9 selective record-key credit is implemented but BLOCKED
   before research fitting. Read `reports/exp0305a9/SHoEbox_EXP0305_A9_Report.md`,
   `RESUME.md`, the original `reports/exp0305a8/A9_REGISTRATION.md`, and

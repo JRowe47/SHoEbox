@@ -40,7 +40,7 @@ def main():
                         if vocab==2:full.append(dict(group_key=json.loads(key),fold=part,exclusions=reasons))
         for part,keys in available.items():
             random.Random(20261201).shuffle(keys)
-            got=[x.group_key for x in tasks.worlds(part,len(keys),vocab=vocab)]
+            got=[x.group_key for x in tasks.salted_worlds(part,len(keys),vocab=vocab)]
             assert got==keys
         remaining[str(vocab)]=available;all_counts[str(vocab)]=dict(before);stage_counts[str(vocab)]=dict(stage)
     primary={part:[x.group_key for x in tasks.worlds(part,n)] for part,n in [('train',512),('dev',128),('audit',256)]}
@@ -48,7 +48,7 @@ def main():
     unused_binary=[k for keys in remaining['2'].values() for k in keys if k not in excluded_primary]
     counts={v:{part:len(keys) for part,keys in parts.items()} for v,parts in remaining.items()}
     assert counts['2']['dev']==96
-    try:tasks.worlds('dev',128,vocab=2)
+    try:tasks.salted_worlds('dev',128,vocab=2)
     except ValueError as e:error=str(e)
     else:raise AssertionError('unregistered shortage bypass')
     raw=dict(primary={p:[json.loads(k) for k in keys] for p,keys in primary.items()},available_binary_dev=[json.loads(k) for k in remaining['2']['dev']],binary_universe=full,audit_answers_evaluated=False)

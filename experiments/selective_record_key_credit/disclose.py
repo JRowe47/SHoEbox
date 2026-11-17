@@ -7,5 +7,5 @@ w=Path(sys.argv[1]);c=np.array([[code(b,r) for r in range(16)] for b in range(25
 collisions=[(b,a) for a in range(256) for b in range(a) if np.array_equal(c[a],c[b])]
 r=dict(labels=256,coordinates=16,collision_pairs=collisions,sha256=hashlib.sha256(c.tobytes()).hexdigest(),fixed_readonly_codebook_bytes=c.nbytes,minimum_hamming=min(int(np.count_nonzero(c[a]!=c[b])) for a in range(256) for b in range(a)),training_bytes=0,pairwise_comparisons=32640,policy='All 256 A5 byte codes unchanged; no collisions omitted')
 (w/'codebook.json').write_text(json.dumps(r,indent=2)+'\n');print(json.dumps(r,indent=2))
-e=dict(python=sys.version,executable=sys.executable,numpy=np.__version__,platform=platform.platform(),compiler=subprocess.check_output(['g++','--version'],text=True).splitlines()[0],start_main='3c24b6623e8f03ae39f2d7d6266609bfcc9344ba',fma='disabled: -ffp-contract=off')
+e=dict(python=sys.version,executable=sys.executable,numpy=np.__version__,platform=platform.platform(),compiler=subprocess.check_output(['g++','--version'],text=True).splitlines()[0],start_main='fa54cbd1c8c90be756ea4da8cfef2ccb735ed183',fma='disabled: -ffp-contract=off')
 (w/'environment.json').write_text(json.dumps(e,indent=2)+'\n')

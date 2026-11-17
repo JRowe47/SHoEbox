@@ -69,7 +69,8 @@ def fold(key):
     return 'train' if n<6 else 'dev' if n<8 else 'audit'
 
 @lru_cache(None)
-def worlds(split,count,pool=64,vocab=3):
+def salted_worlds(split,count,pool=64,vocab=3):
+    """Original A9 allocator, retained to reproduce the 96-world failure."""
     rng=random.Random(20261201);all_worlds=[]
     for a in range(pool):
         for b in range(a+1,pool):
@@ -81,6 +82,32 @@ def worlds(split,count,pool=64,vocab=3):
     rng.shuffle(all_worlds)
     if len(all_worlds)<count:raise ValueError(f'only {len(all_worlds)} {split} worlds at pool {pool}')
     return tuple(all_worlds[:count])
+
+@lru_cache(None)
+def binary_development():
+    """Exact A9-F1 binary-only allocation; never used by the fitting cursor."""
+    primary={w.group_key for part,n in [('train',512),('dev',128),('audit',256)]
+             for w in salted_worlds(part,n)}
+    eligible=[]
+    for key0 in range(64):
+        for key1 in range(key0+1,64):
+            for value0 in range(2):
+                for value1 in range(2):
+                    if value0==value1:continue
+                    w=World('binding',((key0,value0),(key1,value1)))
+                    if excluded(w.group_key) or w.group_key in primary:continue
+                    eligible.append(w)
+    assert len(primary)==896 and len(eligible)==336
+    random.Random(20261201).shuffle(eligible)
+    return tuple(eligible[:128])
+
+@lru_cache(None)
+def worlds(split,count,pool=64,vocab=3):
+    if vocab==2:
+        if split!='dev' or pool!=64 or not 0<=count<=128:
+            raise ValueError('A9-F1 binary worlds are a fixed 128-world development-only sample')
+        return binary_development()[:count]
+    return salted_worlds(split,count,pool,vocab)
 
 @dataclass(frozen=True)
 class Case:
@@ -147,6 +174,7 @@ def manifest():
         ws=worlds(part,n)
         result[part]=dict(worlds=n,sha256=hashlib.sha256(b'\n'.join(w.group_key for w in ws)).hexdigest())
     result['binary_dev']=dict(worlds=128,sha256=hashlib.sha256(b'\n'.join(w.group_key for w in worlds('dev',128,vocab=2))).hexdigest())
+    result['binary_allocation']='A9-F1: all 336 eligible binary worlds, excluding all 896 primary groups, RNG 20261201, first 128; development only'
     result['reserved_a1_audit_worlds']=len(reserved_a1())
     result['reserved_a2_audit_and_development_worlds']=len(reserved_a2())
     result['reserved_a3_audit_and_development_worlds']=len(reserved_a3())
